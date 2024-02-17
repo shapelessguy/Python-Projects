@@ -150,8 +150,16 @@ def actuator(active_times, commands):
                 commands.append('LIGHTSAUTO')
                 auto_time = None
             if len(commands) > 0:
-                command = commands.pop(0) #  .replace('+', ' ')
-                if command == 'LIGHTSAUTO':
+                command = commands.pop(0)
+                if command[:2] == 'TV':
+                    write(command)
+                    reply = f'Command {command} sent'
+                    print(reply)
+                elif command[:5] == 'AUDIO':
+                    write(command)
+                    reply = f'Command {command} sent'
+                    print(reply)
+                elif command == 'LIGHTSAUTO':
                     mode = 'LIGHTSAUTO'
                     reply = f'Mode set to: {mode}'
                     print(reply)
@@ -174,14 +182,6 @@ def actuator(active_times, commands):
                 elif command == 'LIGHTSOFF':
                     mode = 'LIGHTSOFF'
                     reply = f'Mode set to: {mode}'
-                    print(reply)
-                elif command[:2] == 'TV':
-                    write(command)
-                    reply = f'Command {command} sent'
-                    print(reply)
-                elif command[:5] == 'AUDIO':
-                    write(command)
-                    reply = f'Command {command} sent'
                     print(reply)
             if mode == 'LIGHTSAUTO':
                 now = int(time.localtime().tm_hour * 60 + time.localtime().tm_min)
