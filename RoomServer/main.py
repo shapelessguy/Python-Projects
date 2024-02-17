@@ -150,7 +150,7 @@ def actuator(active_times, commands):
                 commands.append('LIGHTSAUTO')
                 auto_time = None
             if len(commands) > 0:
-                command = commands.pop(0).replace('+', ' ')
+                command = commands.pop(0) #  .replace('+', ' ')
                 if command == 'LIGHTSAUTO':
                     mode = 'LIGHTSAUTO'
                     reply = f'Mode set to: {mode}'
