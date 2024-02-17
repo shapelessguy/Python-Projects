@@ -27,6 +27,7 @@ initialized_firebase = False
 
 
 def init_firebase():
+    global initialized_firebase
     cred_json = os.path.join(os.path.dirname(sys.argv[0]), "ip-manager42.json")
     cred = credentials.Certificate(cred_json)
     initialize_app(cred, {'storageBucket': 'ip-manager42.appspot.com'})
@@ -47,6 +48,7 @@ def upload_ip(ip):
 
 # noinspection PyBroadException
 def firebase_():
+    global initialized_firebase
     while 1:
         try:
             prev_ip = None
