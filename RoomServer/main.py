@@ -92,12 +92,12 @@ def initialize():
     # if 'exit status 1' in result.stderr.decode('utf-8'):
     #     print(result.stderr.decode('utf-8'))
     #     raise Exception('Error while compiling or uploading the .ino script on arduino :(')
-    
+
     print('Trying to compile Arduino.ino ...')
     cmd = "arduino-cli compile --upload --fqbn arduino:avr:uno ~/Documents/Python-Projects/RoomServer/arduino/arduino.ino --port /dev/ttyUSB0"
 
     # Open a new terminal window and execute the command
-    process = subprocess.Popen(['gnome-terminal', '--', 'bash', '-c', cmd])
+    process = subprocess.Popen(['lxterminal', '-e', 'bash -c "{}"'.format(cmd)])
 
     # Wait for the subprocess to complete (optional, might not work as expected with some terminal emulators)
     process.wait()
