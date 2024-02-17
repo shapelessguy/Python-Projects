@@ -41,7 +41,8 @@ long comAudio(String c){
 int repeatAudio(String c){
   if (c.substring(0, 3) == "VOL") {
     String repeat = c.substring(4, c.length());
-    return repeat.toInt();
+    int_fast8_t repeat_int = repeat.toInt();
+    return repeat_int;
   }
   return 0;
 }
