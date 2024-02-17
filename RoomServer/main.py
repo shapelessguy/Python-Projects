@@ -92,6 +92,7 @@ def initialize():
     if 'exit status 1' in result.stderr.decode('utf-8'):
         print(result.stderr.decode('utf-8'))
         raise Exception('Error while compiling or uploading the .ino script on arduino :(')
+    
     serialPort = serial.Serial(
         port="/dev/ttyUSB0", baudrate=9600, bytesize=8, timeout=1, stopbits=serial.STOPBITS_ONE
     )
@@ -154,53 +155,57 @@ def actuator(active_times, commands):
     now_active = False
     global auto_time, reply
     while 1:
-        cur_time = datetime.now()
-        cur_time = [cur_time.hour, cur_time.minute]
-        if auto_time is not None and cur_time[0] == auto_time[0] and cur_time[1] == auto_time[1]:
-            commands.append('LIGHTSAUTO')
-            auto_time = None
-        if len(commands) > 0:
-            command = commands.pop(0).replace('+', ' ')
-            if command == 'LIGHTSAUTO':
-                mode = 'LIGHTSAUTO'
-                reply = f'Mode set to: {mode}'
-                print(reply)
-            elif 'LIGHTSAUTO ' in command:
-                try:
-                    time_ = command.split(' ')[1]
-                    hour = int(time_.split(':')[0])
-                    minute = int(time_.split(':')[1])
-                    hour_str = "0" + str(hour) if len(str(hour)) == 1 else str(hour)
-                    minute_str = "0" + str(minute) if len(str(minute)) == 1 else str(minute)
-                    auto_time = [hour, minute]
-                    reply = f'Mode is: {mode} but will switch to auto at {hour_str}:{minute_str}'
-                except Exception as e:
-                    reply = 'Command not recognized'
-                print(reply)
-            elif command == 'LIGHTSON':
-                mode = 'LIGHTSON'
-                reply = f'Mode set to: {mode}'
-                print(reply)
-            elif command == 'LIGHTSOFF':
-                mode = 'LIGHTSOFF'
-                reply = f'Mode set to: {mode}'
-                print(reply)
-            elif command == 'TVON' or command == 'TVOFF':
-                write(command)
-                reply = f'Command {command} sent'
-                print(reply)
-        if mode == 'LIGHTSAUTO':
-            now = int(time.localtime().tm_hour * 60 + time.localtime().tm_min)
-            turn_lights = False
-            for interval in act_times_func:
-                if interval[0] <= now < interval[1]:
-                    turn_lights = True
-            change_lights(turn_lights)
-        elif mode == 'LIGHTSON':
-            change_lights(True)
-        elif mode == 'LIGHTSOFF':
-            change_lights(False)
-        time.sleep(0.2)
+        try:
+            cur_time = datetime.now()
+            cur_time = [cur_time.hour, cur_time.minute]
+            if auto_time is not None and cur_time[0] == auto_time[0] and cur_time[1] == auto_time[1]:
+                commands.append('LIGHTSAUTO')
+                auto_time = None
+            if len(commands) > 0:
+                command = commands.pop(0).replace('+', ' ')
+                if command == 'LIGHTSAUTO':
+                    mode = 'LIGHTSAUTO'
+                    reply = f'Mode set to: {mode}'
+                    print(reply)
+                elif 'LIGHTSAUTO ' in command:
+                    try:
+                        time_ = command.split(' ')[1]
+                        hour = int(time_.split(':')[0])
+                        minute = int(time_.split(':')[1])
+                        hour_str = "0" + str(hour) if len(str(hour)) == 1 else str(hour)
+                        minute_str = "0" + str(minute) if len(str(minute)) == 1 else str(minute)
+                        auto_time = [hour, minute]
+                        reply = f'Mode is: {mode} but will switch to auto at {hour_str}:{minute_str}'
+                    except Exception as e:
+                        reply = 'Command not recognized'
+                    print(reply)
+                elif command == 'LIGHTSON':
+                    mode = 'LIGHTSON'
+                    reply = f'Mode set to: {mode}'
+                    print(reply)
+                elif command == 'LIGHTSOFF':
+                    mode = 'LIGHTSOFF'
+                    reply = f'Mode set to: {mode}'
+                    print(reply)
+                elif command == 'TVON' or command == 'TVOFF':
+                    write(command)
+                    reply = f'Command {command} sent'
+                    print(reply)
+            if mode == 'LIGHTSAUTO':
+                now = int(time.localtime().tm_hour * 60 + time.localtime().tm_min)
+                turn_lights = False
+                for interval in act_times_func:
+                    if interval[0] <= now < interval[1]:
+                        turn_lights = True
+                change_lights(turn_lights)
+            elif mode == 'LIGHTSON':
+                change_lights(True)
+            elif mode == 'LIGHTSOFF':
+                change_lights(False)
+            time.sleep(0.2)
+        except Exception:
+            import traceback
+            print(traceback.format_exc())
 
 
 def functions():
@@ -215,6 +220,7 @@ def functions():
 
 def start_server():
     server.start(port=SERVER_PORT)
+    print('Server Down')
     
 def formulate_reply(topic):
     global reply
