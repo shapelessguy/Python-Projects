@@ -84,7 +84,8 @@ reply = ''
 def initialize():
     global serialPort, initialized
     
-    cmd = "source ~/.bashrc; arduino-cli compile --fqbn arduino:avr:uno ~/Documents/Python-Projects/RoomServer/arduino/" + \
+    print('Trying to compile Arduino.ino ...')
+    cmd = "source ~/.bashrcd df; arduino-cli compile --fqbn arduino:avr:uno ~/Documents/Python-Projects/RoomServer/arduino/" + \
           "arduino.ino; arduino-cli upload -p /dev/ttyUSB0 --fqbn arduino:avr:uno ~/Documents/Python-Projects/RoomServer/arduino/arduino.ino"
     a = subprocess.run(['bash', '-c', cmd], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     print(a.stdout.decode('utf-8'))
