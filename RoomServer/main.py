@@ -51,6 +51,7 @@ def upload_ip(ip):
 def firebase_():
     global initialized_firebase
     while 1:
+        time.sleep(5)
         try:
             prev_ip = None
             if not initialized_firebase:
@@ -69,7 +70,6 @@ def firebase_():
             print('Issue while trying to upload IP (initialization)')
             print(e)
             pass
-        time.sleep(5)
 
 
 ports = list(port_list.comports())
@@ -87,13 +87,10 @@ def initialize():
     print('Trying to compile Arduino.ino ...')
     cmd = "arduino-cli compile --upload --fqbn arduino:avr:uno ~/Documents/Python-Projects/RoomServer/arduino/arduino.ino --port /dev/ttyUSB0"
     result = subprocess.run(['bash', '-i', '-c', cmd], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    print('A')
     print(result.stdout.decode('utf-8'))
-    print('B')
-    print(result.stderr.decode('utf-8'))
-    print('C')
     
-    if result.returncode != 0 and len(result.stderr.decode('utf-8')) < 1:
+    if 'exit status 1' in result.stderr.decode('utf-8'):
+        print(result.stderr.decode('utf-8'))
         raise Exception('Error while compiling or uploading the .ino script on arduino :(')
     serialPort = serial.Serial(
         port="/dev/ttyUSB0", baudrate=9600, bytesize=8, timeout=1, stopbits=serial.STOPBITS_ONE
