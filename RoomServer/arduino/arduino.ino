@@ -29,7 +29,7 @@ long comTv(String c){
 
 long comAudio(String c){
   if (c == "ON/OFF") return 0x80;
-  else if (c == "VOL+") return 0xAA;
+  else if (c == "VOLM") return 0xAA;
   else if (c == "VOL-") return 0x6A;
   else if (c == "MUTE") return 0xEA;
   else if (c == "LEVEL") return 0xA;
