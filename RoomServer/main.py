@@ -89,7 +89,8 @@ def initialize():
           "arduino.ino; arduino-cli upload -p /dev/ttyUSB0 --fqbn arduino:avr:uno ~/Documents/Python-Projects/RoomServer/arduino/arduino.ino"
     result = subprocess.run(['bash', '-c', cmd], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     print(result.stdout.decode('utf-8'))
-
+    
+    print(result.returncode)
     if result.returncode != 0:
         raise Exception('Error while compiling or uploading the .ino script on arduino :(')
     print('Arduino.ino compiled and uploaded!')
