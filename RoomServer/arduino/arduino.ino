@@ -57,7 +57,13 @@ void sendSamsung(String c){
 
 void sendAudio(String c){
   Serial.println("Audio command: " + c);
-  IrSender.sendNEC(0xA002, comAudio(c), repeatAudio(c));
+  if (c.substring(0, 6) == "SETVOL"){
+    IrSender.sendNEC(0xA002, "VOL-", 43);
+    IrSender.sendNEC(0xA002, "VOL+", c.substring(6, c.length()));
+  }
+  else{
+    IrSender.sendNEC(0xA002, comAudio(c), repeatAudio(c));
+  }
 }
 
 void turn_on_lights(){
