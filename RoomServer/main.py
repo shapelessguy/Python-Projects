@@ -4,6 +4,7 @@ import serial
 import time
 import os
 import sys
+import subprocess
 import serial.tools.list_ports as port_list
 from simple_http_server import route, server
 from simple_http_server import request_map
@@ -82,6 +83,10 @@ reply = ''
 
 def initialize():
     global serialPort, initialized
+    p = subprocess.Popen("arduino-cli compile --fqbn arduino:avr:uno ~/Documents/Python-Projects/RoomServer/arduino/" + 
+              "arduino.ino; arduino-cli upload -p /dev/ttyUSB0 --fqbn arduino:avr:uno ~/Documents/Python-Projects/RoomServer/arduino/arduino.ino")
+    p.wait()
+    print('Arduino.ino compiled and uploaded!')
     serialPort = serial.Serial(
         port="/dev/ttyUSB0", baudrate=9600, bytesize=8, timeout=1, stopbits=serial.STOPBITS_ONE
     )
