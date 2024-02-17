@@ -128,12 +128,10 @@ def change_lights(on):
     global lights, initialized
     if on and (not lights or not initialized):
         lights = True
-        print('lights on.')
-        write('lights_on')
+        write('LIGHTSON')
     elif not on and (lights or not initialized):
         lights = False
-        print('lights off.')
-        write('lights_off')
+        write('LIGHTSOFF')
     initialized = True
 
 
@@ -177,7 +175,11 @@ def actuator(active_times, commands):
                     mode = 'LIGHTSOFF'
                     reply = f'Mode set to: {mode}'
                     print(reply)
-                elif command == 'TVON' or command == 'TVOFF':
+                elif command[:2] == 'TV':
+                    write(command)
+                    reply = f'Command {command} sent'
+                    print(reply)
+                elif command[:2] == 'AUDIO':
                     write(command)
                     reply = f'Command {command} sent'
                     print(reply)

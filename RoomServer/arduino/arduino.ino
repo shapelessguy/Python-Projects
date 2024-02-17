@@ -29,7 +29,7 @@ long comTv(String c){
 
 long comAudio(String c){
   if (c == "ON/OFF") return 0x80;
-  else if (c == "VOLM") return 0xAA;
+  else if (c == "VOL+") return 0xAA;
   else if (c == "VOL-") return 0x6A;
   else if (c == "MUTE") return 0xEA;
   else if (c == "LEVEL") return 0xA;
@@ -119,9 +119,9 @@ void loop() {
     command = Serial.readStringUntil('\n');
     command.trim();
     
-    if (command.equals("lights_on")) { turn_on_lights(); }
-    else if (command.equals("lights_off")) { turn_off_lights(); }
-    else if (command.equals("h")) { turn_motor(); }
+    if (command.equals("LIGHTSON")) { turn_on_lights(); }
+    else if (command.equals("LIGHTSOFF")) { turn_off_lights(); }
+    else if (command.equals("H")) { turn_motor(); }
     else if (command.substring(0, 2) == "TV") sendSamsung(command.substring(2, command.length()));
     else if (command.substring(0, 5) == "AUDIO") sendAudio(command.substring(5, command.length()));
     else { Serial.println("bad command"); }
