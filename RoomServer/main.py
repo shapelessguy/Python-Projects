@@ -93,6 +93,18 @@ def initialize():
     #     print(result.stderr.decode('utf-8'))
     #     raise Exception('Error while compiling or uploading the .ino script on arduino :(')
     
+    print('Trying to compile Arduino.ino ...')
+    cmd = "arduino-cli compile --upload --fqbn arduino:avr:uno ~/Documents/Python-Projects/RoomServer/arduino/arduino.ino --port /dev/ttyUSB0"
+
+    # Open a new terminal window and execute the command
+    process = subprocess.Popen(['gnome-terminal', '--', 'bash', '-c', cmd])
+
+    # Wait for the subprocess to complete (optional, might not work as expected with some terminal emulators)
+    process.wait()
+
+    # Since the command is run in a new terminal, direct capture of stdout/stderr won't work as before
+    # You need to check the output in the new terminal window
+    
     serialPort = serial.Serial(
         port="/dev/ttyUSB0", baudrate=9600, bytesize=8, timeout=1, stopbits=serial.STOPBITS_ONE
     )
