@@ -83,10 +83,11 @@ reply = ''
 
 def initialize():
     global serialPort, initialized
-    cmd = "arduino-cli compile --fqbn arduino:avr:uno ~/Documents/Python-Projects/RoomServer/arduino/" + \
+    cmd = "source ~/.bashrc; arduino-cli compile --fqbn arduino:avr:uno ~/Documents/Python-Projects/RoomServer/arduino/" + \
           "arduino.ino; arduino-cli upload -p /dev/ttyUSB0 --fqbn arduino:avr:uno ~/Documents/Python-Projects/RoomServer/arduino/arduino.ino"
     returned_value = subprocess.call(cmd, shell=True)
-    print('returned value:', returned_value)
+    if returned_value != 0:
+        raise Exception('Error while compiling or uploading the .ino script on arduino :(')
     print('Arduino.ino compiled and uploaded!')
     serialPort = serial.Serial(
         port="/dev/ttyUSB0", baudrate=9600, bytesize=8, timeout=1, stopbits=serial.STOPBITS_ONE
