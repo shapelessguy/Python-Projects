@@ -27,12 +27,36 @@ long comTv(String c){
   return 0;
 }
 
+long comAudio(String c){
+  if (c == "ON/OFF") return 0x80;
+  else if (c == "VOL+") return 0xAA;
+  else if (c == "VOL-") return 0x6A;
+  else if (c == "MUTE") return 0xEA;
+  else if (c == "LEVEL") return 0xA;
+  else if (c == "EFFECT") return 0xE;
+  else if (c == "INPUT") return 0x8;
+  return 0;
+}
+
+int repeatAudio(String c){
+  if (c.substring(0, 3) == "VOL") {
+    String repeat = c.substring(4, c.length());
+    return repeat.toInt()
+  }
+  return 0;
+}
+
 void sendSamsung(String c){
   Serial.println("TV command: " + c);
  for (int i = 0; i < 6; i++) {
     IrSender.sendSAMSUNG(comTv(c), 32);
     delay(40);
   }
+}
+
+void sendAudio(String c){
+  Serial.println("Audio command: " + c);
+  IrSender.sendNEC(0xA002, comAudio(c), repeatAudio(c));
 }
 
 void turn_on_lights(){
@@ -99,6 +123,7 @@ void loop() {
     else if (command.equals("lights_off")) { turn_off_lights(); }
     else if (command.equals("h")) { turn_motor(); }
     else if (command.substring(0, 2) == "TV") sendSamsung(command.substring(2, command.length()));
+    else if (command.substring(0, 5) == "AUDIO") sendAudio(command.substring(5, command.length()));
     else { Serial.println("bad command"); }
   }
 }

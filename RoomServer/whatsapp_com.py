@@ -1,13 +1,15 @@
 # Importing the Required Library
 import pywhatkit
 
-# Defining the Phone Number and Message
-phone_number = "+491718253298"
-message = "Hey!"
+print("WhatsApp message sent 😁 !")
 
 # Sending the WhatsApp Message
-pywhatkit.sendwhatmsg_instantly(phone_number, message)
+# pywhatkit.sendwhatmsg_to_group_instantly("Leopoldstrrasssse", "?_?")
 
 # Displaying a Success Message
-print("WhatsApp message sent!")
+print("WhatsApp message sent 😁 !")
 
+# 🛁🚽
+# 🧹🪣🫧
+# 🪣🪑
+# 💸🧺🍾
