@@ -225,22 +225,26 @@ def formulate_reply(topic):
 
 
 @route("/")
-def ping(model=ModelDict()):
+def ping_callback(model=ModelDict()):
     return {'/': '200'}
 
-
 @route("/lights")
-def lights(model=ModelDict()):
+def lights_callback(model=ModelDict()):
     command = "LIGHTS" + model['lights'].upper()
     commands.append(command)
     return formulate_reply('lights')
 
-
 @route("/tv")
-def lights(model=ModelDict()):
+def tv_callback(model=ModelDict()):
     command = "TV" + model['tv'].upper()
     commands.append(command)
     return {'tv': command}
+
+@route("/audio")
+def audio_callback(model=ModelDict()):
+    command = "AUDIO" + model['audio'].upper()
+    commands.append(command)
+    return {'audio': command}
 
 
 if __name__ == '__main__':
