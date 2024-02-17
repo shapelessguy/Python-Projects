@@ -93,9 +93,9 @@ def initialize():
     #     print(result.stderr.decode('utf-8'))
     #     raise Exception('Error while compiling or uploading the .ino script on arduino :(')
     
-    # serialPort = serial.Serial(
-    #     port="/dev/ttyUSB0", baudrate=9600, bytesize=8, timeout=1, stopbits=serial.STOPBITS_ONE
-    # )
+    serialPort = serial.Serial(
+        port="/dev/ttyUSB0", baudrate=9600, bytesize=8, timeout=1, stopbits=serial.STOPBITS_ONE
+    )
 
     loop_init = False
     print('Contacting Arduino..')
