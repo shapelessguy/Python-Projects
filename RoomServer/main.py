@@ -84,18 +84,18 @@ reply = ''
 def initialize():
     global serialPort, initialized
     
-    print('Trying to compile Arduino.ino ...')
-    cmd = "arduino-cli compile --upload --fqbn arduino:avr:uno ~/Documents/Python-Projects/RoomServer/arduino/arduino.ino --port /dev/ttyUSB0"
-    result = subprocess.run(['bash', '-i', '-c', cmd], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    print(result.stdout.decode('utf-8'))
+    # print('Trying to compile Arduino.ino ...')
+    # cmd = "arduino-cli compile --upload --fqbn arduino:avr:uno ~/Documents/Python-Projects/RoomServer/arduino/arduino.ino --port /dev/ttyUSB0"
+    # result = subprocess.run(['bash', '-i', '-c', cmd], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    # print(result.stdout.decode('utf-8'))
     
-    if 'exit status 1' in result.stderr.decode('utf-8'):
-        print(result.stderr.decode('utf-8'))
-        raise Exception('Error while compiling or uploading the .ino script on arduino :(')
+    # if 'exit status 1' in result.stderr.decode('utf-8'):
+    #     print(result.stderr.decode('utf-8'))
+    #     raise Exception('Error while compiling or uploading the .ino script on arduino :(')
     
-    serialPort = serial.Serial(
-        port="/dev/ttyUSB0", baudrate=9600, bytesize=8, timeout=1, stopbits=serial.STOPBITS_ONE
-    )
+    # serialPort = serial.Serial(
+    #     port="/dev/ttyUSB0", baudrate=9600, bytesize=8, timeout=1, stopbits=serial.STOPBITS_ONE
+    # )
 
     loop_init = False
     print('Contacting Arduino..')
