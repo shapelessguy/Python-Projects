@@ -179,7 +179,7 @@ def actuator(active_times, commands):
                     write(command)
                     reply = f'Command {command} sent'
                     print(reply)
-                elif command[:2] == 'AUDIO':
+                elif command[:5] == 'AUDIO':
                     write(command)
                     reply = f'Command {command} sent'
                     print(reply)
@@ -212,7 +212,6 @@ def functions():
 
 def start_server():
     server.start(port=SERVER_PORT)
-    print('Server Down')
     
 def formulate_reply(topic):
     global reply
