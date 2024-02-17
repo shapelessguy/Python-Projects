@@ -209,13 +209,18 @@ def actuator(active_times, commands):
 
 
 def functions():
+    print('A')
     initialize()
+    print('B')
     active_times = [('7:30', '22:00')]
     worker = threading.Thread(target=actuator, args=(active_times, commands))
+    print('C')
     worker.start()
+    print('D')
     while 1:
         command = input('')
         commands.append(command)
+    print('E')
 
 
 def start_server():
