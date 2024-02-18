@@ -238,15 +238,13 @@ def lights_callback(model=ModelDict()):
 def tv_callback(model=ModelDict()):
     command = "TV" + model['tv'].upper()
     commands.append(command)
-    time.sleep(0.3)
-    return {'tv': command}
+    return formulate_reply('tv')
 
 @route("/audio")
 def audio_callback(model=ModelDict()):
     command = "AUDIO" + model['audio'].upper()
     commands.append(command)
-    time.sleep(0.3)
-    return {'audio': command}
+    return formulate_reply('audio')
 
 
 if __name__ == '__main__':
