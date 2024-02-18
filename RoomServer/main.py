@@ -215,7 +215,7 @@ def start_server():
     
 def formulate_reply(topic):
     global reply
-    time.sleep(0.5)
+    time.sleep(0.1)
     for i in range(20):
         if reply != '':
             return {topic: reply}
