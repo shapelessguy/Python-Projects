@@ -151,6 +151,7 @@ def actuator(active_times, commands):
                 auto_time = None
             if len(commands) > 0:
                 command = commands.pop(0)
+                print(command)
                 if command[:2] == 'TV':
                     write(command)
                     reply = f'Command {command} sent'
@@ -163,9 +164,9 @@ def actuator(active_times, commands):
                     mode = 'LIGHTSAUTO'
                     reply = f'Mode set to: {mode}'
                     print(reply)
-                elif 'LIGHTSAUTO ' in command:
+                elif 'LIGHTSAUTO+' in command:
                     try:
-                        time_ = command.split(' ')[1]
+                        time_ = command.split('+')[1]
                         hour = int(time_.split(':')[0])
                         minute = int(time_.split(':')[1])
                         hour_str = "0" + str(hour) if len(str(hour)) == 1 else str(hour)
