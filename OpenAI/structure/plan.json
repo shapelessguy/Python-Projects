@@ -1,0 +1,121 @@
+{
+    "A1": {
+        "Understanding the Alphabet and Pronunciation": {
+            "1.1 Learn the alphabet and individual letters": true,
+            "1.2 Understand pronunciation and sounds": false,
+            "1.3 Practice phonetics and accent": false,
+            "1.4 Learn about tonality if applicable": false
+        },
+        "Basic Vocabulary": {
+            "2.1 Everyday objects": true,
+            "2.2 Common adjectives": true,
+            "2.3 Simple verbs": true,
+            "2.4 Basic pronouns": true,
+            "2.5 Numbers": true,
+            "2.6 Days of the week and months": true
+        },
+        "Basic Grammar": {
+            "3.1 Present tense": null,
+            "3.2 Usage of articles": null,
+            "3.3 Basic sentence structure": null,
+            "3.4 Usage of prepositions": true,
+            "3.5 Conjunctions": null
+        },
+        "Basic Communication": {
+            "4.1 Greetings and farewells": true,
+            "4.2 Introducing oneself": true,
+            "4.3 Polite expressions": true,
+            "4.4 Basic questions": true,
+            "4.5 Ordering food and drinks": true
+        },
+        "Listening and Speaking Practice": {
+            "5.1 Listen to basic dialogues or stories": false,
+            "5.2 Participate in simple conversations": null,
+            "5.3 Repeat and practice pronunciation": false
+        },
+        "Reading and Writing Practice": {
+            "6.1 Learn to read and write basic words": true,
+            "6.2 Practice writing simple sentences": null,
+            "6.3 Read simple texts": true
+        },
+        "Cultural Awareness": {
+            "7.1 Learn about basic etiquette and customs": true,
+            "7.2 Explore simple cultural contexts of the language": true
+        }
+    },
+    "A2": {
+        "Expanded Vocabulary": {
+            "8.1 Vocabulary related to food and drink": true,
+            "8.2 Clothing and fashion terms": true,
+            "8.3 Vocabulary related to work and professions": true,
+            "8.4 School and education terms": true,
+            "8.5 Household items and furniture": true
+        },
+        "Grammar Expansion": {
+            "9.1 Past tense": null,
+            "9.2 Future tense": null,
+            "9.3 More complex sentence structures": null,
+            "9.4 Direct and indirect objects": null,
+            "9.5 Adverbs": null
+        },
+        "Improved Communication": {
+            "10.1 Asking for directions": true,
+            "10.2 Making appointments": true,
+            "10.3 Describing people and things": true,
+            "10.4 Making simple requests and orders": true,
+            "10.5 Expressing likes and dislikes": true
+        },
+        "Listening and Speaking Practice": {
+            "11.1 Listen to more complex dialogues": false,
+            "11.2 Participate in longer conversations": null,
+            "11.3 Practice pronunciation of new vocabulary": false
+        },
+        "Reading and Writing Practice": {
+            "12.1 Read and write more complex sentences": null,
+            "12.2 Practice writing short paragraphs": null,
+            "12.3 Read longer texts": null
+        },
+        "Cultural Understanding": {
+            "13.1 Explore popular culture": true,
+            "13.2 Learn about traditional holidays and celebrations": true
+        }
+    },
+    "B1": {
+        "Advanced Vocabulary": {
+            "14.1 Business and economic terms": null,
+            "14.2 Health and medical terms": true,
+            "14.3 Advanced numbers and quantities": true,
+            "14.4 Legal and civic terms": null,
+            "14.5 Transportation and travel vocabulary": true
+        },
+        "Complex Grammar": {
+            "15.1 Conditional sentences": null,
+            "15.2 Subjunctive mood": null,
+            "15.3 Comparative and superlative": true,
+            "15.4 Passive voice": null,
+            "15.5 Reported speech": null
+        },
+        "Enhanced Communication": {
+            "16.1 Expressing opinions": null,
+            "16.2 Making suggestions and giving advice": null,
+            "16.3 Negotiating and debating": null,
+            "16.4 Discussing abstract topics": null,
+            "16.5 Discussing plans and intentions": null
+        },
+        "Listening and Speaking Practice": {
+            "17.1 Understand a wider range of accents and speeds of speech": false,
+            "17.2 Participate in group discussions and debates": null,
+            "17.3 Deliver short presentations": null
+        },
+        "Reading and Writing Practice": {
+            "18.1 Read and understand complex texts": null,
+            "18.2 Write formal and informal letters/emails": true,
+            "18.3 Write essays and reports": null
+        },
+        "Cultural Integration": {
+            "19.1 Understand idiomatic expressions and slang": null,
+            "19.2 Explore literature and film": true,
+            "19.3 Learn about history and politics related to the language": true
+        }
+    }
+}

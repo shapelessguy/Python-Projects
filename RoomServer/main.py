@@ -151,7 +151,6 @@ def actuator(active_times, commands):
                 auto_time = None
             if len(commands) > 0:
                 command = commands.pop(0)
-                print(command)
                 if command[:2] == 'TV':
                     write(command)
                     reply = f'Command {command} sent'

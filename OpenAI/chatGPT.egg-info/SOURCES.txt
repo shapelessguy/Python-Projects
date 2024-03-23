@@ -1,0 +1,6 @@
+pyproject.toml
+setup.py
+chatGPT.egg-info/PKG-INFO
+chatGPT.egg-info/SOURCES.txt
+chatGPT.egg-info/dependency_links.txt
+chatGPT.egg-info/top_level.txt

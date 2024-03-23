@@ -1,0 +1,98 @@
+------- TEST 1 -----------------------------------------------------------------------------------
+
+liquid = Liquid(p_pg=0.5, p_vg=0.5, p_w=0, nico=4, base_nico=base_nico, mixtures={Aroma.decomposed: 1/3})
+new_mixture = liquid.compose(name='liquid', ref={Aroma.decomposed: 20})
+
+composition = liquid.get_composition(print_=True)
+print(new_mixture.to_dict())
+
+------------------------------------
+
+Output:
+COMPOSITION -> liquid:
+	            PG (to add)  VG (to add)  NICO (to add)  MIX1-decomposed    Tot
+	Volume(ml)      10.0        27.600        2.400            20.0         60.0
+	Mass(g)         10.6        35.328        3.312            21.2         70.4
+	~drops         500.0       800.000       80.000           900.0       2260.0
+	Price(€)         0.1         0.276        0.696            20.0         21.1
+
+{'PG': 0.5, 'VG': 0.46, 'NICO': 0.04, 'decomposed': 0.3333333}
+
+--------------------------------------------------------------------------------------------------
+------- TEST 2 -----------------------------------------------------------------------------------
+
+prev_liquid = Mixture('old_ice_aroma1', {base_pg: .2, base_vg: .8}, d_price=1)
+liquid = Liquid(p_pg=0.5, p_vg=0.5, p_w=0, nico=2, base_nico=base_nico,
+                mixtures={prev_liquid: 0.55, Aroma.aroma1: 0.08, Aroma.aroma2: 0.015})
+new_mixture = liquid.compose(name='new_ice_aroma1', ref={'tot': 30})
+
+composition = liquid.get_composition(print_=True)
+print(new_mixture.to_dict())
+
+------------------------------------
+
+Output:
+COMPOSITION -> new_ice_aroma1:
+	            PG (to add)  VG (to add)  NICO (to add)  MIX1-old_ice_aroma1  MIX2-aroma1  MIX3-aroma2    Tot
+	Volume(ml)     8.8500       1.200         0.600              16.500             2.400        0.450       30.0
+	Mass(g)        9.3810       1.536         0.828              20.394             2.544        0.477       35.2
+	~drops       400.0000      30.000        20.000             500.000           100.000       20.000     1130.0
+	Price(€)       0.0885       0.012         0.174              16.500             0.720        0.000       17.5
+
+{'PG': 0.5, 'VG': 0.48, 'NICO': 0.02, 'old_ice_aroma1': 0.55, 'aroma1': 0.08, 'aroma2': 0.015}
+
+--------------------------------------------------------------------------------------------------
+------- TEST 3 -----------------------------------------------------------------------------------
+
+liquid = Liquid(p_pg=0.5, p_vg=0.5, p_w=0, nico=2, base_nico=base_nico,
+                mixtures={Aroma.aroma1: 0.05, Aroma.aroma2: 0.05})
+new_mixture = liquid.compose(name='liquid0', ref={'tot': 1})
+
+composition = liquid.get_composition(print_=True)
+print(new_mixture.to_dict())
+
+liquid = Liquid(p_pg=0.5, p_vg=0.5, p_w=0, nico=2, base_nico=base_nico,
+                mixtures={new_mixture: 0.5, Aroma.aroma1: 0.1})
+new_mixture = liquid.compose('liquid1', ref={new_mixture: 1})
+
+composition = liquid.get_composition(print_=True)
+print(new_mixture.to_dict())
+
+liquid = Liquid(p_pg=0.5, p_vg=0.5, p_w=0, nico=2, base_nico=base_nico,
+                mixtures={new_mixture: 0.5, Aroma.aroma1: 0.1})
+new_mixture = liquid.compose('liquid2', ref={new_mixture: 2})
+
+composition = liquid.get_composition(print_=True)
+print(new_mixture.to_dict())
+
+------------------------------------
+
+Output:
+COMPOSITION -> liquid0:
+	            PG (to add)  VG (to add)  NICO (to add)  MIX1-aroma1  MIX2-aroma2    Tot
+	Volume(ml)     0.400        0.4800       0.0200          0.050         0.050      1.0000
+	Mass(g)        0.424        0.6144       0.0276          0.053         0.053      1.1700
+	~drops        20.000       10.0000       0.7000          2.000         2.000     37.5000
+	Price(€)       0.004        0.0048       0.0058          0.015         0.000      0.0296
+
+{'PG': 0.5, 'VG': 0.48, 'NICO': 0.02, 'aroma1': 0.05, 'aroma2': 0.05}
+
+COMPOSITION -> liquid1:
+	            PG (to add)  VG (to add)  NICO (to add)  MIX1-liquid0  MIX2-aroma1    Tot
+	Volume(ml)     0.3500       0.4800       0.0200          1.0000        0.150      2.0000
+	Mass(g)        0.3710       0.6144       0.0276          1.1720        0.159      2.3400
+	~drops        20.0000      10.0000       0.7000         40.0000        7.000     75.0000
+	Price(€)       0.0035       0.0048       0.0058          0.0296        0.045      0.0887
+
+{'PG': 0.5, 'VG': 0.48, 'NICO': 0.02, 'aroma1': 0.1, 'aroma2': 0.025}
+
+COMPOSITION -> liquid2:
+	            PG (to add)  VG (to add)  NICO (to add)  MIX1-liquid1  MIX2-aroma1    Tot
+	Volume(ml)     0.800        0.9600       0.0400          2.0000        0.200       4.000
+	Mass(g)        0.848        1.2288       0.0552          2.3440        0.212       4.690
+	~drops        40.000       30.0000       1.0000         80.0000        9.000     150.000
+	Price(€)       0.008        0.0096       0.0116          0.0887        0.060       0.178
+
+{'PG': 0.5, 'VG': 0.48, 'NICO': 0.02, 'aroma1': 0.1, 'aroma2': 0.0125}
+
+--------------------------------------------------------------------------------------------------

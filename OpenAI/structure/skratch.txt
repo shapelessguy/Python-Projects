@@ -1,0 +1,76 @@
+{
+    "A1": {
+        "Understanding the Alphabet and Pronunciation": {
+            "1.1 Learn the alphabet and individual letters": true
+        },
+        "Basic Vocabulary": {
+            "2.1 Everyday objects": true,
+            "2.2 Common adjectives": true,
+            "2.3 Simple verbs": true,
+            "2.4 Basic pronouns": true,
+            "2.5 Numbers": true,
+            "2.6 Days of the week and months": true
+        },
+        "Basic Grammar": {
+            "3.4 Usage of prepositions": true
+        },
+        "Basic Communication": {
+            "4.1 Greetings and farewells": true,
+            "4.2 Introducing oneself": true,
+            "4.3 Polite expressions": true,
+            "4.4 Basic questions": true,
+            "4.5 Ordering food and drinks": true
+        },
+        "Reading and Writing Practice": {
+            "6.1 Learn to read and write basic words": true,
+            "6.3 Read simple texts": true
+        },
+        "Cultural Awareness": {
+            "7.1 Learn about basic etiquette and customs": true,
+            "7.2 Explore simple cultural contexts of the language": true
+        }
+    },
+    "A2": {
+        "Expanded Vocabulary": {
+            "8.1 Vocabulary related to food and drink": true,
+            "8.2 Clothing and fashion terms": true,
+            "8.3 Vocabulary related to work and professions": true,
+            "8.4 School and education terms": true,
+            "8.5 Household items and furniture": true
+        },
+        "Improved Communication": {
+            "10.1 Asking for directions": true,
+            "10.2 Making appointments": true,
+            "10.3 Describing people and things": true,
+            "10.4 Making simple requests and orders": true,
+            "10.5 Expressing likes and dislikes": true
+        },
+        "Cultural Understanding": {
+            "13.1 Explore popular culture": true,
+            "13.2 Learn about traditional holidays and celebrations": true
+        }
+    },
+    "B1": {
+        "Advanced Vocabulary": {
+            "14.2 Health and medical terms": true,
+            "14.3 Advanced numbers and quantities": true,
+            "14.5 Transportation and travel vocabulary": true
+        },
+        "Complex Grammar": {
+            "15.3 Comparative and superlative": true
+        },
+        "Reading and Writing Practice": {
+            "18.2 Write formal and informal letters/emails": true
+        },
+        "Cultural Integration": {
+            "19.2 Explore literature and film": true,
+            "19.3 Learn about history and politics related to the language": true
+        }
+    }
+}
+
+
+This is the plan for a language course generator. Now I have to generate some images based on the value (true, null, false.. true stands for "an image can be generated") that you find on the right of the keys.
+For each of the keys for which an image is possible, I have to create a full description of the picture so that I could use the description itself to understand if the student is truly understanding the whole context.
+A detailed description of the image is a description of at least 10 sentences. I have to know all the details in the picture, leaving ideally nothing out of the immagination.
+Let's start with "1.1 Learn the alphabet and individual letters" for example. Create me 2 detailed descriptions of possible images that can support the student.
