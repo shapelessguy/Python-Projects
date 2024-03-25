@@ -140,21 +140,20 @@ def actuator(active_times, commands):
     print('Actuator running.')
     mode = 'LIGHTSAUTO'
     act_times_func = [list(int(y.split(':')[0]) * 60 + int(y.split(':')[1]) for y in x) for x in active_times]
-    now_active = False
     global auto_time, reply
     audio_on = False
     last_audio_ping = datetime.now() - timedelta(hours=24)
     audio_ping_index = 0
+    ping_period = 10  # audio ping received every 10 seconds
+    ping_sent = 300  # audio ping sent to HW every 300 seconds
     while 1:
         try:
             cur_time = datetime.now()
             if 'AUDIOON' in commands or 'AUDIOOFF' in commands:
                 pass
-            elif cur_time - last_audio_ping > timedelta(seconds=15) and audio_on:
-                print(cur_time - last_audio_ping, audio_on, 'AUDIOOFF!!')
+            elif cur_time - last_audio_ping > timedelta(seconds=ping_period * 2.5) and audio_on:
                 commands.append('AUDIOOFF')
-            elif cur_time - last_audio_ping < timedelta(seconds=15) and not audio_on:
-                print(cur_time - last_audio_ping, audio_on, 'AUDIOON!!')
+            elif cur_time - last_audio_ping < timedelta(seconds=ping_period * 2.5) and not audio_on:
                 commands.append('AUDIOON')
 
             time_list = [cur_time.hour, cur_time.minute]
@@ -171,7 +170,7 @@ def actuator(active_times, commands):
                     if command == 'AUDIOPINGVOL':
                         audio_ping_index += 1
                         last_audio_ping = cur_time
-                        if audio_ping_index % (300 * 0.1) == 0: # Ping sent to the speakers every 300 seconds
+                        if audio_ping_index % (ping_sent / ping_period) == 0:
                             write(command)
                     elif command == 'AUDIOON':
                         reply = f'Command {command} sent'
