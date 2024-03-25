@@ -145,15 +145,16 @@ def actuator(active_times, commands):
     last_audio_ping = datetime.now() - timedelta(hours=24)
     audio_ping_index = 0
     ping_period = 10  # audio ping received every 10 seconds
+    tollerance = 180  # audio turns off after 180 seconds
     ping_sent = 300  # audio ping sent to HW every 300 seconds
     while 1:
         try:
             cur_time = datetime.now()
             if 'AUDIOON' in commands or 'AUDIOOFF' in commands:
                 pass
-            elif cur_time - last_audio_ping > timedelta(seconds=ping_period * 2.5) and audio_on:
+            elif cur_time - last_audio_ping > timedelta(seconds=tollerance) and audio_on:
                 commands.append('AUDIOOFF')
-            elif cur_time - last_audio_ping < timedelta(seconds=ping_period * 2.5) and not audio_on:
+            elif cur_time - last_audio_ping < timedelta(seconds=tollerance) and not audio_on:
                 commands.append('AUDIOON')
 
             time_list = [cur_time.hour, cur_time.minute]
