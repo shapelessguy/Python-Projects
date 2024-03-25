@@ -143,7 +143,7 @@ def actuator(active_times, commands):
     now_active = False
     global auto_time, reply
     audio_on = False
-    last_audio_ping = datetime.now()
+    last_audio_ping = datetime.now() - timedelta(hours=24)
     audio_ping_index = 0
     while 1:
         try:
@@ -191,6 +191,9 @@ def actuator(active_times, commands):
                         write(command)
                         reply = f'Command {command} sent'
                         print(reply)
+                    for i in range(len(commands) - 1, -1, -1):
+                        if commands[i] in ['AUDIOON', 'AUDIOOFF']:
+                            commands.pop(i)
                 elif command == 'LIGHTSAUTO':
                     mode = 'LIGHTSAUTO'
                     reply = f'Mode set to: {mode}'
