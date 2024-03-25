@@ -175,6 +175,7 @@ def actuator(active_times, commands):
                             write(command)
                     elif command == 'AUDIOON':
                         reply = f'Command {command} sent'
+                        last_audio_ping = cur_time
                         audio_on = True
                         write('AUDIOON/OFF')
                         time.sleep(1)
