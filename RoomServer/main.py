@@ -142,11 +142,17 @@ def actuator(active_times, commands):
     act_times_func = [list(int(y.split(':')[0]) * 60 + int(y.split(':')[1]) for y in x) for x in active_times]
     now_active = False
     global auto_time, reply
+    audio_on = True
     last_audio_ping = datetime.now()
     while 1:
         try:
             cur_time = datetime.now()
-            print(cur_time - last_audio_ping < timedelta(seconds=10))
+            if cur_time - last_audio_ping > timedelta(seconds=15) and audio_on:
+                audio_on = False
+                commands.append('AUDIOON/OFF')
+            elif cur_time - last_audio_ping < timedelta(seconds=15) and not audio_on:
+                audio_on = True
+                commands.append('AUDIOON/OFF')
             time_list = [cur_time.hour, cur_time.minute]
             if auto_time is not None and time_list[0] == auto_time[0] and time_list[1] == auto_time[1]:
                 commands.append('LIGHTSAUTO')
