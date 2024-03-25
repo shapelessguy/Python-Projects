@@ -168,7 +168,7 @@ def actuator(active_times, commands):
                     if command == 'AUDIOPINGVOL':
                         audio_ping_index += 1
                         last_audio_ping = cur_time
-                        if audio_ping_index % (int)(60 / 0.2) == 0:
+                        if audio_ping_index % 3 == 0:
                             write(command)
                     else:
                         write(command)
