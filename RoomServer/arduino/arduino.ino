@@ -61,6 +61,10 @@ void sendAudio(String c){
     IrSender.sendNEC(0xA002, comAudio("VOL-"), 43);
     IrSender.sendNEC(0xA002, comAudio("VOL+"), c.substring(6, c.length()).toInt());
   }
+  else if (c.substring(0, 7) == "PINGVOL"){
+    IrSender.sendNEC(0xA002, comAudio("VOL-"), 1);
+    IrSender.sendNEC(0xA002, comAudio("VOL+"), 1);
+  }
   else{
     IrSender.sendNEC(0xA002, comAudio(c), repeatAudio(c));
   }
