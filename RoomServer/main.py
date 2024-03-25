@@ -173,13 +173,13 @@ def actuator(active_times, commands):
                     elif command == 'AUDIOON':
                         reply = f'Command {command} sent'
                         write('AUDIOON/OFF')
-                        time.sleep(1)
+                        time.sleep(1.5)
                         write('AUDIOON/OFF')
                         print(reply)
                     elif command == 'AUDIOOFF':
                         reply = f'Command {command} sent'
                         write('AUDIOON/OFF')
-                        time.sleep(1)
+                        time.sleep(1.5)
                         write('AUDIOON/OFF')
                         time.sleep(2)
                         write('AUDIOON/OFF')
