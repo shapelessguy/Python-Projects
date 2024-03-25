@@ -170,6 +170,10 @@ def actuator(active_times, commands):
                         last_audio_ping = cur_time
                         if audio_ping_index % (300 * 0.1) == 0: # Ping sent to the speakers every 300 seconds
                             write(command)
+                    elif command == 'AUDIOON':
+                        write('AUDIOON/OFF')
+                        time.sleep(1000)
+                        write('AUDIOON/OFF')
                     else:
                         write(command)
                     reply = f'Command {command} sent'
@@ -266,8 +270,3 @@ if __name__ == '__main__':
     threading.Thread(target=firebase_).start()
     threading.Thread(target=start_server).start()
     functions()
-
-    # Force audio on
-    write('AUDIOON/OFF')
-    time.sleep(1000)
-    write('AUDIOON/OFF')
