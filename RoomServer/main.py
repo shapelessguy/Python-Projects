@@ -144,6 +144,7 @@ def actuator(active_times, commands):
     global auto_time, reply
     audio_on = True
     last_audio_ping = datetime.now()
+    audio_ping_index = 0
     while 1:
         try:
             cur_time = datetime.now()
@@ -164,9 +165,13 @@ def actuator(active_times, commands):
                     reply = f'Command {command} sent'
                     print(reply)
                 elif command[:5] == 'AUDIO':
-                    write(command)
                     if command == 'AUDIOPINGVOL':
+                        audio_ping_index += 1
                         last_audio_ping = cur_time
+                        if audio_ping_index % (int)(60 / 0.2) == 0:
+                            write(command)
+                    else:
+                        write(command)
                     reply = f'Command {command} sent'
                     print(reply)
                 elif command == 'LIGHTSAUTO':
