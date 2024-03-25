@@ -142,9 +142,11 @@ def actuator(active_times, commands):
     act_times_func = [list(int(y.split(':')[0]) * 60 + int(y.split(':')[1]) for y in x) for x in active_times]
     now_active = False
     global auto_time, reply
+    last_audio_ping = datetime.now()
     while 1:
         try:
             cur_time = datetime.now()
+            print(cur_time - last_audio_ping)
             cur_time = [cur_time.hour, cur_time.minute]
             if auto_time is not None and cur_time[0] == auto_time[0] and cur_time[1] == auto_time[1]:
                 commands.append('LIGHTSAUTO')
@@ -157,6 +159,8 @@ def actuator(active_times, commands):
                     print(reply)
                 elif command[:5] == 'AUDIO':
                     write(command)
+                    if command == 'AUDIOPINGVOL':
+                        last_audio_ping = cur_time
                     reply = f'Command {command} sent'
                     print(reply)
                 elif command == 'LIGHTSAUTO':
@@ -216,7 +220,7 @@ def start_server():
 def formulate_reply(topic):
     global reply
     time.sleep(0.1)
-    for i in range(20):
+    for _ in range(20):
         if reply != '':
             return {topic: reply}
         time.sleep(0.05)
