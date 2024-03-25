@@ -168,7 +168,7 @@ def actuator(active_times, commands):
                     if command == 'AUDIOPINGVOL':
                         audio_ping_index += 1
                         last_audio_ping = cur_time
-                        if audio_ping_index % 3 == 0:
+                        if audio_ping_index % (300 * 0.1) == 0: # Ping sent to the speakers every 300 seconds
                             write(command)
                     else:
                         write(command)
