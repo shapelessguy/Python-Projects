@@ -1,5 +1,5 @@
 import threading
-from datetime import datetime
+from datetime import datetime, timedelta
 import serial
 import time
 import os
@@ -146,7 +146,7 @@ def actuator(active_times, commands):
     while 1:
         try:
             cur_time = datetime.now()
-            print(cur_time - last_audio_ping < 10)
+            print(cur_time - last_audio_ping < timedelta(seconds=10))
             time_list = [cur_time.hour, cur_time.minute]
             if auto_time is not None and time_list[0] == auto_time[0] and time_list[1] == auto_time[1]:
                 commands.append('LIGHTSAUTO')
