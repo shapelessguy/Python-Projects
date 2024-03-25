@@ -171,13 +171,15 @@ def actuator(active_times, commands):
                     #     if audio_ping_index % (300 * 0.1) == 0: # Ping sent to the speakers every 300 seconds
                     #         write(command)
                     if command == 'AUDIOON':
+                        reply = f'Command {command} sent'
                         write('AUDIOON/OFF')
                         time.sleep(1000)
                         write('AUDIOON/OFF')
+                        print(reply)
                     else:
                         write(command)
-                    reply = f'Command {command} sent'
-                    print(reply)
+                        reply = f'Command {command} sent'
+                        print(reply)
                 elif command == 'LIGHTSAUTO':
                     mode = 'LIGHTSAUTO'
                     reply = f'Mode set to: {mode}'
