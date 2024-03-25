@@ -148,12 +148,13 @@ def actuator(active_times, commands):
     while 1:
         try:
             cur_time = datetime.now()
-            if cur_time - last_audio_ping > timedelta(seconds=15) and audio_on:
-                audio_on = False
+            if 'AUDIOON' in commands or 'AUDIOOFF' in commands:
+                pass
+            elif cur_time - last_audio_ping > timedelta(seconds=15) and audio_on:
                 commands.append('AUDIOOFF')
             elif cur_time - last_audio_ping < timedelta(seconds=15) and not audio_on:
-                audio_on = True
                 commands.append('AUDIOON')
+
             time_list = [cur_time.hour, cur_time.minute]
             if auto_time is not None and time_list[0] == auto_time[0] and time_list[1] == auto_time[1]:
                 commands.append('LIGHTSAUTO')
@@ -172,14 +173,16 @@ def actuator(active_times, commands):
                             write(command)
                     elif command == 'AUDIOON':
                         reply = f'Command {command} sent'
+                        audio_on = True
                         write('AUDIOON/OFF')
-                        time.sleep(1.5)
+                        time.sleep(1)
                         write('AUDIOON/OFF')
                         print(reply)
                     elif command == 'AUDIOOFF':
                         reply = f'Command {command} sent'
+                        audio_on = False
                         write('AUDIOON/OFF')
-                        time.sleep(1.5)
+                        time.sleep(1)
                         write('AUDIOON/OFF')
                         time.sleep(2)
                         write('AUDIOON/OFF')
