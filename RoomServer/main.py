@@ -266,3 +266,8 @@ if __name__ == '__main__':
     threading.Thread(target=firebase_).start()
     threading.Thread(target=start_server).start()
     functions()
+
+    # Force audio on
+    write('AUDIOON/OFF')
+    time.sleep(1000)
+    write('AUDIOON/OFF')
