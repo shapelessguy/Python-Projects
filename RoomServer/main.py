@@ -175,7 +175,7 @@ def actuator(active_times, commands):
                         print("A")
                         write('AUDIOON/OFF')
                         print("B")
-                        time.sleep(2000)
+                        time.sleep(1)
                         print("C")
                         write('AUDIOON/OFF')
                         print("D")
