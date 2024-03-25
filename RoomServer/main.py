@@ -142,18 +142,18 @@ def actuator(active_times, commands):
     act_times_func = [list(int(y.split(':')[0]) * 60 + int(y.split(':')[1]) for y in x) for x in active_times]
     now_active = False
     global auto_time, reply
-    # audio_on = True
-    # last_audio_ping = datetime.now()
-    # audio_ping_index = 0
+    audio_on = False
+    last_audio_ping = datetime.now()
+    audio_ping_index = 0
     while 1:
         try:
             cur_time = datetime.now()
-            # if cur_time - last_audio_ping > timedelta(seconds=15) and audio_on:
-            #     audio_on = False
-            #     commands.append('AUDIOON/OFF')
-            # elif cur_time - last_audio_ping < timedelta(seconds=15) and not audio_on:
-            #     audio_on = True
-            #     commands.append('AUDIOON/OFF')
+            if cur_time - last_audio_ping > timedelta(seconds=15) and audio_on:
+                audio_on = False
+                commands.append('AUDIOOFF')
+            elif cur_time - last_audio_ping < timedelta(seconds=15) and not audio_on:
+                audio_on = True
+                commands.append('AUDIOON')
             time_list = [cur_time.hour, cur_time.minute]
             if auto_time is not None and time_list[0] == auto_time[0] and time_list[1] == auto_time[1]:
                 commands.append('LIGHTSAUTO')
@@ -165,20 +165,26 @@ def actuator(active_times, commands):
                     reply = f'Command {command} sent'
                     print(reply)
                 elif command[:5] == 'AUDIO':
-                    # if command == 'AUDIOPINGVOL':
-                    #     audio_ping_index += 1
-                    #     last_audio_ping = cur_time
-                    #     if audio_ping_index % (300 * 0.1) == 0: # Ping sent to the speakers every 300 seconds
-                    #         write(command)
+                    if command == 'AUDIOPINGVOL':
+                        audio_ping_index += 1
+                        last_audio_ping = cur_time
+                        if audio_ping_index % (300 * 0.1) == 0: # Ping sent to the speakers every 300 seconds
+                            write(command)
                     if command == 'AUDIOON':
                         reply = f'Command {command} sent'
-                        print("A")
                         write('AUDIOON/OFF')
-                        print("B")
                         time.sleep(1)
-                        print("C")
                         write('AUDIOON/OFF')
-                        print("D")
+                        audio_on = True
+                        print(reply)
+                    elif command == 'AUDIOOFF':
+                        reply = f'Command {command} sent'
+                        write('AUDIOON/OFF')
+                        time.sleep(1)
+                        write('AUDIOON/OFF')
+                        time.sleep(2)
+                        write('AUDIOON/OFF')
+                        audio_on = False
                         print(reply)
                     else:
                         write(command)
