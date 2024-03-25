@@ -151,8 +151,10 @@ def actuator(active_times, commands):
             if 'AUDIOON' in commands or 'AUDIOOFF' in commands:
                 pass
             elif cur_time - last_audio_ping > timedelta(seconds=15) and audio_on:
+                print(cur_time - last_audio_ping, audio_on, 'AUDIOOFF!!')
                 commands.append('AUDIOOFF')
             elif cur_time - last_audio_ping < timedelta(seconds=15) and not audio_on:
+                print(cur_time - last_audio_ping, audio_on, 'AUDIOON!!')
                 commands.append('AUDIOON')
 
             time_list = [cur_time.hour, cur_time.minute]
