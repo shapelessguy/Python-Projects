@@ -11,7 +11,8 @@ import pyperclip
 
 in_date_args = (2024, 2, 5)  # Year, month, day
 wg_folder = os.path.dirname(__file__)
-FUTURE_WEEKS = 30
+FUTURE_WEEKS = 10
+PAST_WEEKS = 4
 
 
 class Activities:
@@ -21,6 +22,7 @@ class Activities:
     area3 = 'Management'
     vacation = 'Vacation'
 
+not_applicable = 'Anarchy'
 
 emoticons = {
     Activities.vacation: '🎊🎉',
@@ -28,6 +30,7 @@ emoticons = {
     Activities.area1: '🧹🪣🫧',
     Activities.area2: '🛁🚽',
     Activities.area3: '💸🧺🍾',
+    not_applicable: '😈😈'
 }
 
 
@@ -350,28 +353,43 @@ class WG:
             best = list(candidates.keys())[0]
             self.swap(m1, best)
 
-    def new_week(self):
+    def new_week(self, week_activities=None):
         for m in self.members:
             m.week = self.week
         self.week += 1
-        if sum([(1 if x.force_vacation else 0) for x in self.members]) > 2:
-            self.clear_vacations()
-            for m in self.members:
-                m.starts_activity(Activities.vacation)
-            return
-        self.members.sort(key=lambda x: x.get_n_real_activities(), reverse=True)
-        self.members.sort(key=lambda x: x.force_vacation, reverse=True)
-        for m in self.members[:2]:
-            m.starts_activity(Activities.vacation)
-        # taken_activities = [Activities.vacation]
 
-        working_members = self.members[2:]
-        self.brainstorm(working_members)
-        # working_members.sort(key=lambda x: (x.get_n_real_activities() + x.debit), reverse=True)
-        # for m in working_members:
-        #     m.starts_possible_activity(taken_activities)
-        self.clear_vacations()
-        # self.try_swap_pool(self.members[2:])
+        if week_activities is not None:
+            for name in week_activities.to_dict():
+                for m in self.members:
+                    if m.name == name:
+                        activity = list(week_activities.to_dict()[name].values())[0].replace(not_applicable, Activities.vacation)
+                        m.starts_activity(activity)
+        else:
+            if sum([(1 if x.force_vacation else 0) for x in self.members]) > 2:
+                self.clear_vacations()
+                for m in self.members:
+                    m.starts_activity(Activities.vacation)
+                return
+            self.members.sort(key=lambda x: x.get_n_real_activities(), reverse=True)
+            self.members.sort(key=lambda x: x.force_vacation, reverse=True)
+            for m in self.members[:2]:
+                m.starts_activity(Activities.vacation)
+
+            working_members = self.members[2:]
+            self.brainstorm(working_members)
+            self.clear_vacations()
+    
+    def save_history(self, df_):
+        history_file = f'{wg_folder}/history.csv'
+        if os.path.exists(history_file):
+            prev_df = pandas.read_csv(history_file)
+            prev_df['Week'] = pandas.to_datetime(prev_df['Week'])
+            df = df_.copy()
+            df['Week'] = pandas.to_datetime(df['Week'])
+            df = pandas.concat([prev_df, df])
+            df = df.drop_duplicates(subset=['Week'], keep='last')
+            df = df.sort_values(by='Week')
+        df.iloc[:-FUTURE_WEEKS + 1].to_csv(history_file, index=False)
 
     def show_calendar(self, save=False):
         def align_center(x):
@@ -379,13 +397,25 @@ class WG:
 
         self.members.sort(key=lambda x: x.name, reverse=False)
         dict_ = {'Week': [(self.in_date + datetime.timedelta(days=(n * 7))).date()
-                          for n in range(self.week - 1)][-(FUTURE_WEEKS + 4):]}
-        dict_ = {**dict_, **{m.name: list(m.log_activities.values())[-(FUTURE_WEEKS + 4):] for m in self.members}}
+                          for n in range(self.week - 1)][-(FUTURE_WEEKS + 1 + PAST_WEEKS):]}
+        
+        for week in self.members[0].log_activities:
+            n_vac = 0
+            for m in self.members:
+                if m.log_activities[week] == Activities.vacation:
+                    n_vac += 1
+            if n_vac == len(self.members):
+                for m in self.members:
+                    m.log_activities[week] = not_applicable
+    
+        dict_ = {**dict_, **{m.name: list(m.log_activities.values())[-(FUTURE_WEEKS + 1 + PAST_WEEKS):] for m in self.members}}
         df = pandas.DataFrame.from_dict(dict_)
         df_str = df.to_string(index=False)
         print(df_str)
         if not save:
             return df
+        
+        self.save_history(df)
         with open(f'{wg_folder}/calendar.txt', 'w') as file:
             file.write(df_str)
         dfs = {'Calendar': df, 'Roles': get_roles_df()}
@@ -402,10 +432,11 @@ class WG:
                                                      {'type': 'text', 'criteria': 'containing',
                                                       'value': Activities.vacation, 'format': highlight_format})
 
-        for row in range(100):
+        for row in range(FUTURE_WEEKS + 1 + PAST_WEEKS + 100):
             writer.sheets['Calendar'].set_row(row, None, cell_format)
         for row in range(100):
             writer.sheets['Roles'].set_row(row, None, cell_format)
+
         # noinspection PyProtectedMember
         writer._save()
         return df
@@ -441,8 +472,6 @@ def simulate(n_weeks, initial_date):
             wg_members.set_vacation(name)
         wg_members.new_week()
 
-    # for m in wg_members.members:
-    #     m.show_activities(summary=True)
     wg_members.show_calendar(save=False)
     for m in wg_members.members:
         print(f'{m.name}: {m.p_activities} debit: {m.debit}  - spread: {m.spread}')
@@ -467,7 +496,7 @@ def get_string_by_activities(names_dict):
             all_vacation = False
             string += f'{name} -> {activity} {emoticons[activity]}\n'
     if all_vacation:
-        string += f'Everybody {emoticons[Activities.vacation]} !!!'
+        string += f'Total anarchy {emoticons[not_applicable]}'
     else:
         string += f'For the others, {emoticons[Activities.vacation]} !'
     return string
@@ -493,7 +522,6 @@ def get_weekly_text(df):
 
     string += f'Next week:\n'
     string += get_string_by_activities({k: v[1] for k, v in names.items()})
-    # print(string + '\n')
     return string
 
 
@@ -512,7 +540,7 @@ def initialize(initial_date):
 def start_bac(vacations, swaps, save: bool):
     date_now = datetime.datetime.combine(get_date_from_week_id(get_week_number(datetime.datetime.now().date())),
                                          datetime.datetime.min.time())
-    week_ids = {(date_now + datetime.timedelta(days=(n * 7))).date(): 0 for n in range(-4, FUTURE_WEEKS)}
+    week_ids = {(date_now + datetime.timedelta(days=(n * 7))).date(): 0 for n in range(-PAST_WEEKS, 1 + FUTURE_WEEKS)}
     print('\nWEEK IDS:')
     for week in week_ids:
         week_ids[week] = get_week_number(week)
@@ -523,20 +551,31 @@ def start_bac(vacations, swaps, save: bool):
     n_weeks = math.ceil((list(week_ids.keys())[-1] - datetime_in.date()).days / 7)
     initialize(datetime_in.date())
 
+    history_file = f'{wg_folder}/history.csv'
+    if os.path.exists(history_file):
+        hist_df = pandas.read_csv(history_file)
+        hist_df['Week'] = pandas.to_datetime(hist_df['Week'])
+    
     for i in range(n_weeks):
-        date = (datetime_in + datetime.timedelta(days=((i+1) * 7))).date()
-        for name, date_ in vacations.dates:
-            if date == date_:
-                wg_members.set_vacation(name)
-        wg_members.new_week()
-        for name1, name2, date_ in swaps.dates:
-            if date == date_:
-                wg_members.set_swap(name1, name2)
+        date = (datetime_in + datetime.timedelta(days=((i+1) * 7)))
+        pd_date = pandas.to_datetime(date)
+        historical = hist_df['Week'].isin([pd_date]).any()
+        date = date.date()
+        if historical:
+            week_activities = hist_df[hist_df['Week'] == pd_date]
+            wg_members.new_week(week_activities=week_activities)
+        else:
+            for name, date_ in vacations.dates:
+                if date == date_:
+                    wg_members.set_vacation(name)
+            wg_members.new_week()
+            for name1, name2, date_ in swaps.dates:
+                if date == date_:
+                    wg_members.set_swap(name1, name2)
 
-    # Show results
-    # for m_ in wg_members.members:
-    #     m_.show_activities(summary=True)
     df = wg_members.show_calendar(save=save)
+    if df is None:
+        return
     pyperclip.copy(get_weekly_text(df))
     return wg_members
 

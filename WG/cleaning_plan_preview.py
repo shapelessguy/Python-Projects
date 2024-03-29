@@ -17,6 +17,7 @@ swaps = Swaps(entries=[Entry(names=[e['name1'], e['name2']],
 wg_members = start_bac(vacations, swaps, save=False)
 
 print()
-for m in wg_members.members:
-    print(f'{m.name}: {m.p_activities} debit: {m.debit}  - spread: {m.spread}')
+if wg_members is not None:
+    for m in wg_members.members:
+        print(f'{m.name}: {m.p_activities} debit: {m.debit}  - spread: {m.spread}')
 
