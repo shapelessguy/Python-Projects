@@ -1,5 +1,4 @@
       Week      Arman     Cesare    Claudio     Jaspar        Lea       Mara
-2024-02-19      Floor    Kitchen Management   Vacation  Bathrooms   Vacation
 2024-02-26 Management  Bathrooms      Floor   Vacation    Kitchen   Vacation
 2024-03-04   Vacation   Vacation    Kitchen Management      Floor  Bathrooms
 2024-03-11  Bathrooms Management   Vacation    Kitchen   Vacation      Floor
@@ -14,3 +13,4 @@
 2024-05-13      Floor    Kitchen Management   Vacation  Bathrooms   Vacation
 2024-05-20   Vacation  Bathrooms    Kitchen      Floor Management   Vacation
 2024-05-27   Vacation      Floor  Bathrooms   Vacation    Kitchen Management
+2024-06-03    Kitchen   Vacation      Floor Management   Vacation  Bathrooms
