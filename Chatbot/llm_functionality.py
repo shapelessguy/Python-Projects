@@ -1,7 +1,11 @@
+import os
 import re
 import time
 import requests
 import pyttsx3
+
+
+main_folder = os.path.dirname(__file__)
 
 
 class State:
@@ -56,9 +60,9 @@ class LLM:
 
         from dotenv import dotenv_values
         from openai import OpenAI
-        self.client = OpenAI(api_key=dotenv_values(".env")['OPENAI_KEY'])
+        self.client = OpenAI(api_key=dotenv_values(os.path.join(main_folder, '.env'))['OPENAI_KEY'])
         self.system_prompt = None
-        with open('prompts.txt', 'r', encoding='utf-8') as file:
+        with open(os.path.join(main_folder, 'prompts.txt'), 'r', encoding='utf-8') as file:
             prompts = file.read().split('------------------------------------------')
             for prompt in prompts:
                 split_prompt = prompt.split('\n')

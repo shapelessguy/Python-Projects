@@ -115,6 +115,7 @@ def initialize():
 # noinspection PyBroadException
 def write(text):
     try:
+        print(f'To Arduino: {text}')
         serialPort.write(f"{text}\r\n".encode("Ascii"))
     except Exception:
         print('Trying to initiate connection to COM..')
