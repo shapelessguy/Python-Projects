@@ -154,9 +154,11 @@ def actuator(active_times, commands):
             if 'AUDIOON' in commands or 'AUDIOOFF' in commands:
                 pass
             elif cur_time - last_audio_ping > timedelta(seconds=tollerance) and audio_on:
+                print('Audio set off automatically')
                 commands.append('AUDIOOFF')
-            elif cur_time - last_audio_ping < timedelta(seconds=tollerance) and not audio_on:
-                commands.append('AUDIOON')
+            # elif cur_time - last_audio_ping < timedelta(seconds=tollerance) and not audio_on:
+            #     commands.append('AUDIOON')
+            #     print('Audio set on automatically')
 
             time_list = [cur_time.hour, cur_time.minute]
             if auto_time is not None and time_list[0] == auto_time[0] and time_list[1] == auto_time[1]:
@@ -196,7 +198,7 @@ def actuator(active_times, commands):
                         reply = f'Command {command} sent'
                         print(reply)
                     for i in range(len(commands) - 1, -1, -1):
-                        if commands[i] in ['AUDIOON', 'AUDIOOFF']:
+                        if commands[i] in ['AUDIOON', 'AUDIOOFF', 'AUDIOON/OFF']:
                             commands.pop(i)
                 elif command == 'LIGHTSAUTO':
                     mode = 'LIGHTSAUTO'
