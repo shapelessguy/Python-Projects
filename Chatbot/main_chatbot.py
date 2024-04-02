@@ -4,7 +4,7 @@ import keyboard
 from keyboard._keyboard_event import KEY_DOWN, KEY_UP
 import threading
 import speech_recognition as sr
-from llm_functionality import State, LLM
+from llm_functionality import State, Model, LLM
 
 
 class Recorder:
@@ -18,10 +18,14 @@ class Recorder:
     is_processing = False
     data_recorded = True
 
-    def __init__(self, mic_name, activation, state, llm) -> None:
+    def __init__(self, mic_name, state, llm, activations) -> None:
         self.mic_name = mic_name
         self.state = state
         self.llm = llm
+        self.pressed_keys = set()
+        self.cur_model = None
+        
+        self.activations = {k: set(activation.replace(' ', '').split('+')) for k, activation in activations.items()}
 
         def on_action(event):
             if event.event_type == KEY_DOWN:
@@ -31,15 +35,25 @@ class Recorder:
                 on_release(event.name)
 
         def on_press(key):
-            if key == activation:
-                self.start_recording()
+            print(f'pressed {key}')
+            self.pressed_keys.add(key)
+            for k, act in self.activations.items():
+                if act == self.pressed_keys:
+                    self.cur_model = k
+                    self.start_recording()
+                    break
 
         def on_release(key):
-            if key == activation:
-                self.stop_recording()
+            if key in self.pressed_keys:
+                self.pressed_keys.remove(key)
+            for act in self.activations.values():
+                if act.issubset(self.pressed_keys):
+                    return
+            self.stop_recording()
 
         keyboard.hook(lambda e: on_action(e))
-        keyboard.wait('esc')
+        while True:
+            time.sleep(1)
 
     def list_microphones(self):
         mic_list = sr.Microphone.list_microphone_names()
@@ -68,7 +82,7 @@ class Recorder:
         p = pyaudio.PyAudio()
         stream = p.open(format=self.FORMAT, channels=self.CHANNELS, rate=self.RATE, input=True, 
                         frames_per_buffer=self.CHUNK, input_device_index=self.get_primary_input_index())
-        # print("Start Recording.")
+        print("Start Recording.")
         self.data_recorded = False
 
         while self.is_recording:
@@ -80,15 +94,15 @@ class Recorder:
         p.terminate()
 
         self.data_recorded = True
-        # print("Stopped recording.")
+        print("Stopped recording.")
 
     def start_recording(self):
         if self.is_processing:
             return
         self.is_processing = True
         print("Processing started")
-        self.state.set_waiting(True)
         threading.Thread(target=self.get_audio).start()
+        self.state.set_waiting(True)
 
     def stop_recording(self):
         if not self.is_recording:
@@ -107,7 +121,7 @@ class Recorder:
         try:
             self.state.set_waiting(False)
             text = r.recognize_google(audio_data)
-            self.llm.process_text(text)
+            self.llm.process_text(text, model=self.cur_model)
             print("Recorded text: " + text)
         except sr.UnknownValueError:
             print("Audio not recognized.")
@@ -119,4 +133,8 @@ class Recorder:
 
 state = State()
 llm = LLM(state)
-Recorder(mic_name='Microphone (2- USB PnP Audio Device)', activation='f13', state=state, llm=llm)
+Recorder(mic_name='Microphone (2- USB PnP Audio Device)', state=state, llm=llm, activations=
+         {Model.Gemini: 'f13', 
+          Model.ChatGPT3: 'ctrl+f15',
+          Model.ChatGPT4: 'alt+f13',
+          })

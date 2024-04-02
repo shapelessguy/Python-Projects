@@ -26,9 +26,9 @@ not_applicable = 'Anarchy'
 
 emoticons = {
     Activities.vacation: '🎊🎉',
-    Activities.area0: '🪣🪑',
-    Activities.area1: '🧹🪣🫧',
-    Activities.area2: '🛁🚽',
+    Activities.area0: '🧹🪣🫧',
+    Activities.area1: '🪑🚰🧴🔪',
+    Activities.area2: '🛁🚽🧻🚾',
     Activities.area3: '💸🧺🍾',
     not_applicable: '😈😈'
 }
@@ -389,7 +389,7 @@ class WG:
             df = pandas.concat([prev_df, df])
             df = df.drop_duplicates(subset=['Week'], keep='last')
             df = df.sort_values(by='Week')
-        df.iloc[:-FUTURE_WEEKS + 1].to_csv(history_file, index=False)
+        df.iloc[:-FUTURE_WEEKS - 1].to_csv(history_file, index=False)
 
     def show_calendar(self, save=False):
         def align_center(x):

@@ -4,7 +4,6 @@ import time
 import requests
 import pyttsx3
 
-
 main_folder = os.path.dirname(__file__)
 
 
@@ -48,9 +47,18 @@ class State:
             self.set_speaking(False)
 
     def send(self, command):
-        url = "http://localhost:8080/"
-        headers = {'Content-Type': 'application/x-www-form-urlencoded'}
-        requests.post(url, data=command, headers=headers)
+        try:
+            url = "http://localhost:8080/"
+            headers = {'Content-Type': 'application/x-www-form-urlencoded'}
+            requests.post(url, data=command, headers=headers, timeout=0.3)
+        except:
+            print('Issue while sending data to CyanSystemManager')
+
+
+class Model:
+    ChatGPT3 = 'gpt-3.5-turbo-0125'
+    ChatGPT4 = 'gpt-4-0613'
+    Gemini = 'gemini-1'
 
 
 class LLM:
@@ -60,7 +68,14 @@ class LLM:
 
         from dotenv import dotenv_values
         from openai import OpenAI
-        self.client = OpenAI(api_key=dotenv_values(os.path.join(main_folder, '.env'))['OPENAI_KEY'])
+        self.openai_client = OpenAI(api_key=dotenv_values(os.path.join(main_folder, '.env'))['OPENAI_KEY'])
+
+        import vertexai
+        from vertexai.generative_models import GenerativeModel, ChatSession
+        vertexai.init(project="ip-manager42", location="us-central1")
+        model = GenerativeModel("gemini-1.0-pro")
+        self.google_client = model.start_chat()
+        
         self.system_prompt = None
         with open(os.path.join(main_folder, 'prompts.txt'), 'r', encoding='utf-8') as file:
             prompts = file.read().split('------------------------------------------')
@@ -71,16 +86,24 @@ class LLM:
                 if header == 'SYSTEM_PROMPT':
                     self.system_prompt = body
     
-    def process_text(self, text):
+    def process_text(self, text, model):
         print(f'SENT: {text}')
-        completion = self.client.chat.completions.create(
-            model="gpt-3.5-turbo-0125",
-            messages=[
-                {"role": "system", "content": self.system_prompt},
-                {"role": "user", "content": text}
-            ]
-        )
-        reply = completion.choices[0].message.content
+        if model == Model.Gemini:
+            text_response = []
+            text = f'These are the specifications of your role: {self.system_prompt}.\n The user makes with the following request: {text}'
+            responses = self.google_client.send_message(text, stream=True)
+            for chunk in responses:
+                text_response.append(chunk.text)
+            reply = "".join(text_response)
+        else:
+            completion = self.openai_client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": self.system_prompt},
+                    {"role": "user", "content": text}
+                ]
+            )
+            reply = completion.choices[0].message.content
         commands = re.findall(r'\|([^|]+)\|', reply)
         if len(commands) > 0:
             for i in range(len(commands)):
@@ -98,4 +121,4 @@ class LLM:
 
 if __name__ == '__main__':
     llm = LLM(None)
-    llm.process_text('turn on the TV and turn off the UV lights also')
+    llm.process_text('turn on the TV and then turn off the UV lights.', Model.Gemini)
