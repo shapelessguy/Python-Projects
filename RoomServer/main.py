@@ -147,7 +147,7 @@ def actuator(active_times, commands):
     audio_ping_index = 0
     ping_period = 10  # audio ping received every 10 seconds
     tollerance = 180  # audio turns off after 180 seconds
-    ping_sent = 300  # audio ping sent to HW every 300 seconds
+    ping_sent = 60 * 60  # audio ping sent to HW every <-- seconds
     while 1:
         try:
             cur_time = datetime.now()

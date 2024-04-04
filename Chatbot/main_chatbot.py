@@ -26,6 +26,9 @@ class Recorder:
         self.cur_model = None
         
         self.activations = {k: set(activation.replace(' ', '').split('+')) for k, activation in activations.items()}
+        self.actv_keys = set([e for v in self.activations.values() for e in v])
+        # threading.Thread(target=self.clean_keys_pressed)
+        # self.index = 0
 
         def on_action(event):
             if event.event_type == KEY_DOWN:
@@ -35,7 +38,9 @@ class Recorder:
                 on_release(event.name)
 
         def on_press(key):
-            print(f'pressed {key}')
+            if not key in self.actv_keys:
+                return
+            print(f'pressed {key} / {self.pressed_keys}')
             self.pressed_keys.add(key)
             for k, act in self.activations.items():
                 if act == self.pressed_keys:
@@ -54,6 +59,14 @@ class Recorder:
         keyboard.hook(lambda e: on_action(e))
         while True:
             time.sleep(1)
+    
+    # def clean_keys_pressed(self):
+    #     while True:
+    #         self.index += 1
+    #         time.sleep(1)
+    #         if self.index % 5 == 0:
+    #             self.pressed_keys = {}
+
 
     def list_microphones(self):
         mic_list = sr.Microphone.list_microphone_names()
@@ -98,6 +111,7 @@ class Recorder:
 
     def start_recording(self):
         if self.is_processing:
+            print("Processing is already on")
             return
         self.is_processing = True
         print("Processing started")

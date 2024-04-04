@@ -32,7 +32,7 @@ class State:
         self.is_speaking = speaking
     
     def speak(self, audio):
-        short_aknowledgement = audio.lower() in ['ok', 'ok.']
+        short_aknowledgement = audio.lower().strip() in ['ok', 'ok.']
 
         if not short_aknowledgement:
             self.set_speaking(True)
