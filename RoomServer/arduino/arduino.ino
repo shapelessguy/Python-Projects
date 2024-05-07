@@ -79,12 +79,12 @@ void sendLightStrip(String c){
     IrSender.sendNEC(0xEF00, 0x03, 1); delay(100); 
     IrSender.sendNEC(0xEF00, 0x02, 1); delay(100); c="W0"; 
     }
-  else if (c == "TOPR0") { IrSender.sendNEC(0xEF00, 0x14, 1); IrSender.sendNEC(0xEF00, 0x7, 1); delay(100); c="R0"; }
-  else if (c == "TOPB3") { IrSender.sendNEC(0xEF00, 0x14, 1); IrSender.sendNEC(0xEF00, 0x7, 2); delay(100); c="B3"; }
-  else if (c == "TOPG0") { IrSender.sendNEC(0xEF00, 0x14, 1); IrSender.sendNEC(0xEF00, 0x7, 3); delay(100); c="G0"; }
-  else if (c == "TOPB0") { IrSender.sendNEC(0xEF00, 0x14, 1); IrSender.sendNEC(0xEF00, 0x7, 4); delay(100); c="B0"; }
-  else if (c == "TOPR4") { IrSender.sendNEC(0xEF00, 0x14, 1); IrSender.sendNEC(0xEF00, 0x7, 5); delay(100); c="R4"; }
-  else if (c == "TOPG4") { IrSender.sendNEC(0xEF00, 0x14, 1); delay(100); c="G4"; }
+  else if (c == "TOPR0") { IrSender.sendNEC(0xEF00, 0x14, 1); delay(100); IrSender.sendNEC(0xEF00, 0x7, 1); delay(100); c="R0"; }
+  else if (c == "TOPB3") { IrSender.sendNEC(0xEF00, 0x14, 1); delay(100); IrSender.sendNEC(0xEF00, 0x7, 2); delay(100); c="B3"; }
+  else if (c == "TOPG0") { IrSender.sendNEC(0xEF00, 0x14, 1); delay(100); IrSender.sendNEC(0xEF00, 0x7, 3); delay(100); c="G0"; }
+  else if (c == "TOPB0") { IrSender.sendNEC(0xEF00, 0x14, 1); delay(100); IrSender.sendNEC(0xEF00, 0x7, 4); delay(100); c="B0"; }
+  else if (c == "TOPR4") { IrSender.sendNEC(0xEF00, 0x14, 1); delay(100); IrSender.sendNEC(0xEF00, 0x7, 5); delay(100); c="R4"; }
+  else if (c == "TOPG4") { IrSender.sendNEC(0xEF00, 0x14, 1); delay(100); delay(100); c="G4"; }
   else if (c == "TOPOFF") { 
     IrSender.sendNEC(0xEF00, 0x14, 1); delay(200); 
     IrSender.sendNEC(0xEF00, 0x03, 1); delay(100); c="OFF"; 
