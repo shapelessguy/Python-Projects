@@ -170,6 +170,10 @@ def actuator(active_times, commands):
                     write(command)
                     reply = f'Command {command} sent'
                     print(reply)
+                elif command[:5] == 'STRIP':
+                    write(command)
+                    reply = f'Command {command} sent'
+                    print(reply)
                 elif command[:5] == 'AUDIO':
                     if command == 'AUDIOPINGVOL':
                         audio_ping_index += 1
@@ -200,10 +204,6 @@ def actuator(active_times, commands):
                     for i in range(len(commands) - 1, -1, -1):
                         if commands[i] in ['AUDIOON', 'AUDIOOFF', 'AUDIOON/OFF']:
                             commands.pop(i)
-                elif command == 'STRIP':
-                    write(command)
-                    reply = f'Command {command} sent'
-                    print(reply)
                 elif command == 'LIGHTSAUTO':
                     mode = 'LIGHTSAUTO'
                     reply = f'Mode set to: {mode}'
