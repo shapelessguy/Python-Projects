@@ -70,6 +70,14 @@ void sendAudio(String c){
   }
 }
 
+void sendLightStrip(String c){
+  Serial.println("LightStrip command: " + c);
+  if (c == "ON") { IrSender.sendNEC(0x0, 0x40, 1); }
+  else if (c == "OFF") { IrSender.sendNEC(0x0, 0x58, 1); }
+  else if (c == "1") { IrSender.sendNEC(0x0, 0x59, 1); }
+  else if (c == "2") { IrSender.sendNEC(0x0, 0x45, 1); }
+}
+
 void turn_on_lights(){
   digitalWrite(LIGHT_PIN, HIGH); 
   Serial.println("lights_on");
@@ -135,6 +143,7 @@ void loop() {
     else if (command.equals("H")) { turn_motor(); }
     else if (command.substring(0, 2) == "TV") sendSamsung(command.substring(2, command.length()));
     else if (command.substring(0, 5) == "AUDIO") sendAudio(command.substring(5, command.length()));
+    else if (command.substring(0, 5) == "STRIP") sendLightStrip(command.substring(5, command.length()));
     else { Serial.println("bad command"); }
   }
 }
