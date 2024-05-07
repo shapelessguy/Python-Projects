@@ -90,32 +90,30 @@ void sendLightStrip(String c){
     IrSender.sendNEC(0xEF00, 0x03, 1); delay(100); c="OFF"; 
     }
 
-  if (c == "I-") { IrSender.sendNEC(0x0, 0x5D, 1); }
-  else if (c == "I+") { IrSender.sendNEC(0x0, 0x5C, 1); }
+  if (c == "I1") { IrSender.sendNEC(0x0, 0x40, 1); delay(100); IrSender.sendNEC(0x0, 0x48, 1); }
+  else if (c == "I2") { IrSender.sendNEC(0x0, 0x40, 1); delay(100); IrSender.sendNEC(0x0, 0x4C, 1); }
+  else if (c == "I3") { IrSender.sendNEC(0x0, 0x40, 1); delay(100); IrSender.sendNEC(0x0, 0x1F, 1); }
+  else if (c == "I4") { IrSender.sendNEC(0x0, 0x40, 1); delay(100); IrSender.sendNEC(0x0, 0x1B, 1); }
 
-  else if (c == "R0") { IrSender.sendNEC(0x0, 0x58, 1); }
-  else if (c == "R1") { IrSender.sendNEC(0x0, 0x54, 1); }
-  else if (c == "R2") { IrSender.sendNEC(0x0, 0x50, 1); }
-  else if (c == "R3") { IrSender.sendNEC(0x0, 0x1C, 1); }
-  else if (c == "R4") { IrSender.sendNEC(0x0, 0x18, 1); }
+  else if (c == "R0") { IrSender.sendNEC(0x0, 0x40, 1); delay(100); IrSender.sendNEC(0x0, 0x58, 1); }
+  else if (c == "R1") { IrSender.sendNEC(0x0, 0x40, 1); delay(100); IrSender.sendNEC(0x0, 0x54, 1); }
+  else if (c == "R2") { IrSender.sendNEC(0x0, 0x40, 1); delay(100); IrSender.sendNEC(0x0, 0x50, 1); }
+  else if (c == "R3") { IrSender.sendNEC(0x0, 0x40, 1); delay(100); IrSender.sendNEC(0x0, 0x1C, 1); }
+  else if (c == "R4") { IrSender.sendNEC(0x0, 0x40, 1); delay(100); IrSender.sendNEC(0x0, 0x18, 1); }
 
-  else if (c == "G0") { IrSender.sendNEC(0x0, 0x59, 1); }
-  else if (c == "G1") { IrSender.sendNEC(0x0, 0x55, 1); }
-  else if (c == "G2") { IrSender.sendNEC(0x0, 0x51, 1); }
-  else if (c == "G3") { IrSender.sendNEC(0x0, 0x1D, 1); }
-  else if (c == "G4") { IrSender.sendNEC(0x0, 0x19, 1); }
+  else if (c == "G0") { IrSender.sendNEC(0x0, 0x40, 1); delay(100); IrSender.sendNEC(0x0, 0x59, 1); }
+  else if (c == "G1") { IrSender.sendNEC(0x0, 0x40, 1); delay(100); IrSender.sendNEC(0x0, 0x55, 1); }
+  else if (c == "G2") { IrSender.sendNEC(0x0, 0x40, 1); delay(100); IrSender.sendNEC(0x0, 0x51, 1); }
+  else if (c == "G3") { IrSender.sendNEC(0x0, 0x40, 1); delay(100); IrSender.sendNEC(0x0, 0x1D, 1); }
+  else if (c == "G4") { IrSender.sendNEC(0x0, 0x40, 1); delay(100); IrSender.sendNEC(0x0, 0x19, 1); }
 
-  else if (c == "B0") { IrSender.sendNEC(0x0, 0x45, 1); }
-  else if (c == "B1") { IrSender.sendNEC(0x0, 0x49, 1); }
-  else if (c == "B2") { IrSender.sendNEC(0x0, 0x4D, 1); }
-  else if (c == "B3") { IrSender.sendNEC(0x0, 0x1E, 1); }
-  else if (c == "B4") { IrSender.sendNEC(0x0, 0x1A, 1); }
+  else if (c == "B0") { IrSender.sendNEC(0x0, 0x40, 1); delay(100); IrSender.sendNEC(0x0, 0x45, 1); }
+  else if (c == "B1") { IrSender.sendNEC(0x0, 0x40, 1); delay(100); IrSender.sendNEC(0x0, 0x49, 1); }
+  else if (c == "B2") { IrSender.sendNEC(0x0, 0x40, 1); delay(100); IrSender.sendNEC(0x0, 0x4D, 1); }
+  else if (c == "B3") { IrSender.sendNEC(0x0, 0x40, 1); delay(100); IrSender.sendNEC(0x0, 0x1E, 1); }
+  else if (c == "B4") { IrSender.sendNEC(0x0, 0x40, 1); delay(100); IrSender.sendNEC(0x0, 0x1A, 1); }
 
-  else if (c == "W0") { IrSender.sendNEC(0x0, 0x44, 1); }
-  else if (c == "W1") { IrSender.sendNEC(0x0, 0x48, 1); }
-  else if (c == "W2") { IrSender.sendNEC(0x0, 0x4C, 1); }
-  else if (c == "W3") { IrSender.sendNEC(0x0, 0x1F, 1); }
-  else if (c == "W4") { IrSender.sendNEC(0x0, 0x1B, 1); }
+  else if (c == "W0") { IrSender.sendNEC(0x0, 0x40, 1); delay(100); IrSender.sendNEC(0x0, 0x44, 1); }
 
   else if (c == "OFF") { IrSender.sendNEC(0x0, 0x41, 1); }
 }
