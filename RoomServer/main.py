@@ -171,7 +171,24 @@ def actuator(active_times, commands):
                     reply = f'Command {command} sent'
                     print(reply)
                 elif command[:5] == 'STRIP':
-                    write(command)
+                    if command == 'STRIPIS':
+                        for _ in range(5):
+                            write('STRIPI-')
+                            time.sleep(0.5)
+                        write('STRIPI+')
+                    elif command == 'STRIPIM':
+                        for _ in range(5):
+                            write('STRIPI+')
+                            time.sleep(0.5)
+                        for _ in range(2):
+                            write('STRIPI-')
+                            time.sleep(0.5)
+                    elif command == 'STRIPIH':
+                        for _ in range(5):
+                            write('STRIPI+')
+                            time.sleep(0.5)
+                    else:
+                        write(command)
                     reply = f'Command {command} sent'
                     print(reply)
                 elif command[:5] == 'AUDIO':
