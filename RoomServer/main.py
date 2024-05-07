@@ -280,7 +280,7 @@ def lights_callback(model=ModelDict()):
     return formulate_reply('lights')
 
 @route("/strip")
-def lights_callback(model=ModelDict()):
+def strip_callback(model=ModelDict()):
     command = "STRIP" + model['strip'].upper()
     commands.append(command)
     return formulate_reply('strip')
