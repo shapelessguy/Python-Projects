@@ -151,6 +151,7 @@ def actuator(active_times, commands):
     while 1:
         try:
             cur_time = datetime.now()
+            # print(cur_time - last_audio_ping, audio_on, 'pass='+ str('AUDIOON' in commands or 'AUDIOOFF' in commands))
             if 'AUDIOON' in commands or 'AUDIOOFF' in commands:
                 pass
             elif cur_time - last_audio_ping > timedelta(seconds=tollerance) and audio_on:
@@ -187,6 +188,7 @@ def actuator(active_times, commands):
                         write('AUDIOON/OFF')
                         time.sleep(1)
                         write('AUDIOON/OFF')
+                        time.sleep(0.5)
                         write('STRIPTOPG4')
                         print(reply)
                     elif command == 'AUDIOOFF':
@@ -197,6 +199,7 @@ def actuator(active_times, commands):
                         write('AUDIOON/OFF')
                         time.sleep(3)
                         write('AUDIOON/OFF')
+                        time.sleep(0.5)
                         write('STRIPTOPOFF')
                         print(reply)
                     else:
