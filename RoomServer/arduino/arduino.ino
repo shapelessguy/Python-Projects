@@ -75,12 +75,8 @@ void sendLightStrip(String c){
   if (c == "ON") { IrSender.sendNEC(0x0, 0x40, 1); }
   else if (c == "OFF") { IrSender.sendNEC(0x0, 0x41, 1); }
 
-  else if (c == "I-") { IrSender.sendNEC(0x0, 0x5D, 5); }
-  else if (c == "I+") { IrSender.sendNEC(0x0, 0x5C, 5); }
-
-  else if (c == "IS") { IrSender.sendNEC(0x0, 0x5D, 5); IrSender.sendNEC(0x0, 0x5C, 1); }
-  else if (c == "IM") { IrSender.sendNEC(0x0, 0x5C, 5); IrSender.sendNEC(0x0, 0x5D, 2); }
-  else if (c == "IH") { IrSender.sendNEC(0x0, 0x5C, 5); }
+  else if (c == "I-") { IrSender.sendNEC(0x0, 0x5D, 1); }
+  else if (c == "I+") { IrSender.sendNEC(0x0, 0x5C, 1); }
 
   else if (c == "R0") { IrSender.sendNEC(0x0, 0x58, 1); }
   else if (c == "R1") { IrSender.sendNEC(0x0, 0x54, 1); }
