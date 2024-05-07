@@ -200,6 +200,10 @@ def actuator(active_times, commands):
                     for i in range(len(commands) - 1, -1, -1):
                         if commands[i] in ['AUDIOON', 'AUDIOOFF', 'AUDIOON/OFF']:
                             commands.pop(i)
+                elif command == 'STRIP':
+                    write(command)
+                    reply = f'Command {command} sent'
+                    print(reply)
                 elif command == 'LIGHTSAUTO':
                     mode = 'LIGHTSAUTO'
                     reply = f'Mode set to: {mode}'
@@ -274,6 +278,12 @@ def lights_callback(model=ModelDict()):
     command = "LIGHTS" + model['lights'].upper()
     commands.append(command)
     return formulate_reply('lights')
+
+@route("/strip")
+def lights_callback(model=ModelDict()):
+    command = "STRIP" + model['strip'].upper()
+    commands.append(command)
+    return formulate_reply('strip')
 
 @route("/tv")
 def tv_callback(model=ModelDict()):
