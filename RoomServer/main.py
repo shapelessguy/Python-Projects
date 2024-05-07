@@ -187,6 +187,7 @@ def actuator(active_times, commands):
                         write('AUDIOON/OFF')
                         time.sleep(1)
                         write('AUDIOON/OFF')
+                        write('STRIPTOPG4')
                         print(reply)
                     elif command == 'AUDIOOFF':
                         reply = f'Command {command} sent'
@@ -196,6 +197,7 @@ def actuator(active_times, commands):
                         write('AUDIOON/OFF')
                         time.sleep(3)
                         write('AUDIOON/OFF')
+                        write('STRIPTOPOFF')
                         print(reply)
                     else:
                         write(command)
