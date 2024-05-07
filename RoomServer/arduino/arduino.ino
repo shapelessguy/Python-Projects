@@ -84,7 +84,7 @@ void sendLightStrip(String c){
   else if (c == "TOPR4") { IrSender.sendNEC(0x0, 0x14, 1); IrSender.sendNEC(0x0, 0x7, 5); c="R4"; }
   else if (c == "TOPG4") { IrSender.sendNEC(0x0, 0x14, 1); c="G4"; }
 
-  else if (c == "I-") { IrSender.sendNEC(0x0, 0x5D, 1); }
+  if (c == "I-") { IrSender.sendNEC(0x0, 0x5D, 1); }
   else if (c == "I+") { IrSender.sendNEC(0x0, 0x5C, 1); }
 
   else if (c == "R0") { IrSender.sendNEC(0x0, 0x58, 1); }
