@@ -110,7 +110,7 @@ def handle_strip_com(command, write: callable):
         top_off(write, delay_top_default)
         time.sleep(0.50)
         write('STRIPON')
-        time.sleep(0.50)
+        time.sleep(1)
         write('STRIPI1')
     elif command == 'I1':
         write('STRIPI1')
