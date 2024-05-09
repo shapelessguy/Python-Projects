@@ -5,6 +5,9 @@ import time
 import os
 import sys
 import subprocess
+import socket
+import asyncio
+import sequences
 import serial.tools.list_ports as port_list
 from simple_http_server import route, server
 from simple_http_server import request_map
@@ -172,8 +175,8 @@ def actuator(active_times, commands):
                     reply = f'Command {command} sent'
                     print(reply)
                 elif command[:5] == 'STRIP':
-                    write(command)
                     reply = f'Command {command} sent'
+                    sequences.handle_strip_com(command[5:], write)
                     print(reply)
                 elif command[:5] == 'AUDIO':
                     if command == 'AUDIOPINGVOL':
@@ -185,22 +188,12 @@ def actuator(active_times, commands):
                         reply = f'Command {command} sent'
                         last_audio_ping = cur_time
                         audio_on = True
-                        write('AUDIOON/OFF')
-                        time.sleep(1)
-                        write('AUDIOON/OFF')
-                        time.sleep(0.5)
-                        write('STRIPTOPG4')
+                        sequences.audio_on(write)
                         print(reply)
                     elif command == 'AUDIOOFF':
                         reply = f'Command {command} sent'
                         audio_on = False
-                        write('AUDIOON/OFF')
-                        time.sleep(1)
-                        write('AUDIOON/OFF')
-                        time.sleep(3)
-                        write('AUDIOON/OFF')
-                        time.sleep(0.5)
-                        write('STRIPTOPOFF')
+                        sequences.audio_off(write)
                         print(reply)
                     else:
                         write(command)
@@ -261,7 +254,15 @@ def functions():
 
 
 def start_server():
-    server.start(port=SERVER_PORT)
+    try:
+        server.run('0.0.0.0', SERVER_PORT)
+    except socket.timeout:
+        print("Socket timeout occurred - this might be due to a lost client connection.")
+    except asyncio.TimeoutError:
+        print("Asyncio timeout occurred - operation took too long.")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+    # server.start(port=SERVER_PORT)
     
 def formulate_reply(topic):
     global reply

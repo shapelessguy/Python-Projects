@@ -73,22 +73,11 @@ void sendAudio(String c){
 void sendLightStrip(String c){
   Serial.println("LightStrip command: " + c);
   if (c == "ON") { IrSender.sendNEC(0x0, 0x40, 1); }
-
-  else if (c == "TOPLIGHT") { 
-    IrSender.sendNEC(0xEF00, 0x14, 1); delay(200); 
-    IrSender.sendNEC(0xEF00, 0x03, 1); delay(100); 
-    IrSender.sendNEC(0xEF00, 0x02, 1); delay(100); c="W0"; 
-    }
-  else if (c == "TOPB3") { IrSender.sendNEC(0xEF00, 0x14, 1); delay(100); for (int i=0; i<1; i++) {delay(100); IrSender.sendNEC(0xEF00, 0x7, 1);} delay(100); c="B3"; }
-  else if (c == "TOPR0") { IrSender.sendNEC(0xEF00, 0x14, 1); delay(100); for (int i=0; i<2; i++) {delay(100); IrSender.sendNEC(0xEF00, 0x7, 1);} delay(100); c="R0"; }
-  else if (c == "TOPG0") { IrSender.sendNEC(0xEF00, 0x14, 1); delay(100); for (int i=0; i<3; i++) {delay(100); IrSender.sendNEC(0xEF00, 0x7, 1);} delay(100); c="G0"; }
-  else if (c == "TOPB0") { IrSender.sendNEC(0xEF00, 0x14, 1); delay(100); for (int i=0; i<4; i++) {delay(100); IrSender.sendNEC(0xEF00, 0x7, 1);} delay(100); c="B0"; }
-  else if (c == "TOPR4") { IrSender.sendNEC(0xEF00, 0x14, 1); delay(100); for (int i=0; i<5; i++) {delay(100); IrSender.sendNEC(0xEF00, 0x7, 1);} delay(100); c="R4"; }
-  else if (c == "TOPG4") { IrSender.sendNEC(0xEF00, 0x14, 1); delay(100); c="G4"; }
-  else if (c == "TOPOFF") { 
-    IrSender.sendNEC(0xEF00, 0x14, 1); delay(200); 
-    IrSender.sendNEC(0xEF00, 0x03, 1); delay(100); c="OFF"; 
-    }
+  
+  else if (c == "TOPDEF") { IrSender.sendNEC(0xEF00, 0x14, 1); }
+  else if (c == "TOPLIGHTSWITCH") { IrSender.sendNEC(0xEF00, 0x02, 1); }
+  else if (c == "TOPCOLSWITCH") { IrSender.sendNEC(0xEF00, 0x03, 1); }
+  else if (c == "TOPCHANGECOL") { IrSender.sendNEC(0xEF00, 0x7, 1); }
 
   if (c == "I1") { IrSender.sendNEC(0x0, 0x40, 1); delay(100); IrSender.sendNEC(0x0, 0x48, 1); }
   else if (c == "I2") { IrSender.sendNEC(0x0, 0x40, 1); delay(100); IrSender.sendNEC(0x0, 0x4C, 1); }
