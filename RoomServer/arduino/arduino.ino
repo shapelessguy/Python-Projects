@@ -79,10 +79,10 @@ void sendLightStrip(String c){
   else if (c == "TOPCOLSWITCH") { IrSender.sendNEC(0xEF00, 0x03, 1); }
   else if (c == "TOPCHANGECOL") { IrSender.sendNEC(0xEF00, 0x7, 1); }
 
-  if (c == "I1") { IrSender.sendNEC(0x0, 0x48, 1); }
-  else if (c == "I2") { IrSender.sendNEC(0x0, 0x4C, 1); }
-  else if (c == "I3") { IrSender.sendNEC(0x0, 0x1F, 1); }
-  else if (c == "I4") { IrSender.sendNEC(0x0, 0x1B, 1); }
+  if (c == "I1") { IrSender.sendNEC(0x0, 0x1B, 1); }
+  else if (c == "I2") { IrSender.sendNEC(0x0, 0x1F, 1); }
+  else if (c == "I3") { IrSender.sendNEC(0x0, 0x4C, 1); }
+  else if (c == "I4") { IrSender.sendNEC(0x0, 0x48, 1); }
 
   else if (c == "R0") { IrSender.sendNEC(0x0, 0x58, 1); }
   else if (c == "R1") { IrSender.sendNEC(0x0, 0x54, 1); }
