@@ -17,6 +17,11 @@ def audio_off(write: callable):
     time.sleep(0.5)
     write('STRIPTOPOFF')
 
+def top_off(write: callable, delay):
+    write('STRIPTOPDEF')
+    time.sleep(delay)
+    write('STRIPTOPCOLSWITCH')
+
 def handle_strip_com(command, write: callable):
     delay_top_col_change = 0.100
     delay_top_default = 0.400
@@ -98,15 +103,15 @@ def handle_strip_com(command, write: callable):
     elif command == 'TOPOFF':
         write('STRIPOFF')
         time.sleep(0.50)
-        write('STRIPTOPDEF')
-        time.sleep(delay_top_default)
-        write('STRIPTOPCOLSWITCH')
+        top_off(write, delay_top_default)
     elif command == 'I0':
-        write('STRIPI1')
+        write('STRIPOFF')
         time.sleep(0.50)
-        write('STRIPTOPDEF')
-        time.sleep(delay_top_default)
-        write('STRIPTOPCOLSWITCH')
+        top_off(write, delay_top_default)
+        time.sleep(0.50)
+        write('STRIPON')
+        time.sleep(0.50)
+        write('STRIPI1')
     elif command == 'I1':
         write('STRIPI1')
     elif command == 'I2':
