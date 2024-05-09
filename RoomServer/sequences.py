@@ -101,3 +101,11 @@ def handle_strip_com(command, write: callable):
         write('STRIPTOPDEF')
         time.sleep(delay_top_default)
         write('STRIPTOPCOLSWITCH')
+    elif command == 'I1':
+        write('STRIPI1')
+    elif command == 'I2':
+        write('STRIPI2')
+    elif command == 'I3':
+        write('STRIPI3')
+    elif command == 'I4':
+        write('STRIPI4')
