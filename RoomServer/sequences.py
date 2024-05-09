@@ -111,7 +111,7 @@ def handle_strip_com(command, write: callable):
         time.sleep(0.50)
         write('STRIPON')
         time.sleep(1)
-        write('STRIPI1')
+        write('STRIPI4')
     elif command == 'I1':
         write('STRIPI1')
     elif command == 'I2':
