@@ -101,6 +101,12 @@ def handle_strip_com(command, write: callable):
         write('STRIPTOPDEF')
         time.sleep(delay_top_default)
         write('STRIPTOPCOLSWITCH')
+    elif command == 'I0':
+        write('STRIPI1')
+        time.sleep(0.50)
+        write('STRIPTOPDEF')
+        time.sleep(delay_top_default)
+        write('STRIPTOPCOLSWITCH')
     elif command == 'I1':
         write('STRIPI1')
     elif command == 'I2':
