@@ -255,14 +255,13 @@ def functions():
 
 def start_server():
     try:
-        server.run('0.0.0.0', SERVER_PORT)
+        server.start('0.0.0.0', SERVER_PORT)
     except socket.timeout:
         print("Socket timeout occurred - this might be due to a lost client connection.")
     except asyncio.TimeoutError:
         print("Asyncio timeout occurred - operation took too long.")
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
-    # server.start(port=SERVER_PORT)
     
 def formulate_reply(topic):
     global reply
