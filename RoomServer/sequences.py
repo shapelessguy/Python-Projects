@@ -18,11 +18,13 @@ def audio_off(write: callable):
     write('STRIPTOPOFF')
 
 def handle_strip_com(command, write: callable):
+    delay_top_col_change = 0.200
+    delay_top_default = 0.200
     if command == 'TOPLIGHT':
         write('STRIPOFF')
         time.sleep(0.50)
         write('STRIPTOPDEF')
-        time.sleep(0.250)
+        time.sleep(delay_top_default)
         write('STRIPTOPCOLSWITCH')
         time.sleep(0.100)
         write('STRIPTOPLIGHTSWITCH')
@@ -34,10 +36,10 @@ def handle_strip_com(command, write: callable):
         write('STRIPOFF')
         time.sleep(0.50)
         write('STRIPTOPDEF')
-        time.sleep(0.250)
+        time.sleep(delay_top_default)
         for _ in range(1):
             write('STRIPTOPCHANGECOL')
-            time.sleep(0.100)
+            time.sleep(delay_top_col_change)
         write('STRIPON')
         time.sleep(0.100)
         write('STRIPB3')
@@ -45,10 +47,10 @@ def handle_strip_com(command, write: callable):
         write('STRIPOFF')
         time.sleep(0.50)
         write('STRIPTOPDEF')
-        time.sleep(0.250)
+        time.sleep(delay_top_default)
         for _ in range(2):
             write('STRIPTOPCHANGECOL')
-            time.sleep(0.100)
+            time.sleep(delay_top_col_change)
         write('STRIPON')
         time.sleep(0.100)
         write('STRIPR0')
@@ -56,10 +58,10 @@ def handle_strip_com(command, write: callable):
         write('STRIPOFF')
         time.sleep(0.50)
         write('STRIPTOPDEF')
-        time.sleep(0.250)
+        time.sleep(delay_top_default)
         for _ in range(3):
             write('STRIPTOPCHANGECOL')
-            time.sleep(0.100)
+            time.sleep(delay_top_col_change)
         write('STRIPON')
         time.sleep(0.100)
         write('STRIPG0')
@@ -67,10 +69,10 @@ def handle_strip_com(command, write: callable):
         write('STRIPOFF')
         time.sleep(0.50)
         write('STRIPTOPDEF')
-        time.sleep(0.250)
+        time.sleep(delay_top_default)
         for _ in range(4):
             write('STRIPTOPCHANGECOL')
-            time.sleep(0.100)
+            time.sleep(delay_top_col_change)
         write('STRIPON')
         time.sleep(0.100)
         write('STRIPB0')
@@ -78,10 +80,10 @@ def handle_strip_com(command, write: callable):
         write('STRIPOFF')
         time.sleep(0.50)
         write('STRIPTOPDEF')
-        time.sleep(0.250)
+        time.sleep(delay_top_default)
         for _ in range(5):
             write('STRIPTOPCHANGECOL')
-            time.sleep(0.100)
+            time.sleep(delay_top_col_change)
         write('STRIPON')
         time.sleep(0.100)
         write('STRIPR4')
@@ -97,5 +99,5 @@ def handle_strip_com(command, write: callable):
         write('STRIPOFF')
         time.sleep(0.50)
         write('STRIPTOPDEF')
-        time.sleep(0.250)
+        time.sleep(delay_top_default)
         write('STRIPTOPCOLSWITCH')
