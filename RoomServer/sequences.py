@@ -18,7 +18,7 @@ def audio_off(write: callable):
     write('STRIPTOPOFF')
 
 def handle_strip_com(command, write: callable):
-    delay_top_col_change = 0.200
+    delay_top_col_change = 0.100
     delay_top_default = 0.400
     if command == 'TOPLIGHT':
         write('STRIPOFF')
