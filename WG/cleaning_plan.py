@@ -57,7 +57,7 @@ class WgProps:
     m3 = {'telegram_id': None}
     m4 = {'telegram_id': None}
     m5 = {'telegram_id': None}
-    m6 = {'telegram_id': None}#133279076}
+    m6 = {'telegram_id': 133279076}
 
 
 def get_roles_df():
