@@ -5,6 +5,8 @@ import sys
 import datetime
 import telegram
 import asyncio
+import pandas
+import numpy
 
 
 main_folder = os.path.dirname(os.path.dirname(__file__))
