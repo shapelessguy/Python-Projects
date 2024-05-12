@@ -1,5 +1,6 @@
 import threading
 from datetime import datetime, timedelta
+import announcements
 import serial
 import time
 import os
@@ -8,6 +9,7 @@ import subprocess
 import socket
 import asyncio
 import sequences
+import announcements
 import serial.tools.list_ports as port_list
 from simple_http_server import route, server
 from simple_http_server import request_map
@@ -151,9 +153,11 @@ def actuator(active_times, commands):
     ping_period = 10  # audio ping received every 10 seconds
     tollerance = 180  # audio turns off after 180 seconds
     ping_sent = 60 * 60  # audio ping sent to HW every <-- seconds
+    last_announcement, id_last_announcement = announcements.get_last_announcement()
     while 1:
         try:
             cur_time = datetime.now()
+            last_announcement, id_last_announcement = announcements.update(cur_time, last_announcement, id_last_announcement)
             # print(cur_time - last_audio_ping, audio_on, 'pass='+ str('AUDIOON' in commands or 'AUDIOOFF' in commands))
             if 'AUDIOON' in commands or 'AUDIOOFF' in commands:
                 pass
@@ -170,7 +174,11 @@ def actuator(active_times, commands):
                 auto_time = None
             if len(commands) > 0:
                 command = commands.pop(0)
-                if command[:2] == 'TV':
+                if command == 'ANNOUNCE':
+                    last_announcement, id_last_announcement = announcements.update(cur_time, last_announcement, id_last_announcement, forced=True)
+                    reply = f'Command {command} sent'
+                    print(reply)
+                elif command[:2] == 'TV':
                     write(command)
                     reply = f'Command {command} sent'
                     print(reply)
@@ -301,6 +309,11 @@ def audio_callback(model=ModelDict()):
     command = "AUDIO" + model['audio'].upper()
     commands.append(command)
     return formulate_reply('audio')
+
+@route("/announce")
+def announcing_callback():
+    commands.append('ANNOUNCE')
+    return {'announce': 'performing'}
 
 
 if __name__ == '__main__':

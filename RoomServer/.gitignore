@@ -1,3 +1,5 @@
 venv/*
 venv/
 ip-manager42.json
+announcements.txt
+downloaded_file.xlsx
