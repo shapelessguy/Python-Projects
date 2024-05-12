@@ -7,6 +7,7 @@ def generate_plan():
     try:
         subprocess.run(f'cd {os.path.dirname(__file__)} && git pull'.split(), shell=True, capture_output=True, text=True)
         
+        initialize_proj()
         with open(f'{wg_folder}/vacations.json', 'r') as file:
             vac_entries = json.load(file)['entries']
 
