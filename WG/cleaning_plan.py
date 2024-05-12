@@ -386,12 +386,14 @@ class WG:
         df = pandas.DataFrame.from_dict(dict_)
         df_str = df.to_string(index=False)
         print(df_str)
+
+        with open(f'{wg_folder}/calendar.txt', 'w') as file:
+            file.write(df_str)
+
         if not save:
             return df
         
         self.save_history(df)
-        with open(f'{wg_folder}/calendar.txt', 'w') as file:
-            file.write(df_str)
         dfs = {'Calendar': df, 'Roles': get_roles_df()}
         print(f'Saving at {wg_folder}/cleaning_plan_leo6.xlsx')
         writer = pandas.ExcelWriter(f'{wg_folder}/cleaning_plan_leo6.xlsx',
@@ -412,7 +414,7 @@ class WG:
             writer.sheets['Roles'].set_row(row, None, cell_format)
 
         # noinspection PyProtectedMember
-        writer._save()
+        writer.close()
         r = subprocess.run(f'cd {os.path.dirname(__file__)} && git add . && git commit -m auto_update && git push'.split(), shell=True, capture_output=True, text=True)
         print(r.stdout)
         print(r.stderr)
