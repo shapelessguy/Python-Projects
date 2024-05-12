@@ -5,8 +5,6 @@ import sys
 import datetime
 import telegram
 import asyncio
-import pandas
-import numpy
 
 
 main_folder = os.path.dirname(os.path.dirname(__file__))
@@ -39,7 +37,7 @@ def get_last_announcement():
 async def send(chat_id, token, msg, document=None):
     bot = telegram.Bot(token=token)
     if document is None:
-        await bot.send_message(chat_id=chat_id, text=msg)
+        await bot.send_message(chat_id=chat_id, text=msg, parse_mode="HTML")
     elif document is not None:
         await bot.send_document(chat_id=chat_id, document=document, caption=msg)
     print(f"Message '{msg}' sent.")
@@ -61,16 +59,20 @@ def set_announcement(last_announcement):
         generate_plan = cleaning_plan_sequence.generate_plan
         WgMembers = cleaning_plan.WgMembers
         WgProps = cleaning_plan.WgProps
+        emoticons = cleaning_plan.emoticons
+        print(emoticons)
 
-        with open(os.path.join(os.path.dirname(__file__), 'announcements.txt'), 'a+') as file:
-            file.write(last_announcement.strftime("%Y-%m-%d-%H-%M-%S") + '\n')
         text, week_schedule = generate_plan()
         leo_token = '6599624331:AAETjn6YXAXVkg4-IV1I_1ip6zchZdmNbUI'
         leo_group_id = -4225824414
         dummy_channel_id = -1002037672769
-        asyncio.run(send(chat_id=dummy_channel_id, token=leo_token, msg=text, document=os.path.join(WG_project_path, 'cleaning_plan_leo6.xlsx')))
+        asyncio.run(send(chat_id=leo_group_id, token=leo_token, msg=text, document=os.path.join(WG_project_path, 'cleaning_plan_leo6.xlsx')))
+
+        with open(os.path.join(os.path.dirname(__file__), 'announcements.txt'), 'a+') as file:
+            file.write(last_announcement.strftime("%Y-%m-%d-%H-%M-%S") + '\n')
+
         wg_members = {k: v for k, v in WgMembers.__dict__.items() if not k.startswith('__')}
-        wg_props = [{'name': wg_members[k], **v} for k, v in WgProps.__dict__.items() if not k.startswith('__')]
+        wg_props = [{'name': wg_members[k], **v, } for k, v in WgProps.__dict__.items() if not k.startswith('__')]
         now = datetime.datetime.combine(get_date_from_week_id(get_week_number(datetime.datetime.now().date())), datetime.datetime.min.time())
         for e in wg_props:
             name = e['name']
@@ -84,7 +86,8 @@ def set_announcement(last_announcement):
                     pre = 'This week (RANGE): ACT\n'
                 elif week_n == 1:
                     pre = 'Next week (RANGE): ACT\n'
-                string += pre.replace('RANGE', f'{week_now} - {week_plus_1}').replace('ACT', f'{week_schedule[week_n][name]}')
+                activity = week_schedule[week_n][name]
+                string += pre.replace('RANGE', f'{week_now} - {week_plus_1}').replace('ACT', f' <b>{activity}</b> {emoticons[activity]}')
             if telegram_id is not None:
                 asyncio.run(send(chat_id=telegram_id, token=leo_token, msg=string))
     except Exception as e:

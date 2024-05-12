@@ -311,7 +311,7 @@ def audio_callback(model=ModelDict()):
     return formulate_reply('audio')
 
 @route("/announce")
-def announcing_callback():
+def announcing_callback(model=ModelDict()):
     commands.append('ANNOUNCE')
     return {'announce': 'performing'}
 
