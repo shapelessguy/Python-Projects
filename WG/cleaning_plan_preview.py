@@ -14,7 +14,7 @@ vacations = Vacations(entries=[Entry(names=e['names'],
 swaps = Swaps(entries=[Entry(names=[e['name1'], e['name2']],
                              in_date=datetime.date(year=e['year'], month=e['month'], day=e['day']),
                              ) for e in swap_entries])
-wg_members = start_bac(vacations, swaps, save=False)
+wg_members, text, week_schedule = start_bac(vacations, swaps, save=False)
 
 print()
 if wg_members is not None:

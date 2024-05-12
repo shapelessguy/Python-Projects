@@ -4,6 +4,7 @@ import random
 from collections import Counter
 
 import pandas
+from pandas import DataFrame
 import math
 import datetime
 import pyperclip
@@ -13,7 +14,12 @@ in_date_args = (2024, 2, 5)  # Year, month, day
 wg_folder = os.path.dirname(__file__)
 FUTURE_WEEKS = 10
 PAST_WEEKS = 4
+activities = None
+wg_members = None
 
+
+FINAL_NOTE = "Note: In case you want to get a week of forced vacation, please tell me at least the week before you plan to do so. " + \
+             "You can also easily change your shift with someone else, but again inform me please."
 
 class Activities:
     area0 = 'Floor'
@@ -23,6 +29,7 @@ class Activities:
     vacation = 'Vacation'
 
 not_applicable = 'Anarchy'
+blame = 'Blame'
 
 emoticons = {
     Activities.vacation: '🎊🎉',
@@ -41,6 +48,15 @@ class WgMembers:
     m4 = 'Arman'
     m5 = 'Jaspar'
     m6 = 'Mara'
+
+
+class WgProps:
+    m1 = {'telegram_id': 807946519}
+    m2 = {'telegram_id': None}
+    m3 = {'telegram_id': None}
+    m4 = {'telegram_id': None}
+    m5 = {'telegram_id': None}
+    m6 = {'telegram_id': None}#133279076}
 
 
 def get_roles_df():
@@ -165,9 +181,7 @@ class Member:
 
     def get_repeat_idx(self, activity):
         repeat_idx = 4
-        new_log_activities = self.log_activities.copy()
-        new_log_activities[self.week] = activity
-        log_without_vacation = {k: v for k, v in new_log_activities.items()}
+        log_without_vacation = {k: v for k, v in self.log_activities.items()}
         for i, v in zip(range(len(log_without_vacation)), log_without_vacation.values().__reversed__()):
             if v == activity:
                 repeat_idx = i
@@ -183,7 +197,7 @@ class Member:
     def get_spread(self, activity):
         new_log_activities = self.log_activities.copy()
         new_log_activities[self.week] = activity
-        log_without_vacation = {k: v for k, v in self.log_activities.items() if v != Activities.vacation}
+        log_without_vacation = {k: v for k, v in new_log_activities.items() if v != Activities.vacation}
         dist = {}
         spread_dict = {}
         for k, i in zip(log_without_vacation.values(), range(len(log_without_vacation))):
@@ -200,7 +214,7 @@ class Member:
             spread.append(occurrences.get(i, 0))
         return spread
 
-    def starts_activity(self, activity: str):
+    def assign_activity(self, activity: str):
         if activity not in activities:
             raise Exception(f"Activity {activity} not in defined activities.")
 
@@ -219,7 +233,7 @@ class Member:
             p_activities = [x for x in activities if x not in taken_activities]
         activity = p_activities[0]
         taken_activities += [activity]
-        self.starts_activity(activity)
+        self.assign_activity(activity)
 
     def next_possible_activities(self):
         if self.force_vacation:
@@ -248,7 +262,7 @@ class WG:
         super().__init__()
         self.in_date = None
         self.week = 1
-        self.members = []
+        self.members: list[Member] = []
         for m in members_name:
             self.members.append(Member(m))
 
@@ -261,7 +275,7 @@ class WG:
             for m in self.members:
                 if m.name == k:
                     m.reset()
-                    m.starts_activity(v)
+                    m.assign_activity(v)
 
     def clear_vacations(self):
         for m in self.members:
@@ -283,20 +297,16 @@ class WG:
             self.swap(m1, m2)
 
     @staticmethod
-    def brainstorm(members):
+    def brainstorm(members: list[Member]):
         activities_ = members[0].get_real_activities().keys()
         all_permutations = {k: None for k in itertools.permutations(activities_, len(members))}
 
-        # Now, if you want to pair each person with an activity in each permutation:
         for permutation in all_permutations:
-            # Zip the current permutation of activities with the people
-            # This pairs each person with an activity
             paired = list(zip(members, permutation))
             tot_repeat_idx, tot_deb = 0, 0
             for m, activity in paired:
                 tot_repeat_idx += m.get_repeat_idx(activity)
                 tot_deb += m.get_debit(activity)
-                # m.get_spread(activity)
             t = (tot_repeat_idx, tot_deb)
             fitness = 1000 / (t[0] + 0.1) + t[1]
             all_permutations[permutation] = fitness
@@ -304,26 +314,10 @@ class WG:
         best = min(all_permutations, key=all_permutations.get)
         paired = list(zip(members, best))
         for m, activity in paired:
-            m.starts_activity(activity)
+            m.assign_activity(activity)
 
     @staticmethod
-    def check_swap(m1, m2):
-        repeat_idx1 = 10000
-        for i, v in zip(range(len(m1.log_activities)), list(m1.log_activities.values().__reversed__())[1:]):
-            if v == list(m2.log_activities.values())[-1]:
-                repeat_idx1 = i
-                break
-        repeat_idx2 = 10000
-        for i, v in zip(range(len(m2.log_activities)), list(m2.log_activities.values().__reversed__())[1:]):
-            if v == list(m1.log_activities.values())[-1]:
-                repeat_idx2 = i
-                break
-        if repeat_idx1 > m1.repeat_idx and (repeat_idx2 > m2.repeat_idx or repeat_idx2 >= 2):
-            return repeat_idx1 - m1.repeat_idx, repeat_idx2 - m2.repeat_idx  # gain of the swap
-        return -1, -1
-
-    @staticmethod
-    def swap(m1, m2):
+    def swap(m1: Member, m2: Member):
         activity1, activity2 = m1.log_activities[m1.week], m2.log_activities[m1.week]
         m1.log_activities[m1.week] = activity2
         m2.log_activities[m1.week] = activity1
@@ -332,54 +326,33 @@ class WG:
         m1.p_activities[activity2] += 1
         m2.p_activities[activity1] += 1
 
-    def try_swap_pool(self, members):
-        members.sort(key=lambda x: x.repeat_idx, reverse=False)
-        m1 = members[0]
-        if m1.debit > 2:
-            return
-        gains = {}
-        for i in range(1, len(members)):
-            m2 = members[i]
-            if m2.debit > 2:
-                continue
-            gain1, gain2 = self.check_swap(m1, m2)
-            if gain1 > 0:
-                gains[m2] = (gain1, gain2)
-        gains = dict(sorted(gains.items(), key=lambda item: item[1][0], reverse=True))
-        if len(gains) > 0:
-            best = list(gains.keys())[0]
-            candidates = {m: v for m, v in gains.items() if gains[m] == gains[best]}
-            candidates = dict(sorted(candidates.items(), key=lambda item: item[1][1], reverse=True))
-            best = list(candidates.keys())[0]
-            self.swap(m1, best)
-
-    def new_week(self, week_activities=None):
+    def new_week(self, week_activities: DataFrame = None):
         for m in self.members:
             m.week = self.week
         self.week += 1
-
+        
         if week_activities is not None:
             for name in week_activities.to_dict():
                 for m in self.members:
                     if m.name == name:
-                        activity = list(week_activities.to_dict()[name].values())[0].replace(not_applicable, Activities.vacation)
-                        m.starts_activity(activity)
+                        activity = list(week_activities.to_dict()[name].values())[0].replace(not_applicable, Activities.vacation).replace(blame, Activities.vacation)
+                        m.assign_activity(activity)
         else:
             if sum([(1 if x.force_vacation else 0) for x in self.members]) > 2:
                 self.clear_vacations()
                 for m in self.members:
-                    m.starts_activity(Activities.vacation)
+                    m.assign_activity(Activities.vacation)
                 return
             self.members.sort(key=lambda x: x.get_n_real_activities(), reverse=True)
             self.members.sort(key=lambda x: x.force_vacation, reverse=True)
             for m in self.members[:2]:
-                m.starts_activity(Activities.vacation)
+                m.assign_activity(Activities.vacation)
 
             working_members = self.members[2:]
             self.brainstorm(working_members)
             self.clear_vacations()
     
-    def save_history(self, df_):
+    def save_history(self, df_: DataFrame):
         history_file = f'{wg_folder}/history.csv'
         if os.path.exists(history_file):
             prev_df = pandas.read_csv(history_file)
@@ -387,7 +360,7 @@ class WG:
             df = df_.copy()
             df['Week'] = pandas.to_datetime(df['Week'])
             df = pandas.concat([prev_df, df])
-            df = df.drop_duplicates(subset=['Week'], keep='last')
+            df = df.drop_duplicates(subset=['Week'], keep='first')
             df = df.sort_values(by='Week')
         df.iloc[:-FUTURE_WEEKS - 1].to_csv(history_file, index=False)
 
@@ -419,8 +392,8 @@ class WG:
         with open(f'{wg_folder}/calendar.txt', 'w') as file:
             file.write(df_str)
         dfs = {'Calendar': df, 'Roles': get_roles_df()}
-        print(f'Saving at {wg_folder}/Shared/cleaning_plan.xlsx')
-        writer = pandas.ExcelWriter(f'{wg_folder}/Shared/cleaning_plan.xlsx',
+        print(f'Saving at {wg_folder}/cleaning_plan_leo6.xlsx')
+        writer = pandas.ExcelWriter(f'{wg_folder}/cleaning_plan_leo6.xlsx',
                                     engine='xlsxwriter', date_format='dd.mm.yyyy')
         for name, dataframe in dfs.items():
             dataframe.style.apply(align_center, axis=0).to_excel(writer, name, index=False)
@@ -440,10 +413,6 @@ class WG:
         # noinspection PyProtectedMember
         writer._save()
         return df
-
-
-activities = [Activities.area0, Activities.area1, Activities.area2, Activities.area3, Activities.vacation]
-wg_members = WG(WgMembers.m1, WgMembers.m2, WgMembers.m3, WgMembers.m4, WgMembers.m5, WgMembers.m6)
 
 
 def simulate(n_weeks, initial_date):
@@ -486,15 +455,19 @@ def get_date_from_week_id(week_id_):
     return datetime.datetime.strptime(d + '-1', "%Y-W%W-%w").date()
 
 
-def get_string_by_activities(names_dict):
+def get_string_by_activities(names_dict, warning=False):
     string = ''
     all_vacation = True
     for name, activity in names_dict.items():
-        if activity == Activities.vacation:
+        if activity == Activities.area3 and warning:
+            string += f'❗⚠ Manager: {name} ⚠❗\n'
+    for name, activity in names_dict.items():
+        if activity == Activities.vacation or activity == Activities.area3:
             continue
         else:
             all_vacation = False
-            string += f'{name} -> {activity} {emoticons[activity]}\n'
+            string += f'{name}: {activity} {emoticons[activity]}\n'
+
     if all_vacation:
         string += f'Total anarchy {emoticons[not_applicable]}'
     else:
@@ -502,27 +475,39 @@ def get_string_by_activities(names_dict):
     return string
 
 
-def get_weekly_text(df):
-    names = {x: [None, None] for x in df.columns.to_list()[1:]}
+def get_weekly_text(df: DataFrame, n_weeks=3):
+    names = {x: [None] for x in df.columns.to_list()[1:]}
     now = datetime.datetime.combine(get_date_from_week_id(get_week_number(datetime.datetime.now().date())),
                                     datetime.datetime.min.time())
+    print()
     prev_row = None
+    get_rest = False
     for row in df.to_numpy():
         date = datetime.datetime.combine(row[0], datetime.datetime.min.time())
-        if date > now:
+        if date > now and not get_rest:
             for name, i in zip(names, range(1, len(names) + 1)):
-                names[name][1] = row[i]
                 names[name][0] = prev_row[i]
-            break
+                get_rest = True
         prev_row = row
-
+        if get_rest:
+            for name, i in zip(names, range(1, len(names) + 1)):
+                names[name].append(row[i])
+    
     string = f'This week ({now.date().strftime("%d-%m-%y")}):\n'
-    string += get_string_by_activities({k: v[0] for k, v in names.items()})
-    string += '\n\n'
+    string += get_string_by_activities({k: v[0] for k, v in names.items()}, warning=True)
 
-    string += f'Next week:\n'
-    string += get_string_by_activities({k: v[1] for k, v in names.items()})
-    return string
+    # if n_weeks > 1:
+    #     string += '\n\n'
+    #     string += f'Next week ({(now + datetime.timedelta(days=(7))).date().strftime("%d-%m-%y")}):\n'
+    #     string += get_string_by_activities({k: v[1] for k, v in names.items()}, warning=True)
+    
+    # for i in range(2, n_weeks):
+    #     string += '\n\n'
+    #     string += f'Week ({(now + datetime.timedelta(days=(i * 7))).date().strftime("%d-%m-%y")}):\n'
+    #     string += get_string_by_activities({k: v[i] for k, v in names.items()}, warning=True)
+    
+    string += f'\n\n{FINAL_NOTE}'
+    return string, {i: {k: v[i] for k, v in names.items()} for i in range(n_weeks)}
 
 
 def initialize(initial_date):
@@ -535,6 +520,12 @@ def initialize(initial_date):
         WgMembers.m5: Activities.area2,
         WgMembers.m6: Activities.area3,
     }, datetime.datetime.strptime(str(initial_date), "%Y-%m-%d"))
+
+
+def initialize_proj():
+    global activities, wg_members
+    activities = [Activities.area0, Activities.area1, Activities.area2, Activities.area3, Activities.vacation]
+    wg_members = WG(WgMembers.m1, WgMembers.m2, WgMembers.m3, WgMembers.m4, WgMembers.m5, WgMembers.m6)
 
 
 def start_bac(vacations, swaps, save: bool):
@@ -576,10 +567,12 @@ def start_bac(vacations, swaps, save: bool):
     df = wg_members.show_calendar(save=save)
     if df is None:
         return
-    pyperclip.copy(get_weekly_text(df))
-    return wg_members
+    text, week_schedule = get_weekly_text(df)
+    pyperclip.copy(text)
+    return wg_members, text, week_schedule
 
 
 if __name__ == '__main__':
     date_in = datetime.datetime(*in_date_args).date()
+    initialize_proj()
     simulate(n_weeks=100, initial_date=date_in)
