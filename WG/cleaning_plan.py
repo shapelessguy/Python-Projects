@@ -296,24 +296,48 @@ class WG:
                 m2 = m
         if m1 is not None and m2 is not None:
             self.swap(m1, m2)
+    
+    def calculate_fitness(self, pairs):
+        # tot_repeat_idx, tot_deb = 0, 0
+        fitness = 0
+        for m, activity in pairs:
+            # tot_repeat_idx += m.get_repeat_idx(activity)
+            # tot_deb += m.get_debit(activity)
+            fitness += 1000 / (m.get_repeat_idx(activity) + 0.1) + m.get_debit(activity)
+        # t = (tot_repeat_idx, tot_deb)
+        # fitness = 1000 / (t[0] + 0.1) + t[1]
+        return fitness
 
-    @staticmethod
-    def brainstorm(members: list[Member]):
+    def brainstorm(self, members: list[Member]):
         activities_ = members[0].get_real_activities().keys()
         all_permutations = {k: None for k in itertools.permutations(activities_, len(members))}
 
         for permutation in all_permutations:
             paired = list(zip(members, permutation))
-            tot_repeat_idx, tot_deb = 0, 0
-            for m, activity in paired:
-                tot_repeat_idx += m.get_repeat_idx(activity)
-                tot_deb += m.get_debit(activity)
-            t = (tot_repeat_idx, tot_deb)
-            fitness = 1000 / (t[0] + 0.1) + t[1]
-            all_permutations[permutation] = fitness
+            all_permutations[permutation] = self.calculate_fitness(paired)
 
         best = min(all_permutations, key=all_permutations.get)
+        # all_p = {tuple(list(x) + [all_permutations[x]]): all_permutations[x] for x in all_permutations}
+        # print(list(zip([x.name for x in members], min(all_p, key=all_p.get))), min(all_p, key=all_p.get)[-1])
         paired = list(zip(members, best))
+        # print(self.calculate_fitness(list(zip(members, best))))
+
+        repetitive_task_pairs = [(m, activity) for m, activity in paired if m.get_repeat_idx(activity) == 0]
+        if len(repetitive_task_pairs) > 0:
+            configurations = []
+            working_pairs = [(m, [Activities.vacation, *[act for m_, act in paired if m_ == m]][-1]) for m in self.members if not m.force_vacation]
+            working_pairs = [x for x in working_pairs if (x not in repetitive_task_pairs)]
+            for j in range(len(repetitive_task_pairs)):
+                for i in range(len(working_pairs)):
+                    r_pair = [p for p in repetitive_task_pairs]
+                    r_pair[j] = (r_pair[j][0], working_pairs[i][1])
+                    w_pair = [p for p in working_pairs]
+                    w_pair[i] = (w_pair[i][0], repetitive_task_pairs[j][1])
+                    fitness = self.calculate_fitness(r_pair + w_pair)
+                    configurations.append((r_pair + w_pair, fitness))
+
+                paired = min(configurations, key=lambda x: x[1])[0]
+
         for m, activity in paired:
             m.assign_activity(activity)
 
