@@ -130,7 +130,7 @@ class Swaps:
 
 
 class Entry:
-    def __init__(self, names: (tuple or list), in_date: datetime.date, n_weeks: int = 1):
+    def __init__(self, names: (tuple or list), in_date: datetime.date, n_weeks: int = 1): # type: ignore
         r_names = [m.name for m in wg_members.members]
         self.names = names
         self.in_date = in_date
