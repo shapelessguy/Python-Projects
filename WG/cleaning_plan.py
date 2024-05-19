@@ -55,7 +55,7 @@ class WgProps:
     m1 = {'telegram_id': 807946519}
     m2 = {'telegram_id': 7129379343}
     m3 = {'telegram_id': 6093567886}
-    m4 = {'telegram_id': None}
+    m4 = {'telegram_id': 261815348}
     m5 = {'telegram_id': None}
     m6 = {'telegram_id': 133279076}
 
