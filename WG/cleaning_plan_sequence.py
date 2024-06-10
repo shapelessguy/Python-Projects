@@ -6,6 +6,7 @@ import traceback
 
 def generate_plan():
     text = 'Error'
+    print(os.path.dirname(__file__))
     try:
         subprocess.run(f'cd {os.path.dirname(__file__)} && git pull'.split(), shell=True, capture_output=True, text=True)
         
