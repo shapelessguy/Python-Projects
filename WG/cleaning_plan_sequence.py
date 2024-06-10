@@ -1,4 +1,5 @@
 import subprocess
+import time
 from cleaning_plan import *
 import json
 import traceback
@@ -10,6 +11,7 @@ def generate_plan():
         r = subprocess.run(f'cd {os.path.dirname(__file__)} && git pull'.split(), shell=True, capture_output=True, text=True)
         print(r.stdout)
         print(r.stderr)
+        time.sleep(1)
         
         initialize_proj()
         with open(f'{wg_folder}/vacations.json', 'r') as file:
