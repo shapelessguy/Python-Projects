@@ -6,9 +6,10 @@ import traceback
 
 def generate_plan():
     text = 'Error'
-    print(os.path.dirname(__file__))
     try:
-        subprocess.run(f'cd {os.path.dirname(__file__)} && git pull'.split(), shell=True, capture_output=True, text=True)
+        r = subprocess.run(f'cd {os.path.dirname(__file__)} && git pull'.split(), shell=True, capture_output=True, text=True)
+        print(r.stdout)
+        print(r.stderr)
         
         initialize_proj()
         with open(f'{wg_folder}/vacations.json', 'r') as file:
