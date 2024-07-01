@@ -387,6 +387,7 @@ class WG:
             df = pandas.concat([prev_df, df])
             df = df.drop_duplicates(subset=['Week'], keep='first')
             df = df.sort_values(by='Week')
+        print(df)
         df.iloc[:-FUTURE_WEEKS].to_csv(history_file, index=False)
 
     def show_calendar(self, save=False):
