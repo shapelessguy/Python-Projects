@@ -47,7 +47,7 @@ class WgMembers:
     m2 = 'Lea'
     m3 = 'Cesare'
     m4 = 'Arman'
-    m5 = 'Jaspar'
+    m5 = 'Natchaya'
     m6 = 'Mara'
 
 
