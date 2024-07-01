@@ -413,10 +413,6 @@ class WG:
 
         with open(f'{wg_folder}/calendar.txt', 'w') as file:
             file.write(df_str)
-
-        r = subprocess.run(f'cd {os.path.dirname(__file__)} && git add . && git commit -m auto_update && git push'.split(), shell=True, capture_output=True, text=True)
-        print(r.stdout)
-        print(r.stderr)
         
         if not save:
             return df
