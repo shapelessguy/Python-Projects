@@ -5,8 +5,8 @@ import sys
 
 WG_project_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'WG')
 sys.path.append(WG_project_path)
-from cleaning_plan_sequence import generate_plan
-from cleaning_plan import WgMembers, WgProps
+from execute_logic import generate_plan
+from BAC_logic import WgMembers, WgProps
 
 plan = generate_plan()
 leo_token = '6599624331:AAETjn6YXAXVkg4-IV1I_1ip6zchZdmNbUI'

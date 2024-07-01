@@ -54,12 +54,12 @@ def reload_module(module_name):
 def set_announcement(last_announcement):
     try:
         subprocess.run(f'cd {WG_project_path} && git pull'.split(), shell=True, capture_output=True, text=True)
-        cleaning_plan_sequence = reload_module('cleaning_plan_sequence')
-        cleaning_plan = reload_module('cleaning_plan_sequence')
-        generate_plan = cleaning_plan_sequence.generate_plan
-        WgMembers = cleaning_plan.WgMembers
-        WgProps = cleaning_plan.WgProps
-        emoticons = cleaning_plan.emoticons
+        execute_logic = reload_module('execute_logic')
+        BAC_logic = reload_module('BAC_logic')
+        generate_plan = execute_logic.generate_plan
+        WgMembers = BAC_logic.WgMembers
+        WgProps = BAC_logic.WgProps
+        emoticons = BAC_logic.emoticons
         print(emoticons)
 
         text, week_schedule = generate_plan()
