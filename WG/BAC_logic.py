@@ -19,7 +19,7 @@ activities = None
 wg_members = None
 
 
-FINAL_NOTE = "Note: In case you want to get a week of forced vacation, please tell me at least the week before you plan to do so. " + \
+FINAL_NOTE = "Note: In case you want to get a week of forced vacation, please tell me at least the week before you plan so. " + \
              "You can also easily change your shift with someone else, but again inform me please."
 
 class Activities:
