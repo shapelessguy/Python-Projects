@@ -4,7 +4,7 @@ import keyboard
 from keyboard._keyboard_event import KEY_DOWN, KEY_UP
 import threading
 import speech_recognition as sr
-from llm_functionality import State, Model, LLM
+from llm_functionality import State, Model, LLM, SpeechManager
 
 
 class Recorder:
@@ -35,12 +35,18 @@ class Recorder:
                 on_press(event.name)
 
             elif event.event_type == KEY_UP:
-                on_release(event.name)
+                on_release(event.name) 
 
         def on_press(key):
+            # if key == 'a':
+            #     if self.state.is_waiting or self.is_recording or self.is_processing:
+            #         self.stop_recording()
+            #     else:
+            #         self.start_recording()
+            #     return
             if not key in self.actv_keys:
                 return
-            print(f'pressed {key} / {self.pressed_keys}')
+            # print(f'pressed {key} / {self.pressed_keys}')
             self.pressed_keys.add(key)
             for k, act in self.activations.items():
                 if act == self.pressed_keys:
@@ -111,7 +117,7 @@ class Recorder:
 
     def start_recording(self):
         if self.is_processing:
-            print("Processing is already on")
+            # print("Processing is already on")
             return
         self.is_processing = True
         print("Processing started")
@@ -124,6 +130,8 @@ class Recorder:
         time.sleep(0.4)
         self.is_recording = False
         threading.Thread(target=self.process_audio).start()
+        self.state.set_waiting(False)
+        self.state.set_thinking(True)
 
     def process_audio(self):
         while not self.data_recorded:
@@ -133,22 +141,31 @@ class Recorder:
         audio_data = sr.AudioData(b''.join(self.audio_frames), self.RATE, 2)
         
         try:
-            self.state.set_waiting(False)
             text = r.recognize_google(audio_data)
-            self.llm.process_text(text, model=self.cur_model)
+            reply, commands, messages, model = self.llm.process_text(text, model=self.cur_model)
+            self.state.set_thinking(False)
+            self.llm.take_action(reply, commands, messages, model)
             print("Recorded text: " + text)
         except sr.UnknownValueError:
+            self.state.set_thinking(False)
+            self.state.set_error(True)
             print("Audio not recognized.")
+            time.sleep(2)
+            self.state.set_error(False)
         except sr.RequestError as e:
+            self.state.set_thinking(False)
             print("Could not request results from Google Speech Recognition service; {0}".format(e))
+        
         self.is_processing = False
         print("Processing finished")
 
 
-state = State()
-llm = LLM(state)
-Recorder(mic_name='Microphone (2- USB PnP Audio Device)', state=state, llm=llm, activations=
-         {Model.Gemini: 'f13', 
-          Model.ChatGPT3: 'ctrl+f15',
-          Model.ChatGPT4: 'alt+f13',
-          })
+if __name__ == '__main__':
+    speech_manager = SpeechManager()
+    state = State(speech_manager)
+    llm = LLM(state)
+    Recorder(mic_name='Microphone (2- USB PnP Audio Device)', state=state, llm=llm, activations=
+            {Model.Gemini: 'f13', 
+            Model.ChatGPT3: 'ctrl+f15',
+            Model.ChatGPT4: 'alt+f13',
+            })
