@@ -1,6 +1,6 @@
 import subprocess
 import time
-from WG.BAC_logic import *
+from BAC_logic import *
 import json
 
 r = subprocess.run(f'cd {os.path.dirname(__file__)} && git pull'.split(), shell=True, capture_output=True, text=True)
