@@ -53,7 +53,7 @@ def reload_module(module_name):
 
 def set_announcement(last_announcement):
     try:
-        subprocess.run(f'cd {WG_project_path} && git pull'.split(), shell=True, capture_output=True, text=True)
+        subprocess.run(f'cd {WG_project_path} && git pull', shell=True, capture_output=True, text=True)
         execute_logic = reload_module('execute_logic')
         BAC_logic = reload_module('BAC_logic')
         generate_plan = execute_logic.generate_plan
@@ -63,7 +63,7 @@ def set_announcement(last_announcement):
         print(emoticons)
 
         text, week_schedule = generate_plan()
-        subprocess.run(f'cd {WG_project_path} && git add . && git commit -m "auto_update" && git push'.split(), shell=True, capture_output=True, text=True)
+        subprocess.run(f'cd {WG_project_path} && git add . && git commit -m "auto_update" && git push', shell=True, capture_output=True, text=True)
         leo_token = '6599624331:AAETjn6YXAXVkg4-IV1I_1ip6zchZdmNbUI'
         leo_group_id = -4225824414
         dummy_channel_id = -1002037672769
