@@ -30,7 +30,9 @@ def generate_plan():
         wg_members, text, week_schedule = start_bac(vacations, swaps, save=True)
         
         time.sleep(1)
-        r = subprocess.run(f'cd {os.path.dirname(__file__)} && git add . && git commit -m auto_update && git push'.split(), shell=True, capture_output=True, text=True)
+        command = f'cd {os.path.dirname(__file__)} && git add . && git commit -m "auto_update" && git push'
+        print(command)
+        r = subprocess.run(command.split(), shell=True, capture_output=True, text=True)
         print(r.stdout)
         print(r.stderr)
     except Exception as ex:
