@@ -595,7 +595,10 @@ def start_bac(vacations, swaps, save: bool):
     if df is None:
         return
     text, week_schedule = get_weekly_text(df)
-    pyperclip.copy(text)
+    try:
+        pyperclip.copy(text)
+    except Exception:
+        print('Pyperclipping not possible.')
     return wg_members, text, week_schedule
 
 
