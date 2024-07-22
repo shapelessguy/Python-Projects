@@ -32,12 +32,15 @@ def generate_plan():
         time.sleep(1)
         command = f'cd {os.path.dirname(__file__)} && git add . && git commit -m "auto_update" && git push'
         print(command)
-        r = subprocess.run(command.split(), shell=True, capture_output=True, text=True)
+        r = subprocess.run(command, shell=True, capture_output=True, text=True)
         print(r.stdout)
         print(r.stderr)
     except Exception as ex:
         print(f'Exception:\n{ex}', traceback.format_exc())
-        pyperclip.copy(f'Exception:\n{ex}')
+        try:
+            pyperclip.copy(f'Exception:\n{ex}')
+        except:
+            pass
     return text, week_schedule
 
 
