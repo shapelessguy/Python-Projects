@@ -28,6 +28,8 @@ from simple_http_server import Redirect
 from simple_http_server import ModelDict
 from firebase_admin import credentials, initialize_app, storage
 from requests import get
+import logging
+logging.basicConfig(level=logging.WARNING)
 SERVER_PORT = 10001
 initialized_firebase = False
 
