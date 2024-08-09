@@ -20,6 +20,20 @@
       "month": 6,
       "year": 2024,
       "n_weeks": 1
+    },
+    {
+      "names": ["Claudio", "Mara"],
+      "day": 12,
+      "month": 8,
+      "year": 2024,
+      "n_weeks": 2
+    },
+    {
+      "names": ["Arman"],
+      "day": 12,
+      "month": 8,
+      "year": 2024,
+      "n_weeks": 1
     }
   ]
 }
