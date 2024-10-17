@@ -11,13 +11,15 @@ class Aroma:
 
 
 # -------------- NICOTINE blend definition ----------------------------------------------------------------
-base_nico = Blend('NICO', fluids={prime_vg: 1.}, nico_concentration=0.1, fluidity=34.2, d_price=0.29)
+base_nico = Blend('NICO', fluids={prime_vg: 0.3, prime_pg: 0.7}, nico_concentration=0.1, fluidity=34.2, d_price=0.29)
 
 # -------------- LIQUID creation --------------------------------------------------------------------------
 
-liquid = Liquid(p_pg=0.5, p_vg=0.5, p_w=0, nico=4, base_nico=base_nico,
-                mixtures={Aroma.aroma1: 0.10})
-new_mixture = liquid.compose(name='liquid0', ref={'tot': 1040})
+base = Liquid(p_pg=0.5, p_vg=0.5, p_w=0, nico=4, base_nico=base_nico, mixtures={}).compose(name='base', ref={'tot': 40})
+scomposto = Liquid(p_pg=0.5, p_vg=0.5, p_w=0, nico=0, base_nico=base_nico, mixtures={}).compose(name='scomposto', ref={'tot': 20})
+
+liquid = Liquid(p_pg=0.5, p_vg=0.5, p_w=0, nico=4, base_nico=base_nico, mixtures={base: 0.65, scomposto: 0.32})
+new_mixture = liquid.compose(name='liquid0', ref={'tot': 60})
 
 composition = liquid.get_composition(print_=True)
 
