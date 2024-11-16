@@ -5,33 +5,43 @@ import serial
 import time
 import os
 import sys
-import subprocess
 import socket
 import asyncio
 import sequences
-import announcements
+import multiprocessing
 import serial.tools.list_ports as port_list
 from simple_http_server import route, server
-from simple_http_server import request_map
-from simple_http_server import Response
-from simple_http_server import MultipartFile
-from simple_http_server import Parameter
-from simple_http_server import Parameters
-from simple_http_server import Header
-from simple_http_server import JSONBody
-from simple_http_server import HttpError
-from simple_http_server import StaticFile
-from simple_http_server import Headers
-from simple_http_server import Cookies
-from simple_http_server import Cookie
-from simple_http_server import Redirect
 from simple_http_server import ModelDict
 from firebase_admin import credentials, initialize_app, storage
 from requests import get
 import logging
-logging.basicConfig(level=logging.WARNING)
-SERVER_PORT = 10001
+logging.getLogger("simple_http_server").setLevel(logging.CRITICAL)
+
+class TeeOutput:
+    def __init__(self, *streams):
+        self.streams = streams
+
+    def write(self, message):
+        self.streams[0].write(message)
+        self.streams[0].flush()
+        message = '\n'.join([f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] - {m}\n" for m in message.split('\n') if m.strip() != ''])
+        self.streams[1].write(message)
+        self.streams[1].flush()
+
+    def flush(self):
+        for stream in self.streams:
+            stream.flush()
+
+log_file_path = os.path.join(os.path.dirname(__file__), "output.log")
+log_file = open(log_file_path, "a")
+sys.stdout = TeeOutput(sys.__stdout__, log_file)
+sys.stderr = TeeOutput(sys.__stderr__, log_file)
+
+SERVER_PORT = 10000
 initialized_firebase = False
+terminate = False
+commands = None
+replies = None
 
 
 def init_firebase():
@@ -57,22 +67,26 @@ def upload_ip(ip):
 # noinspection PyBroadException
 def firebase_():
     global initialized_firebase
-    while 1:
-        time.sleep(5)
+    while not terminate:
+        for _ in range(10):
+            if not terminate:
+                time.sleep(0.5)
         try:
             prev_ip = None
             if not initialized_firebase:
                 init_firebase()
-            while 1:
+            while not terminate:
                 ip = get('https://api.ipify.org').content.decode('utf8')
                 if prev_ip != ip:
                     try:
                         upload_ip(ip)
                         prev_ip = ip
-                    except Exception as ex:
+                    except Exception:
                         print('Issue while trying to upload IP')
                         break
-                time.sleep(60)
+                for _ in range(120):
+                    if not terminate:
+                        time.sleep(0.5)
         except Exception as e:
             print('Issue while trying to upload IP (initialization)')
             print(e)
@@ -84,19 +98,17 @@ ports = list(port_list.comports())
 serialPort: serial.Serial
 lights = False
 auto_time = None
-commands = []
-reply = ''
 
 
 def initialize():
     global serialPort, initialized
     serialPort = serial.Serial(
-        port="/dev/ttyUSB0", baudrate=9600, bytesize=8, timeout=1, stopbits=serial.STOPBITS_ONE
+        port="COM6", baudrate=9600, bytesize=8, timeout=1, stopbits=serial.STOPBITS_ONE
     )
 
     loop_init = False
     print('Contacting Arduino..')
-    while not loop_init:
+    while not loop_init and not terminate:
         time.sleep(0.05)
         # Wait until there is data waiting in the serial buffer
         if serialPort.in_waiting > 0:
@@ -148,7 +160,7 @@ def actuator(active_times, commands):
     print('Actuator running.')
     mode = 'LIGHTSAUTO'
     act_times_func = [list(int(y.split(':')[0]) * 60 + int(y.split(':')[1]) for y in x) for x in active_times]
-    global auto_time, reply
+    global auto_time
     audio_on = False
     last_audio_ping = datetime.now() - timedelta(hours=24)
     audio_ping_index = 0
@@ -156,7 +168,7 @@ def actuator(active_times, commands):
     tollerance = 180  # audio turns off after 180 seconds
     ping_sent = 60 * 60  # audio ping sent to HW every <-- seconds
     last_announcement, id_last_announcement = announcements.get_last_announcement()
-    while 1:
+    while not terminate:
         try:
             cur_time = datetime.now()
             last_announcement, id_last_announcement = announcements.update(cur_time, last_announcement, id_last_announcement)
@@ -175,6 +187,7 @@ def actuator(active_times, commands):
                 commands.append('LIGHTSAUTO')
                 auto_time = None
             if len(commands) > 0:
+                reply = None
                 command = commands.pop(0)
                 if command == 'ANNOUNCE':
                     last_announcement, id_last_announcement = announcements.update(cur_time, last_announcement, id_last_announcement, forced=True)
@@ -236,6 +249,8 @@ def actuator(active_times, commands):
                     mode = 'LIGHTSOFF'
                     reply = f'Mode set to: {mode}'
                     print(reply)
+                if reply is not None:
+                    replies.append(reply)
             if mode == 'LIGHTSAUTO':
                 now = int(time.localtime().tm_hour * 60 + time.localtime().tm_min)
                 turn_lights = False
@@ -254,16 +269,30 @@ def actuator(active_times, commands):
 
 
 def functions():
-    initialize()
-    active_times = [('7:30', '22:00')]
-    worker = threading.Thread(target=actuator, args=(active_times, commands))
-    worker.start()
-    while 1:
-        command = input('')
-        commands.append(command)
+    global terminate
+    try:
+        initialize()
+        active_times = [('7:30', '21:59')]
+        worker = threading.Thread(target=actuator, args=(active_times, commands))
+        worker.start()
+        while not terminate:
+            command = input('').upper().strip()
+            if command == 'EXIT':
+                terminate = True
+                break
+            commands.append(command)
+    except:
+        pass
+    terminate = True
+    global server_proc
+    server_proc.terminate()
+    print('Application gracefully terminated')
 
 
-def start_server():
+def start_server(serv_commands, serv_replies):
+    global commands, replies
+    commands = serv_commands
+    replies = serv_replies
     try:
         server.start('0.0.0.0', SERVER_PORT)
     except socket.timeout:
@@ -274,13 +303,15 @@ def start_server():
         print(f"An unexpected error occurred: {e}")
     
 def formulate_reply(topic):
-    global reply
+    global replies
     time.sleep(0.1)
     for _ in range(20):
-        if reply != '':
-            return {topic: reply}
+        try:
+            if len(replies) > 0:
+                return {topic: replies.pop(0)}
+        except:
+            pass
         time.sleep(0.05)
-    reply = ''
     return {topic: 'no answer :('}
 
 
@@ -319,6 +350,13 @@ def announcing_callback(model=ModelDict()):
 
 
 if __name__ == '__main__':
+    print('_')
+    print('*************************')
+    print('      NEW SESSION')
+    print('*************************')
+    commands = multiprocessing.Manager().list()
+    replies = multiprocessing.Manager().list()
     threading.Thread(target=firebase_).start()
-    threading.Thread(target=start_server).start()
+    server_proc = multiprocessing.Process(target=start_server, args=(commands, replies))
+    server_proc.start()
     functions()

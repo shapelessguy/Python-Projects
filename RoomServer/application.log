@@ -1,0 +1,7 @@
+2024-11-16 12:11:41,705 - root - INFO - Contacting Arduino..
+2024-11-16 12:11:43,317 - root - INFO - Arduino found!
+2024-11-16 12:11:43,318 - root - INFO - Actuator running.
+2024-11-16 12:11:43,322 - root - INFO - To Arduino: LIGHTSON
+2024-11-16 12:11:47,649 - root - INFO - IP uploaded to:
+2024-11-16 12:11:47,649 - root - INFO - https://storage.googleapis.com/ip-manager42.appspot.com/RaspberryPi-Cyan/ip_server.txt
+2024-11-16 12:13:24,356 - root - INFO - Application gracefully terminated
