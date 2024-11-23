@@ -5,6 +5,7 @@ import sys
 import datetime
 import telegram
 import asyncio
+import traceback
 
 
 main_folder = os.path.dirname(os.path.dirname(__file__))
@@ -93,6 +94,7 @@ def set_announcement(last_announcement):
                 asyncio.run(send(chat_id=telegram_id, token=leo_token, msg=string))
     except Exception as e:
         print(e)
+        print(traceback.format_exc())
 
 
 def update(now, last_announcement, id_last_announcement, forced=False):

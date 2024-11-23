@@ -25,15 +25,20 @@ class TeeOutput:
         self.streams[0].write(message)
         self.streams[0].flush()
         message = '\n'.join([f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] - {m}\n" for m in message.split('\n') if m.strip() != ''])
-        self.streams[1].write(message)
-        self.streams[1].flush()
+        try:
+            self.streams[1].write(message)
+            self.streams[1].flush()
+        except UnicodeEncodeError:
+            encoded_message = message.encode('utf-8', 'replace').decode('utf-8')
+            self.streams[1].write(encoded_message)
+            self.streams[1].flush()
 
     def flush(self):
         for stream in self.streams:
             stream.flush()
 
 log_file_path = os.path.join(os.path.dirname(__file__), "output.log")
-log_file = open(log_file_path, "a")
+log_file = open(log_file_path, "a", encoding='utf-8')
 sys.stdout = TeeOutput(sys.__stdout__, log_file)
 sys.stderr = TeeOutput(sys.__stderr__, log_file)
 
