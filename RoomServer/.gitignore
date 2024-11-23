@@ -2,5 +2,5 @@ venv/*
 venv/
 ip-manager42.json
 downloaded_file.xlsx
-*/output.log
-*/ip_server.txt
+output.log
+ip_server.txt
