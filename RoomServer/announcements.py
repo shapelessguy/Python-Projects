@@ -209,8 +209,19 @@ async def recognize_blame(message, logs):
     return True
 
 
+async def recognize_ping(message):
+    id_, dt, msg = message
+    msg = msg.lower().split()
+    if len(msg) == 1 and msg[0] == 'ping':
+        await send(chat_id=id_, token=LEO_TOKEN, msg="I am here!")
+        return True
+    return False
+
+
 async def process_message(message, logs):
     if await recognize_blame(message, logs):
+        return
+    if await recognize_ping(message):
         return
     await send(chat_id=message[0], token=LEO_TOKEN, msg="Sorry I don't get what you say.")
 
