@@ -123,6 +123,8 @@ async def set_announcement(last_announcement):
                     if len(blames) > 2:
                         string += f'\nUnfortunately you will have to compensate in the next weeks with more tasks.'
             string += f'\nYou can submit an anonymous complaint for one or more tasks of the previous week by typing \"blame TASK\" e.g. \"blame kitchen\".'
+            string += f'\nBefore blaming someone, please wait until Wednesday evening so that the person has time to recover their delayed duty.'
+            string += f'\nIf a person receives more than 2 blames, they will need to recover the task in the future.'
             if telegram_id is not None:
                 print('Msg sent:', string)
                 await send(chat_id=telegram_id, token=LEO_TOKEN, msg=string)
