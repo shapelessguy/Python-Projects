@@ -83,7 +83,7 @@ async def set_announcement(last_announcement):
             name = e['name']
             date = str(blame_first_date)
             blames, blamed_activity = get_blame(name, date, hist_df, logs)
-            if len(blames) > 2:
+            if len(blames) >= 2:
                 with open(BLAMES_FILEPATH, 'r') as file:
                     blames_json = json.load(file)
                 with open(BLAMES_FILEPATH, 'w') as file:
@@ -120,11 +120,11 @@ async def set_announcement(last_announcement):
                 else:
                     blamed_activity = f' ({blamed_activity})' if blamed_activity is not None else ''
                     string += f'\nYou got {len(blames)} complaints in the week {blame_first_date}-{blame_last_date}{blamed_activity}.'
-                    if len(blames) > 2:
+                    if len(blames) >= 2:
                         string += f'\nUnfortunately you will have to compensate in the next weeks with more tasks.'
             string += f'\nYou can submit an anonymous complaint for one or more tasks of the previous week by typing \"blame TASK\" e.g. \"blame kitchen\".'
             string += f'\nBefore blaming someone, please wait until Wednesday evening so that the person has time to recover their delayed duty.'
-            string += f'\nIf a person receives more than 2 blames, they will need to recover the task in the future.'
+            string += f'\nIf a person receives at least 2 blames, they will need to recover the task in the future.'
             if telegram_id is not None:
                 print('Msg sent:', string)
                 await send(chat_id=telegram_id, token=LEO_TOKEN, msg=string)
