@@ -9,7 +9,7 @@ import json
 import requests
 import pandas as pd
 from datetime import datetime, timedelta
-from utils import LEO_TOKEN, LEO_GROUP_ID, BLAME_LOGS_FILEPATH
+from utils import LEO_TOKEN, LEO_GROUP_ID, BLAME_LOGS_FILEPATH, BLAMES_FILEPATH
 
 
 main_folder = os.path.dirname(os.path.dirname(__file__))
@@ -75,17 +75,30 @@ async def set_announcement(last_announcement):
         wg_props = [{'name': wg_members[k], **v, } for k, v in WgProps.__dict__.items() if not k.startswith('__')]
 
         emoticons = BAC_logic.emoticons
+        now = datetime.combine(get_date_from_week_id(get_week_number(datetime.now().date())), datetime.min.time())
+        blame_first_date = (now - timedelta(days=14)).date()
+        blame_last_date = (now - timedelta(days=7)).date()
+        hist_df = get_history()
+        for e in wg_props:
+            name = e['name']
+            date = str(blame_first_date)
+            blames, blamed_activity = get_blame(name, date, hist_df, logs)
+            if len(blames) > 2:
+                with open(BLAMES_FILEPATH, 'r') as file:
+                    blames_json = json.load(file)
+                with open(BLAMES_FILEPATH, 'w') as file:
+                    blames_json['entries'].append({'name': name, 'date': date})
+                    json.dump(blames_json, file)
+
         text, week_schedule = generate_plan()
+        hist_df = get_history()
+
         subprocess.run(f'cd {WG_project_path} && git add . && git commit -m "auto_update" && git push', shell=True, capture_output=True, text=True)
-        # await send(chat_id=LEO_GROUP_ID, token=LEO_TOKEN, msg=text, document=os.path.join(WG_project_path, 'cleaning_plan_leo6.xlsx'))
+        await send(chat_id=LEO_GROUP_ID, token=LEO_TOKEN, msg=text, document=os.path.join(WG_project_path, 'cleaning_plan_leo6.xlsx'))
 
         with open(os.path.join(os.path.dirname(__file__), 'announcements.txt'), 'a+') as file:
             file.write(last_announcement.strftime("%Y-%m-%d-%H-%M-%S") + '\n')
         
-        hist_df = get_history()
-        now = datetime.combine(get_date_from_week_id(get_week_number(datetime.now().date())), datetime.min.time())
-        blame_first_date = (now - timedelta(days=14)).date()
-        blame_last_date = (now - timedelta(days=7)).date()
         for e in wg_props:
             name = e['name']
             blames, blamed_activity = get_blame(name, str(blame_first_date), hist_df, logs)
@@ -107,10 +120,12 @@ async def set_announcement(last_announcement):
                 else:
                     blamed_activity = f' ({blamed_activity})' if blamed_activity is not None else ''
                     string += f'\nYou got {len(blames)} complaints in the week {blame_first_date}-{blame_last_date}{blamed_activity}.'
+                    if len(blames) > 2:
+                        string += f'\nUnfortunately you will have to compensate in the next weeks with more tasks.'
             string += f'\nYou can submit an anonymous complaint for one or more tasks of the previous week by typing \"blame TASK\" e.g. \"blame kitchen\".'
             if telegram_id is not None:
                 print('Msg sent:', string)
-                # await send(chat_id=telegram_id, token=LEO_TOKEN, msg=string)
+                await send(chat_id=telegram_id, token=LEO_TOKEN, msg=string)
     except Exception as e:
         print(e)
         print(traceback.format_exc())
