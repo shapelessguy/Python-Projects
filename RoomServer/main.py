@@ -161,7 +161,7 @@ def change_lights(on):
 
 
 # noinspection PyBroadException
-def actuator(active_times, commands):
+async def actuator(active_times, commands):
     print('Actuator running.')
     mode = 'LIGHTSAUTO'
     act_times_func = [list(int(y.split(':')[0]) * 60 + int(y.split(':')[1]) for y in x) for x in active_times]
@@ -177,7 +177,7 @@ def actuator(active_times, commands):
     while not terminate:
         try:
             cur_time = datetime.now()
-            last_announcement, id_last_announcement = announcements.update(cur_time, last_announcement, id_last_announcement)
+            last_announcement, id_last_announcement = await announcements.update(cur_time, last_announcement, id_last_announcement)
             # print(cur_time - last_audio_ping, audio_on, 'pass='+ str('AUDIOON' in commands or 'AUDIOOFF' in commands))
             if 'AUDIOON' in commands or 'AUDIOOFF' in commands:
                 pass
@@ -196,7 +196,7 @@ def actuator(active_times, commands):
                 reply = None
                 command = commands.pop(0)
                 if command == 'ANNOUNCE':
-                    last_announcement, id_last_announcement = announcements.update(cur_time, last_announcement, id_last_announcement, forced=True)
+                    last_announcement, id_last_announcement = await announcements.update(cur_time, last_announcement, id_last_announcement, forced=True)
                     reply = f'Command {command} sent'
                     print(reply)
                 elif command[:2] == 'TV':
@@ -274,13 +274,16 @@ def actuator(active_times, commands):
             print(traceback.format_exc())
 
 
+def launch_actuator(active_times, commands):
+    asyncio.run(actuator(active_times, commands))
+
+
 def functions():
     global terminate
     try:
         initialize()
         active_times = [('7:30', '21:59')]
-        worker = threading.Thread(target=actuator, args=(active_times, commands))
-        worker.start()
+        threading.Thread(target=launch_actuator, args=(active_times, commands)).start()
         while not terminate:
             command = input('').upper().strip()
             if command == 'EXIT':

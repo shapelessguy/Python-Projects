@@ -2,7 +2,7 @@ import itertools
 import os
 import random
 from collections import Counter
-import subprocess
+import json
 
 import pandas
 from pandas import DataFrame
@@ -13,7 +13,7 @@ import pyperclip
 
 in_date_args = (2024, 2, 5)  # Year, month, day
 wg_folder = os.path.dirname(__file__)
-FUTURE_WEEKS = 10
+FUTURE_WEEKS = 100
 PAST_WEEKS = 4
 activities = None
 wg_members = None
@@ -30,7 +30,6 @@ class Activities:
     vacation = 'Vacation'
 
 not_applicable = 'Anarchy'
-blame = 'Blame'
 
 emoticons = {
     Activities.vacation: '🎊🎉',
@@ -351,7 +350,7 @@ class WG:
         m1.p_activities[activity2] += 1
         m2.p_activities[activity1] += 1
 
-    def new_week(self, week_activities: DataFrame = None):
+    def new_week(self, week_activities: DataFrame=None, blame_json=None):
         for m in self.members:
             m.week = self.week
         self.week += 1
@@ -360,7 +359,12 @@ class WG:
             for name in week_activities.to_dict():
                 for m in self.members:
                     if m.name == name:
-                        activity = list(week_activities.to_dict()[name].values())[0].replace(not_applicable, Activities.vacation).replace(blame, Activities.vacation)
+                        activity = list(week_activities.to_dict()[name].values())[0].replace(not_applicable, Activities.vacation)
+                        week_value = str(week_activities.iloc[0]["Week"].date())
+                        if blame_json is not None:
+                            for e in blame_json['entries']:
+                                if e['name'] == name and e['date'] == week_value:
+                                    activity = Activities.vacation
                         m.assign_activity(activity)
         else:
             if sum([(1 if x.force_vacation else 0) for x in self.members]) > 2:
@@ -562,6 +566,13 @@ def get_history():
         hist_df['Week'] = pandas.to_datetime(hist_df['Week'])
     return hist_df
 
+def get_blames():
+    blames_file = f'{wg_folder}/blames.json'
+    if os.path.exists(blames_file):
+        with open(blames_file, 'r') as file:
+            return json.load(file)
+    return None
+
 
 def start_bac(vacations, swaps, save: bool):
     date_now = datetime.datetime.combine(get_date_from_week_id(get_week_number(datetime.datetime.now().date())),
@@ -578,6 +589,7 @@ def start_bac(vacations, swaps, save: bool):
     initialize(datetime_in.date())
 
     hist_df = get_history()
+    blame_json = get_blames()
     
     for i in range(n_weeks):
         date = (datetime_in + datetime.timedelta(days=((i+1) * 7)))
@@ -586,7 +598,7 @@ def start_bac(vacations, swaps, save: bool):
         date = date.date()
         if historical:
             week_activities = hist_df[hist_df['Week'] == pd_date]
-            wg_members.new_week(week_activities=week_activities)
+            wg_members.new_week(week_activities, blame_json)
         else:
             for name, date_ in vacations.dates:
                 if date == date_:

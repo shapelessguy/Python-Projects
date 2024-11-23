@@ -49,6 +49,7 @@ async def send(chat_id, token, msg, document=None):
         print(f"Message '{msg}' sent.")
     except Exception:
         print('Error while trying to send telegram message')
+        print(traceback.format_exc())
 
 
 def reload_module(module_name):
@@ -59,7 +60,7 @@ def reload_module(module_name):
     return module
 
 
-def set_announcement(last_announcement):
+async def set_announcement(last_announcement):
     try:
         subprocess.run(f'cd {WG_project_path} && git pull', shell=True, capture_output=True, text=True)
         with open(BLAME_LOGS_FILEPATH, 'r') as file:
@@ -76,7 +77,7 @@ def set_announcement(last_announcement):
         emoticons = BAC_logic.emoticons
         text, week_schedule = generate_plan()
         subprocess.run(f'cd {WG_project_path} && git add . && git commit -m "auto_update" && git push', shell=True, capture_output=True, text=True)
-        asyncio.run(send(chat_id=LEO_GROUP_ID, token=LEO_TOKEN, msg=text, document=os.path.join(WG_project_path, 'cleaning_plan_leo6.xlsx')))
+        # await send(chat_id=LEO_GROUP_ID, token=LEO_TOKEN, msg=text, document=os.path.join(WG_project_path, 'cleaning_plan_leo6.xlsx'))
 
         with open(os.path.join(os.path.dirname(__file__), 'announcements.txt'), 'a+') as file:
             file.write(last_announcement.strftime("%Y-%m-%d-%H-%M-%S") + '\n')
@@ -87,7 +88,7 @@ def set_announcement(last_announcement):
         blame_last_date = (now - timedelta(days=7)).date()
         for e in wg_props:
             name = e['name']
-            blames, activity = get_blame(name, str(blame_first_date), hist_df, logs)
+            blames, blamed_activity = get_blame(name, str(blame_first_date), hist_df, logs)
             telegram_id = e['telegram_id']
             string = f'Hello {name}, this is the schedule for the next weeks, waiting for you!\n'
             for week_n in week_schedule:
@@ -100,26 +101,28 @@ def set_announcement(last_announcement):
                     pre = 'Next week (RANGE): ACT\n'
                 activity = week_schedule[week_n][name]
                 string += pre.replace('RANGE', f'{week_now} - {week_plus_1}').replace('ACT', f' <b>{activity}</b> {emoticons[activity]}')
-            if len(blames) == 0:
-                string += f'\nCongratulations, you have no complaints for the week {blame_first_date}-{blame_last_date}!'
-            else:
-                activity = f' ({activity})' if activity is not None else ''
-                string += f'\nYou got {len(blames)} complaints in the week {blame_first_date}-{blame_last_date}{activity}.'
-            string += f'\nYou can submit an anonymous complaint for one or more tasks of the previous week by typing \"blame <Activity>\" e.g. \"blame kitchen\".'
+            if blamed_activity != 'Vacation':
+                if len(blames) == 0:
+                    string += f'\nCongratulations, you have no complaints for the week {blame_first_date}-{blame_last_date}!'
+                else:
+                    blamed_activity = f' ({blamed_activity})' if blamed_activity is not None else ''
+                    string += f'\nYou got {len(blames)} complaints in the week {blame_first_date}-{blame_last_date}{blamed_activity}.'
+            string += f'\nYou can submit an anonymous complaint for one or more tasks of the previous week by typing \"blame TASK\" e.g. \"blame kitchen\".'
             if telegram_id is not None:
-                asyncio.run(send(chat_id=telegram_id, token=LEO_TOKEN, msg=string))
+                print('Msg sent:', string)
+                # await send(chat_id=telegram_id, token=LEO_TOKEN, msg=string)
     except Exception as e:
         print(e)
         print(traceback.format_exc())
 
 
-def update(now, last_announcement, id_last_announcement, forced=False):
+async def update(now, last_announcement, id_last_announcement, forced=False):
     announce_at = 8  # hour of update
     masked_now = now - timedelta(hours=(announce_at))
     if get_week_number(masked_now) != id_last_announcement or forced:
         if masked_now > last_announcement or forced:
             print('ANNOUNCEMENTS', now)
-            set_announcement(now)
+            await set_announcement(now)
             last_announcement = now
             id_last_announcement = get_week_number(now)
     return last_announcement, id_last_announcement
