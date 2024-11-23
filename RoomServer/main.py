@@ -172,6 +172,7 @@ def actuator(active_times, commands):
     ping_period = 10  # audio ping received every 10 seconds
     tollerance = 180  # audio turns off after 180 seconds
     ping_sent = 60 * 60  # audio ping sent to HW every <-- seconds
+    threading.Thread(target=announcements.spawn_monitoring).start()
     last_announcement, id_last_announcement = announcements.get_last_announcement()
     while not terminate:
         try:

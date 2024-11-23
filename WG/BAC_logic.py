@@ -555,6 +555,14 @@ def initialize_proj():
     wg_members = WG(WgMembers.m1, WgMembers.m2, WgMembers.m3, WgMembers.m4, WgMembers.m5, WgMembers.m6)
 
 
+def get_history():
+    history_file = f'{wg_folder}/history.csv'
+    if os.path.exists(history_file):
+        hist_df = pandas.read_csv(history_file)
+        hist_df['Week'] = pandas.to_datetime(hist_df['Week'])
+    return hist_df
+
+
 def start_bac(vacations, swaps, save: bool):
     date_now = datetime.datetime.combine(get_date_from_week_id(get_week_number(datetime.datetime.now().date())),
                                          datetime.datetime.min.time())
@@ -569,10 +577,7 @@ def start_bac(vacations, swaps, save: bool):
     n_weeks = math.ceil((list(week_ids.keys())[-1] - datetime_in.date()).days / 7)
     initialize(datetime_in.date())
 
-    history_file = f'{wg_folder}/history.csv'
-    if os.path.exists(history_file):
-        hist_df = pandas.read_csv(history_file)
-        hist_df['Week'] = pandas.to_datetime(hist_df['Week'])
+    hist_df = get_history()
     
     for i in range(n_weeks):
         date = (datetime_in + datetime.timedelta(days=((i+1) * 7)))

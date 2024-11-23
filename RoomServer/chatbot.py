@@ -7,14 +7,10 @@ WG_project_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'WG')
 sys.path.append(WG_project_path)
 from execute_logic import generate_plan
 from BAC_logic import WgMembers, WgProps
+from utils import LEO_TOKEN, CLAUDIO_ID
 
 plan = generate_plan()
-leo_token = '6599624331:AAETjn6YXAXVkg4-IV1I_1ip6zchZdmNbUI'
-claudio_id = 807946519
-mara_id = 133279076
-leo_group_id = -4225824414
-dummy_channel_id = -1002037672769
-bot = telegram.Bot(token=leo_token)
+bot = telegram.Bot(token=LEO_TOKEN)
 
 
 async def send(chat_id, token, msg, document=None):
@@ -26,5 +22,5 @@ async def send(chat_id, token, msg, document=None):
     print(f"Message '{msg}' sent.")
 
 
-# asyncio.run(send(chat_id=claudio_id, token=leo_token, msg='HEEEY'))
-asyncio.run(send(chat_id=claudio_id, token=leo_token, msg=plan, document='cleaning_plan_leo6.xlsx'))
+# asyncio.run(send(chat_id=CLAUDIO_ID, token=LEO_TOKEN, msg='HEEEY'))
+asyncio.run(send(chat_id=CLAUDIO_ID, token=LEO_TOKEN, msg=plan, document='cleaning_plan_leo6.xlsx'))

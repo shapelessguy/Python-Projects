@@ -2,10 +2,14 @@ import importlib
 import os
 import subprocess
 import sys
-import datetime
 import telegram
 import asyncio
 import traceback
+import json
+import requests
+import pandas as pd
+from datetime import datetime, timedelta
+from utils import LEO_TOKEN, LEO_GROUP_ID, BLAME_LOGS_FILEPATH
 
 
 main_folder = os.path.dirname(os.path.dirname(__file__))
@@ -20,28 +24,31 @@ def get_week_number(date):
 
 def get_date_from_week_id(week_id_):
     d = f"{week_id_[1]}-W{week_id_[0]}"
-    return datetime.datetime.strptime(d + '-1', "%Y-W%W-%w").date()
+    return datetime.strptime(d + '-1', "%Y-W%W-%w").date()
 
 
 def get_last_announcement():
     last_announcement = None
     try:
         with open(os.path.join(os.path.dirname(__file__), 'announcements.txt'), 'r') as file:
-            last_announcement = datetime.datetime.strptime(file.read().split('\n')[-2], "%Y-%m-%d-%H-%M-%S")
+            last_announcement = datetime.strptime(file.read().split('\n')[-2], "%Y-%m-%d-%H-%M-%S")
     except:
         pass
     if last_announcement is None:
-        last_announcement = datetime.datetime.strptime("2000-01-01-00-00-00", "%Y-%m-%d-%H-%M-%S")
+        last_announcement = datetime.strptime("2000-01-01-00-00-00", "%Y-%m-%d-%H-%M-%S")
     return last_announcement, get_week_number(last_announcement)
 
 
 async def send(chat_id, token, msg, document=None):
-    bot = telegram.Bot(token=token)
-    if document is None:
-        await bot.send_message(chat_id=chat_id, text=msg, parse_mode="HTML")
-    elif document is not None:
-        await bot.send_document(chat_id=chat_id, document=document, caption=msg)
-    print(f"Message '{msg}' sent.")
+    try:
+        bot = telegram.Bot(token=token)
+        if document is None:
+            await bot.send_message(chat_id=chat_id, text=msg, parse_mode="HTML")
+        elif document is not None:
+            await bot.send_document(chat_id=chat_id, document=document, caption=msg)
+        print(f"Message '{msg}' sent.")
+    except Exception:
+        print('Error while trying to send telegram message')
 
 
 def reload_module(module_name):
@@ -55,34 +62,37 @@ def reload_module(module_name):
 def set_announcement(last_announcement):
     try:
         subprocess.run(f'cd {WG_project_path} && git pull', shell=True, capture_output=True, text=True)
+        with open(BLAME_LOGS_FILEPATH, 'r') as file:
+            logs = json.load(file)
         execute_logic = reload_module('execute_logic')
         BAC_logic = reload_module('BAC_logic')
+        get_history = BAC_logic.get_history
         generate_plan = execute_logic.generate_plan
         WgMembers = BAC_logic.WgMembers
         WgProps = BAC_logic.WgProps
-        emoticons = BAC_logic.emoticons
-        print(emoticons)
+        wg_members = {k: v for k, v in WgMembers.__dict__.items() if not k.startswith('__')}
+        wg_props = [{'name': wg_members[k], **v, } for k, v in WgProps.__dict__.items() if not k.startswith('__')]
 
+        emoticons = BAC_logic.emoticons
         text, week_schedule = generate_plan()
         subprocess.run(f'cd {WG_project_path} && git add . && git commit -m "auto_update" && git push', shell=True, capture_output=True, text=True)
-        leo_token = '6599624331:AAETjn6YXAXVkg4-IV1I_1ip6zchZdmNbUI'
-        leo_group_id = -4225824414
-        dummy_channel_id = -1002037672769
-        asyncio.run(send(chat_id=leo_group_id, token=leo_token, msg=text, document=os.path.join(WG_project_path, 'cleaning_plan_leo6.xlsx')))
+        asyncio.run(send(chat_id=LEO_GROUP_ID, token=LEO_TOKEN, msg=text, document=os.path.join(WG_project_path, 'cleaning_plan_leo6.xlsx')))
 
         with open(os.path.join(os.path.dirname(__file__), 'announcements.txt'), 'a+') as file:
             file.write(last_announcement.strftime("%Y-%m-%d-%H-%M-%S") + '\n')
-
-        wg_members = {k: v for k, v in WgMembers.__dict__.items() if not k.startswith('__')}
-        wg_props = [{'name': wg_members[k], **v, } for k, v in WgProps.__dict__.items() if not k.startswith('__')]
-        now = datetime.datetime.combine(get_date_from_week_id(get_week_number(datetime.datetime.now().date())), datetime.datetime.min.time())
+        
+        hist_df = get_history()
+        now = datetime.combine(get_date_from_week_id(get_week_number(datetime.now().date())), datetime.min.time())
+        blame_first_date = (now - timedelta(days=14)).date()
+        blame_last_date = (now - timedelta(days=7)).date()
         for e in wg_props:
             name = e['name']
+            blames, activity = get_blame(name, str(blame_first_date), hist_df, logs)
             telegram_id = e['telegram_id']
             string = f'Hello {name}, this is the schedule for the next weeks, waiting for you!\n'
             for week_n in week_schedule:
-                week_now = (now + datetime.timedelta(days=(week_n * 7))).date().strftime("%d-%m-%y")
-                week_plus_1 = (now + datetime.timedelta(days=((week_n + 1) * 7))).date().strftime("%d-%m-%y")
+                week_now = (now + timedelta(days=(week_n * 7))).date().strftime("%d/%m")
+                week_plus_1 = (now + timedelta(days=((week_n + 1) * 7))).date().strftime("%d/%m")
                 pre = 'Week RANGE: ACT\n'
                 if week_n == 0:
                     pre = 'This week (RANGE): ACT\n'
@@ -90,8 +100,14 @@ def set_announcement(last_announcement):
                     pre = 'Next week (RANGE): ACT\n'
                 activity = week_schedule[week_n][name]
                 string += pre.replace('RANGE', f'{week_now} - {week_plus_1}').replace('ACT', f' <b>{activity}</b> {emoticons[activity]}')
+            if len(blames) == 0:
+                string += f'\nCongratulations, you have no complaints for the week {blame_first_date}-{blame_last_date}!'
+            else:
+                activity = f' ({activity})' if activity is not None else ''
+                string += f'\nYou got {len(blames)} complaints in the week {blame_first_date}-{blame_last_date}{activity}.'
+            string += f'\nYou can submit an anonymous complaint for one or more tasks of the previous week by typing \"blame <Activity>\" e.g. \"blame kitchen\".'
             if telegram_id is not None:
-                asyncio.run(send(chat_id=telegram_id, token=leo_token, msg=string))
+                asyncio.run(send(chat_id=telegram_id, token=LEO_TOKEN, msg=string))
     except Exception as e:
         print(e)
         print(traceback.format_exc())
@@ -99,7 +115,7 @@ def set_announcement(last_announcement):
 
 def update(now, last_announcement, id_last_announcement, forced=False):
     announce_at = 8  # hour of update
-    masked_now = now - datetime.timedelta(hours=(announce_at))
+    masked_now = now - timedelta(hours=(announce_at))
     if get_week_number(masked_now) != id_last_announcement or forced:
         if masked_now > last_announcement or forced:
             print('ANNOUNCEMENTS', now)
@@ -107,3 +123,113 @@ def update(now, last_announcement, id_last_announcement, forced=False):
             last_announcement = now
             id_last_announcement = get_week_number(now)
     return last_announcement, id_last_announcement
+
+
+URL = f"https://api.telegram.org/bot{LEO_TOKEN}"
+
+def fetch_updates():
+    try:
+        response = requests.get(f"{URL}/getUpdates")
+        updates = response.json()
+        incoming = []
+
+        if updates.get("result"):
+            last_update_id = updates["result"][-1]["update_id"]
+            requests.get(f"{URL}/getUpdates?offset={last_update_id + 1}")
+            if len(updates['result']) == 0:
+                return []
+            for result in updates['result']:
+                from_id = result['message']['from']['id']
+                date = datetime.fromtimestamp(result['message']['date'])
+                msg = result['message']['text']
+                incoming.append([from_id, date, msg])
+        else:
+            return []
+        return incoming
+    except Exception:
+        return []
+
+
+async def recognize_blame(message, logs):
+    id_, dt, msg = message
+    msg = msg.lower().split()
+    if len(msg) != 2:
+        return False
+    if msg[0] != 'blame':
+        return False
+    BAC_logic = reload_module('BAC_logic')
+    activity = [v for k, v in BAC_logic.Activities.__dict__.items() if not k.startswith('__') and k != 'vacation' if v.lower() == msg[1]]
+    if len(activity) == 0:
+        return False
+    activity = activity[0]
+    WgMembers = BAC_logic.WgMembers
+    WgProps = BAC_logic.WgProps
+    wg_members = {k: v for k, v in WgMembers.__dict__.items() if not k.startswith('__')}
+    wg_props = [{'name': wg_members[k], **v, } for k, v in WgProps.__dict__.items() if not k.startswith('__')]
+    member_name = None
+    for e in wg_props:
+        if e['telegram_id'] == id_:
+            member_name = e['name']
+    if member_name is None:
+        return False
+
+    current_week = (dt - timedelta(days=dt.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+    previous_week = (current_week - timedelta(days=dt.weekday() + 7)).strftime("%Y-%m-%d")
+    logs[member_name] = logs.get(member_name, [])
+    entry = {'date': str(previous_week), 'submitted': str(dt), 'blame': activity}
+    for e in logs[member_name]:
+        if entry['date'] == e['date'] and entry['blame'] == e['blame']:
+            await send(chat_id=id_, token=LEO_TOKEN, msg="You have already submitted this feedback.")
+            return True
+    logs[member_name].append(entry)
+    with open(BLAME_LOGS_FILEPATH, 'w') as file:
+        json.dump(logs, file, indent=2)
+    await send(chat_id=id_, token=LEO_TOKEN, msg="Thanks for your feedback!")
+    print(f'Received blame from {member_name} -> {activity}')
+    return True
+
+
+async def process_message(message, logs):
+    if await recognize_blame(message, logs):
+        return
+    await send(chat_id=message[0], token=LEO_TOKEN, msg="Sorry I don't get what you say.")
+
+
+async def monitor_chats():
+    with open(BLAME_LOGS_FILEPATH, 'r') as file:
+        logs = json.load(file)
+    while True:
+        output = fetch_updates()
+        for message in output:
+            await process_message(message, logs)
+        await asyncio.sleep(0.5)
+
+
+def get_blame(name, now, hist_df, logs):
+    filtered_row = hist_df[hist_df['Week'] == now]
+    value = [list(v.values())[0] for k, v in filtered_row.to_dict().items() if k == name]
+    if len(value) == 0:
+        return [], None
+    activity = value[0]
+    blames = [k for k, v in logs.items() if len([j for j in v if (j['date'] == now and j['blame'] == activity)]) > 0]
+    return blames, activity
+
+
+def spawn_monitoring():
+    asyncio.run(monitor_chats())
+
+
+if __name__ == '__main__':
+    # with open(BLAME_LOGS_FILEPATH, 'r') as file:
+    #     logs = json.load(file)
+    # BAC_logic = reload_module('BAC_logic')
+    # get_history = BAC_logic.get_history
+    # hist_df = get_history()
+    # now = datetime.combine(get_date_from_week_id(get_week_number(datetime.now().date())), datetime.min.time())
+    # prev_week_date = (now - timedelta(days=7)).date()
+    # blames, activity = get_blame('Claudio', str(prev_week_date), hist_df, logs)
+
+    import threading, time
+    threading.Thread(target=spawn_monitoring).start()
+    while True:
+        time.sleep(1)
