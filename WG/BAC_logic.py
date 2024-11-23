@@ -34,7 +34,7 @@ blame = 'Blame'
 
 emoticons = {
     Activities.vacation: '🎊🎉',
-    Activities.area0: '🧹🧹🧹',
+    Activities.area0: '🧹🪣🫧',
     Activities.area1: '🪑🚰🧴🔪',
     Activities.area2: '🛁🚽🧻🚾',
     Activities.area3: '💸🧺🍾',
