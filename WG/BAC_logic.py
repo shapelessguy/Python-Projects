@@ -19,8 +19,13 @@ activities = None
 wg_members = None
 
 
-FINAL_NOTE = "Note: In case you want to get a week of forced vacation, please tell me at least the week before you plan so. " + \
-             "You can also easily change your shift with someone else, but again inform me please."
+FINAL_NOTE = "\n\nNote: If you want to exchange your task with someone else's task, just tell me."
+FINAL_NOTE += "\nYou can submit an anonymous complaint for one or more tasks of the previous week by sending \"blame TASK\" to LEOBOT."
+FINAL_NOTE += "\nBefore blaming someone, please wait until Wednesday evening so that the person has time to recover their delayed duty."
+FINAL_NOTE += "\nIf a person receives at least 2 blames, they will need to recover the task in the future."
+FINAL_NOTE += "\nAlternatively, you can send a warning to that person by sending \"warn TASK\" to LEOBOT."
+FINAL_NOTE += "\nIf you need vacation for a week, you can send \"vacation DATE\" to LEOBOT, where the date refers to that weeks's Monday (format dd-mm-yy)."
+
 
 class Activities:
     area0 = 'Floor'
@@ -537,7 +542,7 @@ def get_weekly_text(df: DataFrame, n_weeks=3):
     #     string += f'Week ({(now + datetime.timedelta(days=(i * 7))).date().strftime("%d-%m-%y")}):\n'
     #     string += get_string_by_activities({k: v[i] for k, v in names.items()}, warning=True)
     
-    string += f'\n\n{FINAL_NOTE}'
+    string += f'{FINAL_NOTE}'
     return string, {i: {k: v[i] for k, v in names.items()} for i in range(n_weeks)}
 
 
@@ -565,6 +570,22 @@ def get_history():
         hist_df = pandas.read_csv(history_file)
         hist_df['Week'] = pandas.to_datetime(hist_df['Week'])
     return hist_df
+
+
+def get_vacations():
+    vacations_file = f'{wg_folder}/vacations.json'
+    if os.path.exists(vacations_file):
+        with open(vacations_file, 'r') as file:
+            vacations = json.load(file)
+    return vacations
+
+
+def save_vacations(vacations):
+    vacations_file = f'{wg_folder}/vacations.json'
+    if os.path.exists(vacations_file):
+        with open(vacations_file, 'w') as file:
+            json.dump(vacations, file, indent=4)
+
 
 def get_blames():
     blames_file = f'{wg_folder}/blames.json'
