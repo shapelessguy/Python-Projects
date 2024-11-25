@@ -122,9 +122,10 @@ async def set_announcement(last_announcement):
                     string += f'\nYou got {len(blames)} complaints in the week {blame_first_date}-{blame_last_date}{blamed_activity}.'
                     if len(blames) >= 2:
                         string += f'\nUnfortunately you will have to compensate in the next weeks with more tasks.'
-            string += f'\nYou can submit an anonymous complaint for one or more tasks of the previous week by typing \"blame TASK\" e.g. \"blame kitchen\".'
-            string += f'\nBefore blaming someone, please wait until Wednesday evening so that the person has time to recover their delayed duty.'
-            string += f'\nIf a person receives at least 2 blames, they will need to recover the task in the future.'
+            string += f"\nQuick commands's overview:"
+            string += f'\n - blame TASK  (ex: blame kitchen)'
+            string += f'\n - warn TASK  (ex: warn management)'
+            string += f'\n - vacation DATE  (ex: vacation 25-11-2024)'
             if telegram_id is not None:
                 print('Msg sent:', string)
                 await send(chat_id=telegram_id, token=LEO_TOKEN, msg=string)
@@ -209,6 +210,98 @@ async def recognize_blame(message, logs):
     return True
 
 
+async def recognize_warn(message, logs):
+    id_, dt, msg = message
+    msg = msg.lower().split()
+    if len(msg) != 2:
+        return False
+    if msg[0] != 'warn':
+        return False
+    BAC_logic = reload_module('BAC_logic')
+    activity = [v for k, v in BAC_logic.Activities.__dict__.items() if not k.startswith('__') and k != 'vacation' if v.lower() == msg[1]]
+    if len(activity) == 0:
+        return False
+    activity = activity[0]
+    WgMembers = BAC_logic.WgMembers
+    WgProps = BAC_logic.WgProps
+    wg_members = {k: v for k, v in WgMembers.__dict__.items() if not k.startswith('__')}
+    wg_props = [{'name': wg_members[k], **v, } for k, v in WgProps.__dict__.items() if not k.startswith('__')]
+    member_name = None
+    for e in wg_props:
+        if e['telegram_id'] == id_:
+            member_name = e['name']
+    if member_name is None:
+        return False
+    current_week = (dt - timedelta(days=dt.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+    previous_week = (current_week - timedelta(days=dt.weekday() + 7)).strftime("%Y-%m-%d")
+    BAC_logic = reload_module('BAC_logic')
+    get_history = BAC_logic.get_history
+    hist_df = get_history()
+    
+    filtered_row = hist_df[hist_df['Week'] == previous_week]
+    name_to_warn = [k for k, v in filtered_row.to_dict().items() if (len(v.values()) > 0 and list(v.values())[0] == activity)]
+    if len(name_to_warn) == 0:
+        await send(chat_id=id_, token=LEO_TOKEN, msg=f"Nobody to warn..")
+        return True
+    name_to_warn = name_to_warn[0]
+    warn_chat_id = [e['telegram_id'] for e in wg_props if e['name'] == name_to_warn]
+    if len(warn_chat_id) > 0:
+        warn_chat_id = warn_chat_id[0]
+        await send(chat_id=warn_chat_id, token=LEO_TOKEN, msg=f"You received a warning for the task {activity}!!!")
+    await send(chat_id=id_, token=LEO_TOKEN, msg=f"Warning for {activity} sent!")
+    return True
+
+
+async def recognize_vacation(message):
+    id_, dt, msg = message
+    msg = msg.lower().split()
+    if len(msg) != 2:
+        return False
+    if msg[0] != 'vacation':
+        return False
+    BAC_logic = reload_module('BAC_logic')
+    date = msg[1]
+    WgMembers = BAC_logic.WgMembers
+    WgProps = BAC_logic.WgProps
+    wg_members = {k: v for k, v in WgMembers.__dict__.items() if not k.startswith('__')}
+    wg_props = [{'name': wg_members[k], **v, } for k, v in WgProps.__dict__.items() if not k.startswith('__')]
+    member_name = None
+    for e in wg_props:
+        if e['telegram_id'] == id_:
+            member_name = e['name']
+    if member_name is None:
+        return False
+    
+    try:
+        date = [z.strip() for x in date.split('-') for y in x.split('/') for z in y.split('.')]
+        day, month, year = [int(x) for x in date]
+        year = year + 2000 if year < 100 else year
+        date_to_check = datetime(year, month, day)
+        if date_to_check.weekday() != 0:
+            await send(chat_id=message[0], token=LEO_TOKEN, msg="Date must be a Monday.")
+            return True
+
+        current_week = (dt - timedelta(days=dt.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+        if date_to_check < current_week:
+            await send(chat_id=message[0], token=LEO_TOKEN, msg="You cannot book a vacation in the past.")
+
+        vacations = BAC_logic.get_vacations()
+        for v in vacations['entries']:
+            if member_name in v['names'] and v['day'] == day and v['month'] == month and v['year'] == year:
+                await send(chat_id=message[0], token=LEO_TOKEN, msg="This vacation has already been booked.")
+                return True
+        
+        next_week = (date_to_check + timedelta(days=dt.weekday() + 7)).strftime("%d-%m-%Y")
+        date_to_check = date_to_check.strftime("%d-%m-%Y")
+        vacations['entries'].append({'names': [member_name], 'day': day, 'month': month, 'year': year})
+        BAC_logic.save_vacations(vacations)
+        await send(chat_id=message[0], token=LEO_TOKEN, msg=f"You booked a vacation for the week {date_to_check} - {next_week}!")
+    except Exception:
+        print(traceback.format_exc())
+        await send(chat_id=message[0], token=LEO_TOKEN, msg="Date is in the wrong format.")
+    return True
+
+
 async def recognize_ping(message):
     id_, dt, msg = message
     msg = msg.lower().split()
@@ -220,6 +313,10 @@ async def recognize_ping(message):
 
 async def process_message(message, logs):
     if await recognize_blame(message, logs):
+        return
+    if await recognize_warn(message, logs):
+        return
+    if await recognize_vacation(message):
         return
     if await recognize_ping(message):
         return
