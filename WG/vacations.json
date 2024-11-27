@@ -56,7 +56,8 @@
             ],
             "day": 16,
             "month": 12,
-            "year": 2024
+            "year": 2024,
+            "n_weeks": 1
         },
         {
             "names": [
@@ -64,7 +65,8 @@
             ],
             "day": 23,
             "month": 12,
-            "year": 2024
+            "year": 2024,
+            "n_weeks": 1
         },
         {
             "names": [
@@ -72,7 +74,8 @@
             ],
             "day": 30,
             "month": 12,
-            "year": 2024
+            "year": 2024,
+            "n_weeks": 1
         },
         {
             "names": [
@@ -80,7 +83,17 @@
             ],
             "day": 16,
             "month": 12,
-            "year": 2024
+            "year": 2024,
+            "n_weeks": 1
+        },
+        {
+            "names": [
+                "Mara"
+            ],
+            "day": 2,
+            "month": 12,
+            "year": 2024,
+            "n_weeks": 1
         }
     ]
 }

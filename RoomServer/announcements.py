@@ -293,7 +293,7 @@ async def recognize_vacation(message):
         
         next_week = (date_to_check + timedelta(days=dt.weekday() + 7)).strftime("%d-%m-%Y")
         date_to_check = date_to_check.strftime("%d-%m-%Y")
-        vacations['entries'].append({'names': [member_name], 'day': day, 'month': month, 'year': year})
+        vacations['entries'].append({'names': [member_name], 'day': day, 'month': month, 'year': year, 'n_weeks': 1})
         BAC_logic.save_vacations(vacations)
         await send(chat_id=message[0], token=LEO_TOKEN, msg=f"You booked a vacation for the week {date_to_check} - {next_week}!")
     except Exception:
@@ -323,10 +323,10 @@ async def process_message(message, logs):
     await send(chat_id=message[0], token=LEO_TOKEN, msg="Sorry I don't get what you say.")
 
 
-async def monitor_chats():
+async def monitor_chats(signal):
     with open(BLAME_LOGS_FILEPATH, 'r') as file:
         logs = json.load(file)
-    while True:
+    while not signal['kill']:
         output = fetch_updates()
         for message in output:
             await process_message(message, logs)
@@ -343,21 +343,9 @@ def get_blame(name, now, hist_df, logs):
     return blames, activity
 
 
-def spawn_monitoring():
-    asyncio.run(monitor_chats())
+def spawn_monitoring(signal):
+    asyncio.run(monitor_chats(signal))
 
 
 if __name__ == '__main__':
-    # with open(BLAME_LOGS_FILEPATH, 'r') as file:
-    #     logs = json.load(file)
-    # BAC_logic = reload_module('BAC_logic')
-    # get_history = BAC_logic.get_history
-    # hist_df = get_history()
-    # now = datetime.combine(get_date_from_week_id(get_week_number(datetime.now().date())), datetime.min.time())
-    # prev_week_date = (now - timedelta(days=7)).date()
-    # blames, activity = get_blame('Claudio', str(prev_week_date), hist_df, logs)
-
-    import threading, time
-    threading.Thread(target=spawn_monitoring).start()
-    while True:
-        time.sleep(1)
+    pass
