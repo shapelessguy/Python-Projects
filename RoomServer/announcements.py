@@ -116,7 +116,8 @@ async def set_announcement(last_announcement):
                 string += pre.replace('RANGE', f'{week_now} - {week_plus_1}').replace('ACT', f' <b>{activity}</b> {emoticons[activity]}')
             if blamed_activity != 'Vacation':
                 if len(blames) == 0:
-                    string += f'\nCongratulations, you have no complaints for the week {blame_first_date}-{blame_last_date}!'
+                    string += f'\nCongratulations, you have no complaints for the week ' +\
+                              f'{blame_first_date.strftime("%d/%m")}-{blame_last_date.strftime("%d/%m")}!'
                 else:
                     blamed_activity = f' ({blamed_activity})' if blamed_activity is not None else ''
                     string += f'\nYou got {len(blames)} complaints in the week {blame_first_date}-{blame_last_date}{blamed_activity}.'
@@ -291,8 +292,8 @@ async def recognize_vacation(message):
                 await send(chat_id=message[0], token=LEO_TOKEN, msg="This vacation has already been booked.")
                 return True
         
-        next_week = (date_to_check + timedelta(days=dt.weekday() + 7)).strftime("%d-%m-%Y")
-        date_to_check = date_to_check.strftime("%d-%m-%Y")
+        next_week = (date_to_check + timedelta(days=dt.weekday() + 7)).strftime("%d/%m/%Y")
+        date_to_check = date_to_check.strftime("%d/%m/%Y")
         vacations['entries'].append({'names': [member_name], 'day': day, 'month': month, 'year': year, 'n_weeks': 1})
         BAC_logic.save_vacations(vacations)
         await send(chat_id=message[0], token=LEO_TOKEN, msg=f"You booked a vacation for the week {date_to_check} - {next_week}!")
@@ -320,7 +321,7 @@ async def process_message(message, logs):
         return
     if await recognize_ping(message):
         return
-    await send(chat_id=message[0], token=LEO_TOKEN, msg="Sorry I don't get what you say.")
+    await send(chat_id=message[0], token=LEO_TOKEN, msg="Sorry I didn't get what you wrote :(")
 
 
 async def monitor_chats(signal):
