@@ -19,15 +19,6 @@ activities = None
 wg_members = None
 
 
-FINAL_NOTE = "\n\nNote: If you want to exchange your task with someone else's task, just tell me."
-FINAL_NOTE += "\nYou can submit an anonymous complaint for one or more tasks of the previous week by sending \"blame TASK\" to LEOBOT."
-FINAL_NOTE += "\nBefore blaming someone, please wait until Wednesday evening so that the person has time to recover their delayed duty."
-FINAL_NOTE += "\nIf a person receives at least 2 blames, they will need to recover the task in the future."
-FINAL_NOTE += "\nAlternatively, you can send a warning to that person by sending \"warn TASK\" to LEOBOT."
-FINAL_NOTE += "\nYou can also send a message of appreciation by sending \"praise TASK\" as well."
-FINAL_NOTE += "\nIf you need vacation for a week, you can send \"vacation DATE\" to LEOBOT, where the date refers to that weeks's Monday (format dd/mm/yy)."
-
-
 class Activities:
     area0 = 'Floor'
     area1 = 'Kitchen'
@@ -542,7 +533,6 @@ def get_weekly_text(df: DataFrame, n_weeks=3):
     #     string += f'Week ({(now + datetime.timedelta(days=(i * 7))).date().strftime("%d-%m-%y")}):\n'
     #     string += get_string_by_activities({k: v[i] for k, v in names.items()}, warning=True)
     
-    string += f'{FINAL_NOTE}'
     return string, {i: {k: v[i] for k, v in names.items()} for i in range(n_weeks)}
 
 

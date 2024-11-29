@@ -70,15 +70,6 @@
         },
         {
             "names": [
-                "Claudio"
-            ],
-            "day": 30,
-            "month": 12,
-            "year": 2024,
-            "n_weeks": 1
-        },
-        {
-            "names": [
                 "Arman"
             ],
             "day": 16,
@@ -91,6 +82,15 @@
                 "Mara"
             ],
             "day": 2,
+            "month": 12,
+            "year": 2024,
+            "n_weeks": 1
+        },
+        {
+            "names": [
+                "Claudio"
+            ],
+            "day": 30,
             "month": 12,
             "year": 2024,
             "n_weeks": 1
