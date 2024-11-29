@@ -24,7 +24,8 @@ FINAL_NOTE += "\nYou can submit an anonymous complaint for one or more tasks of 
 FINAL_NOTE += "\nBefore blaming someone, please wait until Wednesday evening so that the person has time to recover their delayed duty."
 FINAL_NOTE += "\nIf a person receives at least 2 blames, they will need to recover the task in the future."
 FINAL_NOTE += "\nAlternatively, you can send a warning to that person by sending \"warn TASK\" to LEOBOT."
-FINAL_NOTE += "\nIf you need vacation for a week, you can send \"vacation DATE\" to LEOBOT, where the date refers to that weeks's Monday (format dd-mm-yy)."
+FINAL_NOTE += "\nYou can also send a message of appreciation by sending \"praise TASK\" as well."
+FINAL_NOTE += "\nIf you need vacation for a week, you can send \"vacation DATE\" to LEOBOT, where the date refers to that weeks's Monday (format dd/mm/yy)."
 
 
 class Activities:
@@ -142,8 +143,7 @@ class Entry:
         for name in names:
             if name not in r_names:
                 raise Exception(f'{str(self)}\n-> Unknown name "{name}"!!')
-        if datetime.datetime.combine(get_date_from_week_id(get_week_number(in_date)),
-                                     datetime.datetime.min.time()).date() != in_date:
+        if in_date.weekday() != 0:
             raise Exception(f'{str(self)}\n-> Initial date is not valid or is not Monday!')
         if n_weeks < 1:
             raise Exception(f'{str(self)}\n-> n_weeks parameter must be greater than 0!')
@@ -513,8 +513,8 @@ def get_string_by_activities(names_dict, warning=False):
 
 def get_weekly_text(df: DataFrame, n_weeks=3):
     names = {x: [None] for x in df.columns.to_list()[1:]}
-    now = datetime.datetime.combine(get_date_from_week_id(get_week_number(datetime.datetime.now().date())),
-                                    datetime.datetime.min.time())
+    dt = datetime.datetime.now()
+    now = (dt - datetime.timedelta(days=dt.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
     print()
     prev_row = None
     get_rest = False
@@ -596,8 +596,8 @@ def get_blames():
 
 
 def start_bac(vacations, swaps, save: bool):
-    date_now = datetime.datetime.combine(get_date_from_week_id(get_week_number(datetime.datetime.now().date())),
-                                         datetime.datetime.min.time())
+    dt = datetime.datetime.now()
+    date_now = (dt - datetime.timedelta(days=dt.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
     week_ids = {(date_now + datetime.timedelta(days=(n * 7))).date(): 0 for n in range(-PAST_WEEKS, 1 + FUTURE_WEEKS)}
     print('\nWEEK IDS:')
     for week in week_ids:
