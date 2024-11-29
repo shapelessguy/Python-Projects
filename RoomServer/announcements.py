@@ -62,7 +62,7 @@ def reload_module(module_name):
     return module
 
 
-async def set_announcement(last_announcement):
+async def set_announcement(last_announcement, updated=False):
     try:
         subprocess.run(f'cd {WG_project_path} && git pull', shell=True, capture_output=True, text=True)
         with open(BLAME_LOGS_FILEPATH, 'r') as file:
@@ -77,7 +77,8 @@ async def set_announcement(last_announcement):
         wg_props = [{'name': wg_members[k], **v, } for k, v in WgProps.__dict__.items() if not k.startswith('__')]
 
         emoticons = BAC_logic.emoticons
-        now = datetime.combine(get_date_from_week_id(get_week_number(datetime.now().date())), datetime.min.time())
+        now = datetime.now()
+        now = (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
         blame_first_date = (now - timedelta(days=14)).date()
         blame_last_date = (now - timedelta(days=7)).date()
         hist_df = get_history()
@@ -92,11 +93,22 @@ async def set_announcement(last_announcement):
                     blames_json['entries'].append({'name': name, 'date': date})
                     json.dump(blames_json, file)
 
+        intro = '<b>PLAN UPDATED DURING THIS WEEK</b>\n' if updated else ''
         text, week_schedule = generate_plan()
+        text = intro + text
+        if not updated:
+            text += "\n\nNote: If you want to exchange your task with someone else's task, just tell me."
+            text += "\nYou can submit an anonymous complaint for one or more tasks of the previous week by sending \"blame TASK\" to LEOBOT."
+            text += "\nBefore blaming someone, please wait until Wednesday evening so that the person has time to recover their delayed duty."
+            text += "\nIf a person receives at least 2 blames, they will need to recover the task in the future."
+            text += "\nAlternatively, you can send a warning to that person by sending \"warn TASK\" to LEOBOT."
+            text += "\nYou can also send a message of appreciation by sending \"praise TASK\" as well."
+            text += "\nIf you need vacation for a week, you can send \"vacation DATE\" to LEOBOT, where the date refers to that weeks's Monday (format dd/mm/yy)."
         hist_df = get_history()
 
         subprocess.run(f'cd {WG_project_path} && git add . && git commit -m "auto_update" && git push', shell=True, capture_output=True, text=True)
         await send(chat_id=LEO_GROUP_ID, token=LEO_TOKEN, msg=text, document=os.path.join(WG_project_path, 'cleaning_plan_leo6.xlsx'))
+        print('Msg sent to LEO6:', text)
 
         with open(os.path.join(os.path.dirname(__file__), 'announcements.txt'), 'a+') as file:
             file.write(last_announcement.strftime("%Y-%m-%d-%H-%M-%S") + '\n')
@@ -105,7 +117,8 @@ async def set_announcement(last_announcement):
             name = e['name']
             blames, blamed_activity = get_blame(name, str(blame_first_date), hist_df, logs)
             telegram_id = e['telegram_id']
-            string = f'Hello {name}, this is the schedule for the next weeks, waiting for you!\n'
+            string = '<b>PLAN UPDATED DURING THIS WEEK</b>\n' if updated else ''
+            string += f'Hello {name}, this is the schedule for the next weeks, waiting for you!\n'
             for week_n in week_schedule:
                 week_now = (now + timedelta(days=(week_n * 7))).date().strftime("%d/%m")
                 week_plus_1 = (now + timedelta(days=((week_n + 1) * 7))).date().strftime("%d/%m")
@@ -116,7 +129,7 @@ async def set_announcement(last_announcement):
                     pre = 'Next week (RANGE): ACT\n'
                 activity = week_schedule[week_n][name]
                 string += pre.replace('RANGE', f'{week_now} - {week_plus_1}').replace('ACT', f' <b>{activity}</b> {emoticons[activity]}')
-            if blamed_activity != 'Vacation':
+            if blamed_activity != 'Vacation' and not updated:
                 if len(blames) == 0:
                     string += f'\nCongratulations, you have no complaints for the week ' +\
                               f'{blame_first_date.strftime("%d/%m")} - {blame_last_date.strftime("%d/%m")}!'
@@ -125,11 +138,12 @@ async def set_announcement(last_announcement):
                     string += f'\nYou got {len(blames)} complaints in the week {blame_first_date}-{blame_last_date}{blamed_activity}.'
                     if len(blames) >= 2:
                         string += f'\nUnfortunately you will have to compensate in the next weeks with more tasks.'
-            string += f"\nQuick commands's overview:"
-            string += f'\n - <b>blame TASK</b>  (ex: blame kitchen)'
-            string += f'\n - <b>warn TASK &lt;COMMENT&gt;</b>\n     (ex: warn management Bins are not clean)'
-            string += f'\n - <b>praise TASK &lt;COMMENT&gt;</b>\n     (ex: praise bathrooms Toilets are fabulous)'
-            string += f'\n - <b>vacation DATE</b>  (ex: vacation 25-11-2024)'
+            if not updated:
+                string += f"\nQuick commands's overview:"
+                string += f'\n - <b>blame TASK</b>  (ex: blame kitchen)'
+                string += f'\n - <b>warn TASK &lt;COMMENT&gt;</b>\n     (ex: warn management Bins are not clean)'
+                string += f'\n - <b>praise TASK &lt;COMMENT&gt;</b>\n     (ex: praise bathrooms Toilets are fabulous)'
+                string += f'\n - <b>vacation DATE</b>  (ex: vacation 25-11-2024)'
             if telegram_id is not None:
                 print('Msg sent:', string)
                 await send(chat_id=telegram_id, token=LEO_TOKEN, msg=string)
@@ -138,13 +152,14 @@ async def set_announcement(last_announcement):
         print(traceback.format_exc())
 
 
-async def update(now, last_announcement, id_last_announcement, forced=False):
+async def update(last_announcement=None, id_last_announcement=None, forced=False, updated=False):
+    now = datetime.now()
     announce_at = 8  # hour of update
     masked_now = now - timedelta(hours=(announce_at))
-    if get_week_number(masked_now) != id_last_announcement or forced:
-        if masked_now > last_announcement or forced:
+    if forced or get_week_number(masked_now) != id_last_announcement:
+        if forced or masked_now > last_announcement:
             print('ANNOUNCEMENTS', now)
-            await set_announcement(now)
+            await set_announcement(now, updated)
             last_announcement = now
             id_last_announcement = get_week_number(now)
     return last_announcement, id_last_announcement
@@ -278,8 +293,11 @@ async def recognize_praise(message, logs):
 async def recognize_vacation(message):
     id_, dt, msg = message
     msg = msg.lower().split()
+    undo = False
     if len(msg) != 2:
-        return False
+        if len(msg) != 3 or msg[-1] != 'undo':
+            return False
+        undo = True
     if msg[0] != 'vacation':
         return False
     BAC_logic = reload_module('BAC_logic')
@@ -299,26 +317,54 @@ async def recognize_vacation(message):
         date = [z.strip() for x in date.split('-') for y in x.split('/') for z in y.split('.')]
         day, month, year = [int(x) for x in date]
         year = year + 2000 if year < 100 else year
+        
+        now = datetime.now()
+        now = (now - timedelta(days=now.weekday()))
         date_to_check = datetime(year, month, day)
         if date_to_check.weekday() != 0:
             await send(chat_id=message[0], token=LEO_TOKEN, msg="Date must be a Monday.")
             return True
+        this_week = now.date() == date_to_check.date()
 
         current_week = (dt - timedelta(days=dt.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
         if date_to_check < current_week:
-            await send(chat_id=message[0], token=LEO_TOKEN, msg="You cannot book a vacation in the past.")
+            await send(chat_id=message[0], token=LEO_TOKEN, msg="You cannot indicate a vacation in the past.")
 
         vacations = BAC_logic.get_vacations()
-        for v in vacations['entries']:
-            if member_name in v['names'] and v['day'] == day and v['month'] == month and v['year'] == year:
-                await send(chat_id=message[0], token=LEO_TOKEN, msg="This vacation has already been booked.")
-                return True
-        
         next_week = (date_to_check + timedelta(days=dt.weekday() + 7)).strftime("%d/%m/%Y")
         date_to_check = date_to_check.strftime("%d/%m/%Y")
-        vacations['entries'].append({'names': [member_name], 'day': day, 'month': month, 'year': year, 'n_weeks': 1})
-        BAC_logic.save_vacations(vacations)
-        await send(chat_id=message[0], token=LEO_TOKEN, msg=f"You booked a vacation for the week {date_to_check} - {next_week}!")
+
+        if undo:
+            deleted = False
+            for i in range(len(vacations['entries'])):
+                v = vacations['entries'][i]
+                if member_name in v['names'] and v['day'] == day and v['month'] == month and v['year'] == year:
+                    del vacations['entries'][i]
+                    deleted = True
+                    break
+            if not deleted:
+                await send(chat_id=message[0], token=LEO_TOKEN, msg="This vacation has not been booked.")
+                return True
+            else:
+                BAC_logic.save_vacations(vacations)
+                updated_text = '\nA new plan is now getting generated..' if this_week else ''
+                await send(chat_id=message[0], token=LEO_TOKEN, msg=f"You unbooked your vacation for the week {date_to_check} - {next_week}.{updated_text}")
+                if this_week:
+                    await update(forced=True, updated=True)
+                    print('updated')
+                return True
+        else:
+            for v in vacations['entries']:
+                if member_name in v['names'] and v['day'] == day and v['month'] == month and v['year'] == year:
+                    await send(chat_id=message[0], token=LEO_TOKEN, msg="This vacation has already been booked.")
+                    return True
+            vacations['entries'].append({'names': [member_name], 'day': day, 'month': month, 'year': year, 'n_weeks': 1})
+            BAC_logic.save_vacations(vacations)
+            updated_text = '\nA new plan is now getting generated..' if this_week else ''
+            await send(chat_id=message[0], token=LEO_TOKEN, msg=f"You booked a vacation for the week {date_to_check} - {next_week}!{updated_text}")
+            if this_week:
+                await update(forced=True, updated=True)
+                print('updated')
     except Exception:
         print(traceback.format_exc())
         await send(chat_id=message[0], token=LEO_TOKEN, msg="Date is in the wrong format.")

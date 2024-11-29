@@ -82,7 +82,7 @@ async def actuator(signal):
     while not signal['kill']:
         try:
             cur_time = datetime.now()
-            last_announcement, id_last_announcement = await announcements.update(cur_time, last_announcement, id_last_announcement)
+            last_announcement, id_last_announcement = await announcements.update(last_announcement, id_last_announcement)
             # print(cur_time - last_audio_ping, audio_on, 'pass='+ str('AUDIOON' in commands or 'AUDIOOFF' in commands))
             if 'AUDIOON' in commands or 'AUDIOOFF' in commands:
                 pass
@@ -103,7 +103,7 @@ async def actuator(signal):
                 reply = None
                 command = commands.pop(0)
                 if command == 'ANNOUNCEPERFORMING':
-                    last_announcement, id_last_announcement = await announcements.update(cur_time, last_announcement, id_last_announcement, forced=True)
+                    last_announcement, id_last_announcement = await announcements.update(last_announcement, id_last_announcement, forced=True)
                     reply = f'Command {command} sent'
                 elif command[:2] == 'TV':
                     write(command)
