@@ -94,6 +94,15 @@
             "month": 12,
             "year": 2024,
             "n_weeks": 1
+        },
+        {
+            "names": [
+                "Claudio"
+            ],
+            "day": 25,
+            "month": 11,
+            "year": 2024,
+            "n_weeks": 1
         }
     ]
 }
