@@ -13,7 +13,7 @@ import pyperclip
 
 in_date_args = (2024, 2, 5)  # Year, month, day
 wg_folder = os.path.dirname(__file__)
-FUTURE_WEEKS = 100
+FUTURE_WEEKS = 10
 PAST_WEEKS = 4
 activities = None
 wg_members = None

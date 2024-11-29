@@ -47,9 +47,11 @@ async def send(chat_id, token, msg, document=None):
         elif document is not None:
             await bot.send_document(chat_id=chat_id, document=document, caption=msg)
         print(f"Message '{msg}' sent.")
+        return True
     except Exception:
         print('Error while trying to send telegram message')
         print(traceback.format_exc())
+    return False
 
 
 def reload_module(module_name):
@@ -117,16 +119,17 @@ async def set_announcement(last_announcement):
             if blamed_activity != 'Vacation':
                 if len(blames) == 0:
                     string += f'\nCongratulations, you have no complaints for the week ' +\
-                              f'{blame_first_date.strftime("%d/%m")}-{blame_last_date.strftime("%d/%m")}!'
+                              f'{blame_first_date.strftime("%d/%m")} - {blame_last_date.strftime("%d/%m")}!'
                 else:
                     blamed_activity = f' ({blamed_activity})' if blamed_activity is not None else ''
                     string += f'\nYou got {len(blames)} complaints in the week {blame_first_date}-{blame_last_date}{blamed_activity}.'
                     if len(blames) >= 2:
                         string += f'\nUnfortunately you will have to compensate in the next weeks with more tasks.'
             string += f"\nQuick commands's overview:"
-            string += f'\n - blame TASK  (ex: blame kitchen)'
-            string += f'\n - warn TASK  (ex: warn management)'
-            string += f'\n - vacation DATE  (ex: vacation 25-11-2024)'
+            string += f'\n - <b>blame TASK</b>  (ex: blame kitchen)'
+            string += f'\n - <b>warn TASK &lt;COMMENT&gt;</b>\n     (ex: warn management Bins are not clean)'
+            string += f'\n - <b>praise TASK &lt;COMMENT&gt;</b>\n     (ex: praise bathrooms Toilets are fabulous)'
+            string += f'\n - <b>vacation DATE</b>  (ex: vacation 25-11-2024)'
             if telegram_id is not None:
                 print('Msg sent:', string)
                 await send(chat_id=telegram_id, token=LEO_TOKEN, msg=string)
@@ -198,30 +201,35 @@ async def recognize_blame(message, logs):
     current_week = (dt - timedelta(days=dt.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
     previous_week = (current_week - timedelta(days=dt.weekday() + 7)).strftime("%Y-%m-%d")
     logs[member_name] = logs.get(member_name, [])
+    answer = False
     entry = {'date': str(previous_week), 'submitted': str(dt), 'blame': activity}
     for e in logs[member_name]:
         if entry['date'] == e['date'] and entry['blame'] == e['blame']:
-            await send(chat_id=id_, token=LEO_TOKEN, msg="You have already submitted this feedback.")
+            answer = await send(chat_id=id_, token=LEO_TOKEN, msg="You have already submitted this feedback.")
             return True
     logs[member_name].append(entry)
     with open(BLAME_LOGS_FILEPATH, 'w') as file:
         json.dump(logs, file, indent=2)
-    await send(chat_id=id_, token=LEO_TOKEN, msg="Thanks for your feedback!")
+    if answer:
+        await send(chat_id=id_, token=LEO_TOKEN, msg="Thanks for your feedback!")
     print(f'Received blame from {member_name} -> {activity}')
     return True
 
 
-async def recognize_warn(message, logs):
+async def recognize_simple_request(message, log, type_, msg_to_send):
     id_, dt, msg = message
-    msg = msg.lower().split()
-    if len(msg) != 2:
+    msg = msg.split()
+    if len(msg) < 2:
         return False
-    if msg[0] != 'warn':
+    if msg[0] != type_:
         return False
+    activity_ = msg[1].lower()
     BAC_logic = reload_module('BAC_logic')
-    activity = [v for k, v in BAC_logic.Activities.__dict__.items() if not k.startswith('__') and k != 'vacation' if v.lower() == msg[1]]
+    activity = [v for k, v in BAC_logic.Activities.__dict__.items() if not k.startswith('__') and k != 'vacation' if v.lower() == activity_]
     if len(activity) == 0:
         return False
+    comment = ' '.join(msg[2:])
+    comment = f'\nComment: {comment}' if len(comment) > 0 else ''
     activity = activity[0]
     WgMembers = BAC_logic.WgMembers
     WgProps = BAC_logic.WgProps
@@ -234,7 +242,9 @@ async def recognize_warn(message, logs):
     if member_name is None:
         return False
     current_week = (dt - timedelta(days=dt.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
-    previous_week = (current_week - timedelta(days=dt.weekday() + 7)).strftime("%Y-%m-%d")
+    previous_week = (current_week - timedelta(days=7)).strftime("%Y-%m-%d")
+    pw_format = (current_week - timedelta(days=7)).strftime("%d/%m")
+    cw_format = current_week.strftime("%d/%m")
     BAC_logic = reload_module('BAC_logic')
     get_history = BAC_logic.get_history
     hist_df = get_history()
@@ -242,15 +252,27 @@ async def recognize_warn(message, logs):
     filtered_row = hist_df[hist_df['Week'] == previous_week]
     name_to_warn = [k for k, v in filtered_row.to_dict().items() if (len(v.values()) > 0 and list(v.values())[0] == activity)]
     if len(name_to_warn) == 0:
-        await send(chat_id=id_, token=LEO_TOKEN, msg=f"Nobody to warn..")
+        await send(chat_id=id_, token=LEO_TOKEN, msg=f"Nobody to {type_}..")
         return True
     name_to_warn = name_to_warn[0]
     warn_chat_id = [e['telegram_id'] for e in wg_props if e['name'] == name_to_warn]
+    answer = False
     if len(warn_chat_id) > 0:
         warn_chat_id = warn_chat_id[0]
-        await send(chat_id=warn_chat_id, token=LEO_TOKEN, msg=f"You received a warning for the task {activity}!!!")
-    await send(chat_id=id_, token=LEO_TOKEN, msg=f"Warning for {activity} sent!")
+        answer = await send(chat_id=warn_chat_id, token=LEO_TOKEN, msg=f"For the task {activity} (week {pw_format} - {cw_format}): {msg_to_send}{comment}")
+    if answer:
+        await send(chat_id=id_, token=LEO_TOKEN, msg=f"{type_} message for {activity} (week {pw_format} - {cw_format}) sent!")
     return True
+
+
+async def recognize_warn(message, logs):
+    token, msg_to_send = 'warn', 'Watch out, you received a warning!!'
+    return await recognize_simple_request(message, logs, token, msg_to_send)
+
+
+async def recognize_praise(message, logs):
+    token, msg_to_send = 'praise', 'Someone praised you &lt;3'
+    return await recognize_simple_request(message, logs, token, msg_to_send)
 
 
 async def recognize_vacation(message):
@@ -316,6 +338,8 @@ async def process_message(message, logs):
     if await recognize_blame(message, logs):
         return
     if await recognize_warn(message, logs):
+        return
+    if await recognize_praise(message, logs):
         return
     if await recognize_vacation(message):
         return
