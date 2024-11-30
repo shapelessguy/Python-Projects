@@ -70,9 +70,12 @@ async def actuator(signal):
     mode = 'LIGHTSAUTO'
     act_times_func = [list(int(y.split(':')[0]) * 60 + int(y.split(':')[1]) for y in x) for x in active_times]
     global auto_time
-    audio_on = False
-    sequences.audio_off(write)
-    last_audio_ping = datetime.now() - timedelta(hours=24)
+    if signal['state'].get_param('audio') == True:
+        audio_on = True
+    else:
+        audio_on = False
+        sequences.audio_off(write)
+    last_audio_ping = datetime.now()
     audio_ping_index = 0
     ping_period = 10  # audio ping received every 10 seconds
     tollerance = 180  # audio turns off after 180 seconds
@@ -83,17 +86,20 @@ async def actuator(signal):
         try:
             cur_time = datetime.now()
             last_announcement, id_last_announcement = await announcements.update(last_announcement, id_last_announcement)
-            # print(cur_time - last_audio_ping, audio_on, 'pass='+ str('AUDIOON' in commands or 'AUDIOOFF' in commands))
             if 'AUDIOON' in commands or 'AUDIOOFF' in commands:
                 pass
             elif cur_time - last_audio_ping > timedelta(seconds=tollerance) and audio_on:
                 print('Audio set off automatically')
                 commands.append('AUDIOOFF')
                 audio_on = False
+                signal['state'].set_param('audio', False)
+                signal['state'].save()
             elif cur_time - last_audio_ping < timedelta(seconds=tollerance) and not audio_on:
                 print('Audio set on automatically')
                 commands.append('AUDIOON')
                 audio_on = True
+                signal['state'].set_param('audio', True)
+                signal['state'].save()
 
             time_list = [cur_time.hour, cur_time.minute]
             if auto_time is not None and time_list[0] == auto_time[0] and time_list[1] == auto_time[1]:
@@ -121,10 +127,14 @@ async def actuator(signal):
                         reply = f'Command {command} sent'
                         last_audio_ping = cur_time
                         audio_on = True
+                        signal['state'].set_param('audio', True)
+                        signal['state'].save()
                         sequences.audio_on(write)
                     elif command == 'AUDIOOFF':
                         reply = f'Command {command} sent'
                         audio_on = False
+                        signal['state'].set_param('audio', False)
+                        signal['state'].save()
                         sequences.audio_off(write)
                     else:
                         write(command)
