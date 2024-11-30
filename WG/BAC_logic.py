@@ -13,7 +13,7 @@ import pyperclip
 
 in_date_args = (2024, 2, 5)  # Year, month, day
 wg_folder = os.path.dirname(__file__)
-FUTURE_WEEKS = 10
+FUTURE_WEEKS = 5
 PAST_WEEKS = 4
 activities = None
 wg_members = None
@@ -293,14 +293,9 @@ class WG:
             self.swap(m1, m2)
     
     def calculate_fitness(self, pairs):
-        # tot_repeat_idx, tot_deb = 0, 0
         fitness = 0
         for m, activity in pairs:
-            # tot_repeat_idx += m.get_repeat_idx(activity)
-            # tot_deb += m.get_debit(activity)
             fitness += 1000 / (m.get_repeat_idx(activity) + 0.1) + m.get_debit(activity)
-        # t = (tot_repeat_idx, tot_deb)
-        # fitness = 1000 / (t[0] + 0.1) + t[1]
         return fitness
 
     def brainstorm(self, members: list[Member]):
@@ -312,10 +307,7 @@ class WG:
             all_permutations[permutation] = self.calculate_fitness(paired)
 
         best = min(all_permutations, key=all_permutations.get)
-        # all_p = {tuple(list(x) + [all_permutations[x]]): all_permutations[x] for x in all_permutations}
-        # print(list(zip([x.name for x in members], min(all_p, key=all_p.get))), min(all_p, key=all_p.get)[-1])
         paired = list(zip(members, best))
-        # print(self.calculate_fitness(list(zip(members, best))))
 
         repetitive_task_pairs = [(m, activity) for m, activity in paired if m.get_repeat_idx(activity) == 0]
         if len(repetitive_task_pairs) > 0:
@@ -522,17 +514,6 @@ def get_weekly_text(df: DataFrame, n_weeks=3):
     
     string = f'This week ({now.date().strftime("%d-%m-%y")}):\n'
     string += get_string_by_activities({k: v[0] for k, v in names.items()}, warning=True)
-
-    # if n_weeks > 1:
-    #     string += '\n\n'
-    #     string += f'Next week ({(now + datetime.timedelta(days=(7))).date().strftime("%d-%m-%y")}):\n'
-    #     string += get_string_by_activities({k: v[1] for k, v in names.items()}, warning=True)
-    
-    # for i in range(2, n_weeks):
-    #     string += '\n\n'
-    #     string += f'Week ({(now + datetime.timedelta(days=(i * 7))).date().strftime("%d-%m-%y")}):\n'
-    #     string += get_string_by_activities({k: v[i] for k, v in names.items()}, warning=True)
-    
     return string, {i: {k: v[i] for k, v in names.items()} for i in range(n_weeks)}
 
 

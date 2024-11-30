@@ -610,7 +610,7 @@ async def recognize_ping(message):
     id_, dt, msg = message
     msg = msg.lower().split()
     if len(msg) == 1 and msg[0] == 'ping':
-        await send(chat_id=id_, token=LEO_TOKEN, msg="✅ I am here!")
+        await send(chat_id=id_, token=LEO_TOKEN, msg=f"✅ I am here! Chat-id: {id_}")
         return True
     return False
 
