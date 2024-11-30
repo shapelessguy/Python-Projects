@@ -10,6 +10,7 @@ import requests
 import pandas as pd
 from datetime import datetime, timedelta
 from datetime import date as date_
+from openpyxl.styles import Alignment
 from utils import LEO_TOKEN, LEO_GROUP_ID, BLAME_LOGS_FILEPATH, BLAMES_FILEPATH
 
 
@@ -106,6 +107,7 @@ async def set_announcement(last_announcement, updated=False):
             text += "\nAlternatively, you can send a warning ⚠️ to that person by sending \"warn TASK\"."
             text += "\nYou can also send a message of appreciation 🌟 by sending \"praise TASK\" as well."
             text += "\nIf you need vacation for a week, you can send \"vacation DATE\"."
+            text += "\nWhenever you have a WG expense 💰, send \"expense PRICE\", where the price is in format X.xx (e.g. 2.50)."
         hist_df = get_history()
 
         subprocess.run(f'cd {WG_project_path} && git add . && git commit -m "auto_update" && git push', shell=True, capture_output=True, text=True)
@@ -148,6 +150,9 @@ async def set_announcement(last_announcement, updated=False):
                 string += f'\n - <b>swap TASK DATE</b>\n     (ex: swap floor 25/11/24)'
                 string += f'\n - <b>vacation DATE</b>  (ex: vacation 25/11/24)'
                 string += f'\n - <b>vacations</b>  (to check your vacations)'
+                string += f'\n - <b>expense PRICE &lt;COMMENT&gt;</b>  (ex: expense 2.50 oil)'
+            if name == 'Mara':
+                string += f'\n - <b>expenses &lt;from INDEX&gt; </b>  (ex: expenses / expenses from 23)'
             if telegram_id is not None:
                 print('Msg sent:', string)
                 await send(chat_id=telegram_id, token=LEO_TOKEN, msg=string)
@@ -330,14 +335,16 @@ async def recognize_vacation(message):
         now = datetime.now()
         now = (now - timedelta(days=now.weekday()))
         date_to_check = datetime(year, month, day)
-        if date_to_check.weekday() != 0:
-            await send(chat_id=message[0], token=LEO_TOKEN, msg="❌ Date must be a Monday.")
-            return True
-        this_week = now.date() == date_to_check.date()
 
         current_week = (dt - timedelta(days=dt.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
         if date_to_check < current_week:
             await send(chat_id=message[0], token=LEO_TOKEN, msg="❌ You cannot indicate a date in the past.")
+            return True
+
+        if date_to_check.weekday() != 0:
+            await send(chat_id=message[0], token=LEO_TOKEN, msg="❌ Date must be a Monday.")
+            return True
+        this_week = now.date() == date_to_check.date()
 
         vacations = BAC_logic.get_vacations()
         next_week = (date_to_check + timedelta(days=dt.weekday() + 7)).strftime("%d/%m/%Y")
@@ -411,7 +418,110 @@ async def recognize_myvacations(message):
     my_vacations = my_vacations if found else "You don't have any vacation booked."
     await send(chat_id=message[0], token=LEO_TOKEN, msg=my_vacations)
     return True
+
+
+async def recognize_expense(message):
+    id_, dt, msg = message
+    msg = msg.split()
+    if len(msg) < 2:
+        return False
+    if msg[0].lower() != 'expense':
+        return False
+    price = msg[1]
+    try:
+        price = [y for x in price.split(',') for y in x.split('.')]
+        price = [int(x) for x in price]
+        assert 0 < len(price) <= 2
+        if len(price) == 1:
+            price.append(0)
+        price_str = f"{price[0]}.{'0' * (2 - len(str(price[1])))}{price[1]}€"
+        price = float(f'{price[0]}.{price[1]}')
+    except Exception:
+        print(traceback.format_exc())
+        await send(chat_id=message[0], token=LEO_TOKEN, msg="❌ Price is in the wrong format.")
+        return True
+
+    reason = ' '.join(msg[2:])
+    BAC_logic = reload_module('BAC_logic')
+    WgMembers = BAC_logic.WgMembers
+    WgProps = BAC_logic.WgProps
+    wg_members = {k: v for k, v in WgMembers.__dict__.items() if not k.startswith('__')}
+    wg_props = [{'name': wg_members[k], **v, } for k, v in WgProps.__dict__.items() if not k.startswith('__')]
+    member_name = None
+    for e in wg_props:
+        if e['telegram_id'] == id_:
+            member_name = e['name']
+    if member_name is None:
+        return False
     
+    current_week = (dt - timedelta(days=dt.weekday())).date()
+    expenses = BAC_logic.get_expenses()
+    index = len(expenses['entries'])
+    expenses['entries'].append({'index': index, 'name': member_name, 'price': price, 'reason': reason,
+                                'year': current_week.year, 'month': current_week.month, 'day': current_week.day})
+    BAC_logic.save_expenses(expenses)
+    reason_str = f' "{reason}"' if reason != '' else ''
+    await send(chat_id=message[0], token=LEO_TOKEN, msg=f'✅ Your expense{reason_str} for {price_str} has been recorded.')
+    return True
+
+
+async def recognize_expenses(message):
+    id_, dt, msg = message
+    msg = msg.split()
+    if len(msg) != 1:
+        if len(msg) != 3 or msg[1].lower() != 'from':
+            return False
+    if msg[0].lower() != 'expenses':
+        return False
+
+    in_index = 0
+    if len(msg) == 3:
+        try:
+            in_index = int(msg[2])
+            assert in_index >= 0
+        except Exception:
+            await send(chat_id=message[0], token=LEO_TOKEN, msg="❌ Wrong index.")
+            return True
+
+    BAC_logic = reload_module('BAC_logic')
+    WgMembers = BAC_logic.WgMembers
+    WgProps = BAC_logic.WgProps
+    wg_members = {k: v for k, v in WgMembers.__dict__.items() if not k.startswith('__')}
+    wg_props = [{'name': wg_members[k], **v, } for k, v in WgProps.__dict__.items() if not k.startswith('__')]
+    member_name = None
+    for e in wg_props:
+        if e['telegram_id'] == id_:
+            member_name = e['name']
+    if member_name is None:
+        return False
+    
+    expenses = BAC_logic.get_expenses()
+    expenses_list = [
+        [e['index'], e['name'], e['price'], e['reason'], date_(day=e['day'], month=e['month'], year=e['year']).strftime("%d/%m/%y")]
+        for e in expenses['entries'] if e['index'] >= in_index
+    ]
+    expenses_df = pd.DataFrame(data=expenses_list, columns=['Index', 'Name', 'Price', 'Reason', 'Date'])
+
+    totals_by_name = expenses_df.groupby("Name")["Price"].sum().reset_index()
+    totals_by_name.columns = ["Name", "Total Price"]
+
+    with pd.ExcelWriter("expenses.xlsx", engine="openpyxl") as writer:
+        expenses_df.to_excel(writer, sheet_name="Expenses", index=False)
+        totals_by_name.to_excel(writer, sheet_name="Totals", index=False)
+        sheets = [writer.sheets["Expenses"], writer.sheets["Totals"]]
+        
+        for sheet in sheets:
+            for col in sheet.columns:
+                max_length = 15
+                col_letter = col[0].column_letter
+                sheet.column_dimensions[col_letter].width = max_length
+            for row in sheet.iter_rows(min_row=1, max_row=sheet.max_row, min_col=1, max_col=sheet.max_column):
+                for cell in row:
+                    cell.alignment = Alignment(horizontal="center", vertical="center")
+
+    await send(chat_id=message[0], token=LEO_TOKEN, msg=f'All the expenses from index {in_index}.', document="expenses.xlsx")
+    return True
+
 
 async def recognize_swap(message):
     id_, dt, msg = message
@@ -452,14 +562,16 @@ async def recognize_swap(message):
         now = datetime.now()
         now = (now - timedelta(days=now.weekday()))
         date_to_check = datetime(year, month, day)
-        if date_to_check.weekday() != 0:
-            await send(chat_id=message[0], token=LEO_TOKEN, msg="❌ Date must be a Monday.")
-            return True
-        this_week = now.date() == date_to_check.date()
 
         current_week = (dt - timedelta(days=dt.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
         if date_to_check < current_week:
             await send(chat_id=message[0], token=LEO_TOKEN, msg="❌ You cannot indicate a date in the past.")
+            return True
+
+        if date_to_check.weekday() != 0:
+            await send(chat_id=message[0], token=LEO_TOKEN, msg="❌ Date must be a Monday.")
+            return True
+        this_week = now.date() == date_to_check.date()
 
         swaps = BAC_logic.get_swaps()
         next_week = (date_to_check + timedelta(days=dt.weekday() + 7)).strftime("%d/%m/%Y")
@@ -509,6 +621,10 @@ async def process_message(message, logs):
     if await recognize_warn(message, logs):
         return
     if await recognize_praise(message, logs):
+        return
+    if await recognize_expense(message):
+        return
+    if await recognize_expenses(message):
         return
     if await recognize_swap(message):
         return

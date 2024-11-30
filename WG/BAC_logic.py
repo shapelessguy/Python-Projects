@@ -583,6 +583,14 @@ def get_swaps():
     return swaps
 
 
+def get_expenses():
+    expenses_file = f'{wg_folder}/expenses.json'
+    if os.path.exists(expenses_file):
+        with open(expenses_file, 'r') as file:
+            expenses = json.load(file)
+    return expenses
+
+
 def save_vacations(vacations):
     vacations_file = f'{wg_folder}/vacations.json'
     if os.path.exists(vacations_file):
@@ -597,12 +605,25 @@ def save_swaps(swaps):
             json.dump(swaps, file, indent=4)
 
 
+def save_expenses(expenses):
+    expenses_file = f'{wg_folder}/expenses.json'
+    if os.path.exists(expenses_file):
+        with open(expenses_file, 'w') as file:
+            json.dump(expenses, file, indent=4)
+
+
 def get_blames():
     blames_file = f'{wg_folder}/blames.json'
     if os.path.exists(blames_file):
         with open(blames_file, 'r') as file:
             return json.load(file)
     return None
+
+
+def expenses_to_xlsx(expenses_df):
+    expenses_file = f'{wg_folder}/expenses.xlsx'
+    expenses_df.to_excel(expenses_file, index=False)
+    return expenses_file
 
 
 def start_bac(vacations, swaps, save: bool):
