@@ -9,6 +9,7 @@ import json
 import requests
 import pandas as pd
 from datetime import datetime, timedelta
+from datetime import date as date_
 from utils import LEO_TOKEN, LEO_GROUP_ID, BLAME_LOGS_FILEPATH, BLAMES_FILEPATH
 
 
@@ -146,6 +147,7 @@ async def set_announcement(last_announcement, updated=False):
                 string += f'\n - <b>praise TASK &lt;COMMENT&gt;</b>\n     (ex: praise bathrooms Toilets are fabulous)'
                 string += f'\n - <b>swap TASK DATE</b>\n     (ex: swap floor 25/11/24)'
                 string += f'\n - <b>vacation DATE</b>  (ex: vacation 25/11/24)'
+                string += f'\n - <b>vacations</b>  (to check your vacations)'
             if telegram_id is not None:
                 print('Msg sent:', string)
                 await send(chat_id=telegram_id, token=LEO_TOKEN, msg=string)
@@ -378,6 +380,39 @@ async def recognize_vacation(message):
     return True
 
 
+async def recognize_myvacations(message):
+    id_, dt, msg = message
+    msg = msg.lower().split()
+    if len(msg) != 1:
+        return False
+    if msg[0] != 'vacations':
+        return False
+    BAC_logic = reload_module('BAC_logic')
+    WgMembers = BAC_logic.WgMembers
+    WgProps = BAC_logic.WgProps
+    wg_members = {k: v for k, v in WgMembers.__dict__.items() if not k.startswith('__')}
+    wg_props = [{'name': wg_members[k], **v, } for k, v in WgProps.__dict__.items() if not k.startswith('__')]
+    member_name = None
+    for e in wg_props:
+        if e['telegram_id'] == id_:
+            member_name = e['name']
+    if member_name is None:
+        return False
+    current_week = (dt - timedelta(days=dt.weekday())).date()
+    vacations = BAC_logic.get_vacations()
+    my_vacations = 'Your vacations:\n'
+    found = False
+    for v in vacations['entries']:
+        date = date_(v['year'], v['month'], v['day'])
+        next_week = date + timedelta(weeks=1)
+        if member_name in v['names'] and date >= current_week:
+            my_vacations += f'- {date.strftime("%d/%m/%Y")} - {next_week.strftime("%d/%m/%Y")}\n'
+            found = True
+    my_vacations = my_vacations if found else "You don't have any vacation booked."
+    await send(chat_id=message[0], token=LEO_TOKEN, msg=my_vacations)
+    return True
+    
+
 async def recognize_swap(message):
     id_, dt, msg = message
     msg = msg.lower().split()
@@ -476,6 +511,8 @@ async def process_message(message, logs):
     if await recognize_praise(message, logs):
         return
     if await recognize_swap(message):
+        return
+    if await recognize_myvacations(message):
         return
     if await recognize_vacation(message):
         return
