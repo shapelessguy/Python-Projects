@@ -562,6 +562,11 @@ def get_history():
     return hist_df
 
 
+def get_plan():
+    plan_file = f'{wg_folder}/cleaning_plan_leo6.xlsx'
+    return pandas.read_excel(plan_file)
+
+
 def get_vacations():
     vacations_file = f'{wg_folder}/vacations.json'
     if os.path.exists(vacations_file):
@@ -570,11 +575,26 @@ def get_vacations():
     return vacations
 
 
+def get_swaps():
+    swaps_file = f'{wg_folder}/swaps.json'
+    if os.path.exists(swaps_file):
+        with open(swaps_file, 'r') as file:
+            swaps = json.load(file)
+    return swaps
+
+
 def save_vacations(vacations):
     vacations_file = f'{wg_folder}/vacations.json'
     if os.path.exists(vacations_file):
         with open(vacations_file, 'w') as file:
             json.dump(vacations, file, indent=4)
+
+
+def save_swaps(swaps):
+    swaps_file = f'{wg_folder}/swaps.json'
+    if os.path.exists(swaps_file):
+        with open(swaps_file, 'w') as file:
+            json.dump(swaps, file, indent=4)
 
 
 def get_blames():
