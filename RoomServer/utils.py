@@ -1,8 +1,14 @@
 import os
 from datetime import datetime
+import socket
 
+hostname = socket.gethostname()
+SERVER_PORT = None
+SERVER_PORT = 10000 if hostname == 'DESKTOP-1FOC71M' else SERVER_PORT
+SERVER_PORT = 10001 if hostname == 'raspberry' else SERVER_PORT
+if SERVER_PORT is None:
+    raise Exception('Hostname unkwnown')
 
-SERVER_PORT = 10000
 LEO_TOKEN = '6599624331:AAETjn6YXAXVkg4-IV1I_1ip6zchZdmNbUI'
 CLAUDIO_ID = 807946519
 LEO_GROUP_ID = -4225824414

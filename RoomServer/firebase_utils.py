@@ -25,7 +25,7 @@ def upload_ip(ip):
     blob = bucket.blob('RaspberryPi-Cyan/' + file_name)
     blob.upload_from_filename(file_path)
     blob.make_public()
-    print("IP uploaded to:", blob.public_url)
+    print(f"IP {ip} uploaded to:", blob.public_url)
 
 
 # noinspection PyBroadException
