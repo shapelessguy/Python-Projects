@@ -2,12 +2,20 @@ import os
 from datetime import datetime
 import socket
 
-hostname = socket.gethostname()
-SERVER_PORT = None
-SERVER_PORT = 10000 if hostname == 'DESKTOP-1FOC71M' else SERVER_PORT
-SERVER_PORT = 10001 if hostname == 'raspberry' else SERVER_PORT
-if SERVER_PORT is None:
+hostnames = {
+    'DESKTOP-1FOC71M':{
+        'server_port': 10000,
+        'arduino_device': 'COM6'
+    },
+    'raspberrypi': {
+        'server_port': 10001,
+        'arduino_device': '/dev/ttyUSB0'
+    }
+}
+HOSTNAME = socket.gethostname()
+if HOSTNAME not in hostnames:
     raise Exception('Hostname unkwnown')
+HOSTNAME = hostnames[HOSTNAME]
 
 LEO_TOKEN = '6599624331:AAETjn6YXAXVkg4-IV1I_1ip6zchZdmNbUI'
 CLAUDIO_ID = 807946519

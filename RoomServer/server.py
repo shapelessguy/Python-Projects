@@ -4,7 +4,7 @@ import multiprocessing
 from flask import Flask, request, jsonify
 import multiprocessing
 import logging
-from utils import TeeOutput, SERVER_PORT
+from utils import TeeOutput, HOSTNAME
 
 
 def start_flask_server(signal):
@@ -45,7 +45,7 @@ def start_flask_server(signal):
         
         create_route(endpoint)
 
-    app.run(host='0.0.0.0', port=SERVER_PORT)
+    app.run(host='0.0.0.0', port=HOSTNAME['server_port'])
 
 
 def server_control(signal):

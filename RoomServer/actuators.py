@@ -1,5 +1,6 @@
 import threading
 from datetime import datetime, timedelta
+from utils import HOSTNAME
 import announcements
 import serial
 import time
@@ -17,7 +18,7 @@ active_times = [('7:30', '21:59')]
 def initialize(signal):
     global serialPort, initialized
     serialPort = serial.Serial(
-        port="COM6", baudrate=9600, bytesize=8, timeout=1, stopbits=serial.STOPBITS_ONE
+        port=HOSTNAME['arduino_device'], baudrate=9600, bytesize=8, timeout=1, stopbits=serial.STOPBITS_ONE
     )
 
     loop_init = False
