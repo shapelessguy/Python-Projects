@@ -59,17 +59,16 @@ def server_control(signal):
                 p.start()
             init = False
             while not signal['kill'] and not signal['restart_server']:
-                time.sleep(0.1)
+                time.sleep(0.5)
         except KeyboardInterrupt:
-            signal['kill'] = True
-            if p is not None:
-                p.kill()
-                print('Flask server killed')
+            pass
         except Exception:
-            signal['kill'] = True
-            if p is not None:
-                p.kill()
-                print('Flask server killed')
+            pass
+
+    signal['kill'] = True
+    if p is not None:
+        p.kill()
+        print('Flask server killed')
     print('Server control terminated.')
 
 

@@ -16,10 +16,23 @@ active_times = [('7:30', '21:59')]
 
 
 def initialize(signal):
-    global serialPort, initialized
-    serialPort = serial.Serial(
-        port=HOSTNAME['arduino_device'], baudrate=9600, bytesize=8, timeout=1, stopbits=serial.STOPBITS_ONE
-    )
+    global serialPort, initialized, lights, auto_time
+    serialPort = None
+    lights = False
+    auto_time = None
+    initialized = False
+    while not signal['kill']:
+        if serialPort is None:
+            try:
+                serialPort = serial.Serial(
+                    port=HOSTNAME['arduino_device'], baudrate=9600, bytesize=8, timeout=1, stopbits=serial.STOPBITS_ONE
+                )
+            except Exception:
+                print(f"Cannot open port {HOSTNAME['arduino_device']}")
+                serialPort = None
+        else:
+            break
+        time.sleep(1)
 
     loop_init = False
     print('Contacting Arduino..')
@@ -35,10 +48,7 @@ def initialize(signal):
             except Exception:
                 pass
 
-    if serialPort is None:
-        raise Exception("Issue while initializing Arduino.")
-    else:
-        print('Arduino found!')
+    print('Arduino found!')
 
 
 # noinspection PyBroadException
