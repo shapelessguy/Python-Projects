@@ -13,10 +13,12 @@ lights = False
 auto_time = None
 initialized = False
 active_times = [('7:30', '21:59')]
+signal = None
 
 
-def initialize(signal):
-    global serialPort, initialized, lights, auto_time
+def initialize(signal_):
+    global serialPort, initialized, lights, auto_time, signal
+    signal = signal_
     serialPort = None
     lights = False
     auto_time = None
@@ -53,13 +55,17 @@ def initialize(signal):
 
 # noinspection PyBroadException
 def write(text):
+    global signal
     try:
-        print(f'To Arduino: {text}')
-        serialPort.write(f"{text}\r\n".encode("Ascii"))
+        if serialPort is None:
+            raise Exception()
+        else:
+            print(f'To Arduino: {text}')
+            serialPort.write(f"{text}\r\n".encode("Ascii"))
     except Exception:
         print('Trying to initiate connection to COM..')
         time.sleep(1)
-        initialize()
+        initialize(signal)
         write(text)
 
 
