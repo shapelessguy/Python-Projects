@@ -4,10 +4,12 @@ import socket
 
 hostnames = {
     'DESKTOP-1FOC71M':{
+        'websocket_port': 9999,
         'server_port': 10000,
         'arduino_device': 'COM6'
     },
     'raspberrypi': {
+        'websocket_port': 10002,
         'server_port': 10001,
         'arduino_device': '/dev/ttyUSB0'
     }

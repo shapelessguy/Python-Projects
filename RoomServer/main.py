@@ -1,4 +1,5 @@
 from server import server_control
+from websocket import websocket_control
 from actuators import launch_actuator
 from firebase_utils import firebase_task
 from utils import TeeOutput
@@ -53,7 +54,7 @@ def main():
     manager = multiprocessing.Manager()
     commands = manager.list()
     replies = manager.list()
-    signal = {'kill': False, 'restart_server': False, 'termination': False,
+    signal = {'kill': False, 'restart_server': False, 'restart_websocket': False, 'termination': False,
               'data': {'commands': commands, 'replies': replies}, 'state': State()}
     
     while not signal['termination']:
@@ -63,6 +64,7 @@ def main():
         threads.append(threading.Thread(target=firebase_task, args=(signal, )))
         threads.append(threading.Thread(target=launch_actuator, args=(signal, )))
         threads.append(threading.Thread(target=server_control, args=(signal, )))
+        threads.append(threading.Thread(target=websocket_control, args=(signal, )))
         for t in threads:
             t.start()
 
@@ -75,6 +77,7 @@ def main():
         for t in threads:
             t.join()
         print('RESTART')
+        time.sleep(5)
 
 if __name__ == '__main__':
     print('_')

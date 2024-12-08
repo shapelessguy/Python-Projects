@@ -46,6 +46,7 @@ def firebase_task(signal):
                         upload_ip(ip)
                         prev_ip = ip
                         signal['restart_server'] = True
+                        signal['restart_websocket'] = True
                     except Exception:
                         print('Issue while trying to upload IP')
                         break

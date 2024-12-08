@@ -1,6 +1,7 @@
 venv/*
 venv/
 ip-manager42.json
+expenses.xlsx
 downloaded_file.xlsx
 output.log
 ip_server.txt
