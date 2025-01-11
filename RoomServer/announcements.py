@@ -649,7 +649,10 @@ async def monitor_chats(signal):
 
 def get_blame(name, now, hist_df, logs):
     filtered_row = hist_df[hist_df['Week'] == now]
-    value = [list(v.values())[0] for k, v in filtered_row.to_dict().items() if k == name]
+    dict_ = filtered_row.to_dict()
+    if len(dict_[name]) == 0:
+        return [], None
+    value = [list(v.values())[0] for k, v in dict_.items() if k == name]
     if len(value) == 0:
         return [], None
     activity = value[0]
