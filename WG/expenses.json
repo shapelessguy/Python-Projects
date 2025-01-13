@@ -1,4 +1,13 @@
 {
     "entries": [
+        {
+            "index": 0,
+            "name": "Claudio",
+            "price": 1.45,
+            "reason": "petersilie",
+            "year": 2025,
+            "month": 1,
+            "day": 6
+        }
     ]
 }
