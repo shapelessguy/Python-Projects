@@ -23,7 +23,7 @@ sys.path.append(WG_project_path)
 temp_data = {}
 error_msg = "❌ Shit I messed up internally! Let's try again shall we?"
 l_signal = {}
-debug_flag = True
+debug_flag = False
 
 
 def get_general_metadata():
@@ -76,6 +76,10 @@ def blame_handler1(message):
     try:
         md = get_general_metadata()
         activities = md['activities']
+        sender_activity, sender_name, req_dt = get_message_md(md)
+        if req_dt.weekday() < 3:
+            new_request(message, "❌ Calm down Rocky.. wait until end of Wednesday at least!")
+            return
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
         for i in range(int((len(activities) + 0.99) / 2)):
             if len(activities) > 2*i + 1:
@@ -166,48 +170,56 @@ def direct_msg_handler2(message):
 
 
 def swap_handler1(message):
-    md = get_general_metadata()
-    temp_data[message.chat.id] = {**temp_data.get(message.chat.id, {}), 'data': message.data, 'md': md}
-    _, sender_name, req_dt = get_message_md(message, md)
-    if sender_name is None:
+    try:
+        md = get_general_metadata()
+        temp_data[message.chat.id] = {**temp_data.get(message.chat.id, {}), 'data': message.data, 'md': md}
+        _, sender_name, req_dt = get_message_md(message, md)
+        if sender_name is None:
+            new_request(message, error_msg)
+            return
+        temp_data[message.chat.id]['sender_name'] = sender_name
+        temp_data[message.chat.id]['req_dt'] = req_dt
+        activities = md['activities']
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
+        for i in range(int((len(activities) + 0.99) / 2)):
+            if len(activities) > 2*i + 1:
+                markup.row(activities[2*i], activities[2*i + 1])
+            else:
+                markup.row(activities[2*i])
+        bot.send_message(
+            message.chat.id,
+            f"What activity do u wanna swap yours with?",
+            reply_markup=markup
+        )
+        bot.register_next_step_handler(message, swap_handler2)
+    except:
+        print(traceback.format_exc())
         new_request(message, error_msg)
-        return
-    temp_data[message.chat.id]['sender_name'] = sender_name
-    temp_data[message.chat.id]['req_dt'] = req_dt
-    activities = md['activities']
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
-    for i in range(int((len(activities) + 0.99) / 2)):
-        if len(activities) > 2*i + 1:
-            markup.row(activities[2*i], activities[2*i + 1])
-        else:
-            markup.row(activities[2*i])
-    bot.send_message(
-        message.chat.id,
-        f"What activity do u wanna swap yours with?",
-        reply_markup=markup
-    )
-    bot.register_next_step_handler(message, swap_handler2)
 
 def swap_handler2(message):
-    calendar, step = DetailedTelegramCalendar().build()
-    temp_data[message.chat.id]['target_activity'] = message.text
-    temp_data[message.chat.id]['calendar_title'] = "Which week are you referring to?"
-    temp_data[message.chat.id]['calendar_on_result'] = swap_handler3
-    bot.send_message(
-        message.chat.id,
-        f"{temp_data[message.chat.id]['calendar_title']} Select {LSTEP[step]}",
-        reply_markup=calendar
-    )
+    try:
+        calendar, step = DetailedTelegramCalendar().build()
+        temp_data[message.chat.id]['target_activity'] = message.text
+        temp_data[message.chat.id]['calendar_title'] = "Which week are you referring to?"
+        temp_data[message.chat.id]['calendar_on_result'] = swap_handler3
+        bot.send_message(
+            message.chat.id,
+            f"{temp_data[message.chat.id]['calendar_title']} Select {LSTEP[step]}",
+            reply_markup=calendar
+        )
+    except:
+        print(traceback.format_exc())
+        new_request(message, error_msg)
 
 def swap_handler3(message):
-    sender_name = temp_data[message.chat.id]['sender_name']
-    req_dt = temp_data[message.chat.id]['req_dt']
-    md = temp_data[message.chat.id]['md']
-    date = temp_data[message.chat.id]['calendar_result']
-    target_activity = temp_data[message.chat.id]['target_activity']
-    year, month, day = date.year, date.month, date.day
-    
     try:
+        sender_name = temp_data[message.chat.id]['sender_name']
+        req_dt = temp_data[message.chat.id]['req_dt']
+        md = temp_data[message.chat.id]['md']
+        date = temp_data[message.chat.id]['calendar_result']
+        target_activity = temp_data[message.chat.id]['target_activity']
+        year, month, day = date.year, date.month, date.day
+    
         now = datetime.now()
         now = (now - timedelta(days=now.weekday()))
         date_to_check = datetime(year, month, day)
@@ -302,14 +314,15 @@ def vacation_handler1(message):
 
 
 def vacation_handler2(message):
-    _, sender_name, req_dt = get_message_md(message, temp_data[message.chat.id]['md'])
-    md = temp_data[message.chat.id]['md']
-    if sender_name is None:
-        new_request(message, error_msg)
-        return
-    date = temp_data[message.chat.id]['calendar_result']
-    year, month, day = date.year, date.month, date.day
     try:
+        _, sender_name, req_dt = get_message_md(message, temp_data[message.chat.id]['md'])
+        md = temp_data[message.chat.id]['md']
+        if sender_name is None:
+            new_request(message, error_msg)
+            return
+        date = temp_data[message.chat.id]['calendar_result']
+        year, month, day = date.year, date.month, date.day
+
         now = datetime.now()
         now = (now - timedelta(days=now.weekday()))
         date_to_check = datetime(year, month, day)
@@ -347,14 +360,15 @@ def vacation_handler2(message):
 
 
 def vacation_handler3(message):
-    if message.text != 'YES':
-        new_request(message, f"Alright, then what the hell do you want??")
-        return
-    md = temp_data[message.chat.id]['md']
-    _, sender_name, req_dt = get_message_md(message, md)
-    date = temp_data[message.chat.id]['calendar_result']
-    year, month, day = date.year, date.month, date.day
     try:
+        if message.text != 'YES':
+            new_request(message, f"Alright, then what the hell do you want??")
+            return
+        md = temp_data[message.chat.id]['md']
+        _, sender_name, req_dt = get_message_md(message, md)
+        date = temp_data[message.chat.id]['calendar_result']
+        year, month, day = date.year, date.month, date.day
+
         now = datetime.now()
         now = (now - timedelta(days=now.weekday()))
         date_to_check = datetime(year, month, day)
@@ -381,10 +395,14 @@ def vacation_handler3(message):
 
 
 def expense_handler1(message):
-    md = get_general_metadata()
-    temp_data[message.chat.id] = {**temp_data.get(message.chat.id, {}), 'data': message.data, 'md': md}
-    bot.send_message(message.chat.id, f"How much did you pay?", reply_markup=types.ReplyKeyboardRemove())
-    bot.register_next_step_handler(message, expense_handler2)
+    try:
+        md = get_general_metadata()
+        temp_data[message.chat.id] = {**temp_data.get(message.chat.id, {}), 'data': message.data, 'md': md}
+        bot.send_message(message.chat.id, f"How much did you pay?", reply_markup=types.ReplyKeyboardRemove())
+        bot.register_next_step_handler(message, expense_handler2)
+    except Exception:
+        print(traceback.format_exc())
+        new_request(message, error_msg)
 
 
 def expense_handler2(message):
@@ -399,29 +417,32 @@ def expense_handler2(message):
         price = float(f'{price[0]}.{price[1]}')
         temp_data[message.chat.id]['expense'] = price
         temp_data[message.chat.id]['expense_str'] = price_str
+
+        bot.send_message(message.chat.id, f"For what?", reply_markup=types.ReplyKeyboardRemove())
+        bot.register_next_step_handler(message, expense_handler3)
     except Exception:
         print(traceback.format_exc())
-        new_request(message, "❌ Price is in the wrong format.")
-        return
-
-    bot.send_message(message.chat.id, f"For what?", reply_markup=types.ReplyKeyboardRemove())
-    bot.register_next_step_handler(message, expense_handler3)
+        new_request(message, error_msg)
 
 
 def expense_handler3(message):
-    _, sender_name, req_dt = get_message_md(message, temp_data[message.chat.id]['md'])
-    price = temp_data[message.chat.id]['expense']
-    price_str = temp_data[message.chat.id]['expense_str']
-    reason = message.text
-    
-    current_week = (req_dt - timedelta(days=req_dt.weekday())).date()
-    expenses = temp_data[message.chat.id]['md']['functions']['get_expenses']()
-    index = (max([x['index'] for x in expenses['entries']]) + 1) if len(expenses['entries']) > 0 else 0
-    expenses['entries'].append({'index': index, 'name': sender_name, 'price': price, 'reason': reason,
-                                'year': current_week.year, 'month': current_week.month, 'day': current_week.day})
-    temp_data[message.chat.id]['md']['functions']['save_expenses'](expenses)
-    reason_str = f' "{reason}"' if reason != '' else ''
-    new_request(message, f'✅ Your expense{reason_str} for {price_str} has been recorded.')
+    try:
+        _, sender_name, req_dt = get_message_md(message, temp_data[message.chat.id]['md'])
+        price = temp_data[message.chat.id]['expense']
+        price_str = temp_data[message.chat.id]['expense_str']
+        reason = message.text
+        
+        current_week = (req_dt - timedelta(days=req_dt.weekday())).date()
+        expenses = temp_data[message.chat.id]['md']['functions']['get_expenses']()
+        index = (max([x['index'] for x in expenses['entries']]) + 1) if len(expenses['entries']) > 0 else 0
+        expenses['entries'].append({'index': index, 'name': sender_name, 'price': price, 'reason': reason,
+                                    'year': current_week.year, 'month': current_week.month, 'day': current_week.day})
+        temp_data[message.chat.id]['md']['functions']['save_expenses'](expenses)
+        reason_str = f' "{reason}"' if reason != '' else ''
+        new_request(message, f'✅ Your expense{reason_str} for {price_str} has been recorded.')
+    except Exception:
+        print(traceback.format_exc())
+        new_request(message, error_msg)
 
 
 def ping_handler1(message):
@@ -429,78 +450,90 @@ def ping_handler1(message):
 
 
 def expenses_handler1(message):
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
-    markup.row("NO", "YES")
-    bot.send_message(message.chat.id, f"Do you want to continue from last index?", reply_markup=markup)
-    bot.register_next_step_handler(message, expenses_handler2)
+    try:
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
+        markup.row("NO", "YES")
+        bot.send_message(message.chat.id, f"Do you want to continue from last index?", reply_markup=markup)
+        bot.register_next_step_handler(message, expenses_handler2)
+    except Exception:
+        print(traceback.format_exc())
+        new_request(message, error_msg)
 
 
 def expenses_handler2(message):
-    if message.text == 'YES':
-        temp_data[message.chat.id] = {'continue': True}
-        expenses_handler3(message)
-    elif message.text == 'NO':
-        temp_data[message.chat.id] = {'continue': False}
-        bot.send_message(message.chat.id, f"From which index you want to display the expenses?", reply_markup=types.ReplyKeyboardRemove())
-        bot.register_next_step_handler(message, expenses_handler3)
-    else:
-        send_welcome(message)
+    try:
+        if message.text == 'YES':
+            temp_data[message.chat.id] = {'continue': True}
+            expenses_handler3(message)
+        elif message.text == 'NO':
+            temp_data[message.chat.id] = {'continue': False}
+            bot.send_message(message.chat.id, f"From which index you want to display the expenses?", reply_markup=types.ReplyKeyboardRemove())
+            bot.register_next_step_handler(message, expenses_handler3)
+        else:
+            send_welcome(message)
+    except Exception:
+        print(traceback.format_exc())
+        new_request(message, error_msg)
 
 def expenses_handler3(message):
-    in_index = None
-    md = get_general_metadata()
-    sender_activity, sender_name, req_dt = get_message_md(message, md)
-    last_idx_path = os.path.join(os.path.dirname(__file__), 'last_idx_reads.json')
-    expenses = md['functions']['get_expenses']()
-    max_index = max([x['index'] for x in expenses['entries']]) if len(expenses['entries']) > 0 else -1
-    with open(last_idx_path, 'r') as file:
-        last_idx = {**{sender_name: -1}, **json.load(file)}
-    if not temp_data[message.chat.id]['continue']:
-        try:
-            in_index = int(message.text)
-            assert in_index >= 0
-            in_index -= 1
-        except Exception:
-            new_request(message, "❌ Wrong index.")
-            return
-    else:
-        if sender_name in last_idx:
-            in_index = last_idx[sender_name]
+    try:
+        in_index = None
+        md = get_general_metadata()
+        sender_activity, sender_name, req_dt = get_message_md(message, md)
+        last_idx_path = os.path.join(os.path.dirname(__file__), 'last_idx_reads.json')
+        expenses = md['functions']['get_expenses']()
+        max_index = max([x['index'] for x in expenses['entries']]) if len(expenses['entries']) > 0 else -1
+        with open(last_idx_path, 'r') as file:
+            last_idx = {**{sender_name: -1}, **json.load(file)}
+        if not temp_data[message.chat.id]['continue']:
+            try:
+                in_index = int(message.text)
+                assert in_index >= 0
+                in_index -= 1
+            except Exception:
+                new_request(message, "❌ Wrong index.")
+                return
         else:
-            in_index = -1
-    
-    if in_index >= max_index:
-        new_request(message, "❌ No updates here!")
-        return
-
-    expenses_list = [
-        [e['index'], e['name'], e['price'], e['reason'], date_(day=e['day'], month=e['month'], year=e['year']).strftime("%d/%m/%y")]
-        for e in expenses['entries'] if e['index'] > in_index
-    ]
-    expenses_df = pd.DataFrame(data=expenses_list, columns=['Index', 'Name', 'Price', 'Reason', 'Date'])
-
-    totals_by_name = expenses_df.groupby("Name")["Price"].sum().reset_index()
-    totals_by_name.columns = ["Name", "Total Price"]
-    excel_path = os.path.join(os.path.dirname(__file__), "expenses.xlsx")
-
-    with pd.ExcelWriter(excel_path, engine="openpyxl") as writer:
-        expenses_df.to_excel(writer, sheet_name="Expenses", index=False)
-        totals_by_name.to_excel(writer, sheet_name="Totals", index=False)
-        sheets = [writer.sheets["Expenses"], writer.sheets["Totals"]]
+            if sender_name in last_idx:
+                in_index = last_idx[sender_name]
+            else:
+                in_index = -1
         
-        for sheet in sheets:
-            for col in sheet.columns:
-                max_length = 15
-                col_letter = col[0].column_letter
-                sheet.column_dimensions[col_letter].width = max_length
-            for row in sheet.iter_rows(min_row=1, max_row=sheet.max_row, min_col=1, max_col=sheet.max_column):
-                for cell in row:
-                    cell.alignment = Alignment(horizontal="center", vertical="center")
+        if in_index >= max_index:
+            new_request(message, "❌ No updates here!")
+            return
 
-    new_request(message, f'All the expenses from index {in_index+1}.', document=excel_path)
-    with open(last_idx_path, 'w') as file:
-        last_idx[sender_name] = max_index
-        json.dump(last_idx, file)
+        expenses_list = [
+            [e['index'], e['name'], e['price'], e['reason'], date_(day=e['day'], month=e['month'], year=e['year']).strftime("%d/%m/%y")]
+            for e in expenses['entries'] if e['index'] > in_index
+        ]
+        expenses_df = pd.DataFrame(data=expenses_list, columns=['Index', 'Name', 'Price', 'Reason', 'Date'])
+
+        totals_by_name = expenses_df.groupby("Name")["Price"].sum().reset_index()
+        totals_by_name.columns = ["Name", "Total Price"]
+        excel_path = os.path.join(os.path.dirname(__file__), "expenses.xlsx")
+
+        with pd.ExcelWriter(excel_path, engine="openpyxl") as writer:
+            expenses_df.to_excel(writer, sheet_name="Expenses", index=False)
+            totals_by_name.to_excel(writer, sheet_name="Totals", index=False)
+            sheets = [writer.sheets["Expenses"], writer.sheets["Totals"]]
+            
+            for sheet in sheets:
+                for col in sheet.columns:
+                    max_length = 15
+                    col_letter = col[0].column_letter
+                    sheet.column_dimensions[col_letter].width = max_length
+                for row in sheet.iter_rows(min_row=1, max_row=sheet.max_row, min_col=1, max_col=sheet.max_column):
+                    for cell in row:
+                        cell.alignment = Alignment(horizontal="center", vertical="center")
+
+        new_request(message, f'All the expenses from index {in_index+1}.', document=excel_path)
+        with open(last_idx_path, 'w') as file:
+            last_idx[sender_name] = max_index
+            json.dump(last_idx, file)
+    except Exception:
+        print(traceback.format_exc())
+        new_request(message, error_msg)
 
 
 class Action:
@@ -694,6 +727,18 @@ def get_date_from_week_id(week_id_):
     return datetime.strptime(d + '-1', "%Y-W%W-%w").date()
 
 
+def get_last_announcement():
+    last_announcement = None
+    try:
+        with open(os.path.join(os.path.dirname(__file__), 'announcements.txt'), 'r') as file:
+            last_announcement = datetime.strptime(file.read().split('\n')[-2], "%Y-%m-%d-%H-%M-%S")
+    except:
+        pass
+    if last_announcement is None:
+        last_announcement = datetime.strptime("2000-01-01-00-00-00", "%Y-%m-%d-%H-%M-%S")
+    return last_announcement, get_week_number(last_announcement)
+
+
 def spawn_monitoring(signal={'kill': False}):
     global bot, l_signal
     l_signal = signal
@@ -707,8 +752,6 @@ def spawn_monitoring(signal={'kill': False}):
 
 
 def monitor_kill(bot, signal):
-    time.sleep(3)
-    signal['set_announcement'] = {'updated': False}
     while not signal['kill']:
         if 'set_announcement' in signal:
             set_announcement(**signal['set_announcement'])
