@@ -1,10 +1,8 @@
-import threading
 from datetime import datetime, timedelta
 from utils import HOSTNAME
 import announcements
 import serial
 import time
-import asyncio
 import sequences
 
 
@@ -81,7 +79,7 @@ def change_lights(on):
 
 
 # noinspection PyBroadException
-async def actuator(signal):
+def actuator(signal):
     print('Actuator running.')
     commands = signal['data']['commands']
     mode = 'LIGHTSAUTO'
@@ -97,12 +95,11 @@ async def actuator(signal):
     ping_period = 10  # audio ping received every 10 seconds
     tollerance = 180  # audio turns off after 180 seconds
     ping_sent = 60 * 60  # audio ping sent to HW every <-- seconds
-    threading.Thread(target=announcements.spawn_monitoring, args=(signal, )).start()
     last_announcement, id_last_announcement = announcements.get_last_announcement()
     while not signal['kill']:
         try:
             cur_time = datetime.now()
-            last_announcement, id_last_announcement = await announcements.update(last_announcement, id_last_announcement)
+            last_announcement, id_last_announcement = announcements.update(last_announcement, id_last_announcement)
             if 'AUDIOON' in commands or 'AUDIOOFF' in commands:
                 pass
             elif cur_time - last_audio_ping > timedelta(seconds=tollerance) and audio_on:
@@ -126,7 +123,7 @@ async def actuator(signal):
                 reply = None
                 command = commands.pop(0)
                 if command == 'ANNOUNCEPERFORMING':
-                    last_announcement, id_last_announcement = await announcements.update(last_announcement, id_last_announcement, forced=True)
+                    last_announcement, id_last_announcement = announcements.update(last_announcement, id_last_announcement, forced=True)
                     reply = f'Command {command} sent'
                 elif command[:2] == 'TV':
                     write(command)
@@ -202,4 +199,4 @@ async def actuator(signal):
 
 def launch_actuator(signal):
     initialize(signal)
-    asyncio.run(actuator(signal))
+    actuator(signal)

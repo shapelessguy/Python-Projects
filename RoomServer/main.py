@@ -2,6 +2,7 @@ from server import server_control
 from websocket import websocket_control
 from actuators import launch_actuator
 from firebase_utils import firebase_task
+from announcements import spawn_monitoring
 from utils import TeeOutput
 from datetime import datetime
 import multiprocessing
@@ -62,6 +63,7 @@ def main():
         threads = []
         threads.append(threading.Thread(target=background, args=(signal, )))
         threads.append(threading.Thread(target=firebase_task, args=(signal, )))
+        threads.append(threading.Thread(target=spawn_monitoring, args=(signal, )))
         threads.append(threading.Thread(target=launch_actuator, args=(signal, )))
         threads.append(threading.Thread(target=server_control, args=(signal, )))
         threads.append(threading.Thread(target=websocket_control, args=(signal, )))

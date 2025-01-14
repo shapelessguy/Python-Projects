@@ -12,6 +12,8 @@ hostnames = {
         'websocket_port': 10002,
         'server_port': 10001,
         'arduino_device': '/dev/ttyUSB0'
+    },
+    'EVA': {
     }
 }
 HOSTNAME = socket.gethostname()
