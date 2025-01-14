@@ -76,7 +76,7 @@ def blame_handler1(message):
     try:
         md = get_general_metadata()
         activities = md['activities']
-        sender_activity, sender_name, req_dt = get_message_md(md)
+        sender_activity, sender_name, req_dt = get_message_md(message, md)
         if req_dt.weekday() < 3:
             new_request(message, "❌ Calm down Rocky.. wait until end of Wednesday at least!")
             return
