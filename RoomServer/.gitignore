@@ -1,6 +1,7 @@
 venv/*
 venv/
 */__pycache__
+/.handler-saves/*
 ip-manager42.json
 expenses.xlsx
 downloaded_file.xlsx
