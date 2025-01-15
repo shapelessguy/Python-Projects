@@ -567,14 +567,15 @@ actions = {
 
 def get_welcome_markup(target_id):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
-    first_row = [actions['blame'].get_label(target_id), actions['warn'].get_label(target_id), actions['praise'].get_label(target_id)]
-    second_row = [actions['swap'].get_label(target_id), actions['vacations'].get_label(target_id)]
-    third_row = [actions['book'].get_label(target_id), actions['expense'].get_label(target_id)]
-    forth_row = [actions['ping'].get_label(target_id), actions['finance'].get_label(target_id)]
-    markup.row(*first_row)
-    markup.row(*second_row)
-    markup.row(*third_row)
-    markup.row(*forth_row)
+    rows = []
+    rows.append([actions['blame'].get_label(target_id), actions['warn'].get_label(target_id), actions['praise'].get_label(target_id)])
+    rows.append([actions['swap'].get_label(target_id), actions['vacations'].get_label(target_id)])
+    rows.append([actions['book'].get_label(target_id), actions['expense'].get_label(target_id)])
+    rows.append([actions['ping'].get_label(target_id), actions['finance'].get_label(target_id)])
+    rows = [[x for x in row if x is not None] for row in rows]
+    rows = [row for row in rows if len(row) > 0]
+    for r in rows:
+        markup.row(*r)
     return markup
 
 
