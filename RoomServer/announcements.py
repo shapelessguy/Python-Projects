@@ -22,9 +22,10 @@ WG_project_path = os.path.join(main_folder, 'WG')
 sys.path.append(WG_project_path)
 temp_data = {}
 error_msg = "❌ Shit I messed up internally! Let's try again shall we?"
-l_signal = {}
+signal = None
 debug_flag = False
 BREAK_TOKEN = '↩️'
+hb = None
 
 
 def get_general_metadata():
@@ -74,6 +75,8 @@ def get_message_md(message, md):
 
 
 def break_handler(message):
+    if 'current_id' in temp_data[message.chat.id] and message.id <= temp_data[message.chat.id]['current_id']:
+        return
     new_request(message, "How can I be your hero today?")
 
 
@@ -94,11 +97,11 @@ def blame_handler1(message):
             else:
                 markup.row(activities[2*i])
         temp_data[message.chat.id] = {**temp_data.get(message.chat.id, {}), 'data': message.data, 'md': md}
-        bot.send_message(message.chat.id, "Responsible of which activity??", reply_markup=markup)
+        bh.bot.send_message(message.chat.id, "Responsible of which activity??", reply_markup=markup)
         if message.data['action'].id == 'blame':
-            bot.register_next_step_handler(message, blame_handler2)
+            bh.bot.register_next_step_handler(message, blame_handler2)
         else:
-            bot.register_next_step_handler(message, direct_msg_handler1)
+            bh.bot.register_next_step_handler(message, direct_msg_handler1)
     except:
         print(traceback.format_exc())
         new_request(message, error_msg)
@@ -163,8 +166,8 @@ def direct_msg_handler1(message):
             add = '⚠️ Watch out, you received a warning!' if msg_type == 'warn' else '🌟 Someone praised you &lt;3'
             temp_data[message.chat.id]['msg_to_send'] = f"For the task {target_activity} (week {pw_format} - {cw_format}):\n{add} - |COMMENT|"
             temp_data[message.chat.id]['msg_to_read'] = f"✅ Alright! For the task {target_activity} (week {pw_format} - {cw_format}) you sent the message:\n{add} - |COMMENT|"
-            bot.send_message(message.chat.id, "Don't be lazy and leave a comment:", reply_markup=types.ReplyKeyboardRemove())
-            bot.register_next_step_handler(message, direct_msg_handler2)
+            bh.bot.send_message(message.chat.id, "Don't be lazy and leave a comment:", reply_markup=types.ReplyKeyboardRemove())
+            bh.bot.register_next_step_handler(message, direct_msg_handler2)
     except:
         print(traceback.format_exc())
         new_request(message, error_msg)
@@ -175,7 +178,7 @@ def direct_msg_handler2(message):
         return
     try:
         target_chat_id = temp_data[message.chat.id]['target_chat_id']
-        bot.send_message(target_chat_id, f"{temp_data[message.chat.id]['msg_to_send'].replace('|COMMENT|', message.text)}")
+        bh.bot.send_message(target_chat_id, f"{temp_data[message.chat.id]['msg_to_send'].replace('|COMMENT|', message.text)}")
         new_request(message, f"{temp_data[message.chat.id]['msg_to_read'].replace('|COMMENT|', message.text)}")
     except:
         print(traceback.format_exc())
@@ -201,12 +204,12 @@ def swap_handler1(message):
                 markup.row(activities[2*i], activities[2*i + 1])
             else:
                 markup.row(activities[2*i])
-        bot.send_message(
+        bh.bot.send_message(
             message.chat.id,
             f"What activity do u wanna swap yours with?",
             reply_markup=markup
         )
-        bot.register_next_step_handler(message, swap_handler2)
+        bh.bot.register_next_step_handler(message, swap_handler2)
     except:
         print(traceback.format_exc())
         new_request(message, error_msg)
@@ -219,7 +222,7 @@ def swap_handler2(message):
         temp_data[message.chat.id]['target_activity'] = message.text
         temp_data[message.chat.id]['calendar_title'] = "Which week are you referring to?"
         temp_data[message.chat.id]['calendar_on_result'] = swap_handler3
-        bot.send_message(
+        bh.bot.send_message(
             message.chat.id,
             f"{temp_data[message.chat.id]['calendar_title']} Select {LSTEP[step]}",
             reply_markup=calendar
@@ -282,7 +285,7 @@ def swap_handler3(message):
         updated_text = '\n🔄 A new plan is now getting generated..' if this_week else ''
         new_request(message, f"✅ Activity {sender_activity} swapped with {target_activity} for the week {date_to_check} - {next_week}!{updated_text}")
         if this_week:
-            l_signal['set_announcement'] = {'updated': True}
+            signal['set_announcement'] = {'updated': True}
     except Exception:
         print(traceback.format_exc())
         new_request(message, error_msg)
@@ -326,7 +329,7 @@ def vacation_handler1(message):
         temp_data[message.chat.id]['target_activity'] = message.text
         temp_data[message.chat.id]['calendar_title'] = "When do you wanna take vacation?"
         temp_data[message.chat.id]['calendar_on_result'] = vacation_handler2
-        bot.send_message(
+        bh.bot.send_message(
             message.chat.id,
             f"{temp_data[message.chat.id]['calendar_title']} Select {LSTEP[step]}",
             reply_markup=calendar
@@ -370,15 +373,15 @@ def vacation_handler2(message):
             if sender_name in v['names'] and v['day'] == day and v['month'] == month and v['year'] == year:
                 markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
                 markup.row("NO", "YES")
-                bot.send_message(message.chat.id, f"This vacation has already been booked.. do you want to unbook it?", reply_markup=markup)
-                bot.register_next_step_handler(message, vacation_handler3)
+                bh.bot.send_message(message.chat.id, f"This vacation has already been booked.. do you want to unbook it?", reply_markup=markup)
+                bh.bot.register_next_step_handler(message, vacation_handler3)
                 return
         vacations['entries'].append({'names': [sender_name], 'day': day, 'month': month, 'year': year, 'n_weeks': 1})
         md['functions']['save_vacations'](vacations)
         updated_text = '\n🔄 A new plan is now getting generated..' if this_week else ''
         new_request(message, f"✅ You booked a vacation for the week {date_to_check} - {next_week}!{updated_text}")
         if this_week:
-            l_signal['set_announcement'] = {'updated': True}
+            signal['set_announcement'] = {'updated': True}
     except Exception:
         print(traceback.format_exc())
         new_request(message, error_msg)
@@ -414,7 +417,7 @@ def vacation_handler3(message):
         updated_text = '\n🔄 A new plan is now getting generated..' if this_week else ''
         new_request(message, f"✅ You unbooked your vacation for the week {date_to_check} - {next_week}.{updated_text}")
         if this_week:
-            l_signal['set_announcement'] = {'updated': True}
+            signal['set_announcement'] = {'updated': True}
         return True
     except Exception:
         print(traceback.format_exc())
@@ -427,8 +430,8 @@ def expense_handler1(message):
     try:
         md = get_general_metadata()
         temp_data[message.chat.id] = {**temp_data.get(message.chat.id, {}), 'data': message.data, 'md': md}
-        bot.send_message(message.chat.id, f"How much did you pay?", reply_markup=types.ReplyKeyboardRemove())
-        bot.register_next_step_handler(message, expense_handler2)
+        bh.bot.send_message(message.chat.id, f"How much did you pay?", reply_markup=types.ReplyKeyboardRemove())
+        bh.bot.register_next_step_handler(message, expense_handler2)
     except Exception:
         print(traceback.format_exc())
         new_request(message, error_msg)
@@ -449,8 +452,8 @@ def expense_handler2(message):
         temp_data[message.chat.id]['expense'] = price
         temp_data[message.chat.id]['expense_str'] = price_str
 
-        bot.send_message(message.chat.id, f"For what?", reply_markup=types.ReplyKeyboardRemove())
-        bot.register_next_step_handler(message, expense_handler3)
+        bh.bot.send_message(message.chat.id, f"For what?", reply_markup=types.ReplyKeyboardRemove())
+        bh.bot.register_next_step_handler(message, expense_handler3)
     except Exception:
         print(traceback.format_exc())
         new_request(message, error_msg)
@@ -490,8 +493,8 @@ def expenses_handler1(message):
     try:
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
         markup.row("NO", "YES")
-        bot.send_message(message.chat.id, f"Do you want to continue from last index?", reply_markup=markup)
-        bot.register_next_step_handler(message, expenses_handler2)
+        bh.bot.send_message(message.chat.id, f"Do you want to continue from last index?", reply_markup=markup)
+        bh.bot.register_next_step_handler(message, expenses_handler2)
     except Exception:
         print(traceback.format_exc())
         new_request(message, error_msg)
@@ -506,8 +509,8 @@ def expenses_handler2(message):
             expenses_handler3(message)
         elif message.text == 'NO':
             temp_data[message.chat.id] = {'continue': False}
-            bot.send_message(message.chat.id, f"From which index you want to display the expenses?", reply_markup=types.ReplyKeyboardRemove())
-            bot.register_next_step_handler(message, expenses_handler3)
+            bh.bot.send_message(message.chat.id, f"From which index you want to display the expenses?", reply_markup=types.ReplyKeyboardRemove())
+            bh.bot.register_next_step_handler(message, expenses_handler3)
         else:
             new_request(message, "❌ I really don't get it..")
             return
@@ -597,7 +600,6 @@ class Action:
         if self.only_to is None or (self.only_to is not None and target_id in self.only_to):
             return self.label
 
-bot = telebot.TeleBot(LEO_TOKEN)
 actions = {
     'blame': Action('blame', '💢 BLAME', blame_handler1),
     'warn': Action('warn', '⚠️ WARN', blame_handler1),
@@ -626,53 +628,64 @@ def get_welcome_markup(target_id):
     return markup
 
 
-@bot.message_handler(func=lambda m: True)
-def send_welcome(message):
-    if message.chat.id not in temp_data:
-        temp_data[message.chat.id] = {}
-    if message.text == BREAK_TOKEN:
-        if not set_current_id(message):
-            return
-    bot.send_message(message.chat.id, "How can I be your hero today?", reply_markup=get_welcome_markup(message.chat.id))
-    bot.register_next_step_handler(message, execute_request)
-
-
 def set_current_id(message):
     if message.chat.id not in temp_data:
         temp_data[message.chat.id] = {}
     if 'current_id' in temp_data[message.chat.id] and message.id < temp_data[message.chat.id]['current_id']:
         return False
     temp_data[message.chat.id]['current_id'] = message.id
+    print(f'Serving {message.chat.id}: msg {message.id}')
     return True
 
 
-@bot.callback_query_handler(func=DetailedTelegramCalendar.func())
-def cal(c):
-    if c.message.text == BREAK_TOKEN:
-        return
-    if not set_current_id(c.message):
-        return
-    result, key, step = DetailedTelegramCalendar().process(c.data)
-    if not result and key:
-        bot.edit_message_text(f"{temp_data[c.message.chat.id]['calendar_title']} Select {LSTEP[step]}",
-                              c.message.chat.id,
-                              c.message.message_id,
-                              reply_markup=key)
-    elif result:
-        temp_data[c.message.chat.id]['calendar_result'] = result
-        temp_data[c.message.chat.id]['calendar_on_result'](c.message)
+class MyBot:
+
+    def __init__(self):
+        self.bot = telebot.TeleBot(LEO_TOKEN)
+        self.setup_handlers()
+
+    def setup_handlers(self):
+        @self.bot.message_handler(func=lambda m: True)
+        def send_welcome(message):
+            if message.chat.id not in temp_data:
+                temp_data[message.chat.id] = {}
+            if message.text == BREAK_TOKEN:
+                if not set_current_id(message):
+                    return
+            if 'current_id' in temp_data[message.chat.id] and message.id <= temp_data[message.chat.id]['current_id']:
+                return
+            print(f'Serving {message.chat.id}: msg {message.id}')
+
+            self.bot.send_message(message.chat.id, "How can I be your hero today?", reply_markup=get_welcome_markup(message.chat.id))
+            self.bot.register_next_step_handler(message, execute_request)
+
+        @self.bot.callback_query_handler(func=DetailedTelegramCalendar.func())
+        def cal(c):
+            if c.message.text == BREAK_TOKEN:
+                return
+            if not set_current_id(c.message):
+                return
+            result, key, step = DetailedTelegramCalendar().process(c.data)
+            if not result and key:
+                self.bot.edit_message_text(f"{temp_data[c.message.chat.id]['calendar_title']} Select {LSTEP[step]}",
+                                    c.message.chat.id,
+                                    c.message.message_id,
+                                    reply_markup=key)
+            elif result:
+                temp_data[c.message.chat.id]['calendar_result'] = result
+                temp_data[c.message.chat.id]['calendar_on_result'](c.message)
 
 
 def new_request(message, text, target_id=None, document=None):
     target_id = message.chat.id if target_id is None else target_id
     if document is not None:
         with open(document, 'rb') as document_:
-            bot.send_document(target_id, document_, caption=text, reply_markup=get_welcome_markup(target_id))
+            bh.bot.send_document(target_id, document_, caption=text, reply_markup=get_welcome_markup(target_id))
     else:
         if not set_current_id(message):
             return
-        bot.send_message(target_id, text, reply_markup=get_welcome_markup(target_id))
-    bot.register_next_step_handler(message, execute_request)
+        bh.bot.send_message(target_id, text, reply_markup=get_welcome_markup(target_id))
+    bh.bot.register_next_step_handler(message, execute_request)
 
 
 def execute_request(message):
@@ -683,8 +696,8 @@ def execute_request(message):
             handled = True
             break
     if not handled:
-        bot.send_message(message.chat.id, "❌ Did you just speak in Martian? Say again.", reply_markup=get_welcome_markup(message.chat.id))
-        bot.register_next_step_handler(message, execute_request)
+        bh.bot.send_message(message.chat.id, "❌ Did you just speak in Martian? Say again.", reply_markup=get_welcome_markup(message.chat.id))
+        bh.bot.register_next_step_handler(message, execute_request)
 
 
 def reload_module(module_name):
@@ -744,7 +757,7 @@ def set_announcement(updated=False):
 
         subprocess.run(f'cd {WG_project_path} && git add . && git commit -m "auto_update" && git push', shell=True, capture_output=True, text=True)
         if not debug_flag:
-            bot.send_document(LEO_GROUP_ID, os.path.join(WG_project_path, 'cleaning_plan_leo6.xlsx'), caption=text)
+            bh.bot.send_document(LEO_GROUP_ID, os.path.join(WG_project_path, 'cleaning_plan_leo6.xlsx'), caption=text)
         print('Msg sent to LEO6:', text)
 
         with open(os.path.join(os.path.dirname(__file__), 'announcements.txt'), 'a+') as file:
@@ -778,7 +791,7 @@ def set_announcement(updated=False):
             if telegram_id is not None:
                 print('Msg sent:', string)
                 if name == 'Claudio' or not debug_flag:
-                    bot.send_message(telegram_id, string, parse_mode="HTML")
+                    bh.bot.send_message(telegram_id, string, parse_mode="HTML")
     except Exception as e:
         print(e)
         print(traceback.format_exc())
@@ -805,40 +818,40 @@ def get_last_announcement():
     return last_announcement, get_week_number(last_announcement)
 
 
-def spawn_monitoring(signal={'kill': False}):
-    global bot, l_signal
-    l_signal = signal
-    monitor_thread = threading.Thread(target=monitor_kill, args=(bot, signal))
+def spawn_monitoring(signal_):
+    global bh, signal
+    bh = MyBot()
+    signal = signal_
+    monitor_thread = threading.Thread(target=monitor_kill, args=(bh, signal))
     monitor_thread.start()
-    bot.enable_save_next_step_handlers(delay=2)
-    bot.load_next_step_handlers()
-    bot.infinity_polling()
-    signal['kill'] = True
-    print('BOT STOPPED')
+    bh.bot.enable_save_next_step_handlers(delay=2)
+    bh.bot.load_next_step_handlers()
+    bh.bot.infinity_polling()
+    print('Bot killed.')
 
 
-def monitor_kill(bot, signal):
+def monitor_kill(bh, signal):
     while not signal['kill']:
         if 'set_announcement' in signal:
             set_announcement(**signal['set_announcement'])
             del signal['set_announcement']
         time.sleep(0.5)
-    bot.stop_polling()
+    bh.bot.stop_polling()
 
 
 def update(last_announcement=None, id_last_announcement=None, forced=False, updated=False):
-    global l_signal
+    global signal
     now = datetime.now()
     announce_at = 8  # hour of update
     masked_now = now - timedelta(hours=(announce_at))
     if forced or get_week_number(masked_now) != id_last_announcement:
         if forced or masked_now > last_announcement:
             print('ANNOUNCEMENTS', now)
-            l_signal['set_announcement'] = {'updated': updated}
+            signal['set_announcement'] = {'updated': updated}
             last_announcement = now
             id_last_announcement = get_week_number(now)
     return last_announcement, id_last_announcement
 
 
 if __name__ == '__main__':
-    spawn_monitoring()
+    pass

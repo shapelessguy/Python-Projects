@@ -8,6 +8,15 @@
             "year": 2025,
             "month": 1,
             "day": 6
+        },
+        {
+            "index": 1,
+            "name": "Claudio",
+            "price": 14.0,
+            "reason": "tape",
+            "year": 2025,
+            "month": 1,
+            "day": 13
         }
     ]
 }

@@ -2,7 +2,7 @@ from server import server_control
 from websocket import websocket_control
 from actuators import launch_actuator
 from firebase_utils import firebase_task
-from announcements import spawn_monitoring
+from announcements import *
 from utils import TeeOutput
 from datetime import datetime
 import multiprocessing
@@ -79,7 +79,7 @@ def main():
         for t in threads:
             t.join()
         print('RESTART')
-        time.sleep(5)
+        time.sleep(10)
 
 if __name__ == '__main__':
     print('_')
