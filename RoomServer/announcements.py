@@ -21,7 +21,7 @@ RoomServer_project_path = os.path.dirname(__file__)
 WG_project_path = os.path.join(main_folder, 'WG')
 sys.path.append(WG_project_path)
 temp_data = {}
-error_msg = "❌ Shit I messed up internally! Let's try again shall we?"
+error_msg = "❌ Let's try again shall we?"
 signal = None
 debug_flag = False
 BREAK_TOKEN = '↩️'
@@ -74,21 +74,18 @@ def get_message_md(message, md):
     return sender_activity, sender_name, req_dt
 
 
-def break_handler(message):
-    if 'current_id' in temp_data[message.chat.id] and message.id <= temp_data[message.chat.id]['current_id']:
-        return
-    new_request(message, "How can I be your hero today?")
-
-
 def blame_handler1(message):
     if not set_current_id(message):
+        return
+    if message.text == BREAK_TOKEN:
+        bh.send_welcome(message)
         return
     try:
         md = get_general_metadata()
         activities = md['activities']
         sender_activity, sender_name, req_dt = get_message_md(message, md)
         if req_dt.weekday() < 3 and message.data['action'].id == 'blame':
-            new_request(message, "❌ Calm down Rocky.. wait until end of Wednesday at least!")
+            new_request(message, "❌ Calm down Rocky.. wait until end of Wednesday at least! ✋")
             return
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
         for i in range(int((len(activities) + 0.99) / 2)):
@@ -96,8 +93,9 @@ def blame_handler1(message):
                 markup.row(activities[2*i], activities[2*i + 1])
             else:
                 markup.row(activities[2*i])
+        markup.row(BREAK_TOKEN)
         temp_data[message.chat.id] = {**temp_data.get(message.chat.id, {}), 'data': message.data, 'md': md}
-        bh.bot.send_message(message.chat.id, "Responsible of which activity??", reply_markup=markup)
+        bh.bot.send_message(message.chat.id, "Responsible of which activity? (They will never know it was you 😎)", reply_markup=markup)
         if message.data['action'].id == 'blame':
             bh.bot.register_next_step_handler(message, blame_handler2)
         else:
@@ -109,6 +107,9 @@ def blame_handler1(message):
 
 def blame_handler2(message):
     if not set_current_id(message):
+        return
+    if message.text == BREAK_TOKEN:
+        bh.send_welcome(message)
         return
     try:
         target_activity, sender_name, req_dt = get_message_md(message, temp_data[message.chat.id]['md'])
@@ -123,12 +124,12 @@ def blame_handler2(message):
         entry = {'date': str(previous_week), 'submitted': str(req_dt), 'blame': target_activity}
         for e in logs[sender_name]:
             if entry['date'] == e['date'] and entry['blame'] == e['blame']:
-                new_request(message, "❌ You have already submitted this feedback.")
+                new_request(message, "❌ You have already submitted this feedback 😌")
                 return
         logs[sender_name].append(entry)
         with open(BLAME_LOGS_FILEPATH, 'w') as file:
             json.dump(logs, file, indent=2)
-        new_request(message, "✅ Thanks for your feedback!")
+        new_request(message, "✅ Thanks for your feedback! 👌")
     except:
         print(traceback.format_exc())
         new_request(message, error_msg)
@@ -136,6 +137,9 @@ def blame_handler2(message):
 
 def direct_msg_handler1(message):
     if not set_current_id(message):
+        return
+    if message.text == BREAK_TOKEN:
+        bh.send_welcome(message)
         return
     try:
         target_activity, sender_name, req_dt = get_message_md(message, temp_data[message.chat.id]['md'])
@@ -163,10 +167,12 @@ def direct_msg_handler1(message):
         if len(target_chat_id) > 0:
             target_chat_id = target_chat_id[0]
             temp_data[message.chat.id]['target_chat_id'] = target_chat_id
-            add = '⚠️ Watch out, you received a warning!' if msg_type == 'warn' else '🌟 Someone praised you &lt;3'
+            add = '⚠️ Watch out, you received a warning! 🤨' if msg_type == 'warn' else '🌟 Someone praised you &lt;3'
             temp_data[message.chat.id]['msg_to_send'] = f"For the task {target_activity} (week {pw_format} - {cw_format}):\n{add} - |COMMENT|"
             temp_data[message.chat.id]['msg_to_read'] = f"✅ Alright! For the task {target_activity} (week {pw_format} - {cw_format}) you sent the message:\n{add} - |COMMENT|"
-            bh.bot.send_message(message.chat.id, "Don't be lazy and leave a comment:", reply_markup=types.ReplyKeyboardRemove())
+            markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
+            markup.row(BREAK_TOKEN)
+            bh.bot.send_message(message.chat.id, "Don't be lazy and leave a comment.. 🙃", reply_markup=markup)
             bh.bot.register_next_step_handler(message, direct_msg_handler2)
     except:
         print(traceback.format_exc())
@@ -176,9 +182,14 @@ def direct_msg_handler1(message):
 def direct_msg_handler2(message):
     if not set_current_id(message):
         return
+    if message.text == BREAK_TOKEN:
+        bh.send_welcome(message)
+        return
     try:
         target_chat_id = temp_data[message.chat.id]['target_chat_id']
-        bh.bot.send_message(target_chat_id, f"{temp_data[message.chat.id]['msg_to_send'].replace('|COMMENT|', message.text)}")
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
+        markup.row(BREAK_TOKEN)
+        bh.bot.send_message(target_chat_id, f"{temp_data[message.chat.id]['msg_to_send'].replace('|COMMENT|', message.text)}", reply_markup=markup)
         new_request(message, f"{temp_data[message.chat.id]['msg_to_read'].replace('|COMMENT|', message.text)}")
     except:
         print(traceback.format_exc())
@@ -187,6 +198,9 @@ def direct_msg_handler2(message):
 
 def swap_handler1(message):
     if not set_current_id(message):
+        return
+    if message.text == BREAK_TOKEN:
+        bh.send_welcome(message)
         return
     try:
         md = get_general_metadata()
@@ -204,6 +218,7 @@ def swap_handler1(message):
                 markup.row(activities[2*i], activities[2*i + 1])
             else:
                 markup.row(activities[2*i])
+        markup.row(BREAK_TOKEN)
         bh.bot.send_message(
             message.chat.id,
             f"What activity do u wanna swap yours with?",
@@ -216,6 +231,9 @@ def swap_handler1(message):
 
 def swap_handler2(message):
     if not set_current_id(message):
+        return
+    if message.text == BREAK_TOKEN:
+        bh.send_welcome(message)
         return
     try:
         calendar, step = DetailedTelegramCalendar().build()
@@ -234,6 +252,9 @@ def swap_handler2(message):
 def swap_handler3(message):
     if not set_current_id(message):
         return
+    if message.text == BREAK_TOKEN:
+        bh.send_welcome(message)
+        return
     try:
         sender_name = temp_data[message.chat.id]['sender_name']
         req_dt = temp_data[message.chat.id]['req_dt']
@@ -248,11 +269,11 @@ def swap_handler3(message):
 
         current_week = (req_dt - timedelta(days=req_dt.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
         if date_to_check < current_week:
-            new_request(message, "❌ Dude, it's too late now.")
+            new_request(message, "❌ It's too late now 🙄")
             return
 
         if date_to_check.weekday() != 0:
-            new_request(message, "❌ Date must be a Monday.")
+            new_request(message, "❌ Date must be a Monday 🤨")
             return
         this_week = now.date() == date_to_check.date()
 
@@ -267,23 +288,23 @@ def swap_handler3(message):
             sender_activity = [list(v.values())[0] for k, v in filtered_row.to_dict().items() if (len(v.values()) > 0 and k == sender_name)]
             sender_activity = [v for v in md['activities'] if v == sender_activity[0]][0]
             if sender_activity == target_activity:
-                new_request(message, "❌ Dude, are you serious?")
+                new_request(message, "❌ Dude, are you serious? 😡")
                 return
         except Exception:
             print(traceback.format_exc())
             name_to_swap = []
         if len(name_to_swap) == 0:
-            new_request(message, f"❌ You cannot swap with {target_activity}.")
+            new_request(message, f"❌ You cannot swap with {target_activity} 😓")
             return
         name_to_swap = name_to_swap[0]
         entry = {'name1': sender_name, 'name2': name_to_swap, 'day': day, 'month': month, 'year': year}
         if entry in swaps['entries']:
-            new_request(message, "❌ Dude, you already swapped with this activity.")
+            new_request(message, "❌ Dude, you already swapped with this activity 😩")
             return
         swaps['entries'].append(entry)
         md['functions']['save_swaps'](swaps)
-        updated_text = '\n🔄 A new plan is now getting generated..' if this_week else ''
-        new_request(message, f"✅ Activity {sender_activity} swapped with {target_activity} for the week {date_to_check} - {next_week}!{updated_text}")
+        updated_text = '\n🔄 A new plan is now getting generated.. just a moment ah' if this_week else ''
+        new_request(message, f"✅ Activity {sender_activity} swapped with {target_activity} for the week {date_to_check} - {next_week}!{updated_text} 🎉")
         if this_week:
             signal['set_announcement'] = {'updated': True}
     except Exception:
@@ -293,6 +314,9 @@ def swap_handler3(message):
 
 def vacations_handler1(message):
     if not set_current_id(message):
+        return
+    if message.text == BREAK_TOKEN:
+        bh.send_welcome(message)
         return
     try:
         md = get_general_metadata()
@@ -311,7 +335,7 @@ def vacations_handler1(message):
             if sender_name in v['names'] and date >= current_week:
                 my_vacations += f'- {date.strftime("%d/%m/%Y")} - {next_week.strftime("%d/%m/%Y")}\n'
                 found = True
-        my_vacations = my_vacations if found else "You don't have any vacation booked."
+        my_vacations = my_vacations if found else "You don't have any vacation booked 😲"
         new_request(message, my_vacations)
         return True
     except Exception:
@@ -321,6 +345,9 @@ def vacations_handler1(message):
 
 def vacation_handler1(message):
     if not set_current_id(message):
+        return
+    if message.text == BREAK_TOKEN:
+        bh.send_welcome(message)
         return
     try:
         md = get_general_metadata()
@@ -342,6 +369,9 @@ def vacation_handler1(message):
 def vacation_handler2(message):
     if not set_current_id(message):
         return
+    if message.text == BREAK_TOKEN:
+        bh.send_welcome(message)
+        return
     try:
         _, sender_name, req_dt = get_message_md(message, temp_data[message.chat.id]['md'])
         md = temp_data[message.chat.id]['md']
@@ -357,11 +387,11 @@ def vacation_handler2(message):
 
         current_week = (req_dt - timedelta(days=req_dt.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
         if date_to_check < current_week:
-            new_request(message, "❌ Dude, you cannot indicate a date in the past!")
+            new_request(message, "❌ Dude, you cannot indicate a date in the past! 😡")
             return
 
         if date_to_check.weekday() != 0:
-            new_request(message, "❌ Dude, date must be a Monday!")
+            new_request(message, "❌ Date must be a Monday! 🤨")
             return
         this_week = now.date() == date_to_check.date()
 
@@ -373,12 +403,13 @@ def vacation_handler2(message):
             if sender_name in v['names'] and v['day'] == day and v['month'] == month and v['year'] == year:
                 markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
                 markup.row("NO", "YES")
+                markup.row(BREAK_TOKEN)
                 bh.bot.send_message(message.chat.id, f"This vacation has already been booked.. do you want to unbook it?", reply_markup=markup)
                 bh.bot.register_next_step_handler(message, vacation_handler3)
                 return
         vacations['entries'].append({'names': [sender_name], 'day': day, 'month': month, 'year': year, 'n_weeks': 1})
         md['functions']['save_vacations'](vacations)
-        updated_text = '\n🔄 A new plan is now getting generated..' if this_week else ''
+        updated_text = '\n🔄 A new plan is now getting generated.. just a moment please..' if this_week else ''
         new_request(message, f"✅ You booked a vacation for the week {date_to_check} - {next_week}!{updated_text}")
         if this_week:
             signal['set_announcement'] = {'updated': True}
@@ -390,9 +421,12 @@ def vacation_handler2(message):
 def vacation_handler3(message):
     if not set_current_id(message):
         return
+    if message.text == BREAK_TOKEN:
+        bh.send_welcome(message)
+        return
     try:
         if message.text != 'YES':
-            new_request(message, f"Alright, then what the hell do you want??")
+            new_request(message, f"Alright, then what the hell do you want?? 😤")
             return
         md = temp_data[message.chat.id]['md']
         _, sender_name, req_dt = get_message_md(message, md)
@@ -414,7 +448,7 @@ def vacation_handler3(message):
                 del vacations['entries'][i]
                 break
         md['functions']['save_vacations'](vacations)
-        updated_text = '\n🔄 A new plan is now getting generated..' if this_week else ''
+        updated_text = '\n🔄 A new plan is now getting generated.. just a moment bitte.' if this_week else ''
         new_request(message, f"✅ You unbooked your vacation for the week {date_to_check} - {next_week}.{updated_text}")
         if this_week:
             signal['set_announcement'] = {'updated': True}
@@ -427,10 +461,15 @@ def vacation_handler3(message):
 def expense_handler1(message):
     if not set_current_id(message):
         return
+    if message.text == BREAK_TOKEN:
+        bh.send_welcome(message)
+        return
     try:
         md = get_general_metadata()
         temp_data[message.chat.id] = {**temp_data.get(message.chat.id, {}), 'data': message.data, 'md': md}
-        bh.bot.send_message(message.chat.id, f"How much did you pay?", reply_markup=types.ReplyKeyboardRemove())
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
+        markup.row(BREAK_TOKEN)
+        bh.bot.send_message(message.chat.id, f"How much did you pay? 🧐", reply_markup=markup)
         bh.bot.register_next_step_handler(message, expense_handler2)
     except Exception:
         print(traceback.format_exc())
@@ -439,6 +478,9 @@ def expense_handler1(message):
 
 def expense_handler2(message):
     if not set_current_id(message):
+        return
+    if message.text == BREAK_TOKEN:
+        bh.send_welcome(message)
         return
     price = message.text
     try:
@@ -452,7 +494,9 @@ def expense_handler2(message):
         temp_data[message.chat.id]['expense'] = price
         temp_data[message.chat.id]['expense_str'] = price_str
 
-        bh.bot.send_message(message.chat.id, f"For what?", reply_markup=types.ReplyKeyboardRemove())
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
+        markup.row(BREAK_TOKEN)
+        bh.bot.send_message(message.chat.id, f"For what? 🧐", reply_markup=markup)
         bh.bot.register_next_step_handler(message, expense_handler3)
     except Exception:
         print(traceback.format_exc())
@@ -461,6 +505,9 @@ def expense_handler2(message):
 
 def expense_handler3(message):
     if not set_current_id(message):
+        return
+    if message.text == BREAK_TOKEN:
+        bh.send_welcome(message)
         return
     try:
         _, sender_name, req_dt = get_message_md(message, temp_data[message.chat.id]['md'])
@@ -475,7 +522,7 @@ def expense_handler3(message):
                                     'year': current_week.year, 'month': current_week.month, 'day': current_week.day})
         temp_data[message.chat.id]['md']['functions']['save_expenses'](expenses)
         reason_str = f' "{reason}"' if reason != '' else ''
-        new_request(message, f'✅ Your expense{reason_str} for {price_str} has been recorded.')
+        new_request(message, f'✅ Your expense{reason_str} for {price_str} has been recorded! 🤑')
     except Exception:
         print(traceback.format_exc())
         new_request(message, error_msg)
@@ -484,15 +531,22 @@ def expense_handler3(message):
 def ping_handler1(message):
     if not set_current_id(message):
         return
+    if message.text == BREAK_TOKEN:
+        bh.send_welcome(message)
+        return
     new_request(message, f'✅ I am here bro! Chat-id: {message.from_user.id}')
 
 
 def expenses_handler1(message):
     if not set_current_id(message):
         return
+    if message.text == BREAK_TOKEN:
+        bh.send_welcome(message)
+        return
     try:
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
         markup.row("NO", "YES")
+        markup.row(BREAK_TOKEN)
         bh.bot.send_message(message.chat.id, f"Do you want to continue from last index?", reply_markup=markup)
         bh.bot.register_next_step_handler(message, expenses_handler2)
     except Exception:
@@ -503,16 +557,21 @@ def expenses_handler1(message):
 def expenses_handler2(message):
     if not set_current_id(message):
         return
+    if message.text == BREAK_TOKEN:
+        bh.send_welcome(message)
+        return
     try:
         if message.text == 'YES':
             temp_data[message.chat.id] = {'continue': True}
             expenses_handler3(message)
         elif message.text == 'NO':
             temp_data[message.chat.id] = {'continue': False}
-            bh.bot.send_message(message.chat.id, f"From which index you want to display the expenses?", reply_markup=types.ReplyKeyboardRemove())
+            markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
+            markup.row(BREAK_TOKEN)
+            bh.bot.send_message(message.chat.id, f"From which index you want to display the expenses?", reply_markup=markup)
             bh.bot.register_next_step_handler(message, expenses_handler3)
         else:
-            new_request(message, "❌ I really don't get it..")
+            new_request(message, "❌ I really don't get it.. 😵")
             return
     except Exception:
         print(traceback.format_exc())
@@ -520,6 +579,9 @@ def expenses_handler2(message):
 
 def expenses_handler3(message):
     if not set_current_id(message):
+        return
+    if message.text == BREAK_TOKEN:
+        bh.send_welcome(message)
         return
     try:
         in_index = None
@@ -600,6 +662,11 @@ class Action:
         if self.only_to is None or (self.only_to is not None and target_id in self.only_to):
             return self.label
 
+
+def break_handler(message):
+    bh.send_welcome(message)
+
+
 actions = {
     'blame': Action('blame', '💢 BLAME', blame_handler1),
     'warn': Action('warn', '⚠️ WARN', blame_handler1),
@@ -628,9 +695,11 @@ def get_welcome_markup(target_id):
     return markup
 
 
-def set_current_id(message):
+def set_current_id(message, remove_welcome_state=True):
     if message.chat.id not in temp_data:
         temp_data[message.chat.id] = {}
+    if remove_welcome_state:
+        temp_data[message.chat.id]['welcome'] = False
     if 'current_id' in temp_data[message.chat.id] and message.id < temp_data[message.chat.id]['current_id']:
         return False
     temp_data[message.chat.id]['current_id'] = message.id
@@ -643,27 +712,32 @@ class MyBot:
     def __init__(self):
         self.bot = telebot.TeleBot(LEO_TOKEN)
         self.setup_handlers()
+    
+    def send_welcome(self, message):
+        if message.chat.id not in temp_data:
+            temp_data[message.chat.id] = {}
+        temp_data[message.chat.id]['welcome'] = False
+        if message.text == BREAK_TOKEN:
+            if not set_current_id(message, False):
+                return
+        if 'current_id' in temp_data[message.chat.id] and message.id <= temp_data[message.chat.id]['current_id'] and temp_data[message.chat.id]['welcome']:
+            return
+        print(f'Serving {message.chat.id}: msg {message.id}')
+
+        temp_data[message.chat.id]['welcome'] = True
+        self.bot.send_message(message.chat.id, "How can I be your hero today? 😇", reply_markup=get_welcome_markup(message.chat.id))
+        self.bot.register_next_step_handler(message, execute_request)
 
     def setup_handlers(self):
         @self.bot.message_handler(func=lambda m: True)
-        def send_welcome(message):
-            if message.chat.id not in temp_data:
-                temp_data[message.chat.id] = {}
-            if message.text == BREAK_TOKEN:
-                if not set_current_id(message):
-                    return
-            if 'current_id' in temp_data[message.chat.id] and message.id <= temp_data[message.chat.id]['current_id']:
-                return
-            print(f'Serving {message.chat.id}: msg {message.id}')
-
-            self.bot.send_message(message.chat.id, "How can I be your hero today?", reply_markup=get_welcome_markup(message.chat.id))
-            self.bot.register_next_step_handler(message, execute_request)
+        def _(message):
+            self.send_welcome(message)
 
         @self.bot.callback_query_handler(func=DetailedTelegramCalendar.func())
         def cal(c):
-            if c.message.text == BREAK_TOKEN:
-                return
             if not set_current_id(c.message):
+                return
+            if c.message.text == BREAK_TOKEN:
                 return
             result, key, step = DetailedTelegramCalendar().process(c.data)
             if not result and key:
@@ -768,7 +842,7 @@ def set_announcement(updated=False):
             blames, blamed_activity = get_blame(name, str(blame_first_date), hist_df, logs)
             telegram_id = e['telegram_id']
             string = '<b>🔄 PLAN UPDATED DURING THIS WEEK</b>\n' if updated else ''
-            string += f'Hello {name}, this is the schedule for the next weeks, waiting for you!\n'
+            string += f'Hello {name}, this is the schedule for the next weeks, waiting for you! 🤩\n'
             for week_n in week_schedule:
                 week_now = (now + timedelta(days=(week_n * 7))).date().strftime("%d/%m")
                 week_plus_1 = (now + timedelta(days=((week_n + 1) * 7))).date().strftime("%d/%m")
@@ -854,4 +928,4 @@ def update(last_announcement=None, id_last_announcement=None, forced=False, upda
 
 
 if __name__ == '__main__':
-    pass
+    spawn_monitoring({'kill': False})
