@@ -714,6 +714,8 @@ class MyBot:
         self.setup_handlers()
     
     def send_welcome(self, message):
+        if message.chat.id == LEO_GROUP_ID:
+            return
         if message.chat.id not in temp_data:
             temp_data[message.chat.id] = {}
         temp_data[message.chat.id]['welcome'] = False
@@ -763,6 +765,8 @@ def new_request(message, text, target_id=None, document=None):
 
 
 def execute_request(message):
+    if message.chat.id == LEO_GROUP_ID:
+        return
     handled = False
     for action in actions.values():
         if message.text == action.label:
@@ -831,7 +835,8 @@ def set_announcement(updated=False):
 
         subprocess.run(f'cd {WG_project_path} && git add . && git commit -m "auto_update" && git push', shell=True, capture_output=True, text=True)
         if not debug_flag:
-            bh.bot.send_document(LEO_GROUP_ID, os.path.join(WG_project_path, 'cleaning_plan_leo6.xlsx'), caption=text)
+            with open(os.path.join(WG_project_path, 'cleaning_plan_leo6.xlsx'), 'rb') as document_:
+                bh.bot.send_document(LEO_GROUP_ID, document_, caption=text)
         print('Msg sent to LEO6:', text)
 
         with open(os.path.join(os.path.dirname(__file__), 'announcements.txt'), 'a+') as file:
