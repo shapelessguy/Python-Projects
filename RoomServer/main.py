@@ -50,15 +50,15 @@ class State:
 
 
 def main():
-    sys.stdout = TeeOutput(sys.__stdout__)
-    sys.stderr = TeeOutput(sys.__stderr__)
     manager = multiprocessing.Manager()
     commands = manager.list()
     replies = manager.list()
     signal = {'kill': False, 'restart_server': False, 'restart_websocket': False, 'termination': False,
-              'data': {'commands': commands, 'replies': replies}, 'state': State()}
-    
+              'data': {'commands': commands, 'replies': replies}, 'state': State(), 'log_file_name': None}
     while not signal['termination']:
+        signal['log_file_name'] = datetime.now().strftime("%Y-%m-%d_%H-%M-%S.log")
+        sys.stdout = TeeOutput('MAIN', sys.__stdout__, signal['log_file_name'])
+        sys.stderr = TeeOutput('MAIN', sys.__stderr__, signal['log_file_name'])
         signal['kill'] = False
         threads = []
         threads.append(threading.Thread(target=background, args=(signal, )))

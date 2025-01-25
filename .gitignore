@@ -1,6 +1,6 @@
 */venv
 */__pycache__
-.handler-saves/*
+*/.handler-saves/*
 desktop.ini
 .venv/
 .idea/

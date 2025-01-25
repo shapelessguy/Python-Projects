@@ -18,7 +18,7 @@ from utils import LEO_TOKEN, LEO_GROUP_ID, BLAME_LOGS_FILEPATH, BLAMES_FILEPATH
 
 main_folder = os.path.dirname(os.path.dirname(__file__))
 RoomServer_project_path = os.path.dirname(__file__)
-WG_project_path = os.path.join(main_folder, 'WG')
+WG_project_path = os.path.join(RoomServer_project_path, 'WG')
 sys.path.append(WG_project_path)
 temp_data = {}
 error_msg = "❌ Let's try again shall we?"
@@ -160,7 +160,7 @@ def direct_msg_handler1(message):
             return
         target_name = target_name[0]
         if sender_name == target_name:
-            new_request(message, f"❌ Don't be silly!! It was you..")
+            new_request(message, f"❌ Don't be silly! It was you..")
             return
         target_chat_id = [e['telegram_id'] for e in temp_data[message.chat.id]['md']['wg_props'] if e['name'] == target_name]
 
@@ -833,6 +833,7 @@ def set_announcement(updated=False):
             text += "\nIf you need vacation for a week, you can send book it though BOOK VACATION."
             text += "\nWhenever you have a WG expense 💰, use EXPENSE and specify price/reason for it."
 
+        subprocess.run(f'cd {WG_project_path} && git pull', shell=True, capture_output=True, text=True)
         subprocess.run(f'cd {WG_project_path} && git add . && git commit -m "auto_update" && git push', shell=True, capture_output=True, text=True)
         if not debug_flag:
             with open(os.path.join(WG_project_path, 'cleaning_plan_leo6.xlsx'), 'rb') as document_:
@@ -886,6 +887,7 @@ def get_date_from_week_id(week_id_):
 
 
 def get_last_announcement():
+    subprocess.run(f'cd {WG_project_path} && git pull', shell=True, capture_output=True, text=True)
     last_announcement = None
     try:
         with open(os.path.join(os.path.dirname(__file__), 'announcements.txt'), 'r') as file:

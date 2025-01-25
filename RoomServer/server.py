@@ -8,8 +8,8 @@ from utils import TeeOutput, HOSTNAME
 
 
 def start_flask_server(signal):
-    sys.stdout = TeeOutput(sys.__stdout__)
-    sys.stderr = TeeOutput(sys.__stderr__)
+    sys.stdout = TeeOutput('FLASK', sys.__stdout__, signal['log_file_name'])
+    sys.stderr = TeeOutput('FLASK', sys.__stderr__, signal['log_file_name'])
     app = Flask(__name__)
     log = logging.getLogger('werkzeug')
     log.setLevel(logging.ERROR)

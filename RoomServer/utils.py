@@ -29,18 +29,21 @@ BLAME_LOGS_FILEPATH = os.path.join(os.path.dirname(__file__), 'blame_log.json')
 BLAMES_FILEPATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'WG', 'blames.json')
 
 
-log_file_path = os.path.join(os.path.dirname(__file__), "output.log")
-log_file = open(log_file_path, "a", encoding='utf-8')
+log_file_folder = os.path.join(os.path.dirname(__file__), "logs")
+if not os.path.exists(log_file_folder):
+    os.mkdir(log_file_folder)
 
 
 class TeeOutput:
-    def __init__(self, sys_out):
+    def __init__(self, name, sys_out, log_file_name):
+        self.name = name
+        log_file = open(os.path.join(log_file_folder, log_file_name), "a", encoding='utf-8')
         self.streams = [sys_out, log_file]
 
     def write(self, message):
         self.streams[0].write(message)
         self.streams[0].flush()
-        message = '\n'.join([f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] - {m}\n" for m in message.split('\n') if m.strip() != ''])
+        message = '\n'.join([f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}][{self.name}] - {m}\n" for m in message.split('\n') if m.strip() != ''])
         try:
             self.streams[1].write(message)
             self.streams[1].flush()

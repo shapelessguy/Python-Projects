@@ -9,8 +9,8 @@ from utils import TeeOutput, HOSTNAME
 
 
 def start_websocket(signal):
-    sys.stdout = TeeOutput(sys.__stdout__)
-    sys.stderr = TeeOutput(sys.__stderr__)
+    sys.stdout = TeeOutput('WEBSOCKET', sys.__stdout__, signal['log_file_name'])
+    sys.stderr = TeeOutput('WEBSOCKET', sys.__stderr__, signal['log_file_name'])
     app = Flask(__name__)
     log = logging.getLogger('werkzeug')
     log.setLevel(logging.ERROR)
