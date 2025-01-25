@@ -2,6 +2,7 @@ import os
 from datetime import datetime
 import socket
 import json
+import subprocess
 
 
 hostnames = {
@@ -42,6 +43,20 @@ for json_ in [BLAME_LOGS_FILEPATH, WARN_LOGS_FILEPATH, BLAMES_FILEPATH]:
 for folder in [LOG_FILE_FOLDER]:
     if not os.path.exists(folder):
         os.mkdir(folder)
+
+
+def pull(path):
+    print(f"Pulling from GitHub: {path}")
+    r = subprocess.run(f'cd {path} && git pull', shell=True, capture_output=True, text=True)
+    print(r.stdout)
+    print(r.stderr)
+
+
+def push(path):
+    print(f"Pushing to GitHub: {path}")
+    r = subprocess.run(f'cd {path} && git add . && git commit -m "auto_update" && git push', shell=True, capture_output=True, text=True)
+    print(r.stdout)
+    print(r.stderr)
 
 
 class TeeOutput:

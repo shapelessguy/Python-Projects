@@ -2,7 +2,6 @@ import telebot
 from telebot import types
 import importlib
 import os
-import subprocess
 import sys
 import traceback
 import json
@@ -13,7 +12,7 @@ from datetime import datetime, timedelta
 from datetime import date as date_
 from openpyxl.styles import Alignment
 from telegram_bot_calendar import DetailedTelegramCalendar, LSTEP
-from utils import LEO_TOKEN, LEO_GROUP_ID, BLAME_LOGS_FILEPATH, WARN_LOGS_FILEPATH, BLAMES_FILEPATH
+from utils import LEO_TOKEN, LEO_GROUP_ID, BLAME_LOGS_FILEPATH, WARN_LOGS_FILEPATH, BLAMES_FILEPATH, pull, push
 
 
 main_folder = os.path.dirname(os.path.dirname(__file__))
@@ -839,7 +838,7 @@ def get_blame(name, now, hist_df, logs):
 
 def set_announcement(updated=False):
     try:
-        subprocess.run(f'cd {WG_project_path} && git pull', shell=True, capture_output=True, text=True)
+        pull(RoomServer_project_path)
         with open(BLAME_LOGS_FILEPATH, 'r') as file:
             logs = json.load(file)
         md = get_general_metadata()
@@ -874,8 +873,6 @@ def set_announcement(updated=False):
             text += "\nIf you need vacation for a week, you can send book it though BOOK VACATION."
             text += "\nWhenever you have a WG expense 💰, use EXPENSE and specify price/reason for it."
 
-        subprocess.run(f'cd {WG_project_path} && git pull', shell=True, capture_output=True, text=True)
-        subprocess.run(f'cd {WG_project_path} && git add . && git commit -m "auto_update" && git push', shell=True, capture_output=True, text=True)
         if not debug_flag:
             with open(os.path.join(WG_project_path, 'cleaning_plan_leo6.xlsx'), 'rb') as document_:
                 bh.bot.send_document(LEO_GROUP_ID, document_, caption=text)
@@ -883,6 +880,7 @@ def set_announcement(updated=False):
 
         with open(os.path.join(os.path.dirname(__file__), 'announcements.txt'), 'a+') as file:
             file.write(datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + '\n')
+        push(RoomServer_project_path)
         
         for e in md['wg_props']:
             name = e['name']
@@ -928,7 +926,7 @@ def get_date_from_week_id(week_id_):
 
 
 def get_last_announcement():
-    subprocess.run(f'cd {WG_project_path} && git pull', shell=True, capture_output=True, text=True)
+    pull(RoomServer_project_path)
     last_announcement = None
     try:
         with open(os.path.join(os.path.dirname(__file__), 'announcements.txt'), 'r') as file:
