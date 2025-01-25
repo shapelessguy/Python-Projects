@@ -838,7 +838,8 @@ def get_blame(name, now, hist_df, logs):
 
 def set_announcement(updated=False):
     try:
-        pull(RoomServer_project_path)
+        if not pull(RoomServer_project_path, signal):
+            return
         with open(BLAME_LOGS_FILEPATH, 'r') as file:
             logs = json.load(file)
         md = get_general_metadata()
@@ -880,7 +881,8 @@ def set_announcement(updated=False):
 
         with open(os.path.join(os.path.dirname(__file__), 'announcements.txt'), 'a+') as file:
             file.write(datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + '\n')
-        push(RoomServer_project_path)
+        if not push(RoomServer_project_path, signal):
+            return
         
         for e in md['wg_props']:
             name = e['name']
@@ -926,7 +928,7 @@ def get_date_from_week_id(week_id_):
 
 
 def get_last_announcement():
-    pull(RoomServer_project_path)
+    pull(RoomServer_project_path, signal)
     last_announcement = None
     try:
         with open(os.path.join(os.path.dirname(__file__), 'announcements.txt'), 'r') as file:

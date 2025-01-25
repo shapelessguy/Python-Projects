@@ -45,18 +45,25 @@ for folder in [LOG_FILE_FOLDER]:
         os.mkdir(folder)
 
 
-def pull(path):
+def pull(path, signal):
     print(f"Pulling from GitHub: {path}")
     r = subprocess.run(f'cd {path} && git pull', shell=True, capture_output=True, text=True)
     print(r.stdout)
     print(r.stderr)
+    if r.stderr != "":
+        signal['kill'] = True
+        return False
+    return True
 
-
-def push(path):
+def push(path, signal):
     print(f"Pushing to GitHub: {path}")
     r = subprocess.run(f'cd {path} && git add . && git commit -m "auto_update" && git push', shell=True, capture_output=True, text=True)
     print(r.stdout)
     print(r.stderr)
+    if r.stderr != "":
+        signal['kill'] = True
+        return False
+    return True
 
 
 class TeeOutput:
