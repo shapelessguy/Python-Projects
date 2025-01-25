@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 from datetime import date as date_
 from openpyxl.styles import Alignment
 from telegram_bot_calendar import DetailedTelegramCalendar, LSTEP
-from utils import LEO_TOKEN, LEO_GROUP_ID, BLAME_LOGS_FILEPATH, BLAMES_FILEPATH
+from utils import LEO_TOKEN, LEO_GROUP_ID, BLAME_LOGS_FILEPATH, WARN_LOGS_FILEPATH, BLAMES_FILEPATH
 
 
 main_folder = os.path.dirname(os.path.dirname(__file__))
@@ -46,13 +46,11 @@ def get_general_metadata():
     wg_members = {k: v for k, v in WgMembers.__dict__.items() if not k.startswith('__')}
     wg_props = [{'name': wg_members[k], **v, } for k, v in WgProps.__dict__.items() if not k.startswith('__')]
     activities = [v for k, v in BAC_logic.Activities.__dict__.items() if not k.startswith('__') and k.lower() != 'vacation']
-    with open(BLAME_LOGS_FILEPATH, 'r') as file:
-        logs = json.load(file)
     functions = {'get_history': get_history, 'get_swaps': get_swaps, 'save_swaps': save_swaps, 'get_plan': get_plan,
                  'get_vacations': get_vacations, 'save_vacations': save_vacations, 'get_expenses': get_expenses,
                  'save_expenses': save_expenses, 'generate_plan': generate_plan}
     metadata = {'functions': functions, 'wg_members': wg_members, 'wg_props': wg_props,
-                'activities': activities, 'blame_logs': logs, 'emoticons': emoticons}
+                'activities': activities, 'emoticons': emoticons}
     return metadata
 
 
@@ -72,6 +70,46 @@ def get_message_md(message, md):
     sender_activity = sender_activity[0]
 
     return sender_activity, sender_name, req_dt
+
+
+def handle_feedback(req_dt, sender_name, target_activity, feedback_type, save):
+    filepath = BLAME_LOGS_FILEPATH if feedback_type == 'blame' else WARN_LOGS_FILEPATH
+    with open(filepath, 'r') as file:
+        logs = json.load(file)
+    current_week = (req_dt - timedelta(days=req_dt.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+    previous_week = (current_week - timedelta(7)).strftime("%Y-%m-%d")
+    logs[sender_name] = logs.get(sender_name, [])
+
+    entry = {'date': str(previous_week), 'submitted': str(req_dt), feedback_type: target_activity}
+    for e in logs[sender_name]:
+        if entry['date'] == e['date'] and entry[feedback_type] == e[feedback_type]:
+            return datetime.strptime(e['submitted'], "%Y-%m-%d %H:%M:%S"), False
+
+    if save:
+        logs[sender_name].append(entry)
+        with open(filepath, 'w') as file:
+            json.dump(logs, file, indent=2)
+    return req_dt, True
+
+
+def find_target_chat_id(message, req_dt, target_activity, md, feedback_type, sender_name=""):
+    get_history = md['functions']['get_history']
+    hist_df = get_history()
+    current_week = (req_dt - timedelta(days=req_dt.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+    previous_week = (current_week - timedelta(7)).strftime("%Y-%m-%d")
+    filtered_row = hist_df[hist_df['Week'] == previous_week]
+    target_name = [k for k, v in filtered_row.to_dict().items() if (len(v.values()) > 0 and list(v.values())[0] == target_activity)]
+    if len(target_name) == 0:
+        new_request(message, f"❌ Nobody to {feedback_type} my friend.")
+        return None
+    target_name = target_name[0]
+    if sender_name == target_name:
+        new_request(message, f"❌ Don't be silly! It was you..")
+        return None
+    target_chat_id = [e['telegram_id'] for e in temp_data[message.chat.id]['md']['wg_props'] if e['name'] == target_name]
+    if len(target_chat_id) > 0:
+        return target_chat_id[0]
+    return None
 
 
 def blame_handler1(message):
@@ -116,20 +154,33 @@ def blame_handler2(message):
         if target_activity is None:
             new_request(message, error_msg)
             return
-        logs = temp_data[message.chat.id]['md']['blame_logs']
-        current_week = (req_dt - timedelta(days=req_dt.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
-        previous_week = (current_week - timedelta(7)).strftime("%Y-%m-%d")
-        logs[sender_name] = logs.get(sender_name, [])
 
-        entry = {'date': str(previous_week), 'submitted': str(req_dt), 'blame': target_activity}
-        for e in logs[sender_name]:
-            if entry['date'] == e['date'] and entry['blame'] == e['blame']:
-                new_request(message, "❌ You have already submitted this feedback 😌")
+        relevant_date, not_yet_submitted = handle_feedback(req_dt, sender_name, target_activity, 'warn', save=False)
+        if not_yet_submitted:
+            msg = f"You have to submit a warning at least 1 day before blaming them!"
+            new_request(message, msg)
+            return
+        else:
+            hold_on_time = timedelta(hours=24)
+            difference = relevant_date + hold_on_time - req_dt
+            if difference.total_seconds() > 0:
+                hours, remainder = divmod(difference.total_seconds(), 3600)
+                minutes = int(remainder // 60)
+                msg = f"Wait at least 1 day after the first warning! - {int(hours)}:{'0' if len(str(minutes)) < 2 else ''}{minutes} hours remaining."
+                new_request(message, msg)
                 return
-        logs[sender_name].append(entry)
-        with open(BLAME_LOGS_FILEPATH, 'w') as file:
-            json.dump(logs, file, indent=2)
-        new_request(message, "✅ Thanks for your feedback! 👌")
+        relevant_date, saved = handle_feedback(req_dt, sender_name, target_activity, 'blame', save=True)
+        if saved:
+            target_chat_id = find_target_chat_id(message, req_dt, target_activity, temp_data[message.chat.id]['md'], 'blame', "")  # One could also blame himself
+            if target_chat_id is not None:
+                markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
+                markup.row(BREAK_TOKEN)
+                bh.bot.send_message(target_chat_id, f"You have been just blamed for {target_activity} my friend.", reply_markup=markup)
+            new_request(message, "✅ Thanks for your feedback! 👌")
+            return
+        else:
+            new_request(message, "❌ You have already submitted this feedback 😌")
+            return
     except:
         print(traceback.format_exc())
         new_request(message, error_msg)
@@ -146,34 +197,24 @@ def direct_msg_handler1(message):
         if target_activity is None:
             new_request(message, error_msg)
             return
-        msg_type = temp_data[message.chat.id]['data']['action'].id  # blame, warn, praise
-        get_history = temp_data[message.chat.id]['md']['functions']['get_history']
-        hist_df = get_history()
+        feedback_type = temp_data[message.chat.id]['data']['action'].id  # blame, warn, praise
+        target_chat_id = find_target_chat_id(message, req_dt, target_activity, temp_data[message.chat.id]['md'], feedback_type, sender_name)
+        if target_chat_id is None:
+            return
+
+        temp_data[message.chat.id]['target_chat_id'] = target_chat_id
+        if feedback_type == 'warn':
+            handle_feedback(req_dt, sender_name, target_activity, 'warn', save=True)
         current_week = (req_dt - timedelta(days=req_dt.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
-        previous_week = (current_week - timedelta(7)).strftime("%Y-%m-%d")
         pw_format = (current_week - timedelta(days=7)).strftime("%d/%m")
         cw_format = current_week.strftime("%d/%m")
-        filtered_row = hist_df[hist_df['Week'] == previous_week]
-        target_name = [k for k, v in filtered_row.to_dict().items() if (len(v.values()) > 0 and list(v.values())[0] == target_activity)]
-        if len(target_name) == 0:
-            new_request(message, f"❌ Nobody to {msg_type} my friend.")
-            return
-        target_name = target_name[0]
-        if sender_name == target_name:
-            new_request(message, f"❌ Don't be silly! It was you..")
-            return
-        target_chat_id = [e['telegram_id'] for e in temp_data[message.chat.id]['md']['wg_props'] if e['name'] == target_name]
-
-        if len(target_chat_id) > 0:
-            target_chat_id = target_chat_id[0]
-            temp_data[message.chat.id]['target_chat_id'] = target_chat_id
-            add = '⚠️ Watch out, you received a warning! 🤨' if msg_type == 'warn' else '🌟 Someone praised you &lt;3'
-            temp_data[message.chat.id]['msg_to_send'] = f"For the task {target_activity} (week {pw_format} - {cw_format}):\n{add} - |COMMENT|"
-            temp_data[message.chat.id]['msg_to_read'] = f"✅ Alright! For the task {target_activity} (week {pw_format} - {cw_format}) you sent the message:\n{add} - |COMMENT|"
-            markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
-            markup.row(BREAK_TOKEN)
-            bh.bot.send_message(message.chat.id, "Don't be lazy and leave a comment.. 🙃", reply_markup=markup)
-            bh.bot.register_next_step_handler(message, direct_msg_handler2)
+        add = '⚠️ Watch out, you received a warning! 🤨' if feedback_type == 'warn' else '🌟 Someone praised you &lt;3'
+        temp_data[message.chat.id]['msg_to_send'] = f"For the task {target_activity} (week {pw_format} - {cw_format}):\n{add} - |COMMENT|"
+        temp_data[message.chat.id]['msg_to_read'] = f"✅ Alright! {feedback_type.title()} for the task {target_activity} (week {pw_format} - {cw_format}), got u!"
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
+        markup.row(BREAK_TOKEN)
+        bh.bot.send_message(message.chat.id, "Don't be lazy and leave a comment.. 🙃", reply_markup=markup)
+        bh.bot.register_next_step_handler(message, direct_msg_handler2)
     except:
         print(traceback.format_exc())
         new_request(message, error_msg)
@@ -190,7 +231,7 @@ def direct_msg_handler2(message):
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
         markup.row(BREAK_TOKEN)
         bh.bot.send_message(target_chat_id, f"{temp_data[message.chat.id]['msg_to_send'].replace('|COMMENT|', message.text)}", reply_markup=markup)
-        new_request(message, f"{temp_data[message.chat.id]['msg_to_read'].replace('|COMMENT|', message.text)}")
+        new_request(message, f"{temp_data[message.chat.id]['msg_to_read']}")
     except:
         print(traceback.format_exc())
         new_request(message, error_msg)

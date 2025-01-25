@@ -1,6 +1,8 @@
 import os
 from datetime import datetime
 import socket
+import json
+
 
 hostnames = {
     'DESKTOP-1FOC71M':{
@@ -16,6 +18,8 @@ hostnames = {
     'EVA': {
     }
 }
+
+
 HOSTNAME = socket.gethostname()
 if HOSTNAME not in hostnames:
     raise Exception('Hostname unkwnown')
@@ -26,18 +30,24 @@ CLAUDIO_ID = 807946519
 LEO_GROUP_ID = -4225824414
 DUMMY_CHANNEL_ID = -1002037672769
 BLAME_LOGS_FILEPATH = os.path.join(os.path.dirname(__file__), 'blame_log.json')
-BLAMES_FILEPATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'WG', 'blames.json')
+WARN_LOGS_FILEPATH = os.path.join(os.path.dirname(__file__), 'warn_log.json')
+BLAMES_FILEPATH = os.path.join(os.path.dirname(__file__), 'WG', 'blames.json')
+LOG_FILE_FOLDER = os.path.join(os.path.dirname(__file__), "logs")
 
 
-log_file_folder = os.path.join(os.path.dirname(__file__), "logs")
-if not os.path.exists(log_file_folder):
-    os.mkdir(log_file_folder)
+for json_ in [BLAME_LOGS_FILEPATH, WARN_LOGS_FILEPATH, BLAMES_FILEPATH]:
+    if not os.path.exists(json_):
+        with open(json_, 'w') as file:
+            json.dump({}, file)
+for folder in [LOG_FILE_FOLDER]:
+    if not os.path.exists(folder):
+        os.mkdir(folder)
 
 
 class TeeOutput:
     def __init__(self, name, sys_out, log_file_name):
         self.name = name
-        log_file = open(os.path.join(log_file_folder, log_file_name), "a", encoding='utf-8')
+        log_file = open(os.path.join(LOG_FILE_FOLDER, log_file_name), "a", encoding='utf-8')
         self.streams = [sys_out, log_file]
 
     def write(self, message):
