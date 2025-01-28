@@ -50,17 +50,18 @@ def pull(path, signal):
     r = subprocess.run(f'cd {path} && git pull', shell=True, capture_output=True, text=True)
     print(r.stdout)
     print(r.stderr)
-    if r.stderr != "":
+    if  r.returncode != 0:
         signal['kill'] = True
         return False
     return True
+
 
 def push(path, signal):
     print(f"Pushing to GitHub: {path}")
     r = subprocess.run(f'cd {path} && git add . && git commit -m "auto_update" && git push', shell=True, capture_output=True, text=True)
     print(r.stdout)
     print(r.stderr)
-    if r.stderr != "":
+    if r.returncode != 0:
         signal['kill'] = True
         return False
     return True
