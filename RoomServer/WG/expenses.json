@@ -17,6 +17,15 @@
             "year": 2025,
             "month": 1,
             "day": 13
+        },
+        {
+            "index": 2,
+            "name": "Claudio",
+            "price": 1.9,
+            "reason": "Basilico",
+            "year": 2025,
+            "month": 1,
+            "day": 27
         }
     ]
 }

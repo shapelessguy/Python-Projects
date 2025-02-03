@@ -121,8 +121,8 @@ def blame_handler1(message):
         md = get_general_metadata()
         activities = md['activities']
         sender_activity, sender_name, req_dt = get_message_md(message, md)
-        if req_dt.weekday() < 3 and message.data['action'].id == 'blame':
-            new_request(message, "❌ Calm down Rocky.. wait until end of Wednesday at least! ✋")
+        if req_dt.weekday() < 2 and message.data['action'].id == 'blame':
+            new_request(message, "❌ Calm down Rocky.. wait until end of Tuesday at least! ✋ And if you didn't do it yet, warn them first!")
             return
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
         for i in range(int((len(activities) + 0.99) / 2)):
@@ -867,9 +867,8 @@ def set_announcement(updated=False):
         if not updated:
             text += "\n\nNote: If you want to swap your task with someone else's task, use the SWAP command."
             text += "\nYou can submit an anonymous complaint for one or more tasks of the previous week by sending a BLAME."
-            text += "\nBefore blaming someone, please wait until Wednesday evening so that the person has time to recover their delayed duty."
+            text += "\nBefore blaming someone, please warn them first ⚠️ and then wait until Tuesday evening so that the person has time to recover their delayed duty."
             text += "\nIf a person receives at least 2 blames, they will need to recover the task in the future ☠️."
-            text += "\nAlternatively, you can send a warning ⚠️ to that person by sending a WARN."
             text += "\nYou can also send a message of appreciation 🌟 by sending a PRAISE as well."
             text += "\nIf you need vacation for a week, you can send book it though BOOK VACATION."
             text += "\nWhenever you have a WG expense 💰, use EXPENSE and specify price/reason for it."
