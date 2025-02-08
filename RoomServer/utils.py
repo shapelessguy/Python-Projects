@@ -17,6 +17,11 @@ hostnames = {
         'arduino_device': '/dev/ttyUSB0'
     },
     'EVA': {
+    },
+    'claudio-X200MA': {
+        'websocket_port': 10003,
+        'server_port': 10004,
+        'arduino_device': '/dev/ttyUSB0'
     }
 }
 
