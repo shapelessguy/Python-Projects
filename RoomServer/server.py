@@ -45,7 +45,7 @@ def start_flask_server(signal):
         
         create_route(endpoint)
 
-    app.run(host='0.0.0.0', port=HOSTNAME['server_port'])
+    app.run(host='0.0.0.0', port=HOSTNAME['server_port'], allow_unsafe_werkzeug=True)
 
 
 def server_control(signal):

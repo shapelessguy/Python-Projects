@@ -67,7 +67,7 @@ def start_websocket(signal):
                 emit('message', message, room=client_id)
                 print(f"Message sent to {dest} {client_id}: {message}")
     
-    socketio.run(app, host='0.0.0.0', port=HOSTNAME['websocket_port'])
+    socketio.run(app, host='0.0.0.0', port=HOSTNAME['websocket_port'], allow_unsafe_werkzeug=True)
 
 
 def websocket_control(signal):
