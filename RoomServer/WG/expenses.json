@@ -26,6 +26,51 @@
             "year": 2025,
             "month": 1,
             "day": 27
+        },
+        {
+            "index": 3,
+            "name": "Lea",
+            "price": 1.79,
+            "reason": "Oil",
+            "year": 2025,
+            "month": 2,
+            "day": 3
+        },
+        {
+            "index": 4,
+            "name": "Natchaya",
+            "price": 2.49,
+            "reason": "Kitchen Papers",
+            "year": 2025,
+            "month": 2,
+            "day": 3
+        },
+        {
+            "index": 5,
+            "name": "Natchaya",
+            "price": 0.95,
+            "reason": "Dishwasher",
+            "year": 2025,
+            "month": 2,
+            "day": 3
+        },
+        {
+            "index": 6,
+            "name": "Natchaya",
+            "price": 2.95,
+            "reason": "Trash bags big",
+            "year": 2025,
+            "month": 2,
+            "day": 3
+        },
+        {
+            "index": 7,
+            "name": "Natchaya",
+            "price": 0.65,
+            "reason": "Trash bags small",
+            "year": 2025,
+            "month": 2,
+            "day": 3
         }
     ]
 }
