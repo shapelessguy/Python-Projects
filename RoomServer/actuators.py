@@ -53,6 +53,8 @@ def initialize(signal_):
 
 # noinspection PyBroadException
 def write(text):
+    if HOSTNAME['arduino_device'] is None:
+        return
     global signal
     try:
         if serialPort is None:
@@ -198,5 +200,8 @@ def actuator(signal):
 
 
 def launch_actuator(signal):
-    initialize(signal)
+    if HOSTNAME['arduino_device'] is not None:
+        initialize(signal)
+    else:
+        print("Arduino not enabled.")
     actuator(signal)

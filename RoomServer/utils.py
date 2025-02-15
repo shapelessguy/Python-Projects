@@ -11,12 +11,10 @@ hostnames = {
         'server_port': 10000,
         'arduino_device': 'COM6'
     },
-    'raspberrypi': {
+    'EVA': {
         'websocket_port': 10002,
         'server_port': 10001,
-        'arduino_device': '/dev/ttyUSB0'
-    },
-    'EVA': {
+        'arduino_device': None
     },
     'claudio-X200MA': {
         'websocket_port': 10003,
