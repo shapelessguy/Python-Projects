@@ -11,9 +11,9 @@ import time
 from datetime import datetime, timedelta
 from datetime import date as date_
 from openpyxl.styles import Alignment
-from WG import BAC_logic
+from WG import bac
 from telegram_bot_calendar import DetailedTelegramCalendar, LSTEP
-from utils import LEO_TOKEN, LEO_GROUP_ID, BLAME_LOGS_FILEPATH, WARN_LOGS_FILEPATH, BLAMES_FILEPATH, pull, push
+from utils import LEO_TOKEN, LEO_GROUP_ID, BLAME_LOGS_FILEPATH, WARN_LOGS_FILEPATH, pull, push
 from bot_ai import reasoner
 
 
@@ -33,28 +33,22 @@ bot_history = {}
 
 
 def get_general_metadata():
-    BAC_logic = reload_module('BAC_logic')
-    execute_logic = reload_module('execute_logic')
-    WgMembers = BAC_logic.WgMembers
-    WgProps = BAC_logic.WgProps
-    emoticons = BAC_logic.emoticons
-    get_history = BAC_logic.get_history
-    get_swaps = BAC_logic.get_swaps
-    save_swaps = BAC_logic.save_swaps
-    get_plan = BAC_logic.get_plan
-    get_vacations = BAC_logic.get_vacations
-    save_vacations = BAC_logic.save_vacations
-    get_expenses = BAC_logic.get_expenses
-    save_expenses = BAC_logic.save_expenses
-    generate_plan = execute_logic.generate_plan
-    wg_members = {k: v for k, v in WgMembers.__dict__.items() if not k.startswith('__')}
-    wg_props = [{'name': wg_members[k], **v, } for k, v in WgProps.__dict__.items() if not k.startswith('__')]
-    activities = [v for k, v in BAC_logic.Activities.__dict__.items() if not k.startswith('__') and k.lower() != 'vacation']
+    emoticons = {a.name: a.emoticons for a in bac.Activities().get_regular()}
+    get_history = bac.get_history
+    get_swaps = bac.get_swaps
+    save_swaps = bac.save_swaps
+    get_plan = bac.get_plan
+    get_vacations = bac.get_vacations
+    save_vacations = bac.save_vacations
+    get_expenses = bac.get_expenses
+    save_expenses = bac.save_expenses
+    generate_plan = bac.generate_plan
+    wg_props = [{"name": m.name, "telegram_id": m.telegram_id} for m in bac.WgMembers().get_members()]
+    activities = [a.name for a in bac.Activities().get_regular()]
     functions = {'get_history': get_history, 'get_swaps': get_swaps, 'save_swaps': save_swaps, 'get_plan': get_plan,
                  'get_vacations': get_vacations, 'save_vacations': save_vacations, 'get_expenses': get_expenses,
                  'save_expenses': save_expenses, 'generate_plan': generate_plan}
-    metadata = {'functions': functions, 'wg_members': wg_members, 'wg_props': wg_props,
-                'activities': activities, 'emoticons': emoticons}
+    metadata = {'functions': functions, 'wg_props': wg_props, 'activities': activities, 'emoticons': emoticons}
     return metadata
 
 
@@ -872,9 +866,8 @@ class SendPing(Function):
         ping_handler1(message, continue_chain=False)
 
 
-wg_members = {k: v for k, v in BAC_logic.WgMembers.__dict__.items() if not k.startswith('__')}
-wg_props = [{'name': wg_members[k], **v, } for k, v in BAC_logic.WgProps.__dict__.items() if not k.startswith('__')]
-wg_activities = [v for k, v in BAC_logic.Activities.__dict__.items() if not k.startswith('__') and k.lower() != 'vacation']
+wg_activities = [x.name for x in bac.Activities().get_regular()]
+
 
 class SendWarning(Function):
     description = """
@@ -1132,11 +1125,9 @@ def set_announcement(updated=False):
             date = str(blame_first_date)
             blames, blamed_activity = get_blame(name, date, hist_df, logs)
             if len(blames) >= 2:
-                with open(BLAMES_FILEPATH, 'r') as file:
-                    blames_json = json.load(file)
-                with open(BLAMES_FILEPATH, 'w') as file:
-                    blames_json['entries'].append({'name': name, 'date': date})
-                    json.dump(blames_json, file)
+                blames_json = bac.get_blames()
+                blames_json['entries'].append({'name': name, 'date': date})
+                bac.save_blames(blames_json)
 
         intro = '<b>🔄 PLAN UPDATED DURING THIS WEEK</b>\n' if updated else ''
         text, week_schedule = md['functions']['generate_plan']()

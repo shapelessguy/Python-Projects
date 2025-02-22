@@ -18,10 +18,15 @@ vacations = Vacations(entries=[Entry(names=e['names'],
 swaps = Swaps(entries=[Entry(names=[e['name1'], e['name2']],
                              in_date=datetime.date(year=e['year'], month=e['month'], day=e['day']),
                              ) for e in swap_entries])
-wg_members, text, week_schedule = start_bac(vacations, swaps, save=False)
 
-print()
-if wg_members is not None:
-    for m in wg_members.members:
-        print(f'{m.name}: {m.p_activities} debit: {m.debit}  - spread: {m.spread}')
+dt = datetime.datetime.now() - datetime.timedelta(days=0)
+date_now = (dt - datetime.timedelta(days=dt.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+wg_members, text, week_schedule = start_bac(vacations, swaps, save=False, dt=date_now)
+
+print(week_schedule)
+
+# print()
+# if wg_members is not None:
+#     for m in wg_members.members:
+#         print(f'{m.name}: {m.p_activities} debit: {m.debit}  - spread: {m.spread}')
 

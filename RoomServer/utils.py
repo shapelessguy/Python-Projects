@@ -35,11 +35,10 @@ LEO_GROUP_ID = -4225824414
 DUMMY_CHANNEL_ID = -1002037672769
 BLAME_LOGS_FILEPATH = os.path.join(os.path.dirname(__file__), 'blame_log.json')
 WARN_LOGS_FILEPATH = os.path.join(os.path.dirname(__file__), 'warn_log.json')
-BLAMES_FILEPATH = os.path.join(os.path.dirname(__file__), 'WG', 'blames.json')
 LOG_FILE_FOLDER = os.path.join(os.path.dirname(__file__), "logs")
 
 
-for json_ in [BLAME_LOGS_FILEPATH, WARN_LOGS_FILEPATH, BLAMES_FILEPATH]:
+for json_ in [BLAME_LOGS_FILEPATH, WARN_LOGS_FILEPATH]:
     if not os.path.exists(json_):
         with open(json_, 'w') as file:
             json.dump({}, file)
