@@ -215,34 +215,58 @@ def print_df(df, current_date):
     print()
 
 
-def save_plan(wg_members: WgMembers, current_date: datetime.date, start_end_dates: list[datetime.date]):
-    save_up_to = 5  # Saves up to <save_up_to> weeks before current date
-    start_date = current_date - datetime.timedelta(days=current_date.weekday()) - datetime.timedelta(days=7 * save_up_to)
+def save_plan(wg_members: WgMembers, current_date: datetime.date, start_end_dates: list[datetime.date], previous_weeks=16):
+    start_date = current_date - datetime.timedelta(days=current_date.weekday()) - datetime.timedelta(days=7 * previous_weeks)
     start_date = start_end_dates[0] if start_date < start_end_dates[0] else start_date
     end_date = start_end_dates[1]
     df = wg_members.to_df()
     reduced_df = df[(df["Week"] >= start_date) & (df["Week"] <= end_date)]
-
     dfs = {'Calendar': reduced_df, 'Roles': Activities().get_roles_df()}
     print_df(reduced_df, current_date)
+
     print(rf'Saving at {PLAN_FILEPATH}')
     writer = pandas.ExcelWriter(f'{PLAN_FILEPATH}', engine='xlsxwriter', date_format='dd.mm.yyyy')
     def align_center(x):
         return ['text-align: center' for _ in x]
     for name, dataframe in dfs.items():
         dataframe.style.apply(align_center, axis=0).to_excel(writer, name, index=False)
-    highlight_format = writer.book.add_format({'bg_color': '#FFA500', 'font_color': '#FFFFFF'})
-    cell_format = writer.book.add_format({'bg_color': '#FFFFFF'})
-    writer.sheets['Calendar'].set_column(0, 6, 20)
-    writer.sheets['Roles'].set_column(0, 3, 30)
-    writer.sheets['Calendar'].conditional_format('A1:G1000',
-                                                {'type': 'text', 'criteria': 'containing',
-                                                'value': Activities().get_vacation().name, 'format': highlight_format})
+    writer.sheets['Calendar'].set_column(0, len(reduced_df.columns), 20)
+    writer.sheets['Roles'].set_column(0, len(Activities().get_regular()) - 1, 30)
+    highlightning = {
+        Activities().get_vacation().name: writer.book.add_format({'bg_color': '#ffa500', 'font_color': '#FFFFFF'}),
+        Activities().get_anarchy().name: writer.book.add_format({'bg_color': '#0b03fc', 'font_color': '#FFFFFF'}),
+        Activities().get_blame().name: writer.book.add_format({'bg_color': '#fc0303', 'font_color': '#FFFFFF'}),
+    }
+    cf = [['A1:G1000', {'type': 'text', 'criteria': 'containing', 'value': k, 'format': v}] for k, v in highlightning.items()]
+    writer.sheets['Calendar'].conditional_format('A1:A1000', {'type': 'date', 'criteria': 'equal', 'value': current_date,
+                                                              'format': writer.book.add_format({'bg_color': '#03fc17'})})
+    writer.sheets['Calendar'].conditional_format('A1:G1000', {'type': 'no_blanks', 'format': writer.book.add_format({'border': 1})})
 
-    for row in range(len(reduced_df) + 0):
-        writer.sheets['Calendar'].set_row(row, None, cell_format)
+    words = 'abcdefghijklmnopqrstuvwxyz'.upper()
+    roles_height = max([len(a.description) for a in Activities().get_regular()]) + 1
+    roles_lastw = words[len(Activities().get_regular()) - 1]
+
+    writer.sheets['Roles'].conditional_format(f'A1:{roles_lastw}1', {'type': 'no_blanks', 'format': writer.book.add_format({'border': 1})})
+    for type_ in ['no_blanks', 'blanks']:
+        writer.sheets['Roles'].conditional_format(f'A1:{roles_lastw}{roles_height}',
+                                                {'type': type_, 'format': writer.book.add_format({'bg_color': '#FFFFFF', 'left': 1, 'right': 1})})
+    for c in cf:
+        writer.sheets['Calendar'].conditional_format(*c)
+    
+    for i in range(len(reduced_df) + 1):
+        writer.sheets['Calendar'].conditional_format(f'H{i+1}', {'type': 'blanks', 'format': writer.book.add_format({'left': 2})})
+    for wi in range(len(reduced_df.columns)):
+        writer.sheets['Calendar'].conditional_format(f'{words[wi]}{len(reduced_df)+2}', {'type': 'blanks', 'format': writer.book.add_format({'top': 2})})
+    for i in range(roles_height):
+        roles_lastw_ = words[len(Activities().get_regular())]
+        writer.sheets['Roles'].conditional_format(f'{roles_lastw_}{i+1}', {'type': 'blanks', 'format': writer.book.add_format({'left': 2})})
+    for wi in range(len(Activities().get_regular())):
+        writer.sheets['Roles'].conditional_format(f'{words[wi]}{roles_height+1}', {'type': 'blanks', 'format': writer.book.add_format({'top': 2})})
+
+    for row in range(len(reduced_df) + 100):
+        writer.sheets['Calendar'].set_row(row, None, writer.book.add_format({'bg_color': '#FFFFFF'}))
     for row in range(100):
-        writer.sheets['Roles'].set_row(row, None, cell_format)
+        writer.sheets['Roles'].set_row(row, None, writer.book.add_format({'bg_color': '#FFFFFF'}))
     writer.close()
 
 
@@ -356,7 +380,7 @@ def get_string_by_activities(names_dict, warning=False):
     return string
 
 
-def get_weekly_text(df: DataFrame, date_now, n_weeks=3):
+def get_weekly_text(df: DataFrame, date_now, n_weeks=4):
     names = {x: [None] for x in df.columns.to_list()[1:]}
     dt = datetime.datetime.now()
     date_now = (dt - datetime.timedelta(days=dt.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
@@ -391,7 +415,7 @@ def generate_plan(current_date=datetime.datetime.now().date(), future_weeks=10):
     update_history(hist_df, wg_members, current_date)
     save_plan(wg_members, current_date, start_end_dates)
 
-    text, future_activities = get_weekly_text(wg_members.to_df(), current_date, n_weeks=5)
+    text, future_activities = get_weekly_text(wg_members.to_df(), current_date)
     return text, future_activities
 
 
