@@ -1,0 +1,85 @@
+{
+    "entries": [
+        {
+            "index": 0,
+            "name": "Claudio",
+            "price": 1.45,
+            "reason": "petersilie",
+            "year": 2025,
+            "month": 1,
+            "day": 6
+        },
+        {
+            "index": 1,
+            "name": "Claudio",
+            "price": 14.0,
+            "reason": "tape",
+            "year": 2025,
+            "month": 1,
+            "day": 13
+        },
+        {
+            "index": 2,
+            "name": "Claudio",
+            "price": 1.9,
+            "reason": "Basilico",
+            "year": 2025,
+            "month": 1,
+            "day": 27
+        },
+        {
+            "index": 3,
+            "name": "Lea",
+            "price": 1.79,
+            "reason": "Oil",
+            "year": 2025,
+            "month": 2,
+            "day": 3
+        },
+        {
+            "index": 4,
+            "name": "Natchaya",
+            "price": 2.49,
+            "reason": "Kitchen Papers",
+            "year": 2025,
+            "month": 2,
+            "day": 3
+        },
+        {
+            "index": 5,
+            "name": "Natchaya",
+            "price": 0.95,
+            "reason": "Dishwasher",
+            "year": 2025,
+            "month": 2,
+            "day": 3
+        },
+        {
+            "index": 6,
+            "name": "Natchaya",
+            "price": 2.95,
+            "reason": "Trash bags big",
+            "year": 2025,
+            "month": 2,
+            "day": 3
+        },
+        {
+            "index": 7,
+            "name": "Natchaya",
+            "price": 0.65,
+            "reason": "Trash bags small",
+            "year": 2025,
+            "month": 2,
+            "day": 3
+        },
+        {
+            "index": 8,
+            "name": "Lea",
+            "price": 3.68,
+            "reason": "Salt & pepper",
+            "year": 2025,
+            "month": 2,
+            "day": 17
+        }
+    ]
+}
