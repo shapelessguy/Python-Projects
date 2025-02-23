@@ -1,5 +1,3 @@
-import telebot
-from telebot import types
 import importlib
 import os
 import sys
@@ -8,21 +6,20 @@ import json
 import pandas as pd
 import threading
 import time
+import telebot
+from telebot import types
 from datetime import datetime, timedelta
 from datetime import date as date_
 from openpyxl.styles import Alignment
-from WG import bac
 from telegram_bot_calendar import DetailedTelegramCalendar, LSTEP
-from utils import LEO_TOKEN, LEO_GROUP_ID, BLAME_LOGS_FILEPATH, WARN_LOGS_FILEPATH, pull, push
+from utils import LEO_TOKEN, LEO_GROUP_ID, BLAME_LOGS_FILEPATH, WARN_LOGS_FILEPATH, ANNOUNCEMENT_FILEPATH
+from utils import MAIN_FOLDER_PATH, MSG_HISTORY_PATH, LAST_IDX_FILEPATH, FINANCE_EXCEL_FILEPATH
+from utils import pull, push
+from wg import bac
+from wg import utils as bac_utils
 from bot_ai import reasoner
 
 
-main_folder = os.path.dirname(os.path.dirname(__file__))
-RoomServer_project_path = os.path.dirname(__file__)
-bot_ai_path = os.path.join(RoomServer_project_path, 'bot_ai')
-msg_history_path = os.path.join(bot_ai_path, 'history.json')
-WG_project_path = os.path.join(RoomServer_project_path, 'WG')
-sys.path.append(WG_project_path)
 temp_data = {}
 error_msg = "❌ Let's try again shall we?"
 signal = None
@@ -34,20 +31,12 @@ bot_history = {}
 
 def get_general_metadata():
     emoticons = {a.name: a.emoticons for a in bac.Activities().get_regular()}
-    get_history = bac.get_history
-    get_swaps = bac.get_swaps
-    save_swaps = bac.save_swaps
-    get_plan = bac.get_plan
-    get_vacations = bac.get_vacations
-    save_vacations = bac.save_vacations
-    get_expenses = bac.get_expenses
-    save_expenses = bac.save_expenses
-    generate_plan = bac.generate_plan
+    activities = [name for name in emoticons]
     wg_props = [{"name": m.name, "telegram_id": m.telegram_id} for m in bac.WgMembers().get_members()]
-    activities = [a.name for a in bac.Activities().get_regular()]
-    functions = {'get_history': get_history, 'get_swaps': get_swaps, 'save_swaps': save_swaps, 'get_plan': get_plan,
-                 'get_vacations': get_vacations, 'save_vacations': save_vacations, 'get_expenses': get_expenses,
-                 'save_expenses': save_expenses, 'generate_plan': generate_plan}
+    functions = {'get_history': bac_utils.get_history, 'get_plan': bac_utils.get_plan,
+                 'get_swaps': bac_utils.get_swaps, 'save_swaps': bac_utils.save_swaps,
+                 'get_vacations': bac_utils.get_vacations, 'save_vacations': bac_utils.save_vacations,
+                 'get_expenses': bac_utils.get_expenses, 'save_expenses': bac_utils.save_expenses}
     metadata = {'functions': functions, 'wg_props': wg_props, 'activities': activities, 'emoticons': emoticons}
     return metadata
 
@@ -170,7 +159,8 @@ def blame_handler2(message, continue_chain=True):
                 return
         relevant_date, saved = handle_feedback(req_dt, sender_name, target_activity, 'blame', save=True)
         if saved:
-            target_chat_id = find_target_chat_id(message, req_dt, target_activity, temp_data[message.chat.id]['md'], 'blame', "", continue_chain)  # One could also blame himself
+            # One could also blame himself
+            target_chat_id = find_target_chat_id(message, req_dt, target_activity, temp_data[message.chat.id]['md'], 'blame', "", continue_chain)
             if target_chat_id is not None:
                 markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
                 markup.row(BREAK_TOKEN)
@@ -644,13 +634,9 @@ def expenses_handler3(message, continue_chain=True):
         in_index = None
         md = get_general_metadata()
         sender_activity, sender_name, req_dt = get_message_md(message, md)
-        last_idx_path = os.path.join(os.path.dirname(__file__), 'last_idx_reads.json')
-        if not os.path.exists(last_idx_path):
-            with open(last_idx_path, 'w') as file:
-                json.dump({}, file)
         expenses = md['functions']['get_expenses']()
         max_index = max([x['index'] for x in expenses['entries']]) if len(expenses['entries']) > 0 else -1
-        with open(last_idx_path, 'r') as file:
+        with open(LAST_IDX_FILEPATH, 'r') as file:
             last_idx = {**{sender_name: -1}, **json.load(file)}
         if not temp_data[message.chat.id]['continue']:
             try:
@@ -678,9 +664,8 @@ def expenses_handler3(message, continue_chain=True):
 
         totals_by_name = expenses_df.groupby("Name")["Price"].sum().reset_index()
         totals_by_name.columns = ["Name", "Total Price"]
-        excel_path = os.path.join(os.path.dirname(__file__), "expenses.xlsx")
 
-        with pd.ExcelWriter(excel_path, engine="openpyxl") as writer:
+        with pd.ExcelWriter(FINANCE_EXCEL_FILEPATH, engine="openpyxl") as writer:
             expenses_df.to_excel(writer, sheet_name="Expenses", index=False)
             totals_by_name.to_excel(writer, sheet_name="Totals", index=False)
             sheets = [writer.sheets["Expenses"], writer.sheets["Totals"]]
@@ -694,8 +679,8 @@ def expenses_handler3(message, continue_chain=True):
                     for cell in row:
                         cell.alignment = Alignment(horizontal="center", vertical="center")
 
-        new_request(message, f'All the expenses from index {in_index+1}.', continue_chain, document=excel_path)
-        with open(last_idx_path, 'w') as file:
+        new_request(message, f'All the expenses from index {in_index+1}.', continue_chain, document=FINANCE_EXCEL_FILEPATH)
+        with open(LAST_IDX_FILEPATH, 'w') as file:
             last_idx[sender_name] = max_index
             json.dump(last_idx, file)
     except Exception:
@@ -733,7 +718,7 @@ actions = {
     'book': Action('book', '🏖 BOOK VACATION', vacation_handler1),
     'expense': Action('expense', '💰 EXPENSE', expense_handler1),
     'ping': Action('ping', '🛎 PING', ping_handler1, only_to=[807946519]),
-    'finance': Action('finance', '📊 Finance', expenses_handler1, only_to=[807946519, 133279076]),
+    'finance': Action('finance', '📊 Finance', expenses_handler1),
     'break': Action('break', BREAK_TOKEN, break_handler),
 }
 
@@ -1108,7 +1093,7 @@ def get_blame(name, now, hist_df, logs):
 
 def set_announcement(updated=False):
     try:
-        if not pull(RoomServer_project_path, signal):
+        if not pull(MAIN_FOLDER_PATH, signal):
             return
         with open(BLAME_LOGS_FILEPATH, 'r') as file:
             logs = json.load(file)
@@ -1130,7 +1115,7 @@ def set_announcement(updated=False):
                 bac.save_blames(blames_json)
 
         intro = '<b>🔄 PLAN UPDATED DURING THIS WEEK</b>\n' if updated else ''
-        text, week_schedule = md['functions']['generate_plan']()
+        text, week_schedule = bac.generate_plan()
         text = intro + text
         if not updated:
             text += "\n\nNote: If you want to swap your task with someone else's task, use the SWAP command."
@@ -1142,13 +1127,13 @@ def set_announcement(updated=False):
             text += "\nWhenever you have a WG expense 💰, use EXPENSE and specify price/reason for it."
 
         if not debug_flag:
-            with open(os.path.join(WG_project_path, 'cleaning_plan_leo6.xlsx'), 'rb') as document_:
-                bh.bot.send_document(LEO_GROUP_ID, document_, caption=text)
+            document_ = bac_utils.get_plan_document()
+            bh.bot.send_document(LEO_GROUP_ID, document_, caption=text)
         print('Msg sent to LEO6:', text)
 
-        with open(os.path.join(os.path.dirname(__file__), 'announcements.txt'), 'a+') as file:
+        with open(ANNOUNCEMENT_FILEPATH, 'a+') as file:
             file.write(datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + '\n')
-        if not push(RoomServer_project_path, signal):
+        if not push(MAIN_FOLDER_PATH, signal):
             return
         
         for e in md['wg_props']:
@@ -1157,7 +1142,7 @@ def set_announcement(updated=False):
             telegram_id = e['telegram_id']
             string = '<b>🔄 PLAN UPDATED DURING THIS WEEK</b>\n' if updated else ''
             string += f'Hello {name}, this is the schedule for the next weeks, waiting for you! 🤩\n'
-            for week_n in week_schedule:
+            for week_n in enumerate(week_schedule):
                 week_now = (now + timedelta(days=(week_n * 7))).date().strftime("%d/%m")
                 week_plus_1 = (now + timedelta(days=((week_n + 1) * 7))).date().strftime("%d/%m")
                 pre = 'Week RANGE: ACT\n'
@@ -1195,10 +1180,10 @@ def get_date_from_week_id(week_id_):
 
 
 def get_last_announcement():
-    pull(RoomServer_project_path, signal)
+    pull(MAIN_FOLDER_PATH, signal)
     last_announcement = None
     try:
-        with open(os.path.join(os.path.dirname(__file__), 'announcements.txt'), 'r') as file:
+        with open(ANNOUNCEMENT_FILEPATH, 'r') as file:
             last_announcement = datetime.strptime(file.read().split('\n')[-2], "%Y-%m-%d-%H-%M-%S")
     except:
         pass
@@ -1211,8 +1196,8 @@ def spawn_monitoring(signal_):
     global bh, signal, bot_history
     bh = MyBot()
     print('Bot is ready.')
-    if os.path.exists(msg_history_path):
-        with open(msg_history_path, 'r') as file:
+    if os.path.exists(MSG_HISTORY_PATH):
+        with open(MSG_HISTORY_PATH, 'r') as file:
             bot_history = json.load(file)
     else:
         bot_history = {}
@@ -1256,7 +1241,7 @@ def update(last_announcement=None, id_last_announcement=None, forced=False, upda
 
 
 def save_history():
-    with open(msg_history_path, 'w') as file:
+    with open(MSG_HISTORY_PATH, 'w') as file:
         json.dump(bot_history, file, indent=2)
 
 

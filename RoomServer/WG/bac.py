@@ -174,16 +174,16 @@ class WgMembers:
         return "Current WG state:\n" + df.to_string() + "\n"
 
 
-def rewrite_history():
-    history_file = f'{wg_folder}/history.csv'
-    if not os.path.exists(history_file):
-        with open(history_file, 'w') as file:
+def load_history():
+    if not os.path.exists(HISTORY_FILEPATH):
+        with open(HISTORY_FILEPATH, 'w') as file:
             file.write('')
     
     hist_df = get_history()
     blame = activities.get_blame().name
     if hist_df is not None:
         hist_df["Week"] = pandas.to_datetime(hist_df["Week"]).dt.date
+        # Rewrite history df due to possible blames
         for entry in get_blames()['entries']:
             target_date = pandas.to_datetime(entry['date']).date()
             hist_df.loc[hist_df["Week"] == target_date, entry['name']] = blame
@@ -191,13 +191,28 @@ def rewrite_history():
 
 
 def update_history(hist_df: pandas.DataFrame, wg_members: WgMembers, current_date: datetime.date):
-    history_file = f'{wg_folder}/history.csv'
     df = wg_members.to_df()
     df = pandas.concat([hist_df, df])
     df = df.drop_duplicates(subset=['Week'], keep='first')
     df = df.sort_values(by='Week')
-    df[df["Week"] <= current_date].to_csv(history_file, index=False)
+    df[df["Week"] <= current_date].to_csv(HISTORY_FILEPATH, index=False)
     print("History updated.")
+
+
+def print_df(df, current_date):
+    col = bcolors.CYAN
+    df_str = str(df).split("\n")
+    print()
+    print(df_str[0])
+    for line in df_str[1:]:
+        date_str = line.split()[1]
+        if date_str == str(current_date):
+            col = bcolors.ORANGE
+            print(f"{col}{line}{bcolors.ENDC}")
+            col = bcolors.RED
+        else:
+            print(f"{col}{line}{bcolors.ENDC}")
+    print()
 
 
 def save_plan(wg_members: WgMembers, current_date: datetime.date, start_end_dates: list[datetime.date]):
@@ -206,12 +221,12 @@ def save_plan(wg_members: WgMembers, current_date: datetime.date, start_end_date
     start_date = start_end_dates[0] if start_date < start_end_dates[0] else start_date
     end_date = start_end_dates[1]
     df = wg_members.to_df()
-    reduced_df = df[df["Week"] >= start_date][df["Week"] <= end_date]
+    reduced_df = df[(df["Week"] >= start_date) & (df["Week"] <= end_date)]
 
     dfs = {'Calendar': reduced_df, 'Roles': Activities().get_roles_df()}
-    print(rf'Saving at {wg_folder}\cleaning_plan_leo6.xlsx')
-    writer = pandas.ExcelWriter(f'{wg_folder}/cleaning_plan_leo6.xlsx',
-                                engine='xlsxwriter', date_format='dd.mm.yyyy')
+    print_df(reduced_df, current_date)
+    print(rf'Saving at {PLAN_FILEPATH}')
+    writer = pandas.ExcelWriter(f'{PLAN_FILEPATH}', engine='xlsxwriter', date_format='dd.mm.yyyy')
     def align_center(x):
         return ['text-align: center' for _ in x]
     for name, dataframe in dfs.items():
@@ -286,7 +301,7 @@ def get_avail_members(wg_members: WgMembers, date):
     return available_members
 
 
-def brainstorm(wg_members: WgMembers, avail_members: list[WgMember]):
+def assign_tasks(wg_members: WgMembers, avail_members: list[WgMember]):
     if len(avail_members) < len(activities.get_regular()):
         return {m: activities.get_anarchy() for m in wg_members.get_members()}
     
@@ -358,29 +373,29 @@ def get_weekly_text(df: DataFrame, date_now, n_weeks=3):
             for name, i in zip(names, range(1, len(names) + 1)):
                 names[name].append(row[i])
     
-    future_activities_dict = {i: {k: v[i] for k, v in names.items()} for i in range(min(n_weeks, len(list(names.values())[0])))}
+    future_activities_dict = [{k: v[i] for k, v in names.items()} for _ in range(min(n_weeks, len(list(names.values())[0])))]
     string = f'This week ({date_now.date().strftime("%d-%m-%y")}):\n'
     string += get_string_by_activities({k: v[0] for k, v in names.items()}, warning=True)
     return string, future_activities_dict
 
 
-def generate_plan(current_date=datetime.datetime.now().date(), future_weeks=5):
+def generate_plan(current_date=datetime.datetime.now().date(), future_weeks=10):
     current_date = current_date - datetime.timedelta(days=current_date.weekday())
 
-    hist_df = rewrite_history()  # Rewrite history df due to possible blames
+    hist_df = load_history()
     wg_members, dates_to_compute, start_end_dates = initialize(current_date, hist_df, future_weeks)
     for date in dates_to_compute:
         available_members = get_avail_members(wg_members, date)
-        brainstorm(wg_members, available_members)
+        assign_tasks(wg_members, available_members)
         swap_members(wg_members, date)
     update_history(hist_df, wg_members, current_date)
     save_plan(wg_members, current_date, start_end_dates)
 
-    text, future_activities = get_weekly_text(wg_members.to_df(), current_date)
+    text, future_activities = get_weekly_text(wg_members.to_df(), current_date, n_weeks=5)
     return text, future_activities
 
 
 if __name__ == "__main__":
     current_date = datetime.datetime.now().date()
     future_weeks = 10  # Unless history contains more recent data, the bac will compute <future_weeks>+1 weeks starting from current_date
-    generate_plan(current_date, future_weeks)
+    text, future_activities = generate_plan(current_date, future_weeks)

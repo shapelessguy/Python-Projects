@@ -1,16 +1,24 @@
 import os
 import pandas
 import json
+import io
 
 
-wg_folder = os.path.dirname(__file__)
+WG_PATH = os.path.dirname(__file__)
+DATA_PATH = os.path.join(WG_PATH, 'data')
+
+PLAN_FILEPATH = os.path.join(DATA_PATH, 'cleaning_plan_leo6.xlsx')
+HISTORY_FILEPATH = os.path.join(DATA_PATH, 'history.csv')
+VACATIONS_FILEPATH = os.path.join(DATA_PATH, 'vacations.json')
+SWAPS_FILEPATH = os.path.join(DATA_PATH, 'swaps.json')
+EXPENSES_FILEPATH = os.path.join(DATA_PATH, 'expenses.json')
+BLAMES_FILEPATH = os.path.join(DATA_PATH, 'blames.json')
 
 
 def get_history():
-    history_file = f'{wg_folder}/history.csv'
-    if os.path.exists(history_file):
+    if os.path.exists(HISTORY_FILEPATH):
         try:
-            hist_df = pandas.read_csv(history_file)
+            hist_df = pandas.read_csv(HISTORY_FILEPATH)
             hist_df['Week'] = pandas.to_datetime(hist_df['Week'])
             column_order = ["Week"] + sorted([col for col in hist_df.columns if col != "Week"])
             hist_df = hist_df[column_order]
@@ -20,77 +28,91 @@ def get_history():
 
 
 def get_plan():
-    plan_file = f'{wg_folder}/cleaning_plan_leo6.xlsx'
-    if os.path.exists(plan_file):
-        return pandas.read_excel(plan_file)
+    if os.path.exists(PLAN_FILEPATH):
+        return pandas.read_excel(PLAN_FILEPATH)
     return None
 
 
+def get_plan_document():
+    document = None
+    if os.path.exists(PLAN_FILEPATH):
+        with open(PLAN_FILEPATH, 'rb') as document_:
+            document = io.BytesIO(document_.read())
+            document.seek(0)
+    return document
+
+
 def get_vacations():
-    vacations_file = f'{wg_folder}/vacations.json'
     vacations = {'entries': []}
-    if os.path.exists(vacations_file):
-        with open(vacations_file, 'r') as file:
+    if os.path.exists(VACATIONS_FILEPATH):
+        with open(VACATIONS_FILEPATH, 'r') as file:
             vacations = json.load(file)
     return vacations
 
 
 def get_swaps():
-    swaps_file = f'{wg_folder}/swaps.json'
     swaps = {'entries': []}
-    if os.path.exists(swaps_file):
-        with open(swaps_file, 'r') as file:
+    if os.path.exists(SWAPS_FILEPATH):
+        with open(SWAPS_FILEPATH, 'r') as file:
             swaps = json.load(file)
     return swaps
 
 
 def get_expenses():
-    expenses_file = f'{wg_folder}/expenses.json'
     expenses = {'entries': []}
-    if os.path.exists(expenses_file):
-        with open(expenses_file, 'r') as file:
+    if os.path.exists(EXPENSES_FILEPATH):
+        with open(EXPENSES_FILEPATH, 'r') as file:
             expenses = json.load(file)
     return expenses
 
 
 def get_blames():
-    blames_file = f'{wg_folder}/blames.json'
     blames = {'entries': []}
-    if os.path.exists(blames_file):
-        with open(blames_file, 'r') as file:
+    if os.path.exists(BLAMES_FILEPATH):
+        with open(BLAMES_FILEPATH, 'r') as file:
             blames = json.load(file)
     return blames
 
 
 def save_vacations(vacations):
-    vacations_file = f'{wg_folder}/vacations.json'
-    if os.path.exists(vacations_file):
-        with open(vacations_file, 'w') as file:
+    if os.path.exists(VACATIONS_FILEPATH):
+        with open(VACATIONS_FILEPATH, 'w') as file:
             json.dump(vacations, file, indent=4)
 
 
 def save_swaps(swaps):
-    swaps_file = f'{wg_folder}/swaps.json'
-    if os.path.exists(swaps_file):
-        with open(swaps_file, 'w') as file:
+    if os.path.exists(SWAPS_FILEPATH):
+        with open(SWAPS_FILEPATH, 'w') as file:
             json.dump(swaps, file, indent=4)
 
 
 def save_expenses(expenses):
-    expenses_file = f'{wg_folder}/expenses.json'
-    if os.path.exists(expenses_file):
-        with open(expenses_file, 'w') as file:
+    if os.path.exists(EXPENSES_FILEPATH):
+        with open(EXPENSES_FILEPATH, 'w') as file:
             json.dump(expenses, file, indent=4)
 
 
 def save_blames(blames):
-    blames_file = f'{wg_folder}/blames.json'
-    if os.path.exists(blames_file):
-        with open(blames_file, 'w') as file:
+    if os.path.exists(BLAMES_FILEPATH):
+        with open(BLAMES_FILEPATH, 'w') as file:
             json.dump(blames, file, indent=4)
 
 
 def expenses_to_xlsx(expenses_df):
-    expenses_file = f'{wg_folder}/expenses.xlsx'
-    expenses_df.to_excel(expenses_file, index=False)
-    return expenses_file
+    expenses_df.to_excel(EXPENSES_FILEPATH, index=False)
+    return EXPENSES_FILEPATH
+
+
+class bcolors:
+    """Text colors for terminal visibility."""
+
+    HEADER = "\033[95m"
+    BLUE = "\033[94m"
+    CYAN = "\033[96m"
+    GREEN = "\033[92m"
+    YELLOW = "\033[93m"
+    ORANGE = "\033[38;5;208m"
+    RED = "\033[91m"
+    ENDC = "\033[0m"
+    BOLD = "\033[1m"
+    UNDERLINE = "\033[4m"

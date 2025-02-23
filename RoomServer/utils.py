@@ -33,16 +33,29 @@ LEO_TOKEN = '6599624331:AAETjn6YXAXVkg4-IV1I_1ip6zchZdmNbUI'
 CLAUDIO_ID = 807946519
 LEO_GROUP_ID = -4225824414
 DUMMY_CHANNEL_ID = -1002037672769
-BLAME_LOGS_FILEPATH = os.path.join(os.path.dirname(__file__), 'blame_log.json')
-WARN_LOGS_FILEPATH = os.path.join(os.path.dirname(__file__), 'warn_log.json')
-LOG_FILE_FOLDER = os.path.join(os.path.dirname(__file__), "logs")
 
 
-for json_ in [BLAME_LOGS_FILEPATH, WARN_LOGS_FILEPATH]:
+MAIN_FOLDER_PATH = os.path.dirname(__file__)
+
+ALL_WG_LOGS_PATH = os.path.join(MAIN_FOLDER_PATH, 'all_wg_logs')
+BOT_AI_PATH = os.path.join(MAIN_FOLDER_PATH, 'bot_ai')
+WG_PATH = os.path.join(MAIN_FOLDER_PATH, 'WG')
+LOG_FILE_PATH = os.path.join(MAIN_FOLDER_PATH, "logs")
+
+MSG_HISTORY_PATH = os.path.join(BOT_AI_PATH, 'history.json')
+
+BLAME_LOGS_FILEPATH = os.path.join(ALL_WG_LOGS_PATH, 'blame_log.json')
+WARN_LOGS_FILEPATH = os.path.join(ALL_WG_LOGS_PATH, 'warn_log.json')
+ANNOUNCEMENT_FILEPATH = os.path.join(ALL_WG_LOGS_PATH, 'announcements.txt')
+LAST_IDX_FILEPATH = os.path.join(ALL_WG_LOGS_PATH, 'last_idx_reads.json')
+FINANCE_EXCEL_FILEPATH = os.path.join(ALL_WG_LOGS_PATH, "expenses.xlsx")
+
+
+for json_ in [BLAME_LOGS_FILEPATH, WARN_LOGS_FILEPATH, LAST_IDX_FILEPATH]:
     if not os.path.exists(json_):
         with open(json_, 'w') as file:
             json.dump({}, file)
-for folder in [LOG_FILE_FOLDER]:
+for folder in [LOG_FILE_PATH]:
     if not os.path.exists(folder):
         os.mkdir(folder)
 
@@ -72,7 +85,7 @@ def push(path, signal):
 class TeeOutput:
     def __init__(self, name, sys_out, log_file_name):
         self.name = name
-        log_file = open(os.path.join(LOG_FILE_FOLDER, log_file_name), "a", encoding='utf-8')
+        log_file = open(os.path.join(LOG_FILE_PATH, log_file_name), "a", encoding='utf-8')
         self.streams = [sys_out, log_file]
 
     def write(self, message):
