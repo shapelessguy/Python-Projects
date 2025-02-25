@@ -1145,8 +1145,7 @@ def set_announcement(updated=False):
             string = '<b>🔄 PLAN UPDATED DURING THIS WEEK</b>\n' if updated else ''
             string += f'Hello {name}, this is the schedule for the next weeks, waiting for you! 🤩\n'
             string += 'Keep in mind that this is just a preview on your next activities.. things may change!\n'
-            print(week_schedule)
-            for week_n in week_schedule:
+            for week_n, week_tasks in enumerate(week_schedule):
                 week_now = (now + timedelta(days=(week_n * 7))).date().strftime("%d/%m")
                 week_plus_1 = (now + timedelta(days=((week_n + 1) * 7))).date().strftime("%d/%m")
                 pre = 'Week RANGE: ACT\n'
@@ -1154,7 +1153,7 @@ def set_announcement(updated=False):
                     pre = 'This week (RANGE): ACT\n'
                 elif week_n == 1:
                     pre = 'Next week (RANGE): ACT\n'
-                activity = week_schedule[week_n][name]
+                activity = week_tasks[name]
                 string += pre.replace('RANGE', f'{week_now} - {week_plus_1}').replace('ACT', f' <b>{activity}</b> {emoticons[activity]}')
             if blamed_activity != 'Vacation' and not updated:
                 if len(blames) == 0:
