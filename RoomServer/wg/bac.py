@@ -383,23 +383,17 @@ def get_string_by_activities(names_dict, warning=False):
 
 
 def get_weekly_text(df: DataFrame, date_now, n_weeks=4):
-    names = {x: [None] for x in df.columns.to_list()[1:]}
+    names = {x: [] for x in df.columns.to_list()[1:]}
     dt = datetime.datetime.now()
     date_now = (dt - datetime.timedelta(days=dt.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
     prev_row = None
-    get_rest = False
     for row in df.to_numpy():
         date = datetime.datetime.combine(row[0], datetime.datetime.min.time())
-        if date > date_now and not get_rest:
+        if date > date_now:
             for name, i in zip(names, range(1, len(names) + 1)):
-                names[name][0] = prev_row[i]
-                get_rest = True
+                names[name].append(prev_row[i])
         prev_row = row
-        if get_rest:
-            for name, i in zip(names, range(1, len(names) + 1)):
-                names[name].append(row[i])
-    
-    future_activities_dict = [{k: v[i] for k, v in names.items()} for _ in range(min(n_weeks, len(list(names.values())[0])))]
+    future_activities_dict = [{k: v[i] for k, v in names.items()} for i in range(min(n_weeks, len(list(names.values())[0])))]
     string = f'This week ({date_now.date().strftime("%d-%m-%y")}):\n'
     string += get_string_by_activities({k: v[0] for k, v in names.items()}, warning=True)
     return string, future_activities_dict
