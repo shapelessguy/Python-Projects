@@ -30,7 +30,7 @@ bot_history = {}
 
 
 def get_general_metadata():
-    emoticons = {a.name: a.emoticons for a in bac.Activities().get_regular()}
+    emoticons = {a.name: a.emoticons for a in bac.Activities().get_all()}
     activities = [name for name in emoticons]
     wg_props = [{"name": m.name, "telegram_id": m.telegram_id} for m in bac.WgMembers().get_members()]
     functions = {'get_history': bac_utils.get_history, 'get_plan': bac_utils.get_plan,
