@@ -39,6 +39,7 @@ def get_plan_document():
         with open(PLAN_FILEPATH, 'rb') as document_:
             document = io.BytesIO(document_.read())
             document.seek(0)
+            document.name = "Calendar.xlsx"
     return document
 
 

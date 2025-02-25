@@ -579,6 +579,8 @@ def ping_handler1(message, continue_chain=True):
     if message.text == BREAK_TOKEN:
         bh.send_welcome(message)
         return
+    document_ = bac_utils.get_plan_document()
+    bh.bot.send_document(message.from_user.id, document_, caption='nada')
     new_request(message, f'✅ I am here bro! Chat-id: {message.from_user.id}', continue_chain)
 
 
@@ -1143,7 +1145,7 @@ def set_announcement(updated=False):
             string = '<b>🔄 PLAN UPDATED DURING THIS WEEK</b>\n' if updated else ''
             string += f'Hello {name}, this is the schedule for the next weeks, waiting for you! 🤩\n'
             string += 'Keep in mind that this is just a preview on your next activities.. things may change!\n'
-            for week_n in enumerate(week_schedule):
+            for week_n in week_schedule:
                 week_now = (now + timedelta(days=(week_n * 7))).date().strftime("%d/%m")
                 week_plus_1 = (now + timedelta(days=((week_n + 1) * 7))).date().strftime("%d/%m")
                 pre = 'Week RANGE: ACT\n'
