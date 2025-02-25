@@ -8,3 +8,5 @@ downloaded_file.xlsx
 output.log
 ip_server.txt
 state.json
+stock_data/*
+!stock_data/.gitignore
