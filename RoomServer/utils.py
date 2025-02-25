@@ -50,6 +50,8 @@ ANNOUNCEMENT_FILEPATH = os.path.join(ALL_WG_LOGS_PATH, 'announcements.txt')
 LAST_IDX_FILEPATH = os.path.join(ALL_WG_LOGS_PATH, 'last_idx_reads.json')
 FINANCE_EXCEL_FILEPATH = os.path.join(ALL_WG_LOGS_PATH, "expenses.xlsx")
 
+STOCK_DB_PATH = os.path.join(MAIN_FOLDER_PATH, 'stock_data')
+
 
 for json_ in [BLAME_LOGS_FILEPATH, WARN_LOGS_FILEPATH, LAST_IDX_FILEPATH]:
     if not os.path.exists(json_):

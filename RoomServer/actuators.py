@@ -97,11 +97,9 @@ def actuator(signal):
     ping_period = 10  # audio ping received every 10 seconds
     tollerance = 180  # audio turns off after 180 seconds
     ping_sent = 60 * 60  # audio ping sent to HW every <-- seconds
-    last_announcement, id_last_announcement = announcements.get_last_announcement()
     while not signal['kill']:
         try:
             cur_time = datetime.now()
-            last_announcement, id_last_announcement = announcements.update(last_announcement, id_last_announcement)
             if 'AUDIOON' in commands or 'AUDIOOFF' in commands:
                 pass
             elif cur_time - last_audio_ping > timedelta(seconds=tollerance) and audio_on:

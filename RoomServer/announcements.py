@@ -16,7 +16,7 @@ from utils import LEO_TOKEN, LEO_GROUP_ID, BLAME_LOGS_FILEPATH, WARN_LOGS_FILEPA
 from utils import MAIN_FOLDER_PATH, MSG_HISTORY_PATH, LAST_IDX_FILEPATH, FINANCE_EXCEL_FILEPATH
 from utils import pull, push
 from wg import bac
-from wg import utils as bac_utils
+from wg import bac_utils as bac_utils
 from bot_ai import reasoner
 
 
@@ -1203,7 +1203,7 @@ def spawn_monitoring(signal_):
     else:
         bot_history = {}
     signal = signal_
-    monitor_thread = threading.Thread(target=monitor_kill, args=(bh, signal))
+    monitor_thread = threading.Thread(target=monitor, args=(bh, signal))
     monitor_thread.start()
     bh.bot.enable_save_next_step_handlers(delay=2)
     bh.bot.load_next_step_handlers()
@@ -1211,7 +1211,8 @@ def spawn_monitoring(signal_):
     print('Bot killed.')
 
 
-def monitor_kill(bh, signal):
+def monitor(bh, signal):
+    last_announcement, id_last_announcement = get_last_announcement()
     index = 0
     while not signal['kill']:
         if 'set_announcement' in signal:
@@ -1221,6 +1222,12 @@ def monitor_kill(bh, signal):
         if index == 60:
             save_history()
             index = 0
+        try:
+            last_announcement, id_last_announcement = update(last_announcement, id_last_announcement)
+            time.sleep(1)
+        except Exception:
+            import traceback
+            print(traceback.format_exc())
         time.sleep(0.5)
     time.sleep(0.5)
     save_history()
