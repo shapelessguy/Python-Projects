@@ -1130,7 +1130,7 @@ def set_announcement(updated=False):
 
         if not debug_flag:
             document_ = bac_utils.get_plan_document()
-            # bh.bot.send_document(LEO_GROUP_ID, document_, caption=text)
+            bh.bot.send_document(LEO_GROUP_ID, document_, caption=text)
         print('Msg sent to LEO6:', text)
 
         with open(ANNOUNCEMENT_FILEPATH, 'a+') as file:
