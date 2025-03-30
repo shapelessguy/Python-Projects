@@ -579,8 +579,8 @@ def ping_handler1(message, continue_chain=True):
     if message.text == BREAK_TOKEN:
         bh.send_welcome(message)
         return
-    document_ = bac_utils.get_plan_document()
-    bh.bot.send_document(message.from_user.id, document_, caption='nada')
+    # document_ = bac_utils.get_plan_document()
+    # bh.bot.send_document(message.from_user.id, document_, caption='nada')
     new_request(message, f'✅ I am here bro! Chat-id: {message.from_user.id}', continue_chain)
 
 
