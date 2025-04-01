@@ -1167,7 +1167,11 @@ def set_announcement(updated=False):
             if telegram_id is not None:
                 print('Msg sent:', string)
                 if name == 'Claudio' or not debug_flag:
-                    bh.send_msg(telegram_id, string, parse_mode="HTML")
+                    try:
+                        bh.send_msg(telegram_id, string, parse_mode="HTML")
+                    except Exception as e:
+                        print(e)
+                        print(traceback.format_exc())
     except Exception as e:
         print(e)
         print(traceback.format_exc())

@@ -132,7 +132,7 @@ class WgMember:
 
 class WgMembers:
     def __init__(self):
-        self.m1 = WgMember("Jay", 5431466743)
+        self.m1 = WgMember("Jay", 1113618025)
         self.m2 = WgMember("Cesare", 6093567886)
         self.m3 = WgMember("Claudio", 807946519)
         self.m4 = WgMember("Natchaya", 6448393940)
