@@ -3,8 +3,9 @@ from websocket_server import websocket_control
 from actuators import launch_actuator
 from firebase_utils import firebase_task
 from announcements import *
-from utils import TeeOutput
+from utils import TeeOutput, HOSTNAME
 from datetime import datetime
+import subprocess
 import multiprocessing
 import threading
 import sys
@@ -49,6 +50,15 @@ class State:
             json.dump(self.state, file)
 
 
+def force_kill_by_port_linux(port):
+    command = f"sudo kill -9 $(sudo lsof -t -i :{port})"
+    try:
+        subprocess.run(command, shell=True, check=True)
+        print(f"Successfully killed process using port {port}")
+    except subprocess.CalledProcessError:
+        print(f"Failed to kill process on port {port} — maybe no process is using it or permission denied.")
+
+
 def main():
     manager = multiprocessing.Manager()
     commands = manager.list()
@@ -79,6 +89,8 @@ def main():
         for t in threads:
             t.join()
         print('RESTART')
+        force_kill_by_port_linux(HOSTNAME['websocket_port'])
+        force_kill_by_port_linux(HOSTNAME['server_port'])
         time.sleep(10)
 
 if __name__ == '__main__':

@@ -207,6 +207,8 @@ def print_df(df, current_date):
     print()
     print(df_str[0])
     for line in df_str[1:]:
+        if len(line.split()) < 2:
+            continue
         date_str = line.split()[1]
         if date_str == str(current_date):
             col = bcolors.ORANGE
