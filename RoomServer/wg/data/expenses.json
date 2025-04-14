@@ -152,6 +152,15 @@
             "year": 2025,
             "month": 3,
             "day": 17
+        },
+        {
+            "index": 17,
+            "name": "Lea",
+            "price": 11.6,
+            "reason": "Soap, toilet paper, moth traps",
+            "year": 2025,
+            "month": 4,
+            "day": 7
         }
     ]
 }
