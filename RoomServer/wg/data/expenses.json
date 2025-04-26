@@ -161,6 +161,15 @@
             "year": 2025,
             "month": 4,
             "day": 7
+        },
+        {
+            "index": 18,
+            "name": "Lea",
+            "price": 6.0,
+            "reason": "DSL cable",
+            "year": 2025,
+            "month": 4,
+            "day": 21
         }
     ]
 }
