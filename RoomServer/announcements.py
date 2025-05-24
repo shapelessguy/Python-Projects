@@ -1130,9 +1130,9 @@ def set_announcement(updated=False):
             text += "\nIf you need vacation for a week, you can send book it though BOOK VACATION."
             text += "\nWhenever you have a WG expense 💰, use EXPENSE and specify price/reason for it."
 
-        # if not debug_flag:
-        #     document_ = bac_utils.get_plan_document()
-        #     bh.bot.send_document(LEO_GROUP_ID, document_, caption=text)
+        if not debug_flag:
+            document_ = bac_utils.get_plan_document()
+            bh.bot.send_document(LEO_GROUP_ID, document_, caption=text)
         print('Msg sent to LEO6:', text)
 
         with open(ANNOUNCEMENT_FILEPATH, 'a+') as file:
@@ -1168,12 +1168,12 @@ def set_announcement(updated=False):
                         string += f'\n☠️ Unfortunately you will have to compensate in the next weeks with more tasks.'
             if telegram_id is not None:
                 print('Msg sent:', string)
-                # if name == 'Claudio' or not debug_flag:
-                #     try:
-                #         bh.send_msg(telegram_id, string, parse_mode="HTML")
-                #     except Exception as e:
-                #         print(e)
-                #         print(traceback.format_exc())
+                if name == 'Claudio' or not debug_flag:
+                    try:
+                        bh.send_msg(telegram_id, string, parse_mode="HTML")
+                    except Exception as e:
+                        print(e)
+                        print(traceback.format_exc())
     except Exception as e:
         print(e)
         print(traceback.format_exc())
