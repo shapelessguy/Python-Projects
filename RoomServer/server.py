@@ -34,7 +34,8 @@ def start_flask_server(signal):
                         print(f"Missing '{ep}' field in request.")
                         return jsonify({'error': f"Missing '{ep}' field"}), 400
 
-                    print(f"{ep.upper()}: {data}")
+                    if 'audio' not in data or data['audio'] != "pingvol":
+                        print(f"{ep.upper()}: {data}")
                     command = ep.upper() + data[ep].upper()
                     signal['data']['commands'].append(command)
 
