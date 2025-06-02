@@ -198,7 +198,8 @@ def update_history(hist_df: pandas.DataFrame, wg_members: WgMembers, current_dat
     df = df.drop_duplicates(subset=['Week'], keep='first')
     df = df.sort_values(by='Week')
     df[df["Week"] <= current_date].to_csv(HISTORY_FILEPATH, index=False)
-    print("History updated.")
+    print("History updated:\n")
+    print(df)
 
 
 def print_df(df, current_date):
