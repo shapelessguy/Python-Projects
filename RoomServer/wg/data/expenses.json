@@ -251,6 +251,24 @@
             "year": 2025,
             "month": 6,
             "day": 9
+        },
+        {
+            "index": 28,
+            "name": "Lea",
+            "price": 0.95,
+            "reason": "Baking paper",
+            "year": 2025,
+            "month": 6,
+            "day": 16
+        },
+        {
+            "index": 29,
+            "name": "Lea",
+            "price": 3.5,
+            "reason": "Soap and toilet paper",
+            "year": 2025,
+            "month": 6,
+            "day": 16
         }
     ]
 }
