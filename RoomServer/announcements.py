@@ -79,11 +79,11 @@ def handle_feedback(req_dt, sender_name, target_activity, feedback_type, save):
     return req_dt, True
 
 
-def find_target_chat_id(message, req_dt, target_activity, md, feedback_type, sender_name="", continue_chain=True):
+def find_target_chat_id(message, req_dt, target_activity, md, feedback_type, sender_name="", continue_chain=True, current_week=False):
     get_history = md['functions']['get_history']
     hist_df = get_history()
     current_week = (req_dt - timedelta(days=req_dt.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
-    previous_week = (current_week - timedelta(7)).strftime("%Y-%m-%d")
+    previous_week = (current_week - timedelta(7 if not current_week else 0)).strftime("%Y-%m-%d")
     filtered_row = hist_df[hist_df['Week'] == previous_week]
     target_name = [k for k, v in filtered_row.to_dict().items() if (len(v.values()) > 0 and list(v.values())[0] == target_activity)]
     if len(target_name) == 0:
@@ -121,11 +121,13 @@ def blame_handler1(message, continue_chain=True):
                 else:
                     markup.row(activities[2*i])
             markup.row(BREAK_TOKEN)
-            bh.send_msg(message.chat.id, "Responsible of which activity? (They will never know it was you 😎)", reply_markup=markup)
+            bh.send_msg(message.chat.id, "Responsible of which activity?", reply_markup=markup)
             if message.data['action'].id == 'blame':
                 bh.bot.register_next_step_handler(message, blame_handler2)
-            else:
-                bh.bot.register_next_step_handler(message, direct_msg_handler1)
+            elif message.data['action'].id == 'warn':
+                bh.bot.register_next_step_handler(message, warn_handler1)
+            elif message.data['action'].id == 'tap':
+                bh.bot.register_next_step_handler(message, tap_handler1)
     except:
         print(traceback.format_exc())
         new_request(message, error_msg, continue_chain)
@@ -175,7 +177,7 @@ def blame_handler2(message, continue_chain=True):
         new_request(message, error_msg, continue_chain)
 
 
-def direct_msg_handler1(message, continue_chain=True):
+def warn_handler1(message, continue_chain=True):
     if not set_current_id(message, continue_chain=continue_chain):
         return
     if message.text == BREAK_TOKEN:
@@ -186,7 +188,7 @@ def direct_msg_handler1(message, continue_chain=True):
         if target_activity is None:
             new_request(message, error_msg, continue_chain)
             return
-        feedback_type = temp_data[message.chat.id]['data']['action'].id  # blame, warn, praise
+        feedback_type = temp_data[message.chat.id]['data']['action'].id  # blame, warn, praise, tap
         target_chat_id = find_target_chat_id(message, req_dt, target_activity, temp_data[message.chat.id]['md'], feedback_type, sender_name, continue_chain)
         if target_chat_id is None:
             return False
@@ -204,13 +206,45 @@ def direct_msg_handler1(message, continue_chain=True):
             markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
             markup.row(BREAK_TOKEN)
             bh.send_msg(message.chat.id, "Don't be lazy and leave a comment.. 🙃", reply_markup=markup)
-            bh.bot.register_next_step_handler(message, direct_msg_handler2)
+            bh.bot.register_next_step_handler(message, message_handler)
     except:
         print(traceback.format_exc())
         new_request(message, error_msg, continue_chain)
 
 
-def direct_msg_handler2(message, continue_chain=True):
+def tap_handler1(message, continue_chain=True):
+    if not set_current_id(message, continue_chain=continue_chain):
+        return
+    if message.text == BREAK_TOKEN:
+        bh.send_welcome(message)
+        return
+    try:
+        target_activity, sender_name, req_dt = get_message_md(message, temp_data[message.chat.id]['md'])
+        if target_activity is None:
+            new_request(message, error_msg, continue_chain)
+            return
+        feedback_type = temp_data[message.chat.id]['data']['action'].id  # blame, warn, praise, tap
+        target_chat_id = find_target_chat_id(message, req_dt, target_activity, temp_data[message.chat.id]['md'], feedback_type, sender_name, continue_chain, True)
+        if target_chat_id is None:
+            return False
+
+        temp_data[message.chat.id]['target_chat_id'] = target_chat_id
+        current_week = (req_dt - timedelta(days=req_dt.weekday()) + timedelta(days=7)).replace(hour=0, minute=0, second=0, microsecond=0)
+        pw_format = (current_week - timedelta(days=7)).strftime("%d/%m")
+        cw_format = current_week.strftime("%d/%m")
+        temp_data[message.chat.id]['msg_to_send'] = f"You have been tapped for the task {target_activity} (week {pw_format} - {cw_format}):\n|COMMENT|"
+        temp_data[message.chat.id]['msg_to_read'] = f"✅ Alright! {feedback_type.title()} for the task {target_activity} (week {pw_format} - {cw_format}), got u!"
+        if continue_chain:
+            markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
+            markup.row(BREAK_TOKEN)
+            bh.send_msg(message.chat.id, "Leave your precious comment now...", reply_markup=markup)
+            bh.bot.register_next_step_handler(message, message_handler)
+    except:
+        print(traceback.format_exc())
+        new_request(message, error_msg, continue_chain)
+
+
+def message_handler(message, continue_chain=True):
     if not set_current_id(message, continue_chain=continue_chain):
         return
     if message.text == BREAK_TOKEN:
@@ -715,6 +749,7 @@ actions = {
     'blame': Action('blame', '💢 BLAME', blame_handler1),
     'warn': Action('warn', '⚠️ WARN', blame_handler1),
     'praise': Action('praise', '👏 PRAISE', blame_handler1),
+    'tap': Action('tap', '👆 TAP', blame_handler1),
     'swap': Action('swap', '🔄 SWAP', swap_handler1),
     'vacations': Action('vacations', '🌴 VACATIONS', vacations_handler1),
     'book': Action('book', '🏖 BOOK VACATION', vacation_handler1),
@@ -728,8 +763,8 @@ def get_welcome_markup(target_id):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
     rows = []
     rows.append(['blame', 'warn', 'praise'])
-    rows.append(['swap', 'vacations'])
-    rows.append(['book', 'expense'])
+    rows.append(['tap', 'expense', 'swap'])
+    rows.append(['book', 'vacations'])
     rows.append(['ping', 'finance', 'break'])
     rows = [[actions[x].get_label(target_id) for x in row if x is not None] for row in rows]
     rows = [[x for x in row if x is not None] for row in rows]
@@ -878,10 +913,10 @@ class SendWarning(Function):
         message.data = {'action': actions['warn']}
         blame_handler1(message, continue_chain=False)
         message.text = kwargs['activity']
-        if direct_msg_handler1(message, continue_chain=False) is False:
+        if warn_handler1(message, continue_chain=False) is False:
             return
         message.text = kwargs['comment']
-        direct_msg_handler2(message, continue_chain=False)
+        message_handler(message, continue_chain=False)
     
 
 
@@ -905,10 +940,10 @@ class SendPraise(Function):
         message.data = {'action': actions['praise']}
         blame_handler1(message, continue_chain=False)
         message.text = kwargs['activity']
-        if direct_msg_handler1(message, continue_chain=False) is False:
+        if warn_handler1(message, continue_chain=False) is False:
             return
         message.text = kwargs['comment']
-        direct_msg_handler2(message, continue_chain=False)
+        message_handler(message, continue_chain=False)
 
 
 class SendBlame(Function):
