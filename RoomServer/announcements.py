@@ -1158,11 +1158,11 @@ def set_announcement(updated=False):
         text = intro + text
         if not updated:
             text += "\n\nNote: If you want to swap your task with someone else's task, use the SWAP command."
-            text += "\nYou can submit an anonymous complaint for one or more tasks of the previous week by sending a BLAME."
+            # text += "\nYou can submit an anonymous complaint for one or more tasks of the previous week by sending a BLAME."
             text += "\nBefore blaming someone, please warn them first ⚠️ and then wait until Tuesday evening so that the person has time to recover their delayed duty."
             text += "\nIf a person receives at least 2 blames, they will need to recover the task in the future ☠️."
-            text += "\nYou can also send a message of appreciation 🌟 by sending a PRAISE as well."
-            text += "\nIf you need vacation for a week, you can send book it though BOOK VACATION."
+            # text += "\nYou can also send a message of appreciation 🌟 by sending a PRAISE as well."
+            # #text += "\nIf you need vacation for a week, you can send book it though BOOK VACATION."
             text += "\nWhenever you have a WG expense 💰, use EXPENSE and specify price/reason for it."
 
         if not debug_flag:
