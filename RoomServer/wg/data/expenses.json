@@ -233,6 +233,42 @@
             "year": 2025,
             "month": 5,
             "day": 26
+        },
+        {
+            "index": 26,
+            "name": "Lea",
+            "price": 13.0,
+            "reason": "Flowers",
+            "year": 2025,
+            "month": 6,
+            "day": 2
+        },
+        {
+            "index": 27,
+            "name": "Natchaya",
+            "price": 0.55,
+            "reason": "Hand Seife",
+            "year": 2025,
+            "month": 6,
+            "day": 9
+        },
+        {
+            "index": 28,
+            "name": "Lea",
+            "price": 0.95,
+            "reason": "Baking paper",
+            "year": 2025,
+            "month": 6,
+            "day": 16
+        },
+        {
+            "index": 29,
+            "name": "Lea",
+            "price": 3.5,
+            "reason": "Soap and toilet paper",
+            "year": 2025,
+            "month": 6,
+            "day": 16
         }
     ]
 }
