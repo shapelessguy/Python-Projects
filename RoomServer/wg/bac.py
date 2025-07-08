@@ -197,9 +197,9 @@ def update_history(hist_df: pandas.DataFrame, wg_members: WgMembers, current_dat
     df = pandas.concat([hist_df, df])
     df = df.drop_duplicates(subset=['Week'], keep='first')
     df = df.sort_values(by='Week')
-    df[df["Week"] <= current_date].to_csv(HISTORY_FILEPATH, index=False)
-    print("History updated:\n")
-    print(df)
+    df = df[df["Week"] <= current_date]
+    save_history(df)
+    print("History updated")
 
 
 def print_df(df, current_date):
@@ -402,7 +402,9 @@ def get_weekly_text(df: DataFrame, date_now, n_weeks=4):
     return string, future_activities_dict
 
 
-def generate_plan(current_date=datetime.datetime.now().date(), future_weeks=10):
+def generate_plan(current_date=None, future_weeks=10):
+    if current_date is None:
+        current_date = datetime.datetime.now().date()
     current_date = current_date - datetime.timedelta(days=current_date.weekday())
 
     hist_df = load_history()

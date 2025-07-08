@@ -75,6 +75,13 @@ def get_blames():
     return blames
 
 
+def save_history(df):
+    try:
+        df.to_csv(HISTORY_FILEPATH, index=False)
+    except Exception as error:
+        print(error)
+
+
 def save_vacations(vacations):
     if os.path.exists(VACATIONS_FILEPATH):
         with open(VACATIONS_FILEPATH, 'w') as file:
