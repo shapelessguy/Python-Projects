@@ -184,6 +184,24 @@
             "month": 5,
             "year": 2025,
             "n_weeks": 1
+        },
+        {
+            "names": [
+                "Mara"
+            ],
+            "day": 21,
+            "month": 7,
+            "year": 2025,
+            "n_weeks": 1
+        },
+        {
+            "names": [
+                "Mara"
+            ],
+            "day": 28,
+            "month": 7,
+            "year": 2025,
+            "n_weeks": 1
         }
     ]
 }
