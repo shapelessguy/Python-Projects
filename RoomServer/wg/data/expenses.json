@@ -269,6 +269,24 @@
             "year": 2025,
             "month": 6,
             "day": 16
+        },
+        {
+            "index": 30,
+            "name": "Jay",
+            "price": 11.0,
+            "reason": "4 kitchen tissue packet",
+            "year": 2025,
+            "month": 7,
+            "day": 21
+        },
+        {
+            "index": 31,
+            "name": "Lea",
+            "price": 3.19,
+            "reason": "Oven cleaner & trash bags",
+            "year": 2025,
+            "month": 7,
+            "day": 21
         }
     ]
 }
