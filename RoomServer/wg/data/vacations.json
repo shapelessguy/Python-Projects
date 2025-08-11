@@ -202,6 +202,33 @@
             "month": 7,
             "year": 2025,
             "n_weeks": 1
+        },
+        {
+            "names": [
+                "Claudio"
+            ],
+            "day": 11,
+            "month": 8,
+            "year": 2025,
+            "n_weeks": 1
+        },
+        {
+            "names": [
+                "Claudio"
+            ],
+            "day": 18,
+            "month": 8,
+            "year": 2025,
+            "n_weeks": 1
+        },
+        {
+            "names": [
+                "Claudio"
+            ],
+            "day": 25,
+            "month": 8,
+            "year": 2025,
+            "n_weeks": 1
         }
     ]
 }
