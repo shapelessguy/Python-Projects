@@ -359,6 +359,42 @@
             "year": 2025,
             "month": 8,
             "day": 4
+        },
+        {
+            "index": 40,
+            "name": "Jay",
+            "price": 3.5,
+            "reason": "garlic - 475 gms",
+            "year": 2025,
+            "month": 8,
+            "day": 18
+        },
+        {
+            "index": 41,
+            "name": "Jay",
+            "price": 9.41,
+            "reason": "Oil\nsalt\nkitchen tissue \ntoilet tissue\nutensil liquid",
+            "year": 2025,
+            "month": 8,
+            "day": 18
+        },
+        {
+            "index": 42,
+            "name": "Lea",
+            "price": 4.5,
+            "reason": "Toilet paper and trashbags",
+            "year": 2025,
+            "month": 8,
+            "day": 18
+        },
+        {
+            "index": 43,
+            "name": "Lea",
+            "price": 0.45,
+            "reason": "Rest of the trashbags",
+            "year": 2025,
+            "month": 8,
+            "day": 18
         }
     ]
 }
