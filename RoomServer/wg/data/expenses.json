@@ -395,6 +395,33 @@
             "year": 2025,
             "month": 8,
             "day": 18
+        },
+        {
+            "index": 44,
+            "name": "Jay",
+            "price": 4.77,
+            "reason": "400gms garlic -1.98\n5kg onions - 2.79",
+            "year": 2025,
+            "month": 8,
+            "day": 25
+        },
+        {
+            "index": 45,
+            "name": "Lea",
+            "price": 8.99,
+            "reason": "Olive oil",
+            "year": 2025,
+            "month": 8,
+            "day": 25
+        },
+        {
+            "index": 46,
+            "name": "Jay",
+            "price": 3.38,
+            "reason": "oil -2 lit",
+            "year": 2025,
+            "month": 8,
+            "day": 25
         }
     ]
 }
