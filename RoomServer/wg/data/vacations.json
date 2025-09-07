@@ -229,6 +229,24 @@
             "month": 8,
             "year": 2025,
             "n_weeks": 1
+        },
+        {
+            "names": [
+                "Mara"
+            ],
+            "day": 8,
+            "month": 9,
+            "year": 2025,
+            "n_weeks": 1
+        },
+        {
+            "names": [
+                "Mara"
+            ],
+            "day": 15,
+            "month": 9,
+            "year": 2025,
+            "n_weeks": 1
         }
     ]
 }
