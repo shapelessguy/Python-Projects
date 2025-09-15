@@ -247,6 +247,33 @@
             "month": 9,
             "year": 2025,
             "n_weeks": 1
+        },
+        {
+            "names": [
+                "Lea"
+            ],
+            "day": 15,
+            "month": 9,
+            "year": 2025,
+            "n_weeks": 1
+        },
+        {
+            "names": [
+                "Lea"
+            ],
+            "day": 22,
+            "month": 9,
+            "year": 2025,
+            "n_weeks": 1
+        },
+        {
+            "names": [
+                "Lea"
+            ],
+            "day": 29,
+            "month": 9,
+            "year": 2025,
+            "n_weeks": 1
         }
     ]
 }
