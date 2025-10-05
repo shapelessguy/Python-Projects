@@ -5,6 +5,7 @@ import pandas
 from pandas import DataFrame
 sys.path.append(os.path.dirname(__file__))
 from bac_utils import *
+from variables import members, nominal_activities
 import datetime
 
 
@@ -17,33 +18,11 @@ class Activity:
 
 class Activities:
     def __init__(self):
-        self.area1 = Activity("Floor", "🧹🪣🫧", description=[
-            "Hallway's floor",
-            "Kitchen's floor",
-            "Shoe rack"
-        ])
-        self.area2 = Activity("Kitchen", "🪑🚰🧴🔪", description=[
-            "Surfaces + table",
-            "Dish space + sink",
-            "Oven + Microwave",
-            "Stove"
-        ])
-        self.area3 = Activity("Bathrooms", "🛁🚽🧻🚾", description=[
-            "Big bathroom's floor",
-            "Big bathroom's steps",
-            "Small bathroom's floor",
-            "Shower bathtub + panel",
-            "Sink",
-            "Toilets",
-            "Bath rag"
-        ])
-        self.area4 = Activity("Management", "💸🧺🍾", description=[
-            "All trash + bins",
-            "TO BUY list",
-            "Bottles",
-            "Wash laundry",
-            "Toilet paper"
-        ])
+        for idx, activity_data in enumerate(nominal_activities, start=1):
+            name = activity_data["name"]
+            emoji = activity_data["emoji"]
+            description = activity_data.get("description", [])
+            setattr(self, f"area{idx}", Activity(name, emoji, description))
         self.vacation = Activity("Vacation", "💸🧺🍾")
         self.blame = Activity("Blame", "bleah")
         self.anarchy = Activity("Anarchy", "😈😈")
@@ -132,16 +111,18 @@ class WgMember:
 
 class WgMembers:
     def __init__(self):
-        self.m1 = WgMember("Jay", 1113618025)
-        self.m2 = WgMember("Cesare", 6093567886)
-        self.m3 = WgMember("Claudio", 807946519)
-        self.m4 = WgMember("Natchaya", 6448393940)
-        self.m5 = WgMember("Lea", 7129379343)
-        self.m6 = WgMember("Mara", 133279076)
+        for member in members:
+            name = member["name"]
+            member_telegram_id = member["telegram_id"]
+            setattr(self, name, WgMember(name, member_telegram_id))
         self.initial_date = None
-    
+
     def get_members(self):
-        return [self.m1, self.m2, self.m3, self.m4, self.m5, self.m6]
+        """Return all WgMember instances as a list."""
+        return [
+            value for value in self.__dict__.values()
+            if isinstance(value, WgMember)
+        ]
     
     def get_member_by_name(self, name: str):
         for m in self.get_members():
@@ -282,8 +263,9 @@ def initialize(current_date, hist_df, future_weeks=5):
 
     wg_members = WgMembers()
     last_hist_week = None
-    if hist_df is not None:
-        hist_df["Week"] = pandas.to_datetime(hist_df["Week"]).dt.date
+
+    hist_df["Week"] = pandas.to_datetime(hist_df["Week"]).dt.date
+    if len(hist_df) > 1:
         initial_date_ = hist_df.iloc[0]["Week"]
         last_hist_week = hist_df.iloc[-1]["Week"]
         if initial_date_ < initial_date:
@@ -385,26 +367,23 @@ def get_string_by_activities(names_dict, warning=False):
     return string
 
 
-def get_weekly_text(df: DataFrame, date_now, n_weeks=4):
+def get_weekly_text(df: DataFrame, dt, n_weeks=4):
     names = {x: [] for x in df.columns.to_list()[1:]}
-    dt = datetime.datetime.now()
-    date_now = (dt - datetime.timedelta(days=dt.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+    monday_datetime = datetime.datetime.combine(dt - datetime.timedelta(days=dt.weekday()), datetime.datetime.min.time())
     prev_row = None
     for row in df.to_numpy():
         date = datetime.datetime.combine(row[0], datetime.datetime.min.time())
-        if date > date_now:
+        if date > monday_datetime:
             for name, i in zip(names, range(1, len(names) + 1)):
                 names[name].append(prev_row[i])
         prev_row = row
     future_activities_dict = [{k: v[i] for k, v in names.items()} for i in range(min(n_weeks, len(list(names.values())[0])))]
-    string = f'This week ({date_now.date().strftime("%d-%m-%y")}):\n'
+    string = f'This week ({monday_datetime.date().strftime("%d-%m-%y")}):\n'
     string += get_string_by_activities({k: v[0] for k, v in names.items()}, warning=True)
     return string, future_activities_dict
 
 
-def generate_plan(current_date=None, future_weeks=10):
-    if current_date is None:
-        current_date = datetime.datetime.now().date()
+def generate_plan(current_date, future_weeks=10):
     current_date = current_date - datetime.timedelta(days=current_date.weekday())
 
     hist_df = load_history()

@@ -2,6 +2,7 @@ import os
 import pandas
 import json
 import io
+from variables import members
 
 
 WG_PATH = os.path.dirname(__file__)
@@ -17,13 +18,13 @@ BLAMES_FILEPATH = os.path.join(DATA_PATH, 'blames.json')
 
 def get_history():
     if os.path.exists(HISTORY_FILEPATH):
-        try:
-            hist_df = pandas.read_csv(HISTORY_FILEPATH)
-            hist_df['Week'] = pandas.to_datetime(hist_df['Week'])
-            column_order = ["Week"] + sorted([col for col in hist_df.columns if col != "Week"])
-            hist_df = hist_df[column_order]
-        except pandas.errors.EmptyDataError:
-            return None
+        hist_df = pandas.read_csv(HISTORY_FILEPATH)
+        hist_df['Week'] = pandas.to_datetime(hist_df['Week'])
+        column_order = ["Week"] + sorted([col for col in hist_df.columns if col != "Week"])
+        hist_df = hist_df[column_order]
+    else:
+        hist_df = pandas.DataFrame(columns=["Week"] + [x['name'] for x in members])
+        save_history(hist_df)
     return hist_df
 
 

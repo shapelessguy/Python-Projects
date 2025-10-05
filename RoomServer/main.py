@@ -81,7 +81,7 @@ def main():
             t.start()
 
         while not signal['kill']:
-            now = datetime.now()
+            # now = datetime.now()
             # if now.hour == RESET_HOUR and now.minute == 0 and now.second == 0:
             #     signal['kill'] = True
             time.sleep(0.5)

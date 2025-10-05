@@ -37,9 +37,10 @@ DUMMY_CHANNEL_ID = -1002037672769
 
 MAIN_FOLDER_PATH = os.path.dirname(__file__)
 
-ALL_WG_LOGS_PATH = os.path.join(MAIN_FOLDER_PATH, 'all_wg_logs')
 BOT_AI_PATH = os.path.join(MAIN_FOLDER_PATH, 'bot_ai')
-WG_PATH = os.path.join(MAIN_FOLDER_PATH, 'WG')
+WG_PATH = os.path.join(MAIN_FOLDER_PATH, 'wg')
+DATA_PATH = os.path.join(WG_PATH, 'data')
+ALL_WG_LOGS_PATH = os.path.join(DATA_PATH, 'all_wg_logs')
 LOG_FILE_PATH = os.path.join(MAIN_FOLDER_PATH, "logs")
 
 MSG_HISTORY_PATH = os.path.join(BOT_AI_PATH, 'history.json')
@@ -53,13 +54,14 @@ FINANCE_EXCEL_FILEPATH = os.path.join(ALL_WG_LOGS_PATH, "expenses.xlsx")
 STOCK_DB_PATH = os.path.join(MAIN_FOLDER_PATH, 'stock_data')
 
 
+for folder in [WG_PATH, LOG_FILE_PATH, DATA_PATH, ALL_WG_LOGS_PATH]:
+    if not os.path.exists(folder):
+        os.mkdir(folder)
+
 for json_ in [BLAME_LOGS_FILEPATH, WARN_LOGS_FILEPATH, LAST_IDX_FILEPATH]:
     if not os.path.exists(json_):
         with open(json_, 'w') as file:
             json.dump({}, file)
-for folder in [LOG_FILE_PATH]:
-    if not os.path.exists(folder):
-        os.mkdir(folder)
 
 
 def pull(path, signal):

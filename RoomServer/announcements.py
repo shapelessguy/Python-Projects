@@ -23,10 +23,14 @@ from bot_ai import reasoner
 temp_data = {}
 error_msg = "❌ Let's try again shall we?"
 signal = None
-debug_flag = False
+debug_flag = True
 BREAK_TOKEN = '↩️'
 hb = None
 bot_history = {}
+
+
+def get_current_time():
+    return datetime.now()
 
 
 def get_general_metadata():
@@ -88,15 +92,15 @@ def find_target_chat_id(message, req_dt, target_activity, md, feedback_type, sen
     target_name = [k for k, v in filtered_row.to_dict().items() if (len(v.values()) > 0 and list(v.values())[0] == target_activity)]
     if len(target_name) == 0:
         new_request(message, f"❌ Nobody to {feedback_type} my friend.", continue_chain)
-        return None
+        return None, None
     target_name = target_name[0]
     if sender_name == target_name:
         new_request(message, f"❌ Don't be silly! It was you..", continue_chain)
-        return None
+        return None, None
     target_chat_id = [e['telegram_id'] for e in temp_data[message.chat.id]['md']['wg_props'] if e['name'] == target_name]
     if len(target_chat_id) > 0:
-        return target_chat_id[0]
-    return None
+        return target_chat_id[0], target_name
+    return None, None
 
 
 def blame_handler1(message, continue_chain=True):
@@ -162,7 +166,8 @@ def blame_handler2(message, continue_chain=True):
         relevant_date, saved = handle_feedback(req_dt, sender_name, target_activity, 'blame', save=True)
         if saved:
             # One could also blame himself
-            target_chat_id = find_target_chat_id(message, req_dt, target_activity, temp_data[message.chat.id]['md'], 'blame', "", continue_chain)
+            target_chat_id, target_name = find_target_chat_id(message, req_dt, target_activity, temp_data[message.chat.id]['md'], 'blame', "", continue_chain)
+            print("target name:", target_name)
             if target_chat_id is not None:
                 markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
                 markup.row(BREAK_TOKEN)
@@ -189,10 +194,10 @@ def warn_handler1(message, continue_chain=True):
             new_request(message, error_msg, continue_chain)
             return
         feedback_type = temp_data[message.chat.id]['data']['action'].id  # blame, warn, praise, tap
-        target_chat_id = find_target_chat_id(message, req_dt, target_activity, temp_data[message.chat.id]['md'], feedback_type, sender_name, continue_chain)
+        target_chat_id, target_name = find_target_chat_id(message, req_dt, target_activity, temp_data[message.chat.id]['md'], feedback_type, sender_name, continue_chain)
         if target_chat_id is None:
             return False
-
+        print("target name:", target_name)
         temp_data[message.chat.id]['target_chat_id'] = target_chat_id
         if feedback_type == 'warn':
             handle_feedback(req_dt, sender_name, target_activity, 'warn', save=True)
@@ -224,9 +229,10 @@ def tap_handler1(message, continue_chain=True):
             new_request(message, error_msg, continue_chain)
             return
         feedback_type = temp_data[message.chat.id]['data']['action'].id  # blame, warn, praise, tap
-        target_chat_id = find_target_chat_id(message, req_dt, target_activity, temp_data[message.chat.id]['md'], feedback_type, sender_name, continue_chain, True)
+        target_chat_id, target_name = find_target_chat_id(message, req_dt, target_activity, temp_data[message.chat.id]['md'], feedback_type, sender_name, continue_chain, True)
         if target_chat_id is None:
             return False
+        print("target name:", target_name)
 
         temp_data[message.chat.id]['target_chat_id'] = target_chat_id
         current_week = (req_dt - timedelta(days=req_dt.weekday()) + timedelta(days=7)).replace(hour=0, minute=0, second=0, microsecond=0)
@@ -330,7 +336,7 @@ def swap_handler3(message, continue_chain=True):
         target_activity = temp_data[message.chat.id]['target_activity']
         year, month, day = date.year, date.month, date.day
     
-        now = datetime.now()
+        now = get_current_time()
         now = (now - timedelta(days=now.weekday()))
         date_to_check = datetime(year, month, day)
 
@@ -453,7 +459,7 @@ def vacation_handler2(message, continue_chain=True, unbook_only=False):
         date = temp_data[message.chat.id]['calendar_result']
         year, month, day = date.year, date.month, date.day
 
-        now = datetime.now()
+        now = get_current_time()
         now = (now - timedelta(days=now.weekday()))
         date_to_check = datetime(year, month, day)
 
@@ -510,7 +516,7 @@ def vacation_handler3(message, continue_chain=True):
         date = temp_data[message.chat.id]['calendar_result']
         year, month, day = date.year, date.month, date.day
 
-        now = datetime.now()
+        now = get_current_time()
         now = (now - timedelta(days=now.weekday()))
         date_to_check = datetime(year, month, day)
         this_week = now.date() == date_to_check.date()
@@ -1139,7 +1145,7 @@ def set_announcement(updated=False):
         md = get_general_metadata()
 
         emoticons = md['emoticons']
-        now = datetime.now()
+        now = get_current_time()
         now = (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
         blame_first_date = (now - timedelta(days=14)).date()
         blame_last_date = (now - timedelta(days=7)).date()
@@ -1154,7 +1160,7 @@ def set_announcement(updated=False):
                 bac.save_blames(blames_json)
 
         intro = '<b>🔄 PLAN UPDATED DURING THIS WEEK</b>\n' if updated else ''
-        text, week_schedule = bac.generate_plan()
+        text, week_schedule = bac.generate_plan(now.date())
         text = intro + text
         if not updated:
             text += "\n\nNote: If you want to swap your task with someone else's task, use the SWAP command."
@@ -1171,7 +1177,7 @@ def set_announcement(updated=False):
         print('Msg sent to LEO6:', text)
 
         with open(ANNOUNCEMENT_FILEPATH, 'a+') as file:
-            file.write(datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + '\n')
+            file.write(get_current_time().strftime("%Y-%m-%d-%H-%M-%S") + '\n')
         if not push(MAIN_FOLDER_PATH, signal):
             return
         
@@ -1279,7 +1285,7 @@ def monitor(bh, signal):
 
 def update(last_announcement=None, id_last_announcement=None, forced=False, updated=False):
     global signal
-    now = datetime.now()
+    now = get_current_time()
     announce_at = 8  # hour of update
     masked_now = now - timedelta(hours=(announce_at))
     if forced or get_week_number(masked_now) != id_last_announcement:
