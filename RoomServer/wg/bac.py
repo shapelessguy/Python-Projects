@@ -314,6 +314,7 @@ def get_avail_members(wg_members: WgMembers, date):
 
 
 def assign_tasks(wg_members: WgMembers, avail_members: list[WgMember]):
+    avail_members = avail_members[:4]
     if len(avail_members) < len(activities.get_regular()):
         return {m: activities.get_anarchy() for m in wg_members.get_members()}
     
@@ -323,7 +324,8 @@ def assign_tasks(wg_members: WgMembers, avail_members: list[WgMember]):
 
     for mem_perm in itertools.permutations(avail_members, len(possible_activities)):
         paired = list(zip(possible_activities, mem_perm))
-        print(paired)
+        for p in paired:
+            print(p[0].name, p[1].name)
         state_option = {}
         for m in wg_members.get_members():
             for pair in paired:
