@@ -389,6 +389,7 @@ def generate_plan(current_date, future_weeks=10):
 
     hist_df = load_history()
     wg_members, dates_to_compute, start_end_dates = initialize(current_date, hist_df, future_weeks)
+    print(len(wg_members.get_members()[0].activity_history))
     for date in dates_to_compute:
         available_members = get_avail_members(wg_members, date)
         assign_tasks(wg_members, available_members)
