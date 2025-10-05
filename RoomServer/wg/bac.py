@@ -323,6 +323,7 @@ def assign_tasks(wg_members: WgMembers, avail_members: list[WgMember]):
 
     for mem_perm in itertools.permutations(avail_members, len(possible_activities)):
         paired = list(zip(possible_activities, mem_perm))
+        print(paired)
         state_option = {}
         for m in wg_members.get_members():
             for pair in paired:
@@ -334,9 +335,9 @@ def assign_tasks(wg_members: WgMembers, avail_members: list[WgMember]):
 
     best_fitness = min([x[-1] for x in all_state_options])
     best_candidates = [x[0] for x in all_state_options if x[-1] == best_fitness]
-    print([x.name for x in possible_activities])
-    for b in best_candidates:
-        print({k.name: v.name for k, v in b.items()})
+    # print([x.name for x in possible_activities])
+    # for b in best_candidates:
+    #     print({k.name: v.name for k, v in b.items()})
     print("\n ----- \n")
     best = random.choice(best_candidates)
     for m, a in best.items():
