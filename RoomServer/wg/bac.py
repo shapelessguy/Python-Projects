@@ -7,7 +7,6 @@ sys.path.append(os.path.dirname(__file__))
 from bac_utils import *
 from variables import members, nominal_activities
 import datetime
-import random
 
 
 class Activity:
@@ -266,7 +265,8 @@ def initialize(current_date, hist_df, future_weeks=5):
     last_hist_week = None
 
     hist_df["Week"] = pandas.to_datetime(hist_df["Week"]).dt.date
-    if len(hist_df) > 1:
+    history_length = len(hist_df)
+    if history_length > 1:
         initial_date_ = hist_df.iloc[0]["Week"]
         last_hist_week = hist_df.iloc[-1]["Week"]
         if initial_date_ < initial_date:
@@ -279,7 +279,7 @@ def initialize(current_date, hist_df, future_weeks=5):
     for i in range(n_weeks):
         date = initial_date + datetime.timedelta(days=7 * i)
         assigned = False
-        if hist_df is not None:
+        if history_length > 1:
             fetched_data = hist_df[hist_df["Week"] == date].to_dict(orient="records")
             if fetched_data:
                 del fetched_data[0]["Week"]
@@ -314,12 +314,10 @@ def get_avail_members(wg_members: WgMembers, date):
 
 
 def assign_tasks(wg_members: WgMembers, avail_members: list[WgMember]):
-    avail_members = avail_members[:4]
     if len(avail_members) < len(activities.get_regular()):
         return {m: activities.get_anarchy() for m in wg_members.get_members()}
     
-    possible_activities = activities.get_regular() + ([activities.get_vacation()] * (len(avail_members) - len(activities.get_regular())) 
-                                                      if len(avail_members) > len(activities.get_regular()) else [])
+    possible_activities = activities.get_regular() + ([activities.get_vacation()] if len(avail_members) > len(activities.get_regular()) else [])
     all_state_options = []
 
     for mem_perm in itertools.permutations(avail_members, len(possible_activities)):
@@ -331,18 +329,9 @@ def assign_tasks(wg_members: WgMembers, avail_members: list[WgMember]):
                     state_option[m] = pair[0]
             if m not in state_option:
                 state_option[m] = activities.get_vacation()
-        print("-----")
-        for k, v in state_option.items():
-            print(k.name, v.name)
         all_state_options.append((state_option, wg_members.calculate_fitness(state_option)))
 
-    best_fitness = min([x[-1] for x in all_state_options])
-    best_candidates = [x[0] for x in all_state_options if x[-1] == best_fitness]
-    # print([x.name for x in possible_activities])
-    # for b in best_candidates:
-    #     print({k.name: v.name for k, v in b.items()})
-    print("\n ----- \n")
-    best = random.choice(best_candidates)
+    best = min(all_state_options, key=lambda x: x[1])[0]
     for m, a in best.items():
         m.assign(a)
 
