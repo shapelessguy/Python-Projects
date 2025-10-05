@@ -330,6 +330,7 @@ def assign_tasks(wg_members: WgMembers, avail_members: list[WgMember]):
                 state_option[m] = activities.get_vacation()
         all_state_options.append((state_option, wg_members.calculate_fitness(state_option)))
 
+    print(all_state_options)
     best = min(all_state_options, key=lambda x: x[1])[0]
     for m, a in best.items():
         m.assign(a)
