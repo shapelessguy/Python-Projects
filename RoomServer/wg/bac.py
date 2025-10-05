@@ -7,6 +7,7 @@ sys.path.append(os.path.dirname(__file__))
 from bac_utils import *
 from variables import members, nominal_activities
 import datetime
+import random
 
 
 class Activity:
@@ -332,8 +333,7 @@ def assign_tasks(wg_members: WgMembers, avail_members: list[WgMember]):
 
     best_fitness = min([x[-1] for x in all_state_options])
     best_candidates = [x[0] for x in all_state_options if x[-1] == best_fitness]
-    print(len(best_candidates))
-    best = min(all_state_options, key=lambda x: x[1])[0]
+    best = random.choice(best_candidates)
     for m, a in best.items():
         m.assign(a)
 
