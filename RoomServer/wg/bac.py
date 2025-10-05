@@ -324,8 +324,6 @@ def assign_tasks(wg_members: WgMembers, avail_members: list[WgMember]):
 
     for mem_perm in itertools.permutations(avail_members, len(possible_activities)):
         paired = list(zip(possible_activities, mem_perm))
-        for p in paired:
-            print(p[0].name, p[1].name)
         state_option = {}
         for m in wg_members.get_members():
             for pair in paired:
@@ -333,6 +331,9 @@ def assign_tasks(wg_members: WgMembers, avail_members: list[WgMember]):
                     state_option[m] = pair[0]
             if m not in state_option:
                 state_option[m] = activities.get_vacation()
+        print("-----")
+        for k, v in state_option.items():
+            print(k.name, v.name)
         all_state_options.append((state_option, wg_members.calculate_fitness(state_option)))
 
     best_fitness = min([x[-1] for x in all_state_options])
