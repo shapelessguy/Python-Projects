@@ -333,6 +333,7 @@ def assign_tasks(wg_members: WgMembers, avail_members: list[WgMember]):
 
     best_fitness = min([x[-1] for x in all_state_options])
     best_candidates = [x[0] for x in all_state_options if x[-1] == best_fitness]
+    print([x.name for x in possible_activities])
     for b in best_candidates:
         print({k.name: v.name for k, v in b.items()})
     print("\n ----- \n")
