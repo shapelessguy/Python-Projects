@@ -49,6 +49,8 @@ def get_vacations():
     if os.path.exists(VACATIONS_FILEPATH):
         with open(VACATIONS_FILEPATH, 'r') as file:
             vacations = json.load(file)
+    else:
+        save_vacations(vacations)
     return vacations
 
 
@@ -57,6 +59,8 @@ def get_swaps():
     if os.path.exists(SWAPS_FILEPATH):
         with open(SWAPS_FILEPATH, 'r') as file:
             swaps = json.load(file)
+    else:
+        save_swaps(swaps)
     return swaps
 
 
@@ -65,6 +69,8 @@ def get_expenses():
     if os.path.exists(EXPENSES_FILEPATH):
         with open(EXPENSES_FILEPATH, 'r') as file:
             expenses = json.load(file)
+    else:
+        save_expenses(expenses)
     return expenses
 
 
