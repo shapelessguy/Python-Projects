@@ -1,23 +1,178 @@
-import os
-import json
-main_folder_path = os.path.dirname(__file__)
-with open(os.path.join(main_folder_path, 'genai.json'), 'r') as file:
-    genai_token = json.load(file)['token']
-import google.generativeai as genai
+import time
+import pyaudio
+import keyboard
+from keyboard._keyboard_event import KEY_DOWN, KEY_UP
+import threading
+import speech_recognition as sr
+from llm_functionality import State, Model, LLM, SpeechManager
+import whisper
+import torch
+import numpy as np
+import time
 
-genai.configure(api_key=genai_token)
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
-model = genai.GenerativeModel("gemini-2.0-flash")
-chat = model.start_chat(
-    history=[
-        {"role": "user", "parts": "Hello"},
-        {"role": "model", "parts": "Great to meet you. What would you like to know?"},
-    ]
-)
-response = chat.send_message("I have 2 dogs in my house.", stream=False)
-print("||", response.text.strip(), "||")
-# response = chat.send_message("How many paws are in my house?")
-# print(response.text)
-# response = model.generate_content("Write a story about a magic backpack in 3 sentences.", stream=True)
-# for chunk in response:
-#     sys.stdout.write(repr(chunk.text))
+
+class Recorder:
+    FORMAT = pyaudio.paInt16
+    CHANNELS = 1
+    RATE = 16000
+    CHUNK = 1024
+
+    audio_frames = []
+    is_recording = False
+    is_processing = False
+    data_recorded = True
+
+    def __init__(self, mic_name, state, llm, activations) -> None:
+        self.mic_name = mic_name
+        self.state = state
+        self.llm = llm
+        self.pressed_keys = set()
+        self.cur_model = None
+        self.medium = whisper.load_model("medium", device=DEVICE)
+        print("Model loaded")
+        
+        self.activations = {k: set(activation.replace(' ', '').split('+')) for k, activation in activations.items()}
+        self.actv_keys = set([e for v in self.activations.values() for e in v])
+        # threading.Thread(target=self.clean_keys_pressed)
+        # self.index = 0
+
+        def on_action(event):
+            if event.event_type == KEY_DOWN:
+                on_press(event.name)
+
+            elif event.event_type == KEY_UP:
+                on_release(event.name) 
+
+        def on_press(key):
+            # if key == 'a':
+            #     if self.state.is_waiting or self.is_recording or self.is_processing:
+            #         self.stop_recording()
+            #     else:
+            #         self.start_recording()
+            #     return
+            if not key in self.actv_keys:
+                return
+            # print(f'pressed {key} / {self.pressed_keys}')
+            self.pressed_keys.add(key)
+            for k, act in self.activations.items():
+                if act == self.pressed_keys:
+                    self.cur_model = k
+                    self.start_recording()
+                    break
+
+        def on_release(key):
+            if key in self.pressed_keys:
+                self.pressed_keys.remove(key)
+            for act in self.activations.values():
+                if act.issubset(self.pressed_keys):
+                    return
+            self.stop_recording()
+
+        keyboard.hook(lambda e: on_action(e))
+        while True:
+            time.sleep(1)
+    
+    # def clean_keys_pressed(self):
+    #     while True:
+    #         self.index += 1
+    #         time.sleep(1)
+    #         if self.index % 5 == 0:
+    #             self.pressed_keys = {}
+
+
+    def list_microphones(self):
+        mic_list = sr.Microphone.list_microphone_names()
+        mics = {}
+        for index, name in enumerate(mic_list):
+            mics[name] = index
+        return mics
+
+    def get_primary_input_index(self):
+        mic_index = 0
+        for name, index in self.list_microphones().items():
+            if len(name) >= len(self.mic_name):
+                if name.startswith(self.mic_name):
+                    mic_index = index
+                    break
+            else:
+                if self.mic_name.startswith(name):
+                    mic_index = index
+                    break
+        return mic_index
+    
+    def get_audio(self):
+        self.audio_frames = []
+        self.is_recording = True
+
+        p = pyaudio.PyAudio()
+        stream = p.open(format=self.FORMAT, channels=self.CHANNELS, rate=self.RATE, input=True, 
+                        frames_per_buffer=self.CHUNK, input_device_index=self.get_primary_input_index())
+        print("Start Recording.")
+        self.data_recorded = False
+
+        while self.is_recording:
+            data = stream.read(self.CHUNK)
+            self.audio_frames.append(data)
+
+        stream.stop_stream()
+        stream.close()
+        p.terminate()
+
+        self.data_recorded = True
+        print("Stopped recording.")
+
+    def start_recording(self):
+        if self.is_processing:
+            # print("Processing is already on")
+            return
+        self.is_processing = True
+        print("Processing started")
+        threading.Thread(target=self.get_audio).start()
+        self.state.set_waiting(True)
+
+    def stop_recording(self):
+        if not self.is_recording:
+            return
+        time.sleep(0.4)
+        self.is_recording = False
+        threading.Thread(target=self.process_audio).start()
+        self.state.set_waiting(False)
+        self.state.set_thinking(True)
+
+    def process_audio(self):
+        while not self.data_recorded:
+            time.sleep(0.01)
+
+        audio_bytes = b''.join(self.audio_frames)
+        audio_np = np.frombuffer(audio_bytes, dtype=np.int16)
+        audio_np = audio_np.astype(np.float32) / 32768.0
+        
+        try:
+            text = self.medium.transcribe(audio_np, fp16=(DEVICE=="cuda"), language="en")['text']
+            reply, commands, messages, model = self.llm.process_text(text, model=self.cur_model)
+            self.state.set_thinking(False)
+            self.llm.take_action(reply, commands, messages, model)
+            print("Recorded text: " + text)
+        except sr.UnknownValueError:
+            self.state.set_thinking(False)
+            self.state.set_error(True)
+            print("Audio not recognized.")
+            time.sleep(2)
+            self.state.set_error(False)
+        except sr.RequestError as e:
+            self.state.set_thinking(False)
+            print("Could not request results from Google Speech Recognition service; {0}".format(e))
+        
+        self.is_processing = False
+        print("Processing finished")
+
+
+if __name__ == '__main__':
+    import multiprocessing
+    speech_manager = SpeechManager(multiprocessing.Manager())
+    state = State(speech_manager)
+    llm = LLM(state)
+    Recorder(mic_name='Microphone (2- USB PnP Audio Device)', state=state, llm=llm, activations=
+            {Model.DeepSeek: 'f13'})

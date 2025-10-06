@@ -15,8 +15,19 @@ base_nico = Blend('NICO', fluids={prime_vg: 0.3, prime_pg: 0.7}, nico_concentrat
 
 # -------------- LIQUID creation --------------------------------------------------------------------------
 
+
+base_liquid = Liquid(p_pg=0.5, p_vg=0.5, p_w=0, nico=4, base_nico=base_nico, mixtures={})
+base_liquid.compose(name='base', ref={'tot': 700})
+base_liquid.get_composition(print_=True)
+
+
 base = Liquid(p_pg=0.5, p_vg=0.5, p_w=0, nico=4, base_nico=base_nico, mixtures={}).compose(name='base', ref={'tot': 40})
-scomposto = Liquid(p_pg=0.5, p_vg=0.5, p_w=0, nico=0, base_nico=base_nico, mixtures={}).compose(name='scomposto', ref={'tot': 20})
+# base = Liquid(p_pg=0.5, p_vg=0.5, p_w=0, nico=4, base_nico=base_nico, mixtures={}).compose(name='base', ref={'tot': 40})
+# liquid = Liquid(p_pg=0.5, p_vg=0.5, p_w=0, nico=4, base_nico=base_nico, mixtures={base: 1})
+# liquid.compose(name='liquid0', ref={'tot': 100})
+# liquid.get_composition(print_=True)
+
+scomposto = Liquid(p_pg=0.5, p_vg=0.5, p_w=0, nico=0, base_nico=base_nico, mixtures={}).compose(name='scomposto', ref={'tot': 100})
 
 liquid = Liquid(p_pg=0.5, p_vg=0.5, p_w=0, nico=4, base_nico=base_nico, mixtures={base: 0.65, scomposto: 0.32})
 new_mixture = liquid.compose(name='liquid0', ref={'tot': 60})

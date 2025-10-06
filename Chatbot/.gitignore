@@ -1,3 +1,4 @@
 .env
 secret.key
 genai.json
+vosk*

@@ -167,7 +167,6 @@ def blame_handler2(message, continue_chain=True):
         if saved:
             # One could also blame himself
             target_chat_id, target_name = find_target_chat_id(message, req_dt, target_activity, temp_data[message.chat.id]['md'], 'blame', "", continue_chain)
-            print("target name:", target_name)
             if target_chat_id is not None:
                 markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
                 markup.row(BREAK_TOKEN)
@@ -197,7 +196,6 @@ def warn_handler1(message, continue_chain=True):
         target_chat_id, target_name = find_target_chat_id(message, req_dt, target_activity, temp_data[message.chat.id]['md'], feedback_type, sender_name, continue_chain)
         if target_chat_id is None:
             return False
-        print("target name:", target_name)
         temp_data[message.chat.id]['target_chat_id'] = target_chat_id
         if feedback_type == 'warn':
             handle_feedback(req_dt, sender_name, target_activity, 'warn', save=True)
@@ -232,7 +230,6 @@ def tap_handler1(message, continue_chain=True):
         target_chat_id, target_name = find_target_chat_id(message, req_dt, target_activity, temp_data[message.chat.id]['md'], feedback_type, sender_name, continue_chain, True)
         if target_chat_id is None:
             return False
-        print("target name:", target_name)
 
         temp_data[message.chat.id]['target_chat_id'] = target_chat_id
         current_week = (req_dt - timedelta(days=req_dt.weekday()) + timedelta(days=7)).replace(hour=0, minute=0, second=0, microsecond=0)
@@ -1126,7 +1123,6 @@ def reload_module(module_name):
 
 def get_blame(name, now, hist_df, logs):
     filtered_row = hist_df[hist_df['Week'] == now]
-    print([list(v.values()) for k, v in filtered_row.to_dict().items() if k == name])
     values = [list(v.values()) for k, v in filtered_row.to_dict().items() if k == name]
     values = [x[0] for x in values if len(x) > 0]
     if len(values) == 0:
