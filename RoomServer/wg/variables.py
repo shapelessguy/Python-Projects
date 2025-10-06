@@ -1,7 +1,7 @@
 
 members = [
     {"name": "Jay", "telegram_id": 1113618025},
-    {"name": "Cesare", "telegram_id": 6093567886},
+    # {"name": "Cesare", "telegram_id": 6093567886},
     {"name": "Claudio", "telegram_id": 807946519},
     {"name": "Natchaya", "telegram_id": 6448393940},
     {"name": "Lea", "telegram_id": 7129379343},
@@ -10,21 +10,26 @@ members = [
 
 
 nominal_activities = [
-    {
-      "name": "Floor",
-      "emoji": "🧹🪣🫧",
-      "description": ["Hallway's floor", "Kitchen's floor", "Shoe rack"]
-    },
+    # {
+    #   "name": "Floor",
+    #   "emoji": "🧹🪣🫧",
+    #   "description": ["Hallway's floor", "Kitchen's floor", "Shoe rack"]
+    # },
     {
       "name": "Kitchen",
       "emoji": "🪑🚰🧴🔪",
-      "description": ["Surfaces + table", "Dish space + sink", "Oven + Microwave", "Stove"]
+      "description": [
+          "Surfaces + table",
+          "Dish space + sink",
+          "Oven + small kitchen appliances",
+          "Stove"
+      ]
     },
     {
       "name": "Bathrooms",
       "emoji": "🛁🚽🧻🚾",
       "description": [
-        "Big bathroom's floor",
+        "Run robot",
         "Big bathroom's steps",
         "Small bathroom's floor",
         "Shower bathtub + panel",

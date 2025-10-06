@@ -28,7 +28,12 @@ class Activities:
         self.anarchy = Activity("Anarchy", "😈😈")
 
     def get_regular(self):
-        return [self.area1, self.area2, self.area3, self.area4]
+        return [
+            value for k, value in self.__dict__.items() if isinstance(value, Activity) and 'area' in k
+        ]
+
+    def get_regular_with_vacation(self):
+        return self.get_regular() + [self.vacation]
 
     def get_vacation(self):
         return self.vacation
@@ -69,17 +74,29 @@ class WgMember:
         self.activity_history.append(activity)
     
     def get_repeat_idx(self, activity: Activity=None):
-        """Get the distance (in terms of #tasks) of <activity> from the current time."""
+        """Get the number of tasks (+1) in between the current <activity> and the last instance of the same activity.
+        Example:
+            member has completed tasks in this order:
+            - task1
+            - task2
+            - vacation
+            - task1
+            - task2 = <activity>
+        
+            -> Repeat index: 3
+
+            Note: This index should be maintained as high as possible to avoid repetition of the same task in a row.
+        """
         if activity is not None:
             repeat_idx = 0
             for a in self.activity_history[::-1]:
-                if a in activities.get_regular():
+                if a in activities.get_regular_with_vacation():
                     repeat_idx += 1
                 if activity == a:
                     break
             return repeat_idx
         else:
-            activities_ = activities.get_regular()
+            activities_ = activities.get_regular_with_vacation()
             repetition_activities = {a: [] for a in activities_}
             repetition_idx = 0
             for a in self.activity_history[::-1]:
@@ -92,13 +109,22 @@ class WgMember:
                 if len(v) > 1:
                     for x in [x2-x1 for x2, x1 in zip(v[1:], v[:-1])]:
                         if x in spread:
-                            if x < 2:
-                                print(self.name, a.name, x)
                             spread[x] += 1
             return list(spread.values())
 
-    def get_debit(self, activity: Activity=None):
-        """Get the total debt after assigning <activity> to the current member. The debt is the max #tasks of discrepancy between all types of tasks."""
+    def get_diversity_idx(self, activity: Activity=None):
+        """Get the total diversity after assigning <activity> to the current member.
+        The diversity index is the max #tasks of discrepancy between all types of tasks.
+        Example:
+            member has completed:
+            - task1: 5 times
+            - task2: 4 times
+            - task3: 2 times
+
+            -> Diversity index: 5 - 2 = 3
+
+            Note: This index should be maintained as low as possible to maintain tasks diversified.
+        """
         reg_activities = activities.get_regular()
         executed_activities = {a: 0 for a in reg_activities}
         for a in self.activity_history:
@@ -107,6 +133,30 @@ class WgMember:
         if activity is not None and activity in reg_activities:
             executed_activities[activity] += 1
         return max(executed_activities.values()) - min(executed_activities.values())
+
+    def get_vacation_idx(self, activity: Activity=None):
+        """Get the total number of vacations after assigning <activity> to the current member."""
+        vacation = activities.get_vacation()
+        return len([x for x in self.activity_history if x == vacation]) + (1 if activity == vacation else 0)
+    
+    def calculate_fitness(self, activity: Activity, verbose=False):
+        """Calculates the fitness of a solution that implies assigning the <activity> to this member.
+        
+        The repeat_idx should be observed first as we try to avoid as much as possible subsequent repetitions.
+        Repeat_idx of 0 and 1 should be greater than an average diversity_idx of 4, to be then comparable to it for values greater than 1.
+        """
+        repeat = 0
+        repeat_idx = self.get_repeat_idx(activity)
+        if repeat_idx <= 1:
+            repeat = 1000
+        elif repeat_idx == 2:
+            repeat = 100
+        elif repeat_idx > 2:
+            repeat = 100 / repeat_idx
+        diversity = self.get_diversity_idx(activity)
+        if verbose:
+            print(f"Fitness for member {self.name} on task {activity.name}: repeat={repeat} diversity={diversity}")
+        return repeat + diversity
 
 
 class WgMembers:
@@ -131,10 +181,19 @@ class WgMembers:
         print(f"Error: Name {name} not found in members names.")
         return None
     
-    def calculate_fitness(self, state_option: dict):
+    def calculate_total_fitness(self, state_option: dict):
+        """Total fitness of the full solution member-task association.
+        
+        The total fitness is computed as sum of each individual association fitnesses, plus a vacation_discrepancy index which takes in consideration
+        the discrepancy of vacations among all members.
+        """
         fitness = 0
+        vacation_idxs = []
         for m, activity in state_option.items():
-            fitness += 100 / (m.get_repeat_idx(activity) + 0.1) + m.get_debit(activity)
+            fitness += m.calculate_fitness(activity)
+            vacation_idxs.append(m.get_vacation_idx(activity))
+        vacation_discrepancy = max(vacation_idxs) - min(vacation_idxs)
+        fitness += vacation_discrepancy * 1000
         return fitness
     
     def swap(self, m1, m2):
@@ -158,13 +217,9 @@ class WgMembers:
 
 
 def load_history():
-    if not os.path.exists(HISTORY_FILEPATH):
-        with open(HISTORY_FILEPATH, 'w') as file:
-            file.write('')
-    
     hist_df = get_history()
     blame = activities.get_blame().name
-    if hist_df is not None:
+    if len(hist_df) > 0:
         hist_df["Week"] = pandas.to_datetime(hist_df["Week"]).dt.date
         # Rewrite history df due to possible blames
         for entry in get_blames()['entries']:
@@ -266,7 +321,7 @@ def initialize(current_date, hist_df, future_weeks=5):
 
     hist_df["Week"] = pandas.to_datetime(hist_df["Week"]).dt.date
     history_length = len(hist_df)
-    if history_length > 1:
+    if history_length > 0:
         initial_date_ = hist_df.iloc[0]["Week"]
         last_hist_week = hist_df.iloc[-1]["Week"]
         if initial_date_ < initial_date:
@@ -279,7 +334,7 @@ def initialize(current_date, hist_df, future_weeks=5):
     for i in range(n_weeks):
         date = initial_date + datetime.timedelta(days=7 * i)
         assigned = False
-        if history_length > 1:
+        if history_length > 0:
             fetched_data = hist_df[hist_df["Week"] == date].to_dict(orient="records")
             if fetched_data:
                 del fetched_data[0]["Week"]
@@ -329,11 +384,20 @@ def assign_tasks(wg_members: WgMembers, avail_members: list[WgMember]):
                     state_option[m] = pair[0]
             if m not in state_option:
                 state_option[m] = activities.get_vacation()
-        all_state_options.append((state_option, wg_members.calculate_fitness(state_option)))
+        all_state_options.append((state_option, wg_members.calculate_total_fitness(state_option)))
+    
 
     best = min(all_state_options, key=lambda x: x[1])[0]
+
+    verbose = False
+    if verbose:
+        print("\n--------")
     for m, a in best.items():
+        if verbose:
+            m.calculate_fitness(a, verbose=True)
         m.assign(a)
+    if verbose:
+        print("--------\n")
 
 
 def swap_members(wg_members: WgMembers, date):
@@ -389,13 +453,14 @@ def generate_plan(current_date, future_weeks=10):
 
     hist_df = load_history()
     wg_members, dates_to_compute, start_end_dates = initialize(current_date, hist_df, future_weeks)
-    print(len(wg_members.get_members()[0].activity_history))
     for date in dates_to_compute:
         available_members = get_avail_members(wg_members, date)
         assign_tasks(wg_members, available_members)
         swap_members(wg_members, date)
     update_history(hist_df, wg_members, current_date)
     save_plan(wg_members, current_date, start_end_dates)
+    for m in wg_members.get_members():
+        print(m.name, m.get_diversity_idx(), m.get_repeat_idx(activities.get_activity_by_name(name="Vacation")))
 
     text, future_activities = get_weekly_text(wg_members.to_df(), current_date)
     return text, future_activities
