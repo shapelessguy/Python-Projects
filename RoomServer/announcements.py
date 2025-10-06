@@ -23,7 +23,7 @@ from bot_ai import reasoner
 temp_data = {}
 error_msg = "❌ Let's try again shall we?"
 signal = None
-debug_flag = True
+debug_flag = False
 BREAK_TOKEN = '↩️'
 hb = None
 bot_history = {}
