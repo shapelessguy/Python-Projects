@@ -66,6 +66,7 @@ def get_swaps():
 
 def get_expenses():
     expenses = {'entries': []}
+    print(EXPENSES_FILEPATH)
     if os.path.exists(EXPENSES_FILEPATH):
         with open(EXPENSES_FILEPATH, 'r') as file:
             expenses = json.load(file)
@@ -90,27 +91,23 @@ def save_history(df):
 
 
 def save_vacations(vacations):
-    if os.path.exists(VACATIONS_FILEPATH):
-        with open(VACATIONS_FILEPATH, 'w') as file:
-            json.dump(vacations, file, indent=4)
+    with open(VACATIONS_FILEPATH, 'w') as file:
+        json.dump(vacations, file, indent=4)
 
 
 def save_swaps(swaps):
-    if os.path.exists(SWAPS_FILEPATH):
-        with open(SWAPS_FILEPATH, 'w') as file:
-            json.dump(swaps, file, indent=4)
+    with open(SWAPS_FILEPATH, 'w') as file:
+        json.dump(swaps, file, indent=4)
 
 
 def save_expenses(expenses):
-    if os.path.exists(EXPENSES_FILEPATH):
-        with open(EXPENSES_FILEPATH, 'w') as file:
-            json.dump(expenses, file, indent=4)
+    with open(EXPENSES_FILEPATH, 'w') as file:
+        json.dump(expenses, file, indent=4)
 
 
 def save_blames(blames):
-    if os.path.exists(BLAMES_FILEPATH):
-        with open(BLAMES_FILEPATH, 'w') as file:
-            json.dump(blames, file, indent=4)
+    with open(BLAMES_FILEPATH, 'w') as file:
+        json.dump(blames, file, indent=4)
 
 
 def expenses_to_xlsx(expenses_df):

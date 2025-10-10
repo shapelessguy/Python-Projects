@@ -15,8 +15,7 @@ from telegram_bot_calendar import DetailedTelegramCalendar, LSTEP
 from utils import LEO_TOKEN, LEO_GROUP_ID, BLAME_LOGS_FILEPATH, WARN_LOGS_FILEPATH, ANNOUNCEMENT_FILEPATH
 from utils import MAIN_FOLDER_PATH, MSG_HISTORY_PATH, LAST_IDX_FILEPATH, FINANCE_EXCEL_FILEPATH
 from utils import pull, push
-from wg import bac
-from wg import bac_utils as bac_utils
+from wg import bac, bac_utils
 from bot_ai import reasoner
 
 
@@ -165,7 +164,7 @@ def blame_handler2(message, continue_chain=True):
                 return
         relevant_date, saved = handle_feedback(req_dt, sender_name, target_activity, 'blame', save=True)
         if saved:
-            # One could also blame himself
+            # One could also blame themselves
             target_chat_id, target_name = find_target_chat_id(message, req_dt, target_activity, temp_data[message.chat.id]['md'], 'blame', "", continue_chain)
             if target_chat_id is not None:
                 markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
@@ -757,7 +756,7 @@ actions = {
     'vacations': Action('vacations', '🌴 VACATIONS', vacations_handler1),
     'book': Action('book', '🏖 BOOK VACATION', vacation_handler1),
     'expense': Action('expense', '💰 EXPENSE', expense_handler1),
-    'ping': Action('ping', '🛎 PING', ping_handler1, only_to=[807946519]),
+    'ping': Action('ping', '🛎 PING', ping_handler1, only_to=[x.telegram_id for x in bac.WgMembers().get_members() if x.role == "developer"]),
     'finance': Action('finance', '📊 Finance', expenses_handler1),
     'break': Action('break', BREAK_TOKEN, break_handler),
 }

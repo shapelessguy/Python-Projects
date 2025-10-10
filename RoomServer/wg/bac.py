@@ -65,9 +65,10 @@ activities = Activities()
 
 
 class WgMember:
-    def __init__(self, name: str, telegram_id: int):
+    def __init__(self, name: str, telegram_id: int, role: str):
         self.name = name
         self.telegram_id = telegram_id
+        self.role = role
         self.activity_history = []
     
     def assign(self, activity: Activity):
@@ -164,7 +165,8 @@ class WgMembers:
         for member in members:
             name = member["name"]
             member_telegram_id = member["telegram_id"]
-            setattr(self, name, WgMember(name, member_telegram_id))
+            member_role = member["role"]
+            setattr(self, name, WgMember(name, member_telegram_id, member_role))
         self.initial_date = None
 
     def get_members(self):
