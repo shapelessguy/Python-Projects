@@ -1,0 +1,81 @@
+[2025-04-10 04:00:13][MAIN] - Bot is ready.
+[2025-04-10 04:00:13][MAIN] - Pulling from GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-04-10 04:00:14][MAIN] - Contacting Arduino..
+[2025-04-10 04:00:14][MAIN] - Already up to date.
+[2025-04-10 04:00:14][MAIN] - ANNOUNCEMENTS
+[2025-04-10 04:00:14][MAIN] - 2025-04-10 04:00:14.784534
+[2025-04-10 04:00:16][MAIN] - Pulling from GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-04-10 04:00:17][MAIN] - Already up to date.
+[2025-04-10 04:00:19][MAIN] - IP 84.150.114.111 uploaded to:
+[2025-04-10 04:00:19][MAIN] - https://storage.googleapis.com/ip-manager42.appspot.com/RaspberryPi-Cyan/ip_server.txt
+[2025-04-10 04:00:19][MAIN] - History updated.
+[2025-04-10 04:00:19][MAIN] -           Week      Cesare     Claudio  ...         Lea        Mara    Natchaya
+[2025-04-10 04:00:19][MAIN] - [96m44  2024-12-09  Management    Vacation  ...    Vacation   Bathrooms       Floor[0m
+[2025-04-10 04:00:19][MAIN] - [96m45  2024-12-16     Anarchy     Anarchy  ...     Anarchy     Anarchy     Anarchy[0m
+[2025-04-10 04:00:19][MAIN] - [96m46  2024-12-23     Anarchy     Anarchy  ...     Anarchy     Anarchy     Anarchy[0m
+[2025-04-10 04:00:19][MAIN] - [96m47  2024-12-30   Bathrooms    Vacation  ...    Vacation     Kitchen  Management[0m
+[2025-04-10 04:00:19][MAIN] - [96m48  2025-01-06    Vacation   Bathrooms  ...  Management       Floor     Kitchen[0m
+[2025-04-10 04:00:19][MAIN] - [96m49  2025-01-13       Floor       Blame  ...   Bathrooms    Vacation    Vacation[0m
+[2025-04-10 04:00:19][MAIN] - [96m50  2025-01-20    Vacation       Floor  ...     Kitchen  Management   Bathrooms[0m
+[2025-04-10 04:00:19][MAIN] - [96m51  2025-01-27     Kitchen  Management  ...       Floor    Vacation    Vacation[0m
+[2025-04-10 04:00:19][MAIN] - [96m52  2025-02-03    Vacation     Kitchen  ...    Vacation   Bathrooms  Management[0m
+[2025-04-10 04:00:19][MAIN] - [96m53  2025-02-10       Floor   Bathrooms  ...  Management     Kitchen    Vacation[0m
+[2025-04-10 04:00:19][MAIN] - [96m54  2025-02-17  Management    Vacation  ...   Bathrooms    Vacation       Floor[0m
+[2025-04-10 04:00:19][MAIN] - [96m55  2025-02-24    Vacation  Management  ...    Vacation       Floor     Kitchen[0m
+[2025-04-10 04:00:19][MAIN] - [96m56  2025-03-03   Bathrooms       Floor  ...     Kitchen  Management    Vacation[0m
+[2025-04-10 04:00:19][MAIN] - [96m57  2025-03-10       Floor     Kitchen  ...    Vacation    Vacation   Bathrooms[0m
+[2025-04-10 04:00:19][MAIN] - [96m58  2025-03-17    Vacation    Vacation  ...       Floor   Bathrooms  Management[0m
+[2025-04-10 04:00:19][MAIN] - [96m59  2025-03-24     Kitchen   Bathrooms  ...  Management       Floor    Vacation[0m
+[2025-04-10 04:00:19][MAIN] - [38;5;208m60  2025-03-31   Bathrooms  Management  ...    Vacation    Vacation     Kitchen[0m
+[2025-04-10 04:00:19][MAIN] - [91m61  2025-04-07    Vacation    Vacation  ...   Bathrooms     Kitchen       Floor[0m
+[2025-04-10 04:00:19][MAIN] - [91m62  2025-04-14  Management       Floor  ...     Kitchen   Bathrooms    Vacation[0m
+[2025-04-10 04:00:19][MAIN] - [91m63  2025-04-21       Floor     Kitchen  ...    Vacation    Vacation  Management[0m
+[2025-04-10 04:00:19][MAIN] - [91m64  2025-04-28    Vacation    Vacation  ...       Floor  Management   Bathrooms[0m
+[2025-04-10 04:00:19][MAIN] - [91m65  2025-05-05     Kitchen   Bathrooms  ...  Management       Floor    Vacation[0m
+[2025-04-10 04:00:19][MAIN] - [91m66  2025-05-12   Bathrooms  Management  ...    Vacation    Vacation     Kitchen[0m
+[2025-04-10 04:00:19][MAIN] - [91m67  2025-05-19    Vacation    Vacation  ...   Bathrooms     Kitchen       Floor[0m
+[2025-04-10 04:00:19][MAIN] - [91m68  2025-05-26  Management       Floor  ...     Kitchen   Bathrooms    Vacation[0m
+[2025-04-10 04:00:19][MAIN] - [91m69  2025-06-02       Floor     Kitchen  ...    Vacation    Vacation  Management[0m
+[2025-04-10 04:00:19][MAIN] - [91m70  2025-06-09    Vacation    Vacation  ...       Floor  Management   Bathrooms[0m
+[2025-04-10 04:00:19][MAIN] - list index out of range
+[2025-04-10 04:00:19][MAIN] - Traceback (most recent call last):
+
+[2025-04-10 04:00:19][MAIN] -   File "/home/claudio/Python-Projects/RoomServer/announcements.py", line 1120, in set_announcement
+
+[2025-04-10 04:00:19][MAIN] -     text, week_schedule = bac.generate_plan()
+
+[2025-04-10 04:00:19][MAIN] -   File "/home/claudio/Python-Projects/RoomServer/wg/bac.py", line 412, in generate_plan
+
+[2025-04-10 04:00:19][MAIN] -     save_plan(wg_members, current_date, start_end_dates)
+
+[2025-04-10 04:00:19][MAIN] -   File "/home/claudio/Python-Projects/RoomServer/wg/bac.py", line 227, in save_plan
+
+[2025-04-10 04:00:19][MAIN] -     print_df(reduced_df, current_date)
+
+[2025-04-10 04:00:19][MAIN] -   File "/home/claudio/Python-Projects/RoomServer/wg/bac.py", line 210, in print_df
+
+[2025-04-10 04:00:19][MAIN] -     date_str = line.split()[1]
+
+[2025-04-10 04:00:19][MAIN] - IndexError: list index out of range
+[2025-04-10 04:00:19][FLASK] -  * Serving Flask app 'server'
+[2025-04-10 04:00:19][FLASK] -  * Debug mode: off
+[2025-04-10 04:00:19][FLASK] - Address already in use
+[2025-04-10 04:00:19][FLASK] - Port 10004 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-04-10 04:00:19][WEBSOCKET] -  * Serving Flask app 'websocket_server'
+[2025-04-10 04:00:19][WEBSOCKET] -  * Debug mode: off
+[2025-04-10 04:00:19][WEBSOCKET] - Address already in use
+[2025-04-10 04:00:19][WEBSOCKET] - Port 10003 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-04-10 17:14:59][MAIN] - Serving 133279076: msg 4537
+[2025-04-10 17:15:01][MAIN] - Serving 133279076: msg 4539
+[2025-04-10 17:15:03][MAIN] - Serving 133279076: msg 4541
+[2025-04-10 17:16:32][MAIN] - Serving 133279076: msg 4543
+[2025-04-11 04:00:00][MAIN] - Arduino found!
+[2025-04-11 04:00:00][MAIN] - Actuator running.
+[2025-04-11 04:00:00][MAIN] - Actuators killed.
+[2025-04-11 04:00:00][MAIN] - Flask server killed
+[2025-04-11 04:00:00][MAIN] - Server control terminated.
+[2025-04-11 04:00:00][MAIN] - Websocket killed
+[2025-04-11 04:00:00][MAIN] - Websocket control terminated.
+[2025-04-11 04:00:00][MAIN] - Firebase task terminated.
+[2025-04-11 04:00:09][MAIN] - Bot killed.
+[2025-04-11 04:00:09][MAIN] - RESTART

@@ -1,0 +1,39 @@
+[2025-01-26 23:39:57][MAIN] - Exception in thread 
+[2025-01-26 23:39:57][MAIN] - Thread-4 (launch_actuator)
+[2025-01-26 23:39:57][MAIN] - :
+[2025-01-26 23:39:57][MAIN] - Traceback (most recent call last):
+[2025-01-26 23:39:57][MAIN] -   File "/home/claudio/Python-Projects/RoomServer/actuators.py", line 28, in initialize
+[2025-01-26 23:39:57][MAIN] - port=HOSTNAME['arduino_device'], baudrate=9600, bytesize=8, timeout=1, stopbits=serial.STOPBITS_ONE
+[2025-01-26 23:39:57][MAIN] - KeyError
+[2025-01-26 23:39:57][MAIN] - : 
+[2025-01-26 23:39:57][MAIN] - 'arduino_device'
+[2025-01-26 23:39:57][MAIN] - During handling of the above exception, another exception occurred:
+[2025-01-26 23:39:57][MAIN] - Traceback (most recent call last):
+[2025-01-26 23:39:57][MAIN] -   File "/usr/lib/python3.10/threading.py", line 1016, in _bootstrap_inner
+[2025-01-26 23:39:57][MAIN] - self.run()
+[2025-01-26 23:39:57][MAIN] -   File "/usr/lib/python3.10/threading.py", line 953, in run
+[2025-01-26 23:39:57][MAIN] - self._target(*self._args, **self._kwargs)
+[2025-01-26 23:39:57][MAIN] -   File "/home/claudio/Python-Projects/RoomServer/actuators.py", line 201, in launch_actuator
+[2025-01-26 23:39:57][MAIN] - initialize(signal)
+[2025-01-26 23:39:57][MAIN] -   File "/home/claudio/Python-Projects/RoomServer/actuators.py", line 31, in initialize
+[2025-01-26 23:39:57][MAIN] - print(f"Cannot open port {HOSTNAME['arduino_device']}")
+[2025-01-26 23:39:57][MAIN] - KeyError
+[2025-01-26 23:39:57][MAIN] - : 
+[2025-01-26 23:39:57][MAIN] - 'arduino_device'
+[2025-01-26 23:40:02][MAIN] - Issue while trying to upload IP (initialization)
+[2025-01-26 23:40:02][MAIN] - [Errno 2] No such file or directory: 'ip-manager42.json'
+[2025-01-26 23:40:06][MAIN] - Traceback (most recent call last):
+[2025-01-26 23:40:06][MAIN] -   File "/home/claudio/Python-Projects/RoomServer/main.py", line 89, in <module>
+[2025-01-26 23:40:06][MAIN] - main()
+[2025-01-26 23:40:06][MAIN] -   File "/home/claudio/Python-Projects/RoomServer/main.py", line 77, in main
+[2025-01-26 23:40:06][MAIN] - time.sleep(0.5)
+[2025-01-26 23:40:06][MAIN] - KeyboardInterrupt
+[2025-01-26 23:40:07][MAIN] - Issue while trying to upload IP (initialization)
+[2025-01-26 23:40:07][MAIN] - [Errno 2] No such file or directory: 'ip-manager42.json'
+[2025-01-26 23:40:10][MAIN] - Exception ignored in: 
+[2025-01-26 23:40:10][MAIN] - <module 'threading' from '/usr/lib/python3.10/threading.py'>
+[2025-01-26 23:40:10][MAIN] - Traceback (most recent call last):
+[2025-01-26 23:40:10][MAIN] -   File "/usr/lib/python3.10/threading.py", line 1567, in _shutdown
+[2025-01-26 23:40:10][MAIN] - lock.acquire()
+[2025-01-26 23:40:10][MAIN] - KeyboardInterrupt
+[2025-01-26 23:40:10][MAIN] - : 

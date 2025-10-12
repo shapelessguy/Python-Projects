@@ -1,0 +1,181 @@
+[2025-07-08 18:25:16][MAIN] - Bot is ready.
+[2025-07-08 18:25:16][MAIN] - Pulling from GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-07-08 18:25:17][MAIN] - Contacting Arduino..
+[2025-07-08 18:25:18][MAIN] - Already up to date.
+[2025-07-08 18:25:18][MAIN] - ANNOUNCEMENTS
+[2025-07-08 18:25:18][MAIN] - 2025-07-08 18:25:18.229819
+[2025-07-08 18:25:18][MAIN] - Arduino found!
+[2025-07-08 18:25:18][MAIN] - Actuator running.
+[2025-07-08 18:25:18][MAIN] - To Arduino: LIGHTSON
+[2025-07-08 18:25:19][MAIN] - Pulling from GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-07-08 18:25:21][MAIN] - Already up to date.
+[2025-07-08 18:25:21][MAIN] - [[]]
+[2025-07-08 18:25:21][MAIN] - [[]]
+[2025-07-08 18:25:21][MAIN] - [[]]
+[2025-07-08 18:25:21][MAIN] - [[]]
+[2025-07-08 18:25:21][MAIN] - [[]]
+[2025-07-08 18:25:21][MAIN] - [[]]
+[2025-07-08 18:25:23][MAIN] - IP 84.155.64.48 uploaded to:
+[2025-07-08 18:25:23][MAIN] - https://storage.googleapis.com/ip-manager42.appspot.com/RaspberryPi-Cyan/ip_server.txt
+[2025-07-08 18:25:23][FLASK] -  * Serving Flask app 'server'
+[2025-07-08 18:25:23][FLASK] -  * Debug mode: off
+[2025-07-08 18:25:23][WEBSOCKET] -  * Serving Flask app 'websocket_server'
+[2025-07-08 18:25:23][WEBSOCKET] -  * Debug mode: off
+[2025-07-08 18:25:23][MAIN] - History updated
+[2025-07-08 18:25:23][MAIN] -           Week      Cesare     Claudio  ...         Lea        Mara    Natchaya
+[2025-07-08 18:25:23][MAIN] - [96m58  2025-03-17    Vacation    Vacation  ...       Floor   Bathrooms  Management[0m
+[2025-07-08 18:25:23][MAIN] - [96m59  2025-03-24     Kitchen   Bathrooms  ...  Management       Floor    Vacation[0m
+[2025-07-08 18:25:23][MAIN] - [96m60  2025-03-31   Bathrooms  Management  ...    Vacation    Vacation     Kitchen[0m
+[2025-07-08 18:25:23][MAIN] - [96m61  2025-04-07    Vacation    Vacation  ...   Bathrooms     Kitchen       Floor[0m
+[2025-07-08 18:25:23][MAIN] - [96m62  2025-04-14  Management       Floor  ...     Kitchen   Bathrooms    Vacation[0m
+[2025-07-08 18:25:23][MAIN] - [96m63  2025-04-21       Floor     Kitchen  ...    Vacation    Vacation  Management[0m
+[2025-07-08 18:25:23][MAIN] - [96m64  2025-04-28    Vacation    Vacation  ...       Floor  Management   Bathrooms[0m
+[2025-07-08 18:25:23][MAIN] - [96m65  2025-05-05     Kitchen   Bathrooms  ...  Management       Floor    Vacation[0m
+[2025-07-08 18:25:23][MAIN] - [96m66  2025-05-12   Bathrooms  Management  ...    Vacation    Vacation     Kitchen[0m
+[2025-07-08 18:25:23][MAIN] - [96m67  2025-05-19    Vacation    Vacation  ...   Bathrooms     Kitchen       Floor[0m
+[2025-07-08 18:25:23][MAIN] - [96m68  2025-05-26  Management       Floor  ...     Kitchen    Vacation    Vacation[0m
+[2025-07-08 18:25:23][MAIN] - [96m69  2025-06-02       Floor     Kitchen  ...    Vacation   Bathrooms    Vacation[0m
+[2025-07-08 18:25:23][MAIN] - [96m70  2025-06-09     Kitchen    Vacation  ...       Floor  Management   Bathrooms[0m
+[2025-07-08 18:25:23][MAIN] - [96m71  2025-06-16    Vacation   Bathrooms  ...  Management    Vacation     Kitchen[0m
+[2025-07-08 18:25:23][MAIN] - [96m72  2025-06-23   Bathrooms  Management  ...    Vacation       Floor    Vacation[0m
+[2025-07-08 18:25:23][MAIN] - [96m73  2025-06-30  Management       Floor  ...   Bathrooms     Kitchen    Vacation[0m
+[2025-07-08 18:25:23][MAIN] - [38;5;208m74  2025-07-07       Floor    Vacation  ...     Kitchen  Management    Vacation[0m
+[2025-07-08 18:25:23][MAIN] - [91m75  2025-07-14    Vacation     Kitchen  ...       Floor   Bathrooms    Vacation[0m
+[2025-07-08 18:25:23][MAIN] - [91m76  2025-07-21     Kitchen   Bathrooms  ...  Management    Vacation    Vacation[0m
+[2025-07-08 18:25:23][MAIN] - [91m77  2025-07-28   Bathrooms    Vacation  ...    Vacation       Floor  Management[0m
+[2025-07-08 18:25:23][MAIN] - [91m78  2025-08-04    Vacation  Management  ...   Bathrooms     Kitchen       Floor[0m
+[2025-07-08 18:25:23][MAIN] - [91m79  2025-08-11  Management       Floor  ...     Kitchen    Vacation    Vacation[0m
+[2025-07-08 18:25:23][MAIN] - [91m80  2025-08-18     Kitchen    Vacation  ...    Vacation  Management   Bathrooms[0m
+[2025-07-08 18:25:23][MAIN] - [91m81  2025-08-25    Vacation     Kitchen  ...       Floor   Bathrooms  Management[0m
+[2025-07-08 18:25:23][MAIN] - [91m82  2025-09-01       Floor   Bathrooms  ...  Management    Vacation    Vacation[0m
+[2025-07-08 18:25:23][MAIN] - [91m83  2025-09-08   Bathrooms    Vacation  ...    Vacation       Floor     Kitchen[0m
+[2025-07-08 18:25:23][MAIN] - [91m84  2025-09-15    Vacation  Management  ...   Bathrooms     Kitchen       Floor[0m
+[2025-07-08 18:25:23][MAIN] - [91m[27 rows x 7 columns][0m
+[2025-07-08 18:25:23][MAIN] - Saving at /home/claudio/Python-Projects/RoomServer/wg/data/cleaning_plan_leo6.xlsx
+[2025-07-08 18:25:24][MAIN] - Msg sent to LEO6:
+[2025-07-08 18:25:24][MAIN] - This week (07-07-25):
+
+[2025-07-08 18:25:24][MAIN] - ❗⚠ Manager: Mara ⚠❗
+
+[2025-07-08 18:25:24][MAIN] - Cesare: Floor 🧹🪣🫧
+
+[2025-07-08 18:25:24][MAIN] - Jay: Bathrooms 🛁🚽🧻🚾
+
+[2025-07-08 18:25:24][MAIN] - Lea: Kitchen 🪑🚰🧴🔪
+
+[2025-07-08 18:25:24][MAIN] - For the others, 💸🧺🍾 !
+
+[2025-07-08 18:25:24][MAIN] - Note: If you want to swap your task with someone else's task, use the SWAP command.
+
+[2025-07-08 18:25:24][MAIN] - You can submit an anonymous complaint for one or more tasks of the previous week by sending a BLAME.
+
+[2025-07-08 18:25:24][MAIN] - Before blaming someone, please warn them first ⚠️ and then wait until Tuesday evening so that the person has time to recover their delayed duty.
+
+[2025-07-08 18:25:24][MAIN] - If a person receives at least 2 blames, they will need to recover the task in the future ☠️.
+
+[2025-07-08 18:25:24][MAIN] - You can also send a message of appreciation 🌟 by sending a PRAISE as well.
+
+[2025-07-08 18:25:24][MAIN] - If you need vacation for a week, you can send book it though BOOK VACATION.
+
+[2025-07-08 18:25:24][MAIN] - Whenever you have a WG expense 💰, use EXPENSE and specify price/reason for it.
+[2025-07-08 18:25:24][MAIN] - Pushing to GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-07-08 18:25:25][MAIN] - [master 2a1e2ae] auto_update
+
+[2025-07-08 18:25:25][MAIN] -  2 files changed, 7 insertions(+), 1 deletion(-)
+[2025-07-08 18:25:25][MAIN] - To github.com:shapelessguy/Python-Projects.git
+
+[2025-07-08 18:25:25][MAIN] -    6f57938..2a1e2ae  master -> master
+[2025-07-08 18:25:25][MAIN] - [[]]
+[2025-07-08 18:25:25][MAIN] - Msg sent:
+[2025-07-08 18:25:25][MAIN] - Hello Jay, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-07-08 18:25:25][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-07-08 18:25:25][MAIN] - This week (07/07 - 14/07):  <b>Bathrooms</b> 🛁🚽🧻🚾
+
+[2025-07-08 18:25:25][MAIN] - Next week (14/07 - 21/07):  <b>Management</b> 💸🧺🍾
+
+[2025-07-08 18:25:25][MAIN] - Week 21/07 - 28/07:  <b>Floor</b> 🧹🪣🫧
+
+[2025-07-08 18:25:25][MAIN] - Week 28/07 - 04/08:  <b>Kitchen</b> 🪑🚰🧴🔪
+
+[2025-07-08 18:25:25][MAIN] - 👍 Congratulations, you have no complaints for the week 23/06 - 30/06!
+[2025-07-08 18:25:26][MAIN] - [[]]
+[2025-07-08 18:25:26][MAIN] - Msg sent:
+[2025-07-08 18:25:26][MAIN] - Hello Cesare, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-07-08 18:25:26][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-07-08 18:25:26][MAIN] - This week (07/07 - 14/07):  <b>Floor</b> 🧹🪣🫧
+
+[2025-07-08 18:25:26][MAIN] - Next week (14/07 - 21/07):  <b>Vacation</b> 💸🧺🍾
+
+[2025-07-08 18:25:26][MAIN] - Week 21/07 - 28/07:  <b>Kitchen</b> 🪑🚰🧴🔪
+
+[2025-07-08 18:25:26][MAIN] - Week 28/07 - 04/08:  <b>Bathrooms</b> 🛁🚽🧻🚾
+
+[2025-07-08 18:25:26][MAIN] - 👍 Congratulations, you have no complaints for the week 23/06 - 30/06!
+[2025-07-08 18:25:26][MAIN] - [[]]
+[2025-07-08 18:25:26][MAIN] - Msg sent:
+[2025-07-08 18:25:26][MAIN] - Hello Claudio, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-07-08 18:25:26][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-07-08 18:25:26][MAIN] - This week (07/07 - 14/07):  <b>Vacation</b> 💸🧺🍾
+
+[2025-07-08 18:25:26][MAIN] - Next week (14/07 - 21/07):  <b>Kitchen</b> 🪑🚰🧴🔪
+
+[2025-07-08 18:25:26][MAIN] - Week 21/07 - 28/07:  <b>Bathrooms</b> 🛁🚽🧻🚾
+
+[2025-07-08 18:25:26][MAIN] - Week 28/07 - 04/08:  <b>Vacation</b> 💸🧺🍾
+
+[2025-07-08 18:25:26][MAIN] - 👍 Congratulations, you have no complaints for the week 23/06 - 30/06!
+[2025-07-08 18:25:26][MAIN] - [[]]
+[2025-07-08 18:25:26][MAIN] - Msg sent:
+[2025-07-08 18:25:26][MAIN] - Hello Natchaya, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-07-08 18:25:26][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-07-08 18:25:26][MAIN] - This week (07/07 - 14/07):  <b>Vacation</b> 💸🧺🍾
+
+[2025-07-08 18:25:26][MAIN] - Next week (14/07 - 21/07):  <b>Vacation</b> 💸🧺🍾
+
+[2025-07-08 18:25:26][MAIN] - Week 21/07 - 28/07:  <b>Vacation</b> 💸🧺🍾
+
+[2025-07-08 18:25:26][MAIN] - Week 28/07 - 04/08:  <b>Management</b> 💸🧺🍾
+
+[2025-07-08 18:25:26][MAIN] - 👍 Congratulations, you have no complaints for the week 23/06 - 30/06!
+[2025-07-08 18:25:26][MAIN] - [[]]
+[2025-07-08 18:25:26][MAIN] - Msg sent:
+[2025-07-08 18:25:26][MAIN] - Hello Lea, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-07-08 18:25:26][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-07-08 18:25:26][MAIN] - This week (07/07 - 14/07):  <b>Kitchen</b> 🪑🚰🧴🔪
+
+[2025-07-08 18:25:26][MAIN] - Next week (14/07 - 21/07):  <b>Floor</b> 🧹🪣🫧
+
+[2025-07-08 18:25:26][MAIN] - Week 21/07 - 28/07:  <b>Management</b> 💸🧺🍾
+
+[2025-07-08 18:25:26][MAIN] - Week 28/07 - 04/08:  <b>Vacation</b> 💸🧺🍾
+
+[2025-07-08 18:25:26][MAIN] - 👍 Congratulations, you have no complaints for the week 23/06 - 30/06!
+[2025-07-08 18:25:26][MAIN] - [[]]
+[2025-07-08 18:25:26][MAIN] - Msg sent:
+[2025-07-08 18:25:26][MAIN] - Hello Mara, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-07-08 18:25:26][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-07-08 18:25:26][MAIN] - This week (07/07 - 14/07):  <b>Management</b> 💸🧺🍾
+
+[2025-07-08 18:25:26][MAIN] - Next week (14/07 - 21/07):  <b>Bathrooms</b> 🛁🚽🧻🚾
+
+[2025-07-08 18:25:26][MAIN] - Week 21/07 - 28/07:  <b>Vacation</b> 💸🧺🍾
+
+[2025-07-08 18:25:26][MAIN] - Week 28/07 - 04/08:  <b>Floor</b> 🧹🪣🫧
+
+[2025-07-08 18:25:26][MAIN] - 👍 Congratulations, you have no complaints for the week 23/06 - 30/06!
+[2025-07-08 18:26:10][MAIN] - Serving 807946519: msg 4951
+[2025-07-08 18:26:41][MAIN] - Serving 807946519: msg 4953
+[2025-07-08 18:26:42][MAIN] - Serving 807946519: msg 4955
+[2025-07-08 18:26:55][MAIN] - Serving 807946519: msg 4957

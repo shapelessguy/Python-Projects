@@ -1,0 +1,2966 @@
+[2025-06-02 20:41:52][MAIN] - Bot is ready.
+[2025-06-02 20:41:52][MAIN] - Pulling from GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-06-02 20:41:52][MAIN] - Serving 807946519: msg 4827
+[2025-06-02 20:41:53][MAIN] - Contacting Arduino..
+[2025-06-02 20:41:54][MAIN] - Arduino found!
+[2025-06-02 20:41:54][MAIN] - Actuator running.
+[2025-06-02 20:41:54][MAIN] - To Arduino: LIGHTSON
+[2025-06-02 20:41:54][MAIN] - Updating b67b83f..074ff6b
+
+[2025-06-02 20:41:54][MAIN] - Fast-forward
+
+[2025-06-02 20:41:54][MAIN] -  RoomServer/wg/bac.py           | 3 ++-
+
+[2025-06-02 20:41:54][MAIN] -  RoomServer/wg/data/history.csv | 2 ++
+
+[2025-06-02 20:41:54][MAIN] -  2 files changed, 4 insertions(+), 1 deletion(-)
+[2025-06-02 20:41:54][MAIN] - From github.com:shapelessguy/Python-Projects
+
+[2025-06-02 20:41:54][MAIN] -    b67b83f..074ff6b  master     -> origin/master
+[2025-06-02 20:41:57][MAIN] - Serving 807946519: msg 4829
+[2025-06-02 20:41:58][MAIN] - IP 84.150.113.149 uploaded to:
+[2025-06-02 20:41:58][MAIN] - https://storage.googleapis.com/ip-manager42.appspot.com/RaspberryPi-Cyan/ip_server.txt
+[2025-06-02 20:41:59][FLASK] -  * Serving Flask app 'server'
+[2025-06-02 20:41:59][FLASK] -  * Debug mode: off
+[2025-06-02 20:41:59][WEBSOCKET] -  * Serving Flask app 'websocket_server'
+[2025-06-02 20:41:59][WEBSOCKET] -  * Debug mode: off
+[2025-06-02 20:42:23][MAIN] - Serving 807946519: msg 4831
+[2025-06-02 20:45:09][MAIN] - Serving 7129379343: msg 4834
+[2025-06-02 20:45:09][MAIN] - Serving 7129379343: msg 4834
+[2025-06-02 20:45:15][MAIN] - Serving 7129379343: msg 4836
+[2025-06-02 20:45:21][MAIN] - Serving 7129379343: msg 4838
+[2025-06-02 20:45:43][MAIN] - Serving 7129379343: msg 4840
+[2025-06-02 21:42:09][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-02 21:59:00][MAIN] - To Arduino: LIGHTSOFF
+[2025-06-02 22:12:21][WEBSOCKET] - 195.184.76.67 - - [02/Jun/2025 22:12:21] code 400, message Bad request syntax ("\x16\x03\x03\x01§\x01\x00\x01£\x03\x03'×n\x90mÞHJÏ\x9e<\x10²/*æºÂò")
+[2025-06-02 22:42:24][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-02 23:42:40][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-03 00:43:07][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-03 01:24:03][FLASK] - STRIP: {'strip': 'i0'}
+[2025-06-03 01:24:03][MAIN] - To Arduino: STRIPOFF
+[2025-06-03 01:24:04][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-03 01:24:04][MAIN] - To Arduino: STRIPTOPCOLSWITCH
+[2025-06-03 01:24:04][MAIN] - To Arduino: STRIPON
+[2025-06-03 01:24:05][MAIN] - To Arduino: STRIPI1
+[2025-06-03 01:24:05][MAIN] - Command STRIPI0 sent
+[2025-06-03 01:43:22][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-03 02:22:49][FLASK] - 147.45.112.101 - - [03/Jun/2025 02:22:49] code 400, message Bad HTTP/0.9 request type ('\x03\x00\x00/*à\x00\x00\x00\x00\x00Cookie:')
+[2025-06-03 02:43:38][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-03 03:19:02][WEBSOCKET] - 147.45.112.101 - - [03/Jun/2025 03:19:02] code 400, message Bad HTTP/0.9 request type ('\x03\x00\x00/*à\x00\x00\x00\x00\x00Cookie:')
+[2025-06-03 03:43:57][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-03 04:20:52][FLASK] - PING
+[2025-06-03 04:44:13][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-03 04:49:14][MAIN] - Audio set off automatically
+[2025-06-03 04:49:14][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-03 04:49:15][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-03 04:49:18][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-03 04:49:18][MAIN] - To Arduino: STRIPTOPOFF
+[2025-06-03 04:49:18][MAIN] - Command AUDIOOFF sent
+[2025-06-03 05:48:59][FLASK] - 147.45.112.101 - - [03/Jun/2025 05:48:59] code 400, message Bad HTTP/0.9 request type ('\x03\x00\x00/*à\x00\x00\x00\x00\x00Cookie:')
+[2025-06-03 06:43:54][WEBSOCKET] - 147.45.112.101 - - [03/Jun/2025 06:43:54] code 400, message Bad HTTP/0.9 request type ('\x03\x00\x00/*à\x00\x00\x00\x00\x00Cookie:')
+[2025-06-03 06:57:12][FLASK] - PING
+[2025-06-03 07:30:00][MAIN] - To Arduino: LIGHTSON
+[2025-06-03 09:00:45][FLASK] - AUDIO: {'audio': 'on'}
+[2025-06-03 09:00:45][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-03 09:00:46][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-03 09:00:47][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-06-03 09:00:47][MAIN] - To Arduino: STRIPTOPG4
+[2025-06-03 09:00:47][MAIN] - Command AUDIOON sent
+[2025-06-03 09:00:47][MAIN] - To Arduino: STRIPOFF
+[2025-06-03 09:00:48][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-03 09:00:48][MAIN] - To Arduino: STRIPON
+[2025-06-03 09:00:48][MAIN] - To Arduino: STRIPG4
+[2025-06-03 09:00:48][MAIN] - Command STRIPTOPG4 sent
+[2025-06-03 09:59:00][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-03 10:59:15][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-03 11:59:30][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-03 12:59:44][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-03 14:00:00][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-03 15:00:15][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-03 16:00:31][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-03 16:27:51][WEBSOCKET] - 195.184.76.174 - - [03/Jun/2025 16:27:51] code 400, message Bad request version ('À£!0ÌºòÑã#1BÒ<')
+[2025-06-03 17:00:47][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-03 17:59:15][MAIN] - Issue while trying to upload IP (initialization)
+[2025-06-03 17:59:15][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f24543c0d60>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-06-03 17:59:20][MAIN] - Issue while trying to upload IP (initialization)
+[2025-06-03 17:59:20][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f24543c1630>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-06-03 17:59:25][MAIN] - IP 84.150.113.149 uploaded to:
+[2025-06-03 17:59:25][MAIN] - https://storage.googleapis.com/ip-manager42.appspot.com/RaspberryPi-Cyan/ip_server.txt
+[2025-06-03 17:59:26][WEBSOCKET] -  * Serving Flask app 'websocket_server'
+[2025-06-03 17:59:26][WEBSOCKET] -  * Debug mode: off
+[2025-06-03 17:59:26][WEBSOCKET] - Address already in use
+[2025-06-03 17:59:26][WEBSOCKET] - Port 10003 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-06-03 17:59:26][FLASK] -  * Serving Flask app 'server'
+[2025-06-03 17:59:26][FLASK] -  * Debug mode: off
+[2025-06-03 17:59:26][FLASK] - Address already in use
+[2025-06-03 17:59:26][FLASK] - Port 10004 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-06-03 18:01:03][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-03 18:14:56][FLASK] - PING
+[2025-06-03 19:01:18][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-03 20:01:46][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-03 21:02:02][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-03 21:59:00][MAIN] - To Arduino: LIGHTSOFF
+[2025-06-03 22:02:18][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-03 23:02:34][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-04 00:02:50][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-04 01:03:06][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-04 01:18:22][FLASK] - STRIP: {'strip': 'i0'}
+[2025-06-04 01:18:22][MAIN] - To Arduino: STRIPOFF
+[2025-06-04 01:18:23][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-04 01:18:23][MAIN] - To Arduino: STRIPTOPCOLSWITCH
+[2025-06-04 01:18:23][MAIN] - To Arduino: STRIPON
+[2025-06-04 01:18:24][MAIN] - To Arduino: STRIPI1
+[2025-06-04 01:18:24][MAIN] - Command STRIPI0 sent
+[2025-06-04 02:03:25][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-04 03:03:41][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-04 03:23:46][MAIN] - Audio set off automatically
+[2025-06-04 03:23:46][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-04 03:23:47][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-04 03:23:50][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-04 03:23:51][MAIN] - To Arduino: STRIPTOPOFF
+[2025-06-04 03:23:51][MAIN] - Command AUDIOOFF sent
+[2025-06-04 05:04:06][FLASK] - PING
+[2025-06-04 07:30:00][MAIN] - To Arduino: LIGHTSON
+[2025-06-04 13:26:09][WEBSOCKET] - 141.98.11.116 - - [04/Jun/2025 13:26:09] code 400, message Bad HTTP/0.9 request type ('\x03\x00\x00/*à\x00\x00\x00\x00\x00Cookie:')
+[2025-06-04 14:00:56][FLASK] - 91.196.152.101 - - [04/Jun/2025 14:00:56] code 400, message Bad HTTP/0.9 request type ('\x16\x03\x03\x01§\x01\x00\x01£\x03\x03v\x9cÔ\x17\x80Ñ22p*ù±Ïîrb£²')
+[2025-06-04 14:01:02][FLASK] - PING
+[2025-06-04 14:47:49][FLASK] - AUDIO: {'audio': 'on'}
+[2025-06-04 14:47:49][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-04 14:47:50][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-06-04 14:47:50][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-04 14:47:50][MAIN] - To Arduino: STRIPTOPG4
+[2025-06-04 14:47:50][MAIN] - Command AUDIOON sent
+[2025-06-04 14:47:51][MAIN] - To Arduino: STRIPOFF
+[2025-06-04 14:47:51][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-04 14:47:51][MAIN] - To Arduino: STRIPON
+[2025-06-04 14:47:51][MAIN] - To Arduino: STRIPG4
+[2025-06-04 14:47:51][MAIN] - Command STRIPTOPG4 sent
+[2025-06-04 15:31:00][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-04 16:31:15][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-04 17:18:12][FLASK] - 78.80.44.92 - - [04/Jun/2025 17:18:12] code 400, message Bad request syntax ('\x03\x00\x00\x13\x0eà\x00\x00\x00\x00\x00\x01\x00\x08\x00\x03\x00\x00\x00')
+[2025-06-04 17:31:41][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-04 18:10:49][FLASK] - PING
+[2025-06-04 18:31:56][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-04 19:32:12][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-04 20:32:37][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-04 21:32:52][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-04 21:59:00][MAIN] - To Arduino: LIGHTSOFF
+[2025-06-04 22:33:07][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-04 23:33:21][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-05 00:18:39][FLASK] - STRIP: {'strip': 'i0'}
+[2025-06-05 00:18:39][MAIN] - To Arduino: STRIPOFF
+[2025-06-05 00:18:40][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-05 00:18:40][MAIN] - To Arduino: STRIPTOPCOLSWITCH
+[2025-06-05 00:18:40][MAIN] - To Arduino: STRIPON
+[2025-06-05 00:18:41][MAIN] - To Arduino: STRIPI1
+[2025-06-05 00:18:41][MAIN] - Command STRIPI0 sent
+[2025-06-05 00:33:36][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-05 01:15:15][WEBSOCKET] - 216.52.183.37 - - [05/Jun/2025 01:15:15] code 400, message Bad request syntax ('\x03\x00\x00\x13\x0eà\x00\x00\x00\x00\x00\x01\x00\x08\x00\x03\x00\x00\x00')
+[2025-06-05 01:33:51][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-05 02:34:05][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-05 02:44:37][MAIN] - Audio set off automatically
+[2025-06-05 02:44:37][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-05 02:44:38][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-05 02:44:41][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-05 02:44:42][MAIN] - To Arduino: STRIPTOPOFF
+[2025-06-05 02:44:42][MAIN] - Command AUDIOOFF sent
+[2025-06-05 06:43:19][FLASK] - PING
+[2025-06-05 07:22:10][MAIN] - Serving 7129379343: msg 4843
+[2025-06-05 07:22:12][MAIN] - Serving 7129379343: msg 4845
+[2025-06-05 07:22:24][MAIN] - Serving 7129379343: msg 4847
+[2025-06-05 07:30:00][MAIN] - To Arduino: LIGHTSON
+[2025-06-05 13:24:19][FLASK] - AUDIO: {'audio': 'on'}
+[2025-06-05 13:24:19][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-05 13:24:20][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-06-05 13:24:20][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-05 13:24:21][MAIN] - To Arduino: STRIPTOPG4
+[2025-06-05 13:24:21][MAIN] - Command AUDIOON sent
+[2025-06-05 13:24:21][MAIN] - To Arduino: STRIPOFF
+[2025-06-05 13:24:22][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-05 13:24:22][MAIN] - To Arduino: STRIPON
+[2025-06-05 13:24:22][MAIN] - To Arduino: STRIPG4
+[2025-06-05 13:24:22][MAIN] - Command STRIPTOPG4 sent
+[2025-06-05 13:25:50][FLASK] - AUDIO: {'audio': 'on'}
+[2025-06-05 13:25:50][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-05 13:25:51][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-06-05 13:25:51][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-05 13:25:51][MAIN] - To Arduino: STRIPTOPG4
+[2025-06-05 13:25:51][MAIN] - Command AUDIOON sent
+[2025-06-05 13:25:52][MAIN] - To Arduino: STRIPOFF
+[2025-06-05 13:25:52][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-05 13:25:52][MAIN] - To Arduino: STRIPON
+[2025-06-05 13:25:52][MAIN] - To Arduino: STRIPG4
+[2025-06-05 13:25:52][MAIN] - Command STRIPTOPG4 sent
+[2025-06-05 14:18:32][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-05 15:18:47][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-05 16:19:03][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-05 16:41:42][FLASK] - PING
+[2025-06-05 17:19:20][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-05 18:19:38][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-05 19:19:56][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-05 20:20:13][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-05 21:20:29][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-05 21:57:18][FLASK] - 107.173.58.226 - - [05/Jun/2025 21:57:18] code 400, message Bad HTTP/0.9 request type ('\x03\x00\x00/*à\x00\x00\x00\x00\x00Cookie:')
+[2025-06-05 21:59:00][MAIN] - To Arduino: LIGHTSOFF
+[2025-06-05 22:20:45][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-05 22:59:58][FLASK] - 107.173.58.226 - - [05/Jun/2025 22:59:58] code 400, message Bad HTTP/0.9 request type ('\x03\x00\x00/*à\x00\x00\x00\x00\x00Cookie:')
+[2025-06-05 23:21:01][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-06 00:21:17][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-06 01:11:00][FLASK] - STRIP: {'strip': 'i0'}
+[2025-06-06 01:11:00][MAIN] - To Arduino: STRIPOFF
+[2025-06-06 01:11:01][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-06 01:11:01][MAIN] - To Arduino: STRIPTOPCOLSWITCH
+[2025-06-06 01:11:01][MAIN] - To Arduino: STRIPON
+[2025-06-06 01:11:02][MAIN] - To Arduino: STRIPI1
+[2025-06-06 01:11:02][MAIN] - Command STRIPI0 sent
+[2025-06-06 01:21:32][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-06 02:21:47][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-06 03:12:20][MAIN] - Audio set off automatically
+[2025-06-06 03:12:20][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-06 03:12:21][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-06 03:12:24][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-06 03:12:24][MAIN] - To Arduino: STRIPTOPOFF
+[2025-06-06 03:12:24][MAIN] - Command AUDIOOFF sent
+[2025-06-06 04:22:56][FLASK] - 91.196.152.89 - - [06/Jun/2025 04:22:56] code 400, message Bad request version ('À#À¬À®À+À')
+[2025-06-06 04:23:04][FLASK] - PING
+[2025-06-06 05:36:14][FLASK] - PING
+[2025-06-06 07:30:00][MAIN] - To Arduino: LIGHTSON
+[2025-06-06 07:43:33][FLASK] - 141.98.11.116 - - [06/Jun/2025 07:43:33] code 400, message Bad HTTP/0.9 request type ('\x03\x00\x00/*à\x00\x00\x00\x00\x00Cookie:')
+[2025-06-06 07:50:17][FLASK] - PING
+[2025-06-06 08:17:19][FLASK] - AUDIO: {'audio': 'on'}
+[2025-06-06 08:17:19][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-06 08:17:20][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-06-06 08:17:20][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-06 08:17:21][MAIN] - To Arduino: STRIPTOPG4
+[2025-06-06 08:17:21][MAIN] - Command AUDIOON sent
+[2025-06-06 08:17:21][MAIN] - To Arduino: STRIPOFF
+[2025-06-06 08:17:22][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-06 08:17:22][MAIN] - To Arduino: STRIPON
+[2025-06-06 08:17:22][MAIN] - To Arduino: STRIPG4
+[2025-06-06 08:17:22][MAIN] - Command STRIPTOPG4 sent
+[2025-06-06 08:30:02][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-06 09:30:17][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-06 10:30:31][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-06 11:21:42][MAIN] - Audio set off automatically
+[2025-06-06 11:21:42][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-06 11:21:43][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-06 11:21:46][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-06 11:21:46][MAIN] - To Arduino: STRIPTOPOFF
+[2025-06-06 11:21:46][MAIN] - Command AUDIOOFF sent
+[2025-06-06 11:28:11][FLASK] - AUDIO: {'audio': 'on'}
+[2025-06-06 11:28:11][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-06 11:28:12][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-06-06 11:28:12][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-06 11:28:12][MAIN] - To Arduino: STRIPTOPG4
+[2025-06-06 11:28:12][MAIN] - Command AUDIOON sent
+[2025-06-06 11:28:13][MAIN] - To Arduino: STRIPOFF
+[2025-06-06 11:28:13][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-06 11:28:13][MAIN] - To Arduino: STRIPON
+[2025-06-06 11:28:13][MAIN] - To Arduino: STRIPG4
+[2025-06-06 11:28:13][MAIN] - Command STRIPTOPG4 sent
+[2025-06-06 11:40:14][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-06 12:40:39][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-06 13:40:53][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-06 14:41:09][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-06 15:41:24][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-06 16:32:05][FLASK] - PING
+[2025-06-06 16:41:39][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-06 17:42:06][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-06 18:42:33][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-06 19:43:01][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-06 20:44:02][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-06 21:44:44][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-06 21:49:38][WEBSOCKET] - 185.170.144.3 - - [06/Jun/2025 21:49:38] code 400, message Bad HTTP/0.9 request type ('\x03\x00\x00/*à\x00\x00\x00\x00\x00Cookie:')
+[2025-06-06 21:59:00][MAIN] - To Arduino: LIGHTSOFF
+[2025-06-06 22:45:00][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-06 23:45:16][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-07 00:45:33][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-07 01:35:31][FLASK] - STRIP: {'strip': 'i0'}
+[2025-06-07 01:35:31][MAIN] - To Arduino: STRIPOFF
+[2025-06-07 01:35:32][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-07 01:35:32][MAIN] - To Arduino: STRIPTOPCOLSWITCH
+[2025-06-07 01:35:32][MAIN] - To Arduino: STRIPON
+[2025-06-07 01:35:33][MAIN] - To Arduino: STRIPI1
+[2025-06-07 01:35:33][MAIN] - Command STRIPI0 sent
+[2025-06-07 01:45:49][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-07 02:46:15][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-07 03:46:31][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-07 04:18:08][MAIN] - Audio set off automatically
+[2025-06-07 04:18:08][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-07 04:18:09][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-07 04:18:12][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-07 04:18:13][MAIN] - To Arduino: STRIPTOPOFF
+[2025-06-07 04:18:13][MAIN] - Command AUDIOOFF sent
+[2025-06-07 07:30:00][MAIN] - To Arduino: LIGHTSON
+[2025-06-07 08:31:21][FLASK] - PING
+[2025-06-07 09:34:00][MAIN] - Serving 7129379343: msg 4850
+[2025-06-07 09:34:05][MAIN] - Serving 7129379343: msg 4852
+[2025-06-07 09:34:10][MAIN] - Serving 7129379343: msg 4854
+[2025-06-07 09:56:22][FLASK] - AUDIO: {'audio': 'on'}
+[2025-06-07 09:56:22][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-07 09:56:23][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-06-07 09:56:23][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-07 09:56:23][MAIN] - To Arduino: STRIPTOPG4
+[2025-06-07 09:56:23][MAIN] - Command AUDIOON sent
+[2025-06-07 09:56:24][MAIN] - To Arduino: STRIPOFF
+[2025-06-07 09:56:24][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-07 09:56:24][MAIN] - To Arduino: STRIPON
+[2025-06-07 09:56:24][MAIN] - To Arduino: STRIPG4
+[2025-06-07 09:56:24][MAIN] - Command STRIPTOPG4 sent
+[2025-06-07 10:28:11][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-07 11:28:25][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-07 12:28:39][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-07 13:28:53][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-07 14:29:08][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-07 15:29:22][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-07 16:29:37][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-07 17:25:35][FLASK] - PING
+[2025-06-07 17:29:52][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-07 18:30:31][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-07 19:30:47][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-07 20:31:02][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-07 21:31:17][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-07 21:59:00][MAIN] - To Arduino: LIGHTSOFF
+[2025-06-07 22:31:32][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-07 23:31:47][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-08 00:32:02][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-08 01:32:17][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-08 01:41:24][FLASK] - STRIP: {'strip': 'i0'}
+[2025-06-08 01:41:24][MAIN] - To Arduino: STRIPOFF
+[2025-06-08 01:41:25][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-08 01:41:25][MAIN] - To Arduino: STRIPTOPCOLSWITCH
+[2025-06-08 01:41:25][MAIN] - To Arduino: STRIPON
+[2025-06-08 01:41:26][MAIN] - To Arduino: STRIPI1
+[2025-06-08 01:41:26][MAIN] - Command STRIPI0 sent
+[2025-06-08 02:32:32][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-08 03:32:47][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-08 04:33:01][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-08 04:59:37][MAIN] - Audio set off automatically
+[2025-06-08 04:59:37][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-08 04:59:38][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-08 04:59:41][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-08 04:59:41][MAIN] - To Arduino: STRIPTOPOFF
+[2025-06-08 04:59:41][MAIN] - Command AUDIOOFF sent
+[2025-06-08 06:04:45][FLASK] - PING
+[2025-06-08 07:30:00][MAIN] - To Arduino: LIGHTSON
+[2025-06-08 10:14:32][FLASK] - AUDIO: {'audio': 'on'}
+[2025-06-08 10:14:32][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-08 10:14:32][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-06-08 10:14:33][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-08 10:14:33][MAIN] - To Arduino: STRIPTOPG4
+[2025-06-08 10:14:33][MAIN] - Command AUDIOON sent
+[2025-06-08 10:14:33][MAIN] - To Arduino: STRIPOFF
+[2025-06-08 10:14:34][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-08 10:14:34][MAIN] - To Arduino: STRIPON
+[2025-06-08 10:14:34][MAIN] - To Arduino: STRIPG4
+[2025-06-08 10:14:34][MAIN] - Command STRIPTOPG4 sent
+[2025-06-08 10:51:20][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-08 11:51:34][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-08 12:51:49][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-08 13:52:04][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-08 14:52:18][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-08 15:52:32][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-08 16:52:46][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-08 16:54:55][FLASK] - PING
+[2025-06-08 17:53:00][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-08 18:53:15][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-08 19:53:30][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-08 20:53:45][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-08 20:56:34][MAIN] - Issue while trying to upload IP (initialization)
+[2025-06-08 20:56:34][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f24541c0220>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-06-08 20:56:40][MAIN] - IP 84.150.113.149 uploaded to:
+[2025-06-08 20:56:40][MAIN] - https://storage.googleapis.com/ip-manager42.appspot.com/RaspberryPi-Cyan/ip_server.txt
+[2025-06-08 20:56:40][FLASK] -  * Serving Flask app 'server'
+[2025-06-08 20:56:40][FLASK] -  * Debug mode: off
+[2025-06-08 20:56:40][FLASK] - Address already in use
+[2025-06-08 20:56:40][FLASK] - Port 10004 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-06-08 20:56:40][WEBSOCKET] -  * Serving Flask app 'websocket_server'
+[2025-06-08 20:56:40][WEBSOCKET] -  * Debug mode: off
+[2025-06-08 20:56:40][WEBSOCKET] - Address already in use
+[2025-06-08 20:56:40][WEBSOCKET] - Port 10003 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-06-08 21:54:00][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-08 21:59:00][MAIN] - To Arduino: LIGHTSOFF
+[2025-06-08 22:54:14][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-08 23:54:29][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-09 00:17:23][WEBSOCKET] - 194.0.234.34 - - [09/Jun/2025 00:17:23] code 400, message Bad HTTP/0.9 request type ('\x03\x00\x00/*à\x00\x00\x00\x00\x00Cookie:')
+[2025-06-09 00:54:44][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-09 01:55:10][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-09 02:55:24][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-09 03:03:46][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-06-09 03:03:46][MAIN] - To Arduino: STRIPOFF
+[2025-06-09 03:03:47][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-09 03:03:47][MAIN] - To Arduino: STRIPON
+[2025-06-09 03:03:47][MAIN] - To Arduino: STRIPG4
+[2025-06-09 03:03:47][MAIN] - Command STRIPTOPG4 sent
+[2025-06-09 03:03:51][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-06-09 03:03:51][MAIN] - To Arduino: STRIPOFF
+[2025-06-09 03:03:52][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-09 03:03:52][MAIN] - To Arduino: STRIPON
+[2025-06-09 03:03:52][MAIN] - To Arduino: STRIPG4
+[2025-06-09 03:03:52][MAIN] - Command STRIPTOPG4 sent
+[2025-06-09 03:03:58][FLASK] - STRIP: {'strip': 'i0'}
+[2025-06-09 03:03:58][MAIN] - To Arduino: STRIPOFF
+[2025-06-09 03:03:59][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-09 03:03:59][MAIN] - To Arduino: STRIPTOPCOLSWITCH
+[2025-06-09 03:03:59][MAIN] - To Arduino: STRIPON
+[2025-06-09 03:04:00][MAIN] - To Arduino: STRIPI1
+[2025-06-09 03:04:00][MAIN] - Command STRIPI0 sent
+[2025-06-09 03:04:01][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-06-09 03:04:01][MAIN] - To Arduino: STRIPOFF
+[2025-06-09 03:04:02][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-09 03:04:02][MAIN] - To Arduino: STRIPON
+[2025-06-09 03:04:02][MAIN] - To Arduino: STRIPG4
+[2025-06-09 03:04:02][MAIN] - Command STRIPTOPG4 sent
+[2025-06-09 03:12:06][WEBSOCKET] - 194.0.234.34 - - [09/Jun/2025 03:12:06] code 400, message Bad HTTP/0.9 request type ('\x03\x00\x00/*à\x00\x00\x00\x00\x00Cookie:')
+[2025-06-09 03:24:10][FLASK] - STRIP: {'strip': 'i0'}
+[2025-06-09 03:24:10][MAIN] - To Arduino: STRIPOFF
+[2025-06-09 03:24:11][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-09 03:24:11][MAIN] - To Arduino: STRIPTOPCOLSWITCH
+[2025-06-09 03:24:11][MAIN] - To Arduino: STRIPON
+[2025-06-09 03:24:12][MAIN] - To Arduino: STRIPI1
+[2025-06-09 03:24:12][MAIN] - Command STRIPI0 sent
+[2025-06-09 03:55:38][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-09 04:55:52][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-09 05:56:06][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-09 06:03:46][FLASK] - PING
+[2025-06-09 06:56:20][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-09 07:30:00][MAIN] - To Arduino: LIGHTSON
+[2025-06-09 07:56:34][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-09 08:00:01][MAIN] - ANNOUNCEMENTS
+[2025-06-09 08:00:01][MAIN] - 2025-06-09 08:00:01.455376
+[2025-06-09 08:00:02][MAIN] - Pulling from GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-06-09 08:00:05][MAIN] - Already up to date.
+[2025-06-09 08:00:05][MAIN] - [['Bathrooms']]
+[2025-06-09 08:00:05][MAIN] - [['Management']]
+[2025-06-09 08:00:05][MAIN] - [['Floor']]
+[2025-06-09 08:00:05][MAIN] - [['Vacation']]
+[2025-06-09 08:00:05][MAIN] - [['Kitchen']]
+[2025-06-09 08:00:05][MAIN] - [['Vacation']]
+[2025-06-09 08:00:07][MAIN] - History updated.
+[2025-06-09 08:00:07][MAIN] -           Week      Cesare     Claudio  ...         Lea        Mara    Natchaya
+[2025-06-09 08:00:07][MAIN] - [96m53  2025-02-10       Floor   Bathrooms  ...  Management     Kitchen    Vacation[0m
+[2025-06-09 08:00:07][MAIN] - [96m54  2025-02-17  Management    Vacation  ...   Bathrooms    Vacation       Floor[0m
+[2025-06-09 08:00:07][MAIN] - [96m55  2025-02-24    Vacation  Management  ...    Vacation       Floor     Kitchen[0m
+[2025-06-09 08:00:07][MAIN] - [96m56  2025-03-03   Bathrooms       Floor  ...     Kitchen  Management    Vacation[0m
+[2025-06-09 08:00:07][MAIN] - [96m57  2025-03-10       Floor     Kitchen  ...    Vacation    Vacation   Bathrooms[0m
+[2025-06-09 08:00:07][MAIN] - [96m58  2025-03-17    Vacation    Vacation  ...       Floor   Bathrooms  Management[0m
+[2025-06-09 08:00:07][MAIN] - [96m59  2025-03-24     Kitchen   Bathrooms  ...  Management       Floor    Vacation[0m
+[2025-06-09 08:00:07][MAIN] - [96m60  2025-03-31   Bathrooms  Management  ...    Vacation    Vacation     Kitchen[0m
+[2025-06-09 08:00:07][MAIN] - [96m61  2025-04-07    Vacation    Vacation  ...   Bathrooms     Kitchen       Floor[0m
+[2025-06-09 08:00:07][MAIN] - [96m62  2025-04-14  Management       Floor  ...     Kitchen   Bathrooms    Vacation[0m
+[2025-06-09 08:00:07][MAIN] - [96m63  2025-04-21       Floor     Kitchen  ...    Vacation    Vacation  Management[0m
+[2025-06-09 08:00:07][MAIN] - [96m64  2025-04-28    Vacation    Vacation  ...       Floor  Management   Bathrooms[0m
+[2025-06-09 08:00:07][MAIN] - [96m65  2025-05-05     Kitchen   Bathrooms  ...  Management       Floor    Vacation[0m
+[2025-06-09 08:00:07][MAIN] - [96m66  2025-05-12   Bathrooms  Management  ...    Vacation    Vacation     Kitchen[0m
+[2025-06-09 08:00:07][MAIN] - [96m67  2025-05-19    Vacation    Vacation  ...   Bathrooms     Kitchen       Floor[0m
+[2025-06-09 08:00:07][MAIN] - [96m68  2025-05-26  Management       Floor  ...     Kitchen    Vacation    Vacation[0m
+[2025-06-09 08:00:07][MAIN] - [38;5;208m69  2025-06-02       Floor     Kitchen  ...    Vacation   Bathrooms    Vacation[0m
+[2025-06-09 08:00:07][MAIN] - [91m70  2025-06-09     Kitchen    Vacation  ...       Floor  Management   Bathrooms[0m
+[2025-06-09 08:00:07][MAIN] - [91m71  2025-06-16    Vacation   Bathrooms  ...  Management    Vacation     Kitchen[0m
+[2025-06-09 08:00:07][MAIN] - [91m72  2025-06-23   Bathrooms  Management  ...    Vacation       Floor    Vacation[0m
+[2025-06-09 08:00:07][MAIN] - [91m73  2025-06-30  Management       Floor  ...   Bathrooms     Kitchen    Vacation[0m
+[2025-06-09 08:00:07][MAIN] - [91m74  2025-07-07       Floor    Vacation  ...     Kitchen  Management    Vacation[0m
+[2025-06-09 08:00:07][MAIN] - [91m75  2025-07-14    Vacation     Kitchen  ...       Floor   Bathrooms    Vacation[0m
+[2025-06-09 08:00:07][MAIN] - [91m76  2025-07-21     Kitchen   Bathrooms  ...  Management    Vacation    Vacation[0m
+[2025-06-09 08:00:07][MAIN] - [91m77  2025-07-28   Bathrooms    Vacation  ...    Vacation       Floor  Management[0m
+[2025-06-09 08:00:07][MAIN] - [91m78  2025-08-04    Vacation  Management  ...   Bathrooms     Kitchen       Floor[0m
+[2025-06-09 08:00:07][MAIN] - [91m79  2025-08-11  Management       Floor  ...     Kitchen    Vacation    Vacation[0m
+[2025-06-09 08:00:07][MAIN] - [91m[27 rows x 7 columns][0m
+[2025-06-09 08:00:07][MAIN] - Saving at /home/claudio/Python-Projects/RoomServer/wg/data/cleaning_plan_leo6.xlsx
+[2025-06-09 08:00:08][MAIN] - Msg sent to LEO6:
+[2025-06-09 08:00:08][MAIN] - This week (09-06-25):
+
+[2025-06-09 08:00:08][MAIN] - ❗⚠ Manager: Mara ⚠❗
+
+[2025-06-09 08:00:08][MAIN] - Cesare: Kitchen 🪑🚰🧴🔪
+
+[2025-06-09 08:00:08][MAIN] - Lea: Floor 🧹🪣🫧
+
+[2025-06-09 08:00:08][MAIN] - Natchaya: Bathrooms 🛁🚽🧻🚾
+
+[2025-06-09 08:00:08][MAIN] - For the others, 💸🧺🍾 !
+
+[2025-06-09 08:00:08][MAIN] - Note: If you want to swap your task with someone else's task, use the SWAP command.
+
+[2025-06-09 08:00:08][MAIN] - You can submit an anonymous complaint for one or more tasks of the previous week by sending a BLAME.
+
+[2025-06-09 08:00:08][MAIN] - Before blaming someone, please warn them first ⚠️ and then wait until Tuesday evening so that the person has time to recover their delayed duty.
+
+[2025-06-09 08:00:08][MAIN] - If a person receives at least 2 blames, they will need to recover the task in the future ☠️.
+
+[2025-06-09 08:00:08][MAIN] - You can also send a message of appreciation 🌟 by sending a PRAISE as well.
+
+[2025-06-09 08:00:08][MAIN] - If you need vacation for a week, you can send book it though BOOK VACATION.
+
+[2025-06-09 08:00:08][MAIN] - Whenever you have a WG expense 💰, use EXPENSE and specify price/reason for it.
+[2025-06-09 08:00:08][MAIN] - Pushing to GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-06-09 08:00:10][MAIN] - [master 8eaca5d] auto_update
+
+[2025-06-09 08:00:10][MAIN] -  3 files changed, 25 insertions(+)
+[2025-06-09 08:00:10][MAIN] - To github.com:shapelessguy/Python-Projects.git
+
+[2025-06-09 08:00:10][MAIN] -    074ff6b..8eaca5d  master -> master
+[2025-06-09 08:00:10][MAIN] - [['Bathrooms']]
+[2025-06-09 08:00:10][MAIN] - Msg sent:
+[2025-06-09 08:00:10][MAIN] - Hello Jay, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-06-09 08:00:10][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-06-09 08:00:10][MAIN] - This week (09/06 - 16/06):  <b>Vacation</b> 💸🧺🍾
+
+[2025-06-09 08:00:10][MAIN] - Next week (16/06 - 23/06):  <b>Floor</b> 🧹🪣🫧
+
+[2025-06-09 08:00:10][MAIN] - Week 23/06 - 30/06:  <b>Kitchen</b> 🪑🚰🧴🔪
+
+[2025-06-09 08:00:10][MAIN] - Week 30/06 - 07/07:  <b>Vacation</b> 💸🧺🍾
+
+[2025-06-09 08:00:10][MAIN] - 👍 Congratulations, you have no complaints for the week 26/05 - 02/06!
+[2025-06-09 08:00:10][MAIN] - [['Management']]
+[2025-06-09 08:00:10][MAIN] - Msg sent:
+[2025-06-09 08:00:10][MAIN] - Hello Cesare, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-06-09 08:00:10][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-06-09 08:00:10][MAIN] - This week (09/06 - 16/06):  <b>Kitchen</b> 🪑🚰🧴🔪
+
+[2025-06-09 08:00:10][MAIN] - Next week (16/06 - 23/06):  <b>Vacation</b> 💸🧺🍾
+
+[2025-06-09 08:00:10][MAIN] - Week 23/06 - 30/06:  <b>Bathrooms</b> 🛁🚽🧻🚾
+
+[2025-06-09 08:00:10][MAIN] - Week 30/06 - 07/07:  <b>Management</b> 💸🧺🍾
+
+[2025-06-09 08:00:10][MAIN] - 👍 Congratulations, you have no complaints for the week 26/05 - 02/06!
+[2025-06-09 08:00:10][MAIN] - [['Floor']]
+[2025-06-09 08:00:10][MAIN] - Msg sent:
+[2025-06-09 08:00:10][MAIN] - Hello Claudio, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-06-09 08:00:10][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-06-09 08:00:10][MAIN] - This week (09/06 - 16/06):  <b>Vacation</b> 💸🧺🍾
+
+[2025-06-09 08:00:10][MAIN] - Next week (16/06 - 23/06):  <b>Bathrooms</b> 🛁🚽🧻🚾
+
+[2025-06-09 08:00:10][MAIN] - Week 23/06 - 30/06:  <b>Management</b> 💸🧺🍾
+
+[2025-06-09 08:00:10][MAIN] - Week 30/06 - 07/07:  <b>Floor</b> 🧹🪣🫧
+
+[2025-06-09 08:00:10][MAIN] - 👍 Congratulations, you have no complaints for the week 26/05 - 02/06!
+[2025-06-09 08:00:10][MAIN] - [['Vacation']]
+[2025-06-09 08:00:10][MAIN] - Msg sent:
+[2025-06-09 08:00:10][MAIN] - Hello Natchaya, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-06-09 08:00:10][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-06-09 08:00:10][MAIN] - This week (09/06 - 16/06):  <b>Bathrooms</b> 🛁🚽🧻🚾
+
+[2025-06-09 08:00:10][MAIN] - Next week (16/06 - 23/06):  <b>Kitchen</b> 🪑🚰🧴🔪
+
+[2025-06-09 08:00:10][MAIN] - Week 23/06 - 30/06:  <b>Vacation</b> 💸🧺🍾
+
+[2025-06-09 08:00:10][MAIN] - Week 30/06 - 07/07:  <b>Vacation</b> 💸🧺🍾
+[2025-06-09 08:00:10][MAIN] - [['Kitchen']]
+[2025-06-09 08:00:10][MAIN] - Msg sent:
+[2025-06-09 08:00:10][MAIN] - Hello Lea, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-06-09 08:00:10][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-06-09 08:00:10][MAIN] - This week (09/06 - 16/06):  <b>Floor</b> 🧹🪣🫧
+
+[2025-06-09 08:00:10][MAIN] - Next week (16/06 - 23/06):  <b>Management</b> 💸🧺🍾
+
+[2025-06-09 08:00:10][MAIN] - Week 23/06 - 30/06:  <b>Vacation</b> 💸🧺🍾
+
+[2025-06-09 08:00:10][MAIN] - Week 30/06 - 07/07:  <b>Bathrooms</b> 🛁🚽🧻🚾
+
+[2025-06-09 08:00:10][MAIN] - 👍 Congratulations, you have no complaints for the week 26/05 - 02/06!
+[2025-06-09 08:00:10][MAIN] - [['Vacation']]
+[2025-06-09 08:00:10][MAIN] - Msg sent:
+[2025-06-09 08:00:10][MAIN] - Hello Mara, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-06-09 08:00:10][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-06-09 08:00:10][MAIN] - This week (09/06 - 16/06):  <b>Management</b> 💸🧺🍾
+
+[2025-06-09 08:00:10][MAIN] - Next week (16/06 - 23/06):  <b>Vacation</b> 💸🧺🍾
+
+[2025-06-09 08:00:10][MAIN] - Week 23/06 - 30/06:  <b>Floor</b> 🧹🪣🫧
+
+[2025-06-09 08:00:10][MAIN] - Week 30/06 - 07/07:  <b>Kitchen</b> 🪑🚰🧴🔪
+[2025-06-09 08:56:49][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-09 08:57:04][FLASK] - Error processing request: 400 Bad Request: The browser (or proxy) sent a request that this server could not understand.
+[2025-06-09 08:59:49][MAIN] - Audio set off automatically
+[2025-06-09 08:59:49][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-09 08:59:50][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-09 08:59:53][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-09 08:59:53][MAIN] - To Arduino: STRIPTOPOFF
+[2025-06-09 08:59:53][MAIN] - Command AUDIOOFF sent
+[2025-06-09 10:43:07][FLASK] - AUDIO: {'audio': 'on'}
+[2025-06-09 10:43:07][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-09 10:43:08][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-09 10:43:08][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-06-09 10:43:09][MAIN] - To Arduino: STRIPTOPG4
+[2025-06-09 10:43:09][MAIN] - Command AUDIOON sent
+[2025-06-09 10:43:09][MAIN] - To Arduino: STRIPOFF
+[2025-06-09 10:43:10][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-09 10:43:10][MAIN] - To Arduino: STRIPON
+[2025-06-09 10:43:10][MAIN] - To Arduino: STRIPG4
+[2025-06-09 10:43:10][MAIN] - Command STRIPTOPG4 sent
+[2025-06-09 11:43:21][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-09 12:43:36][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-09 13:44:00][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-09 14:44:14][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-09 15:44:28][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-09 16:44:58][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-09 16:48:25][FLASK] - PING
+[2025-06-09 16:52:23][WEBSOCKET] - 194.0.234.34 - - [09/Jun/2025 16:52:23] code 400, message Bad HTTP/0.9 request type ('\x03\x00\x00/*à\x00\x00\x00\x00\x00Cookie:')
+[2025-06-09 17:46:05][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-09 18:46:19][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-09 19:46:35][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-09 20:46:50][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-09 21:12:16][FLASK] - AUDIO: {'audio': 'on'}
+[2025-06-09 21:12:17][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-09 21:12:18][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-09 21:12:18][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-06-09 21:12:18][MAIN] - To Arduino: STRIPTOPG4
+[2025-06-09 21:12:18][MAIN] - Command AUDIOON sent
+[2025-06-09 21:12:18][MAIN] - To Arduino: STRIPOFF
+[2025-06-09 21:12:19][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-09 21:12:19][MAIN] - To Arduino: STRIPON
+[2025-06-09 21:12:19][MAIN] - To Arduino: STRIPG4
+[2025-06-09 21:12:19][MAIN] - Command STRIPTOPG4 sent
+[2025-06-09 21:48:16][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-09 21:59:00][MAIN] - To Arduino: LIGHTSOFF
+[2025-06-09 22:48:31][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-09 23:48:47][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-10 00:34:33][FLASK] - STRIP: {'strip': 'i0'}
+[2025-06-10 00:34:34][MAIN] - To Arduino: STRIPOFF
+[2025-06-10 00:34:34][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-10 00:34:34][MAIN] - To Arduino: STRIPTOPCOLSWITCH
+[2025-06-10 00:34:35][MAIN] - To Arduino: STRIPON
+[2025-06-10 00:34:36][MAIN] - To Arduino: STRIPI1
+[2025-06-10 00:34:36][MAIN] - Command STRIPI0 sent
+[2025-06-10 00:49:03][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-10 01:02:06][WEBSOCKET] - 141.98.11.116 - - [10/Jun/2025 01:02:06] code 400, message Bad HTTP/0.9 request type ('\x03\x00\x00/*à\x00\x00\x00\x00\x00Cookie:')
+[2025-06-10 01:49:17][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-10 02:49:32][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-10 02:58:15][FLASK] - Error processing request: 400 Bad Request: The browser (or proxy) sent a request that this server could not understand.
+[2025-06-10 03:01:04][MAIN] - Audio set off automatically
+[2025-06-10 03:01:04][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-10 03:01:05][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-10 03:01:08][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-10 03:01:08][MAIN] - To Arduino: STRIPTOPOFF
+[2025-06-10 03:01:08][MAIN] - Command AUDIOOFF sent
+[2025-06-10 06:38:48][WEBSOCKET] - 141.98.11.116 - - [10/Jun/2025 06:38:48] code 400, message Bad HTTP/0.9 request type ('\x03\x00\x00/*à\x00\x00\x00\x00\x00Cookie:')
+[2025-06-10 07:30:00][MAIN] - To Arduino: LIGHTSON
+[2025-06-10 08:03:48][FLASK] - PING
+[2025-06-10 14:28:48][MAIN] - Serving 6448393940: msg 4863
+[2025-06-10 14:28:48][MAIN] - Serving 6448393940: msg 4863
+[2025-06-10 14:28:53][MAIN] - Serving 6448393940: msg 4865
+[2025-06-10 14:28:59][MAIN] - Serving 6448393940: msg 4867
+[2025-06-10 14:28:59][MAIN] - Traceback (most recent call last):
+
+[2025-06-10 14:28:59][MAIN] -   File "/home/claudio/Python-Projects/RoomServer/announcements.py", line 532, in expense_handler2
+
+[2025-06-10 14:28:59][MAIN] -     price = [int(x) for x in price]
+
+[2025-06-10 14:28:59][MAIN] -   File "/home/claudio/Python-Projects/RoomServer/announcements.py", line 532, in <listcomp>
+
+[2025-06-10 14:28:59][MAIN] -     price = [int(x) for x in price]
+
+[2025-06-10 14:28:59][MAIN] - ValueError: invalid literal for int() with base 10: '55€'
+[2025-06-10 14:29:07][MAIN] - reasoning..
+[2025-06-10 14:29:07][MAIN] - Traceback (most recent call last):
+
+[2025-06-10 14:29:07][MAIN] -   File "/home/claudio/Python-Projects/RoomServer/bot_ai/reasoner.py", line 63, in analyze_message
+
+[2025-06-10 14:29:07][MAIN] -     The cleaning activities in our WG are the following: {', '.join(md['activities'])}. People in our WG are: {', '.join(md['wg_members'].values())}.
+
+[2025-06-10 14:29:07][MAIN] - KeyError: 'wg_members'
+[2025-06-10 14:29:28][MAIN] - reasoning..
+[2025-06-10 14:29:28][MAIN] - Traceback (most recent call last):
+
+[2025-06-10 14:29:28][MAIN] -   File "/home/claudio/Python-Projects/RoomServer/bot_ai/reasoner.py", line 63, in analyze_message
+
+[2025-06-10 14:29:28][MAIN] -     The cleaning activities in our WG are the following: {', '.join(md['activities'])}. People in our WG are: {', '.join(md['wg_members'].values())}.
+
+[2025-06-10 14:29:28][MAIN] - KeyError: 'wg_members'
+[2025-06-10 14:29:32][MAIN] - Serving 6448393940: msg 4873
+[2025-06-10 14:29:37][MAIN] - Serving 6448393940: msg 4875
+[2025-06-10 14:30:04][MAIN] - Serving 6448393940: msg 4877
+[2025-06-10 15:04:45][FLASK] - AUDIO: {'audio': 'on'}
+[2025-06-10 15:04:45][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-10 15:04:46][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-06-10 15:04:46][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-10 15:04:47][MAIN] - To Arduino: STRIPTOPG4
+[2025-06-10 15:04:47][MAIN] - Command AUDIOON sent
+[2025-06-10 15:04:47][MAIN] - To Arduino: STRIPOFF
+[2025-06-10 15:04:48][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-10 15:04:48][MAIN] - To Arduino: STRIPON
+[2025-06-10 15:04:48][MAIN] - To Arduino: STRIPG4
+[2025-06-10 15:04:48][MAIN] - Command STRIPTOPG4 sent
+[2025-06-10 15:57:07][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-10 16:40:19][FLASK] - PING
+[2025-06-10 16:57:21][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-10 17:57:37][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-10 18:57:53][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-10 19:58:08][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-10 20:58:23][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-10 21:38:13][WEBSOCKET] - 152.32.245.93 - - [10/Jun/2025 21:38:13] code 400, message Bad request version ('\x00\x9eÌ¨Ìª\x003\x00=\x00\x16À')
+[2025-06-10 21:38:33][WEBSOCKET] - 152.32.245.93 - - [10/Jun/2025 21:38:33] code 400, message Bad request version ('GetClassName\x00\x00\x00\x02\x04\x00\x00\x00\x00\x01\x00')
+[2025-06-10 21:58:38][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-10 21:59:00][MAIN] - To Arduino: LIGHTSOFF
+[2025-06-10 22:14:49][FLASK] - 118.193.58.187 - - [10/Jun/2025 22:14:49] code 400, message Bad request version ('\x00\x9eÌ¨Ìª\x003\x00=\x00\x16À')
+[2025-06-10 22:14:59][FLASK] - PING
+[2025-06-10 22:58:53][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-10 23:05:20][FLASK] - STRIP: {'strip': 'i0'}
+[2025-06-10 23:05:20][MAIN] - To Arduino: STRIPOFF
+[2025-06-10 23:05:20][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-10 23:05:21][MAIN] - To Arduino: STRIPTOPCOLSWITCH
+[2025-06-10 23:05:21][MAIN] - To Arduino: STRIPON
+[2025-06-10 23:05:22][MAIN] - To Arduino: STRIPI1
+[2025-06-10 23:05:22][MAIN] - Command STRIPI0 sent
+[2025-06-10 23:59:07][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-11 00:35:50][FLASK] - PING
+[2025-06-11 00:59:22][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-11 01:59:35][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-11 02:05:26][MAIN] - Audio set off automatically
+[2025-06-11 02:05:26][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-11 02:05:27][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-11 02:05:30][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-11 02:05:31][MAIN] - To Arduino: STRIPTOPOFF
+[2025-06-11 02:05:31][MAIN] - Command AUDIOOFF sent
+[2025-06-11 02:25:39][WEBSOCKET] - 195.184.76.95 - - [11/Jun/2025 02:25:39] code 400, message Bad request version ('À#À¬À®À+À')
+[2025-06-11 03:19:00][MAIN] - Issue while trying to upload IP (initialization)
+[2025-06-11 03:19:00][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f2444f4ce20>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-06-11 03:19:20][MAIN] - Issue while trying to upload IP (initialization)
+[2025-06-11 03:19:20][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f2444f4e4a0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-06-11 03:19:37][MAIN] - Issue while trying to upload IP (initialization)
+[2025-06-11 03:19:37][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f2444f4f910>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-06-11 03:20:02][MAIN] - Issue while trying to upload IP (initialization)
+[2025-06-11 03:20:02][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f24541c11b0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-06-11 03:20:17][MAIN] - Issue while trying to upload IP (initialization)
+[2025-06-11 03:20:17][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f2444f74820>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-06-11 03:20:32][MAIN] - Issue while trying to upload IP (initialization)
+[2025-06-11 03:20:32][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f2444f4d030>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-06-11 03:20:47][MAIN] - Issue while trying to upload IP (initialization)
+[2025-06-11 03:20:47][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f2444f77b20>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-06-11 03:21:02][MAIN] - Issue while trying to upload IP (initialization)
+[2025-06-11 03:21:02][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f24541c1f60>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-06-11 03:21:22][MAIN] - Issue while trying to upload IP (initialization)
+[2025-06-11 03:21:22][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f2444f4dfc0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-06-11 03:21:37][MAIN] - Issue while trying to upload IP (initialization)
+[2025-06-11 03:21:37][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f2444f4fac0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-06-11 03:21:52][MAIN] - Issue while trying to upload IP (initialization)
+[2025-06-11 03:21:52][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f2444f4dd20>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-06-11 03:22:07][MAIN] - Issue while trying to upload IP (initialization)
+[2025-06-11 03:22:07][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f2444f4e110>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-06-11 03:22:27][MAIN] - Issue while trying to upload IP (initialization)
+[2025-06-11 03:22:27][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f2444f75c00>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-06-11 03:22:53][MAIN] - IP 84.155.65.149 uploaded to:
+[2025-06-11 03:22:53][MAIN] - https://storage.googleapis.com/ip-manager42.appspot.com/RaspberryPi-Cyan/ip_server.txt
+[2025-06-11 03:22:53][FLASK] -  * Serving Flask app 'server'
+[2025-06-11 03:22:53][FLASK] -  * Debug mode: off
+[2025-06-11 03:22:53][FLASK] - Address already in use
+[2025-06-11 03:22:53][FLASK] - Port 10004 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-06-11 03:22:54][WEBSOCKET] -  * Serving Flask app 'websocket_server'
+[2025-06-11 03:22:54][WEBSOCKET] -  * Debug mode: off
+[2025-06-11 03:22:54][WEBSOCKET] - Address already in use
+[2025-06-11 03:22:54][WEBSOCKET] - Port 10003 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-06-11 05:03:43][FLASK] - 185.242.226.40 - - [11/Jun/2025 05:03:43] code 400, message Bad request version ('À\x14À')
+[2025-06-11 07:24:41][MAIN] - Audio set on automatically
+[2025-06-11 07:24:41][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-11 07:24:42][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-11 07:24:42][MAIN] - To Arduino: STRIPTOPG4
+[2025-06-11 07:24:42][MAIN] - Command AUDIOON sent
+[2025-06-11 07:30:00][MAIN] - To Arduino: LIGHTSON
+[2025-06-11 08:21:55][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-11 09:22:09][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-11 10:22:24][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-11 11:23:11][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-11 12:24:10][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-11 13:24:24][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-11 14:24:38][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-11 15:24:52][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-11 16:25:05][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-11 17:25:19][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-11 18:25:33][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-11 19:25:48][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-11 20:26:14][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-11 21:26:52][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-11 21:59:00][MAIN] - To Arduino: LIGHTSOFF
+[2025-06-11 22:27:06][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-11 23:27:21][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-12 00:27:46][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-12 00:32:47][FLASK] - STRIP: {'strip': 'i0'}
+[2025-06-12 00:32:47][MAIN] - To Arduino: STRIPOFF
+[2025-06-12 00:32:48][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-12 00:32:48][MAIN] - To Arduino: STRIPTOPCOLSWITCH
+[2025-06-12 00:32:48][MAIN] - To Arduino: STRIPON
+[2025-06-12 00:32:49][MAIN] - To Arduino: STRIPI1
+[2025-06-12 00:32:49][MAIN] - Command STRIPI0 sent
+[2025-06-12 01:28:01][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-12 02:13:51][MAIN] - Issue while trying to upload IP (initialization)
+[2025-06-12 02:13:51][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f2444f4e440>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-06-12 02:14:01][MAIN] - Audio set off automatically
+[2025-06-12 02:14:01][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-12 02:14:02][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-12 02:14:05][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-12 02:14:05][MAIN] - To Arduino: STRIPTOPOFF
+[2025-06-12 02:14:05][MAIN] - Command AUDIOOFF sent
+[2025-06-12 02:14:16][MAIN] - Issue while trying to upload IP (initialization)
+[2025-06-12 02:14:16][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f2444f4d2d0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-06-12 02:14:36][MAIN] - Issue while trying to upload IP (initialization)
+[2025-06-12 02:14:36][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f2444f93700>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-06-12 02:14:51][MAIN] - Issue while trying to upload IP (initialization)
+[2025-06-12 02:14:51][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f2444f4d2a0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-06-12 02:15:06][MAIN] - Issue while trying to upload IP (initialization)
+[2025-06-12 02:15:06][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f2444f4e5f0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-06-12 02:15:21][MAIN] - Issue while trying to upload IP (initialization)
+[2025-06-12 02:15:21][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f2444f4dba0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-06-12 02:15:46][MAIN] - Issue while trying to upload IP (initialization)
+[2025-06-12 02:15:46][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f2444f93910>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-06-12 02:16:01][MAIN] - Issue while trying to upload IP (initialization)
+[2025-06-12 02:16:01][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f2444f4c070>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-06-12 02:16:16][MAIN] - Issue while trying to upload IP (initialization)
+[2025-06-12 02:16:16][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f2444e393f0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-06-12 02:16:41][MAIN] - Issue while trying to upload IP (initialization)
+[2025-06-12 02:16:41][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f2444f4feb0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-06-12 02:16:56][MAIN] - Issue while trying to upload IP (initialization)
+[2025-06-12 02:16:56][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f2444f4ea40>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-06-12 02:17:16][MAIN] - Issue while trying to upload IP (initialization)
+[2025-06-12 02:17:16][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f2444f4efe0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-06-12 02:17:41][MAIN] - Issue while trying to upload IP (initialization)
+[2025-06-12 02:17:41][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f2444f4ec20>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-06-12 02:18:06][MAIN] - Issue while trying to upload IP (initialization)
+[2025-06-12 02:18:06][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f2444f93f10>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-06-12 02:18:31][MAIN] - Issue while trying to upload IP (initialization)
+[2025-06-12 02:18:31][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f2444f4fc40>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-06-12 02:18:46][MAIN] - Issue while trying to upload IP (initialization)
+[2025-06-12 02:18:46][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f2444f74f40>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-06-12 02:19:11][MAIN] - Issue while trying to upload IP (initialization)
+[2025-06-12 02:19:11][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f2444f4f3a0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-06-12 02:19:26][MAIN] - Issue while trying to upload IP (initialization)
+[2025-06-12 02:19:26][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f2444f92650>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-06-12 02:19:47][MAIN] - Issue while trying to upload IP (initialization)
+[2025-06-12 02:19:47][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f2444f77790>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-06-12 02:20:02][MAIN] - Issue while trying to upload IP (initialization)
+[2025-06-12 02:20:02][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f2444f90460>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-06-12 02:20:22][MAIN] - Issue while trying to upload IP (initialization)
+[2025-06-12 02:20:22][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f2444f4f1c0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-06-12 02:20:37][MAIN] - Issue while trying to upload IP (initialization)
+[2025-06-12 02:20:37][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f2444f776d0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-06-12 02:20:52][MAIN] - Issue while trying to upload IP (initialization)
+[2025-06-12 02:20:52][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f2444e3a0b0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-06-12 02:21:07][MAIN] - Issue while trying to upload IP (initialization)
+[2025-06-12 02:21:07][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f2444f4f250>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-06-12 02:21:22][MAIN] - Issue while trying to upload IP (initialization)
+[2025-06-12 02:21:22][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f2444e3b310>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-06-12 02:21:37][MAIN] - Issue while trying to upload IP (initialization)
+[2025-06-12 02:21:37][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f2444e38f40>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-06-12 02:21:52][MAIN] - Issue while trying to upload IP (initialization)
+[2025-06-12 02:21:52][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f2444e50940>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-06-12 02:22:12][MAIN] - Issue while trying to upload IP (initialization)
+[2025-06-12 02:22:12][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f2444e50c40>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-06-12 02:22:23][MAIN] - IP 84.155.64.48 uploaded to:
+[2025-06-12 02:22:23][MAIN] - https://storage.googleapis.com/ip-manager42.appspot.com/RaspberryPi-Cyan/ip_server.txt
+[2025-06-12 02:22:23][FLASK] -  * Serving Flask app 'server'
+[2025-06-12 02:22:23][FLASK] -  * Debug mode: off
+[2025-06-12 02:22:23][FLASK] - Address already in use
+[2025-06-12 02:22:23][FLASK] - Port 10004 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-06-12 02:22:23][WEBSOCKET] -  * Serving Flask app 'websocket_server'
+[2025-06-12 02:22:23][WEBSOCKET] -  * Debug mode: off
+[2025-06-12 02:22:23][WEBSOCKET] - Address already in use
+[2025-06-12 02:22:23][WEBSOCKET] - Port 10003 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-06-12 07:30:00][MAIN] - To Arduino: LIGHTSON
+[2025-06-12 08:10:43][MAIN] - Audio set on automatically
+[2025-06-12 08:10:43][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-12 08:10:44][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-12 08:10:45][MAIN] - To Arduino: STRIPTOPG4
+[2025-06-12 08:10:45][MAIN] - Command AUDIOON sent
+[2025-06-12 08:13:53][MAIN] - Audio set off automatically
+[2025-06-12 08:13:53][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-12 08:13:54][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-12 08:13:57][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-12 08:13:58][MAIN] - To Arduino: STRIPTOPOFF
+[2025-06-12 08:13:58][MAIN] - Command AUDIOOFF sent
+[2025-06-12 08:29:47][FLASK] - AUDIO: {'audio': 'on'}
+[2025-06-12 08:29:47][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-12 08:29:47][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-06-12 08:29:48][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-12 08:29:48][MAIN] - To Arduino: STRIPTOPG4
+[2025-06-12 08:29:48][MAIN] - Command AUDIOON sent
+[2025-06-12 08:29:48][MAIN] - To Arduino: STRIPOFF
+[2025-06-12 08:29:49][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-12 08:29:49][MAIN] - To Arduino: STRIPON
+[2025-06-12 08:29:49][MAIN] - To Arduino: STRIPG4
+[2025-06-12 08:29:49][MAIN] - Command STRIPTOPG4 sent
+[2025-06-12 08:46:40][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-12 09:46:54][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-12 10:47:09][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-12 11:47:24][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-12 12:47:39][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-12 13:47:54][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-12 14:48:09][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-12 15:48:25][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-12 16:48:51][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-12 17:49:06][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-12 18:28:37][FLASK] - Error processing request: 400 Bad Request: The browser (or proxy) sent a request that this server could not understand.
+[2025-06-12 18:49:53][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-12 19:50:18][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-12 20:50:16][WEBSOCKET] - 47.74.41.172 - - [12/Jun/2025 20:50:16] code 400, message Bad request version ('À\x13À')
+[2025-06-12 20:51:11][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-12 21:51:37][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-12 21:59:00][MAIN] - To Arduino: LIGHTSOFF
+[2025-06-12 22:51:53][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-12 23:52:07][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-12 23:59:51][FLASK] - STRIP: {'strip': 'i0'}
+[2025-06-12 23:59:51][MAIN] - To Arduino: STRIPOFF
+[2025-06-12 23:59:52][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-12 23:59:52][MAIN] - To Arduino: STRIPTOPCOLSWITCH
+[2025-06-12 23:59:52][MAIN] - To Arduino: STRIPON
+[2025-06-12 23:59:53][MAIN] - To Arduino: STRIPI1
+[2025-06-12 23:59:53][MAIN] - Command STRIPI0 sent
+[2025-06-13 00:52:22][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-13 01:52:37][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-13 01:55:41][FLASK] - 8.211.46.74 - - [13/Jun/2025 01:55:41] code 400, message Bad request version ('À\x13À')
+[2025-06-13 01:55:51][FLASK] - PING
+[2025-06-13 01:56:57][FLASK] - PING
+[2025-06-13 02:52:51][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-13 03:02:14][FLASK] - Error processing request: 400 Bad Request: The browser (or proxy) sent a request that this server could not understand.
+[2025-06-13 03:05:04][MAIN] - Audio set off automatically
+[2025-06-13 03:05:04][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-13 03:05:05][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-13 03:05:08][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-13 03:05:08][MAIN] - To Arduino: STRIPTOPOFF
+[2025-06-13 03:05:08][MAIN] - Command AUDIOOFF sent
+[2025-06-13 07:30:00][MAIN] - To Arduino: LIGHTSON
+[2025-06-13 07:49:35][FLASK] - AUDIO: {'audio': 'on'}
+[2025-06-13 07:49:35][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-13 07:49:36][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-06-13 07:49:36][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-13 07:49:37][MAIN] - To Arduino: STRIPTOPG4
+[2025-06-13 07:49:37][MAIN] - Command AUDIOON sent
+[2025-06-13 07:49:37][MAIN] - To Arduino: STRIPOFF
+[2025-06-13 07:49:38][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-13 07:49:38][MAIN] - To Arduino: STRIPON
+[2025-06-13 07:49:38][MAIN] - To Arduino: STRIPG4
+[2025-06-13 07:49:38][MAIN] - Command STRIPTOPG4 sent
+[2025-06-13 08:41:19][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-13 09:41:33][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-13 10:18:57][FLASK] - 91.196.152.12 - - [13/Jun/2025 10:18:57] code 400, message Bad request version ('\x18]µÓp¢\x01§')
+[2025-06-13 10:19:04][FLASK] - PING
+[2025-06-13 10:41:47][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-13 11:42:01][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-13 12:32:34][FLASK] - Error processing request: 400 Bad Request: The browser (or proxy) sent a request that this server could not understand.
+[2025-06-13 12:42:26][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-13 13:42:41][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-13 14:42:55][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-13 15:43:21][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-13 16:43:36][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-13 17:43:52][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-13 18:44:18][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-13 19:44:33][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-13 20:44:48][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-13 21:45:03][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-13 21:59:00][MAIN] - To Arduino: LIGHTSOFF
+[2025-06-13 22:45:18][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-13 23:45:33][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-14 00:45:59][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-14 01:46:14][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-14 02:13:18][FLASK] - STRIP: {'strip': 'i0'}
+[2025-06-14 02:13:18][MAIN] - To Arduino: STRIPOFF
+[2025-06-14 02:13:19][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-14 02:13:19][MAIN] - To Arduino: STRIPTOPCOLSWITCH
+[2025-06-14 02:13:19][MAIN] - To Arduino: STRIPON
+[2025-06-14 02:13:20][MAIN] - To Arduino: STRIPI1
+[2025-06-14 02:13:20][MAIN] - Command STRIPI0 sent
+[2025-06-14 02:46:29][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-14 03:46:43][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-14 04:38:35][MAIN] - Audio set off automatically
+[2025-06-14 04:38:35][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-14 04:38:36][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-14 04:38:39][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-14 04:38:39][MAIN] - To Arduino: STRIPTOPOFF
+[2025-06-14 04:38:39][MAIN] - Command AUDIOOFF sent
+[2025-06-14 07:30:00][MAIN] - To Arduino: LIGHTSON
+[2025-06-14 10:39:04][FLASK] - AUDIO: {'audio': 'on'}
+[2025-06-14 10:39:04][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-14 10:39:05][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-06-14 10:39:05][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-14 10:39:05][MAIN] - To Arduino: STRIPTOPG4
+[2025-06-14 10:39:05][MAIN] - Command AUDIOON sent
+[2025-06-14 10:39:05][MAIN] - To Arduino: STRIPOFF
+[2025-06-14 10:39:06][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-14 10:39:06][MAIN] - To Arduino: STRIPON
+[2025-06-14 10:39:06][MAIN] - To Arduino: STRIPG4
+[2025-06-14 10:39:06][MAIN] - Command STRIPTOPG4 sent
+[2025-06-14 10:50:38][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-14 11:50:56][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-14 12:20:45][WEBSOCKET] - 195.184.76.23 - - [14/Jun/2025 12:20:45] code 400, message Bad request syntax ('\x16\x03\x03\x01¥\x01\x00\x01¡\x03\x03îØä@\x99')
+[2025-06-14 12:51:23][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-14 13:51:37][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-14 14:51:51][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-14 15:52:05][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-14 16:52:20][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-14 17:54:47][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-14 18:55:02][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-14 19:55:17][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-14 20:55:32][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-14 21:55:48][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-14 21:59:00][MAIN] - To Arduino: LIGHTSOFF
+[2025-06-14 22:56:03][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-14 23:56:19][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-15 00:56:34][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-15 01:16:18][FLASK] - STRIP: {'strip': 'i0'}
+[2025-06-15 01:16:18][MAIN] - To Arduino: STRIPOFF
+[2025-06-15 01:16:18][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-15 01:16:19][MAIN] - To Arduino: STRIPTOPCOLSWITCH
+[2025-06-15 01:16:19][MAIN] - To Arduino: STRIPON
+[2025-06-15 01:16:20][MAIN] - To Arduino: STRIPI1
+[2025-06-15 01:16:20][MAIN] - Command STRIPI0 sent
+[2025-06-15 01:56:49][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-15 02:57:05][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-15 03:56:19][MAIN] - Audio set off automatically
+[2025-06-15 03:56:19][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-15 03:56:20][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-15 03:56:23][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-15 03:56:24][MAIN] - To Arduino: STRIPTOPOFF
+[2025-06-15 03:56:24][MAIN] - Command AUDIOOFF sent
+[2025-06-15 07:30:00][MAIN] - To Arduino: LIGHTSON
+[2025-06-15 09:43:56][FLASK] - AUDIO: {'audio': 'on'}
+[2025-06-15 09:43:56][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-15 09:43:57][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-06-15 09:43:57][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-15 09:43:58][MAIN] - To Arduino: STRIPTOPG4
+[2025-06-15 09:43:58][MAIN] - Command AUDIOON sent
+[2025-06-15 09:43:58][MAIN] - To Arduino: STRIPOFF
+[2025-06-15 09:43:58][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-15 09:43:58][MAIN] - To Arduino: STRIPON
+[2025-06-15 09:43:59][MAIN] - To Arduino: STRIPG4
+[2025-06-15 09:43:59][MAIN] - Command STRIPTOPG4 sent
+[2025-06-15 09:48:29][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-15 10:48:44][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-15 11:49:00][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-15 12:49:16][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-15 13:49:31][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-15 14:49:45][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-15 15:50:11][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-15 16:50:26][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-15 17:50:41][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-15 18:50:57][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-15 19:51:13][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-15 20:51:28][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-15 21:51:47][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-15 21:59:00][MAIN] - To Arduino: LIGHTSOFF
+[2025-06-15 22:29:02][FLASK] - PING
+[2025-06-15 22:52:03][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-15 23:52:19][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-16 00:52:35][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-16 01:38:54][FLASK] - STRIP: {'strip': 'i0'}
+[2025-06-16 01:38:55][MAIN] - To Arduino: STRIPOFF
+[2025-06-16 01:38:55][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-16 01:38:55][MAIN] - To Arduino: STRIPTOPCOLSWITCH
+[2025-06-16 01:38:56][MAIN] - To Arduino: STRIPON
+[2025-06-16 01:38:57][MAIN] - To Arduino: STRIPI1
+[2025-06-16 01:38:57][MAIN] - Command STRIPI0 sent
+[2025-06-16 01:52:50][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-16 02:53:05][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-16 03:53:20][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-16 03:56:51][FLASK] - Error processing request: 400 Bad Request: The browser (or proxy) sent a request that this server could not understand.
+[2025-06-16 03:59:41][MAIN] - Audio set off automatically
+[2025-06-16 03:59:41][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-16 03:59:42][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-16 03:59:45][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-16 03:59:45][MAIN] - To Arduino: STRIPTOPOFF
+[2025-06-16 03:59:45][MAIN] - Command AUDIOOFF sent
+[2025-06-16 07:30:00][MAIN] - To Arduino: LIGHTSON
+[2025-06-16 08:00:00][MAIN] - ANNOUNCEMENTS
+[2025-06-16 08:00:00][MAIN] - 2025-06-16 08:00:00.927106
+[2025-06-16 08:00:02][MAIN] - Pulling from GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-06-16 08:00:04][MAIN] - Already up to date.
+[2025-06-16 08:00:04][MAIN] - [['Management']]
+[2025-06-16 08:00:04][MAIN] - [['Floor']]
+[2025-06-16 08:00:04][MAIN] - [['Kitchen']]
+[2025-06-16 08:00:04][MAIN] - [['Vacation']]
+[2025-06-16 08:00:04][MAIN] - [['Vacation']]
+[2025-06-16 08:00:04][MAIN] - [['Bathrooms']]
+[2025-06-16 08:00:06][MAIN] - History updated.
+[2025-06-16 08:00:06][MAIN] -           Week      Cesare     Claudio  ...         Lea        Mara    Natchaya
+[2025-06-16 08:00:06][MAIN] - [96m53  2025-02-10       Floor   Bathrooms  ...  Management     Kitchen    Vacation[0m
+[2025-06-16 08:00:06][MAIN] - [96m54  2025-02-17  Management    Vacation  ...   Bathrooms    Vacation       Floor[0m
+[2025-06-16 08:00:06][MAIN] - [96m55  2025-02-24    Vacation  Management  ...    Vacation       Floor     Kitchen[0m
+[2025-06-16 08:00:06][MAIN] - [96m56  2025-03-03   Bathrooms       Floor  ...     Kitchen  Management    Vacation[0m
+[2025-06-16 08:00:06][MAIN] - [96m57  2025-03-10       Floor     Kitchen  ...    Vacation    Vacation   Bathrooms[0m
+[2025-06-16 08:00:06][MAIN] - [96m58  2025-03-17    Vacation    Vacation  ...       Floor   Bathrooms  Management[0m
+[2025-06-16 08:00:06][MAIN] - [96m59  2025-03-24     Kitchen   Bathrooms  ...  Management       Floor    Vacation[0m
+[2025-06-16 08:00:06][MAIN] - [96m60  2025-03-31   Bathrooms  Management  ...    Vacation    Vacation     Kitchen[0m
+[2025-06-16 08:00:06][MAIN] - [96m61  2025-04-07    Vacation    Vacation  ...   Bathrooms     Kitchen       Floor[0m
+[2025-06-16 08:00:06][MAIN] - [96m62  2025-04-14  Management       Floor  ...     Kitchen   Bathrooms    Vacation[0m
+[2025-06-16 08:00:06][MAIN] - [96m63  2025-04-21       Floor     Kitchen  ...    Vacation    Vacation  Management[0m
+[2025-06-16 08:00:06][MAIN] - [96m64  2025-04-28    Vacation    Vacation  ...       Floor  Management   Bathrooms[0m
+[2025-06-16 08:00:06][MAIN] - [96m65  2025-05-05     Kitchen   Bathrooms  ...  Management       Floor    Vacation[0m
+[2025-06-16 08:00:06][MAIN] - [96m66  2025-05-12   Bathrooms  Management  ...    Vacation    Vacation     Kitchen[0m
+[2025-06-16 08:00:06][MAIN] - [96m67  2025-05-19    Vacation    Vacation  ...   Bathrooms     Kitchen       Floor[0m
+[2025-06-16 08:00:06][MAIN] - [96m68  2025-05-26  Management       Floor  ...     Kitchen    Vacation    Vacation[0m
+[2025-06-16 08:00:06][MAIN] - [38;5;208m69  2025-06-02       Floor     Kitchen  ...    Vacation   Bathrooms    Vacation[0m
+[2025-06-16 08:00:06][MAIN] - [91m70  2025-06-09     Kitchen    Vacation  ...       Floor  Management   Bathrooms[0m
+[2025-06-16 08:00:06][MAIN] - [91m71  2025-06-16    Vacation   Bathrooms  ...  Management    Vacation     Kitchen[0m
+[2025-06-16 08:00:06][MAIN] - [91m72  2025-06-23   Bathrooms  Management  ...    Vacation       Floor    Vacation[0m
+[2025-06-16 08:00:06][MAIN] - [91m73  2025-06-30  Management       Floor  ...   Bathrooms     Kitchen    Vacation[0m
+[2025-06-16 08:00:06][MAIN] - [91m74  2025-07-07       Floor    Vacation  ...     Kitchen  Management    Vacation[0m
+[2025-06-16 08:00:06][MAIN] - [91m75  2025-07-14    Vacation     Kitchen  ...       Floor   Bathrooms    Vacation[0m
+[2025-06-16 08:00:06][MAIN] - [91m76  2025-07-21     Kitchen   Bathrooms  ...  Management    Vacation    Vacation[0m
+[2025-06-16 08:00:06][MAIN] - [91m77  2025-07-28   Bathrooms    Vacation  ...    Vacation       Floor  Management[0m
+[2025-06-16 08:00:06][MAIN] - [91m78  2025-08-04    Vacation  Management  ...   Bathrooms     Kitchen       Floor[0m
+[2025-06-16 08:00:06][MAIN] - [91m79  2025-08-11  Management       Floor  ...     Kitchen    Vacation    Vacation[0m
+[2025-06-16 08:00:06][MAIN] - [91m[27 rows x 7 columns][0m
+[2025-06-16 08:00:06][MAIN] - Saving at /home/claudio/Python-Projects/RoomServer/wg/data/cleaning_plan_leo6.xlsx
+[2025-06-16 08:00:06][MAIN] - Msg sent to LEO6:
+[2025-06-16 08:00:06][MAIN] - This week (16-06-25):
+
+[2025-06-16 08:00:06][MAIN] - ❗⚠ Manager: Lea ⚠❗
+
+[2025-06-16 08:00:06][MAIN] - Claudio: Bathrooms 🛁🚽🧻🚾
+
+[2025-06-16 08:00:06][MAIN] - Jay: Floor 🧹🪣🫧
+
+[2025-06-16 08:00:06][MAIN] - Natchaya: Kitchen 🪑🚰🧴🔪
+
+[2025-06-16 08:00:06][MAIN] - For the others, 💸🧺🍾 !
+
+[2025-06-16 08:00:06][MAIN] - Note: If you want to swap your task with someone else's task, use the SWAP command.
+
+[2025-06-16 08:00:06][MAIN] - You can submit an anonymous complaint for one or more tasks of the previous week by sending a BLAME.
+
+[2025-06-16 08:00:06][MAIN] - Before blaming someone, please warn them first ⚠️ and then wait until Tuesday evening so that the person has time to recover their delayed duty.
+
+[2025-06-16 08:00:06][MAIN] - If a person receives at least 2 blames, they will need to recover the task in the future ☠️.
+
+[2025-06-16 08:00:06][MAIN] - You can also send a message of appreciation 🌟 by sending a PRAISE as well.
+
+[2025-06-16 08:00:06][MAIN] - If you need vacation for a week, you can send book it though BOOK VACATION.
+
+[2025-06-16 08:00:06][MAIN] - Whenever you have a WG expense 💰, use EXPENSE and specify price/reason for it.
+[2025-06-16 08:00:06][MAIN] - Pushing to GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-06-16 08:00:08][MAIN] - [master 73a329b] auto_update
+
+[2025-06-16 08:00:08][MAIN] -  2 files changed, 10 insertions(+)
+[2025-06-16 08:00:08][MAIN] - To github.com:shapelessguy/Python-Projects.git
+
+[2025-06-16 08:00:08][MAIN] -    8eaca5d..73a329b  master -> master
+[2025-06-16 08:00:08][MAIN] - [['Management']]
+[2025-06-16 08:00:08][MAIN] - Msg sent:
+[2025-06-16 08:00:08][MAIN] - Hello Jay, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-06-16 08:00:08][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-06-16 08:00:08][MAIN] - This week (16/06 - 23/06):  <b>Floor</b> 🧹🪣🫧
+
+[2025-06-16 08:00:08][MAIN] - Next week (23/06 - 30/06):  <b>Kitchen</b> 🪑🚰🧴🔪
+
+[2025-06-16 08:00:08][MAIN] - Week 30/06 - 07/07:  <b>Vacation</b> 💸🧺🍾
+
+[2025-06-16 08:00:08][MAIN] - Week 07/07 - 14/07:  <b>Bathrooms</b> 🛁🚽🧻🚾
+
+[2025-06-16 08:00:08][MAIN] - 👍 Congratulations, you have no complaints for the week 02/06 - 09/06!
+[2025-06-16 08:00:08][MAIN] - [['Floor']]
+[2025-06-16 08:00:08][MAIN] - Msg sent:
+[2025-06-16 08:00:08][MAIN] - Hello Cesare, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-06-16 08:00:08][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-06-16 08:00:08][MAIN] - This week (16/06 - 23/06):  <b>Vacation</b> 💸🧺🍾
+
+[2025-06-16 08:00:08][MAIN] - Next week (23/06 - 30/06):  <b>Bathrooms</b> 🛁🚽🧻🚾
+
+[2025-06-16 08:00:08][MAIN] - Week 30/06 - 07/07:  <b>Management</b> 💸🧺🍾
+
+[2025-06-16 08:00:08][MAIN] - Week 07/07 - 14/07:  <b>Floor</b> 🧹🪣🫧
+
+[2025-06-16 08:00:08][MAIN] - 👍 Congratulations, you have no complaints for the week 02/06 - 09/06!
+[2025-06-16 08:00:08][MAIN] - [['Kitchen']]
+[2025-06-16 08:00:08][MAIN] - Msg sent:
+[2025-06-16 08:00:08][MAIN] - Hello Claudio, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-06-16 08:00:08][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-06-16 08:00:08][MAIN] - This week (16/06 - 23/06):  <b>Bathrooms</b> 🛁🚽🧻🚾
+
+[2025-06-16 08:00:08][MAIN] - Next week (23/06 - 30/06):  <b>Management</b> 💸🧺🍾
+
+[2025-06-16 08:00:08][MAIN] - Week 30/06 - 07/07:  <b>Floor</b> 🧹🪣🫧
+
+[2025-06-16 08:00:08][MAIN] - Week 07/07 - 14/07:  <b>Vacation</b> 💸🧺🍾
+
+[2025-06-16 08:00:08][MAIN] - 👍 Congratulations, you have no complaints for the week 02/06 - 09/06!
+[2025-06-16 08:00:08][MAIN] - [['Vacation']]
+[2025-06-16 08:00:08][MAIN] - Msg sent:
+[2025-06-16 08:00:08][MAIN] - Hello Natchaya, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-06-16 08:00:08][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-06-16 08:00:08][MAIN] - This week (16/06 - 23/06):  <b>Kitchen</b> 🪑🚰🧴🔪
+
+[2025-06-16 08:00:08][MAIN] - Next week (23/06 - 30/06):  <b>Vacation</b> 💸🧺🍾
+
+[2025-06-16 08:00:08][MAIN] - Week 30/06 - 07/07:  <b>Vacation</b> 💸🧺🍾
+
+[2025-06-16 08:00:08][MAIN] - Week 07/07 - 14/07:  <b>Vacation</b> 💸🧺🍾
+[2025-06-16 08:00:08][MAIN] - [['Vacation']]
+[2025-06-16 08:00:08][MAIN] - Msg sent:
+[2025-06-16 08:00:08][MAIN] - Hello Lea, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-06-16 08:00:08][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-06-16 08:00:08][MAIN] - This week (16/06 - 23/06):  <b>Management</b> 💸🧺🍾
+
+[2025-06-16 08:00:08][MAIN] - Next week (23/06 - 30/06):  <b>Vacation</b> 💸🧺🍾
+
+[2025-06-16 08:00:08][MAIN] - Week 30/06 - 07/07:  <b>Bathrooms</b> 🛁🚽🧻🚾
+
+[2025-06-16 08:00:08][MAIN] - Week 07/07 - 14/07:  <b>Kitchen</b> 🪑🚰🧴🔪
+[2025-06-16 08:00:09][MAIN] - [['Bathrooms']]
+[2025-06-16 08:00:09][MAIN] - Msg sent:
+[2025-06-16 08:00:09][MAIN] - Hello Mara, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-06-16 08:00:09][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-06-16 08:00:09][MAIN] - This week (16/06 - 23/06):  <b>Vacation</b> 💸🧺🍾
+
+[2025-06-16 08:00:09][MAIN] - Next week (23/06 - 30/06):  <b>Floor</b> 🧹🪣🫧
+
+[2025-06-16 08:00:09][MAIN] - Week 30/06 - 07/07:  <b>Kitchen</b> 🪑🚰🧴🔪
+
+[2025-06-16 08:00:09][MAIN] - Week 07/07 - 14/07:  <b>Management</b> 💸🧺🍾
+
+[2025-06-16 08:00:09][MAIN] - 👍 Congratulations, you have no complaints for the week 02/06 - 09/06!
+[2025-06-16 08:15:20][FLASK] - PING
+[2025-06-16 08:37:03][MAIN] - Serving 6093567886: msg 4887
+[2025-06-16 08:47:19][WEBSOCKET] - 195.184.76.161 - - [16/Jun/2025 08:47:19] code 400, message Bad request version ('\x8fÜKG\x00×ùýÉó\x03²ß\x98óª')
+[2025-06-16 08:59:10][FLASK] - AUDIO: {'audio': 'on'}
+[2025-06-16 08:59:10][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-16 08:59:11][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-16 08:59:11][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-06-16 08:59:11][MAIN] - To Arduino: STRIPTOPG4
+[2025-06-16 08:59:11][MAIN] - Command AUDIOON sent
+[2025-06-16 08:59:12][MAIN] - To Arduino: STRIPOFF
+[2025-06-16 08:59:12][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-16 08:59:12][MAIN] - To Arduino: STRIPON
+[2025-06-16 08:59:12][MAIN] - To Arduino: STRIPG4
+[2025-06-16 08:59:12][MAIN] - Command STRIPTOPG4 sent
+[2025-06-16 09:56:23][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-16 10:56:37][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-16 11:37:48][WEBSOCKET] - 46.105.70.190 - - [16/Jun/2025 11:37:48] code 400, message Bad request version ('À\x14À')
+[2025-06-16 11:56:51][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-16 12:57:05][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-16 13:57:20][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-16 14:57:35][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-16 15:57:50][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-16 16:58:06][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-16 17:24:05][FLASK] - PING
+[2025-06-16 17:32:44][WEBSOCKET] - 185.242.226.45 - - [16/Jun/2025 17:32:44] code 400, message Bad request version ('À\x14À')
+[2025-06-16 17:58:21][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-16 18:58:47][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-16 19:59:13][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-16 20:59:26][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-16 21:59:00][MAIN] - To Arduino: LIGHTSOFF
+[2025-06-16 21:59:40][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-16 22:59:55][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-17 00:00:09][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-17 01:00:23][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-17 01:50:56][FLASK] - STRIP: {'strip': 'i0'}
+[2025-06-17 01:50:56][MAIN] - To Arduino: STRIPOFF
+[2025-06-17 01:50:57][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-17 01:50:57][MAIN] - To Arduino: STRIPTOPCOLSWITCH
+[2025-06-17 01:50:57][MAIN] - To Arduino: STRIPON
+[2025-06-17 01:50:58][MAIN] - To Arduino: STRIPI1
+[2025-06-17 01:50:58][MAIN] - Command STRIPI0 sent
+[2025-06-17 02:00:49][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-17 03:01:04][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-17 04:01:21][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-17 04:23:36][MAIN] - Audio set off automatically
+[2025-06-17 04:23:36][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-17 04:23:37][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-17 04:23:40][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-17 04:23:40][MAIN] - To Arduino: STRIPTOPOFF
+[2025-06-17 04:23:40][MAIN] - Command AUDIOOFF sent
+[2025-06-17 05:35:57][FLASK] - PING
+[2025-06-17 07:30:00][MAIN] - To Arduino: LIGHTSON
+[2025-06-17 13:41:03][FLASK] - AUDIO: {'audio': 'on'}
+[2025-06-17 13:41:03][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-17 13:41:04][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-17 13:41:04][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-06-17 13:41:05][MAIN] - To Arduino: STRIPTOPG4
+[2025-06-17 13:41:05][MAIN] - Command AUDIOON sent
+[2025-06-17 13:41:05][MAIN] - To Arduino: STRIPOFF
+[2025-06-17 13:41:05][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-17 13:41:06][MAIN] - To Arduino: STRIPON
+[2025-06-17 13:41:06][MAIN] - To Arduino: STRIPG4
+[2025-06-17 13:41:06][MAIN] - Command STRIPTOPG4 sent
+[2025-06-17 14:22:55][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-17 15:23:10][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-17 16:23:27][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-17 17:23:41][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-17 18:23:55][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-17 18:31:25][WEBSOCKET] - 141.98.11.116 - - [17/Jun/2025 18:31:25] code 400, message Bad HTTP/0.9 request type ('\x03\x00\x00/*à\x00\x00\x00\x00\x00Cookie:')
+[2025-06-17 19:19:53][FLASK] - PING
+[2025-06-17 19:24:11][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-17 20:24:27][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-17 21:24:43][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-17 21:59:00][MAIN] - To Arduino: LIGHTSOFF
+[2025-06-17 22:25:00][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-17 23:25:15][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-18 00:25:32][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-18 00:58:07][FLASK] - STRIP: {'strip': 'i0'}
+[2025-06-18 00:58:07][MAIN] - To Arduino: STRIPOFF
+[2025-06-18 00:58:07][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-18 00:58:08][MAIN] - To Arduino: STRIPTOPCOLSWITCH
+[2025-06-18 00:58:08][MAIN] - To Arduino: STRIPON
+[2025-06-18 00:58:09][MAIN] - To Arduino: STRIPI1
+[2025-06-18 00:58:09][MAIN] - Command STRIPI0 sent
+[2025-06-18 01:25:50][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-18 02:26:06][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-18 03:26:32][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-18 03:43:45][MAIN] - Audio set off automatically
+[2025-06-18 03:43:45][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-18 03:43:46][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-18 03:43:49][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-18 03:43:50][MAIN] - To Arduino: STRIPTOPOFF
+[2025-06-18 03:43:50][MAIN] - Command AUDIOOFF sent
+[2025-06-18 05:21:20][FLASK] - PING
+[2025-06-18 07:30:00][MAIN] - To Arduino: LIGHTSON
+[2025-06-18 13:44:26][FLASK] - AUDIO: {'audio': 'on'}
+[2025-06-18 13:44:26][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-18 13:44:26][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-06-18 13:44:27][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-18 13:44:27][MAIN] - To Arduino: STRIPTOPG4
+[2025-06-18 13:44:27][MAIN] - Command AUDIOON sent
+[2025-06-18 13:44:27][MAIN] - To Arduino: STRIPOFF
+[2025-06-18 13:44:28][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-18 13:44:28][MAIN] - To Arduino: STRIPON
+[2025-06-18 13:44:28][MAIN] - To Arduino: STRIPG4
+[2025-06-18 13:44:28][MAIN] - Command STRIPTOPG4 sent
+[2025-06-18 14:31:31][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-18 15:31:56][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-18 16:23:12][FLASK] - PING
+[2025-06-18 16:32:10][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-18 17:32:24][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-18 18:32:38][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-18 19:32:52][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-18 20:33:07][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-18 21:33:24][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-18 21:59:00][MAIN] - To Arduino: LIGHTSOFF
+[2025-06-18 22:33:39][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-18 23:23:09][FLASK] - STRIP: {'strip': 'i0'}
+[2025-06-18 23:23:09][MAIN] - To Arduino: STRIPOFF
+[2025-06-18 23:23:09][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-18 23:23:10][MAIN] - To Arduino: STRIPTOPCOLSWITCH
+[2025-06-18 23:23:10][MAIN] - To Arduino: STRIPON
+[2025-06-18 23:23:11][MAIN] - To Arduino: STRIPI1
+[2025-06-18 23:23:11][MAIN] - Command STRIPI0 sent
+[2025-06-18 23:34:17][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-18 23:54:00][FLASK] - 57.128.230.106 - - [18/Jun/2025 23:54:00] code 400, message Bad request version ('À\x14À')
+[2025-06-19 00:34:31][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-19 01:35:50][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-19 02:04:56][MAIN] - Audio set off automatically
+[2025-06-19 02:04:56][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-19 02:04:57][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-19 02:05:00][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-19 02:05:01][MAIN] - To Arduino: STRIPTOPOFF
+[2025-06-19 02:05:01][MAIN] - Command AUDIOOFF sent
+[2025-06-19 02:46:26][FLASK] - PING
+[2025-06-19 07:30:00][MAIN] - To Arduino: LIGHTSON
+[2025-06-19 08:31:58][FLASK] - PING
+[2025-06-19 08:38:40][FLASK] - AUDIO: {'audio': 'on'}
+[2025-06-19 08:38:41][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-19 08:38:41][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-06-19 08:38:42][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-19 08:38:42][MAIN] - To Arduino: STRIPTOPG4
+[2025-06-19 08:38:42][MAIN] - Command AUDIOON sent
+[2025-06-19 08:38:42][MAIN] - To Arduino: STRIPOFF
+[2025-06-19 08:38:43][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-19 08:38:43][MAIN] - To Arduino: STRIPON
+[2025-06-19 08:38:43][MAIN] - To Arduino: STRIPG4
+[2025-06-19 08:38:43][MAIN] - Command STRIPTOPG4 sent
+[2025-06-19 09:12:50][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-19 10:13:05][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-19 11:13:20][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-19 12:13:36][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-19 12:15:36][FLASK] - 91.231.89.206 - - [19/Jun/2025 12:15:36] code 400, message Bad request version ('ÿ\x8aØ®\x98-ê')
+[2025-06-19 12:15:39][FLASK] - PING
+[2025-06-19 13:13:51][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-19 14:14:07][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-19 15:14:22][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-19 16:14:49][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-19 17:15:16][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-19 18:05:33][FLASK] - PING
+[2025-06-19 18:15:32][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-19 19:15:48][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-19 19:34:10][WEBSOCKET] - 104.234.115.104 - - [19/Jun/2025 19:34:10] code 400, message Bad request version ('À\x14À')
+[2025-06-19 19:35:56][WEBSOCKET] - 104.234.115.104 - - [19/Jun/2025 19:35:56] code 400, message Bad request version ('À\x14À')
+[2025-06-19 20:16:04][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-19 21:16:20][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-19 21:39:36][MAIN] - Serving 7129379343: msg 4889
+[2025-06-19 21:39:42][MAIN] - Serving 7129379343: msg 4891
+[2025-06-19 21:39:51][MAIN] - Serving 7129379343: msg 4893
+[2025-06-19 21:59:00][MAIN] - To Arduino: LIGHTSOFF
+[2025-06-19 22:16:35][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-19 23:17:35][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-20 00:17:51][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-20 01:18:07][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-20 01:57:56][FLASK] - STRIP: {'strip': 'i0'}
+[2025-06-20 01:57:56][MAIN] - To Arduino: STRIPOFF
+[2025-06-20 01:57:57][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-20 01:57:57][MAIN] - To Arduino: STRIPTOPCOLSWITCH
+[2025-06-20 01:57:57][MAIN] - To Arduino: STRIPON
+[2025-06-20 01:57:58][MAIN] - To Arduino: STRIPI1
+[2025-06-20 01:57:58][MAIN] - Command STRIPI0 sent
+[2025-06-20 02:18:22][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-20 03:18:36][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-20 04:18:51][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-20 05:17:19][FLASK] - PING
+[2025-06-20 05:19:05][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-20 06:19:19][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-20 07:19:34][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-20 07:30:00][MAIN] - To Arduino: LIGHTSON
+[2025-06-20 07:58:18][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-06-20 07:58:18][MAIN] - To Arduino: STRIPOFF
+[2025-06-20 07:58:19][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-20 07:58:19][MAIN] - To Arduino: STRIPON
+[2025-06-20 07:58:19][MAIN] - To Arduino: STRIPG4
+[2025-06-20 07:58:19][MAIN] - Command STRIPTOPG4 sent
+[2025-06-20 08:19:48][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-20 09:20:03][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-20 10:20:18][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-20 11:20:33][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-20 12:12:46][FLASK] - 89.248.163.187 - - [20/Jun/2025 12:12:46] code 400, message Bad request syntax ('\x03\x00\x00\x13\x0eà\x00\x00\x00\x00\x00\x01\x00\x08\x00\x02\x00\x00\x00')
+[2025-06-20 12:12:46][WEBSOCKET] - 89.248.163.187 - - [20/Jun/2025 12:12:46] code 400, message Bad request syntax ('\x03\x00\x00\x13\x0eà\x00\x00\x00\x00\x00\x01\x00\x08\x00\x02\x00\x00\x00')
+[2025-06-20 12:21:12][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-20 13:20:13][WEBSOCKET] - 195.184.76.201 - - [20/Jun/2025 13:20:13] code 400, message Bad request version ('À#À¬À®À+À')
+[2025-06-20 13:21:27][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-20 14:21:43][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-20 15:22:00][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-20 16:22:17][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-20 17:13:53][FLASK] - PING
+[2025-06-20 17:22:33][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-20 17:52:41][FLASK] - PING
+[2025-06-20 18:22:52][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-20 19:23:12][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-20 20:23:30][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-20 21:23:48][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-20 21:59:00][MAIN] - To Arduino: LIGHTSOFF
+[2025-06-20 22:24:16][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-20 23:24:33][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-20 23:31:03][WEBSOCKET] - 80.82.65.17 - - [20/Jun/2025 23:31:03] code 400, message Bad HTTP/0.9 request type ("\x03\x00\x00,'à\x00\x00\x00\x00\x00Cookie:")
+[2025-06-20 23:31:03][WEBSOCKET] - 80.82.65.17 - - [20/Jun/2025 23:31:03] code 400, message Bad HTTP/0.9 request type ("\x03\x00\x00,'à\x00\x00\x00\x00\x00Cookie:")
+[2025-06-20 23:31:03][WEBSOCKET] - 80.82.65.17 - - [20/Jun/2025 23:31:03] code 400, message Bad HTTP/0.9 request type ("\x03\x00\x00,'à\x00\x00\x00\x00\x00Cookie:")
+[2025-06-21 00:25:00][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-21 01:25:18][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-21 02:02:11][FLASK] - STRIP: {'strip': 'i0'}
+[2025-06-21 02:02:11][MAIN] - To Arduino: STRIPOFF
+[2025-06-21 02:02:12][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-21 02:02:12][MAIN] - To Arduino: STRIPTOPCOLSWITCH
+[2025-06-21 02:02:12][MAIN] - To Arduino: STRIPON
+[2025-06-21 02:02:13][MAIN] - To Arduino: STRIPI1
+[2025-06-21 02:02:13][MAIN] - Command STRIPI0 sent
+[2025-06-21 02:25:34][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-21 03:25:47][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-21 04:07:07][MAIN] - Audio set off automatically
+[2025-06-21 04:07:07][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-21 04:07:08][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-21 04:07:11][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-21 04:07:11][MAIN] - To Arduino: STRIPTOPOFF
+[2025-06-21 04:07:11][MAIN] - Command AUDIOOFF sent
+[2025-06-21 06:41:11][FLASK] - PING
+[2025-06-21 07:30:00][MAIN] - To Arduino: LIGHTSON
+[2025-06-21 10:33:40][FLASK] - AUDIO: {'audio': 'on'}
+[2025-06-21 10:33:40][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-21 10:33:40][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-06-21 10:33:41][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-21 10:33:41][MAIN] - To Arduino: STRIPTOPG4
+[2025-06-21 10:33:41][MAIN] - Command AUDIOON sent
+[2025-06-21 10:33:41][MAIN] - To Arduino: STRIPOFF
+[2025-06-21 10:33:42][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-21 10:33:42][MAIN] - To Arduino: STRIPON
+[2025-06-21 10:33:42][MAIN] - To Arduino: STRIPG4
+[2025-06-21 10:33:42][MAIN] - Command STRIPTOPG4 sent
+[2025-06-21 10:55:46][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-21 11:56:11][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-21 12:56:25][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-21 13:56:40][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-21 14:56:54][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-21 15:57:09][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-21 16:59:12][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-21 17:22:47][FLASK] - PING
+[2025-06-21 17:59:40][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-21 19:00:06][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-21 20:00:21][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-21 21:00:36][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-21 21:18:53][MAIN] - Serving 7129379343: msg 4895
+[2025-06-21 21:19:03][MAIN] - Serving 7129379343: msg 4897
+[2025-06-21 21:19:27][MAIN] - Serving 7129379343: msg 4899
+[2025-06-21 21:59:00][MAIN] - To Arduino: LIGHTSOFF
+[2025-06-21 22:00:52][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-21 22:13:03][FLASK] - 185.170.144.3 - - [21/Jun/2025 22:13:03] code 400, message Bad HTTP/0.9 request type ('\x03\x00\x00/*à\x00\x00\x00\x00\x00Cookie:')
+[2025-06-21 23:01:07][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-22 00:01:33][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-22 01:01:48][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-22 02:02:03][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-22 02:10:03][FLASK] - STRIP: {'strip': 'i0'}
+[2025-06-22 02:10:03][MAIN] - To Arduino: STRIPOFF
+[2025-06-22 02:10:04][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-22 02:10:04][MAIN] - To Arduino: STRIPTOPCOLSWITCH
+[2025-06-22 02:10:04][MAIN] - To Arduino: STRIPON
+[2025-06-22 02:10:05][MAIN] - To Arduino: STRIPI1
+[2025-06-22 02:10:05][MAIN] - Command STRIPI0 sent
+[2025-06-22 03:02:18][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-22 04:02:32][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-22 04:15:11][WEBSOCKET] - 104.234.115.174 - - [22/Jun/2025 04:15:11] code 400, message Bad request version ('À\x14À')
+[2025-06-22 04:16:47][WEBSOCKET] - 104.234.115.174 - - [22/Jun/2025 04:16:47] code 400, message Bad request version ('À\x14À')
+[2025-06-22 05:02:48][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-22 06:03:03][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-22 07:03:17][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-22 07:03:24][FLASK] - PING
+[2025-06-22 07:30:00][MAIN] - To Arduino: LIGHTSON
+[2025-06-22 08:03:32][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-22 09:03:46][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-22 09:57:06][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-06-22 09:57:07][MAIN] - To Arduino: STRIPOFF
+[2025-06-22 09:57:07][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-22 09:57:07][MAIN] - To Arduino: STRIPON
+[2025-06-22 09:57:07][MAIN] - To Arduino: STRIPG4
+[2025-06-22 09:57:07][MAIN] - Command STRIPTOPG4 sent
+[2025-06-22 10:04:01][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-22 10:24:32][FLASK] - 91.196.152.103 - - [22/Jun/2025 10:24:32] code 400, message Bad request version ('À#À¬À®À+À')
+[2025-06-22 10:24:35][FLASK] - PING
+[2025-06-22 11:04:16][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-22 12:04:32][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-22 13:04:58][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-22 14:05:15][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-22 15:05:43][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-22 16:05:59][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-22 16:53:48][FLASK] - PING
+[2025-06-22 17:06:26][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-22 18:06:41][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-22 19:06:56][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-22 20:07:10][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-22 21:07:25][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-22 21:59:00][MAIN] - To Arduino: LIGHTSOFF
+[2025-06-22 22:07:50][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-22 23:08:06][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-23 00:08:21][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-23 00:54:18][FLASK] - STRIP: {'strip': 'i0'}
+[2025-06-23 00:54:18][MAIN] - To Arduino: STRIPOFF
+[2025-06-23 00:54:19][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-23 00:54:19][MAIN] - To Arduino: STRIPTOPCOLSWITCH
+[2025-06-23 00:54:19][MAIN] - To Arduino: STRIPON
+[2025-06-23 00:54:20][MAIN] - To Arduino: STRIPI1
+[2025-06-23 00:54:20][MAIN] - Command STRIPI0 sent
+[2025-06-23 01:08:34][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-23 02:05:15][WEBSOCKET] - 194.0.234.12 - - [23/Jun/2025 02:05:15] code 400, message Bad HTTP/0.9 request type ('\x03\x00\x00/*à\x00\x00\x00\x00\x00Cookie:')
+[2025-06-23 02:08:48][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-23 03:09:02][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-23 04:09:16][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-23 04:51:51][WEBSOCKET] - 194.0.234.12 - - [23/Jun/2025 04:51:51] code 400, message Bad HTTP/0.9 request type ('\x03\x00\x00/*à\x00\x00\x00\x00\x00Cookie:')
+[2025-06-23 05:09:30][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-23 05:30:40][FLASK] - PING
+[2025-06-23 06:09:55][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-23 07:10:09][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-23 07:30:00][MAIN] - To Arduino: LIGHTSON
+[2025-06-23 08:00:00][MAIN] - ANNOUNCEMENTS
+[2025-06-23 08:00:00][MAIN] - 2025-06-23 08:00:00.108196
+[2025-06-23 08:00:01][MAIN] - Pulling from GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-06-23 08:00:03][MAIN] - Already up to date.
+[2025-06-23 08:00:04][MAIN] - [[]]
+[2025-06-23 08:00:04][MAIN] - [[]]
+[2025-06-23 08:00:04][MAIN] - [[]]
+[2025-06-23 08:00:04][MAIN] - [[]]
+[2025-06-23 08:00:04][MAIN] - [[]]
+[2025-06-23 08:00:04][MAIN] - [[]]
+[2025-06-23 08:00:05][MAIN] - History updated.
+[2025-06-23 08:00:05][MAIN] -           Week      Cesare     Claudio  ...         Lea        Mara    Natchaya
+[2025-06-23 08:00:05][MAIN] - [96m53  2025-02-10       Floor   Bathrooms  ...  Management     Kitchen    Vacation[0m
+[2025-06-23 08:00:05][MAIN] - [96m54  2025-02-17  Management    Vacation  ...   Bathrooms    Vacation       Floor[0m
+[2025-06-23 08:00:05][MAIN] - [96m55  2025-02-24    Vacation  Management  ...    Vacation       Floor     Kitchen[0m
+[2025-06-23 08:00:05][MAIN] - [96m56  2025-03-03   Bathrooms       Floor  ...     Kitchen  Management    Vacation[0m
+[2025-06-23 08:00:05][MAIN] - [96m57  2025-03-10       Floor     Kitchen  ...    Vacation    Vacation   Bathrooms[0m
+[2025-06-23 08:00:05][MAIN] - [96m58  2025-03-17    Vacation    Vacation  ...       Floor   Bathrooms  Management[0m
+[2025-06-23 08:00:05][MAIN] - [96m59  2025-03-24     Kitchen   Bathrooms  ...  Management       Floor    Vacation[0m
+[2025-06-23 08:00:05][MAIN] - [96m60  2025-03-31   Bathrooms  Management  ...    Vacation    Vacation     Kitchen[0m
+[2025-06-23 08:00:05][MAIN] - [96m61  2025-04-07    Vacation    Vacation  ...   Bathrooms     Kitchen       Floor[0m
+[2025-06-23 08:00:05][MAIN] - [96m62  2025-04-14  Management       Floor  ...     Kitchen   Bathrooms    Vacation[0m
+[2025-06-23 08:00:05][MAIN] - [96m63  2025-04-21       Floor     Kitchen  ...    Vacation    Vacation  Management[0m
+[2025-06-23 08:00:05][MAIN] - [96m64  2025-04-28    Vacation    Vacation  ...       Floor  Management   Bathrooms[0m
+[2025-06-23 08:00:05][MAIN] - [96m65  2025-05-05     Kitchen   Bathrooms  ...  Management       Floor    Vacation[0m
+[2025-06-23 08:00:05][MAIN] - [96m66  2025-05-12   Bathrooms  Management  ...    Vacation    Vacation     Kitchen[0m
+[2025-06-23 08:00:05][MAIN] - [96m67  2025-05-19    Vacation    Vacation  ...   Bathrooms     Kitchen       Floor[0m
+[2025-06-23 08:00:05][MAIN] - [96m68  2025-05-26  Management       Floor  ...     Kitchen    Vacation    Vacation[0m
+[2025-06-23 08:00:05][MAIN] - [38;5;208m69  2025-06-02       Floor     Kitchen  ...    Vacation   Bathrooms    Vacation[0m
+[2025-06-23 08:00:05][MAIN] - [91m70  2025-06-09     Kitchen    Vacation  ...       Floor  Management   Bathrooms[0m
+[2025-06-23 08:00:05][MAIN] - [91m71  2025-06-16    Vacation   Bathrooms  ...  Management    Vacation     Kitchen[0m
+[2025-06-23 08:00:05][MAIN] - [91m72  2025-06-23   Bathrooms  Management  ...    Vacation       Floor    Vacation[0m
+[2025-06-23 08:00:05][MAIN] - [91m73  2025-06-30  Management       Floor  ...   Bathrooms     Kitchen    Vacation[0m
+[2025-06-23 08:00:05][MAIN] - [91m74  2025-07-07       Floor    Vacation  ...     Kitchen  Management    Vacation[0m
+[2025-06-23 08:00:05][MAIN] - [91m75  2025-07-14    Vacation     Kitchen  ...       Floor   Bathrooms    Vacation[0m
+[2025-06-23 08:00:05][MAIN] - [91m76  2025-07-21     Kitchen   Bathrooms  ...  Management    Vacation    Vacation[0m
+[2025-06-23 08:00:05][MAIN] - [91m77  2025-07-28   Bathrooms    Vacation  ...    Vacation       Floor  Management[0m
+[2025-06-23 08:00:05][MAIN] - [91m78  2025-08-04    Vacation  Management  ...   Bathrooms     Kitchen       Floor[0m
+[2025-06-23 08:00:05][MAIN] - [91m79  2025-08-11  Management       Floor  ...     Kitchen    Vacation    Vacation[0m
+[2025-06-23 08:00:05][MAIN] - [91m[27 rows x 7 columns][0m
+[2025-06-23 08:00:05][MAIN] - Saving at /home/claudio/Python-Projects/RoomServer/wg/data/cleaning_plan_leo6.xlsx
+[2025-06-23 08:00:06][MAIN] - Msg sent to LEO6:
+[2025-06-23 08:00:06][MAIN] - This week (23-06-25):
+
+[2025-06-23 08:00:06][MAIN] - ❗⚠ Manager: Claudio ⚠❗
+
+[2025-06-23 08:00:06][MAIN] - Cesare: Bathrooms 🛁🚽🧻🚾
+
+[2025-06-23 08:00:06][MAIN] - Jay: Kitchen 🪑🚰🧴🔪
+
+[2025-06-23 08:00:06][MAIN] - Mara: Floor 🧹🪣🫧
+
+[2025-06-23 08:00:06][MAIN] - For the others, 💸🧺🍾 !
+
+[2025-06-23 08:00:06][MAIN] - Note: If you want to swap your task with someone else's task, use the SWAP command.
+
+[2025-06-23 08:00:06][MAIN] - You can submit an anonymous complaint for one or more tasks of the previous week by sending a BLAME.
+
+[2025-06-23 08:00:06][MAIN] - Before blaming someone, please warn them first ⚠️ and then wait until Tuesday evening so that the person has time to recover their delayed duty.
+
+[2025-06-23 08:00:06][MAIN] - If a person receives at least 2 blames, they will need to recover the task in the future ☠️.
+
+[2025-06-23 08:00:06][MAIN] - You can also send a message of appreciation 🌟 by sending a PRAISE as well.
+
+[2025-06-23 08:00:06][MAIN] - If you need vacation for a week, you can send book it though BOOK VACATION.
+
+[2025-06-23 08:00:06][MAIN] - Whenever you have a WG expense 💰, use EXPENSE and specify price/reason for it.
+[2025-06-23 08:00:06][MAIN] - Pushing to GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-06-23 08:00:07][MAIN] - [master 6744a80] auto_update
+
+[2025-06-23 08:00:07][MAIN] -  2 files changed, 19 insertions(+)
+[2025-06-23 08:00:07][MAIN] - To github.com:shapelessguy/Python-Projects.git
+
+[2025-06-23 08:00:07][MAIN] -    73a329b..6744a80  master -> master
+[2025-06-23 08:00:07][MAIN] - [[]]
+[2025-06-23 08:00:07][MAIN] - Msg sent:
+[2025-06-23 08:00:07][MAIN] - Hello Jay, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-06-23 08:00:07][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-06-23 08:00:07][MAIN] - This week (23/06 - 30/06):  <b>Kitchen</b> 🪑🚰🧴🔪
+
+[2025-06-23 08:00:07][MAIN] - Next week (30/06 - 07/07):  <b>Vacation</b> 💸🧺🍾
+
+[2025-06-23 08:00:07][MAIN] - Week 07/07 - 14/07:  <b>Bathrooms</b> 🛁🚽🧻🚾
+
+[2025-06-23 08:00:07][MAIN] - Week 14/07 - 21/07:  <b>Management</b> 💸🧺🍾
+
+[2025-06-23 08:00:07][MAIN] - 👍 Congratulations, you have no complaints for the week 09/06 - 16/06!
+[2025-06-23 08:00:07][MAIN] - [[]]
+[2025-06-23 08:00:07][MAIN] - Msg sent:
+[2025-06-23 08:00:07][MAIN] - Hello Cesare, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-06-23 08:00:07][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-06-23 08:00:07][MAIN] - This week (23/06 - 30/06):  <b>Bathrooms</b> 🛁🚽🧻🚾
+
+[2025-06-23 08:00:07][MAIN] - Next week (30/06 - 07/07):  <b>Management</b> 💸🧺🍾
+
+[2025-06-23 08:00:07][MAIN] - Week 07/07 - 14/07:  <b>Floor</b> 🧹🪣🫧
+
+[2025-06-23 08:00:07][MAIN] - Week 14/07 - 21/07:  <b>Vacation</b> 💸🧺🍾
+
+[2025-06-23 08:00:07][MAIN] - 👍 Congratulations, you have no complaints for the week 09/06 - 16/06!
+[2025-06-23 08:00:08][MAIN] - [[]]
+[2025-06-23 08:00:08][MAIN] - Msg sent:
+[2025-06-23 08:00:08][MAIN] - Hello Claudio, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-06-23 08:00:08][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-06-23 08:00:08][MAIN] - This week (23/06 - 30/06):  <b>Management</b> 💸🧺🍾
+
+[2025-06-23 08:00:08][MAIN] - Next week (30/06 - 07/07):  <b>Floor</b> 🧹🪣🫧
+
+[2025-06-23 08:00:08][MAIN] - Week 07/07 - 14/07:  <b>Vacation</b> 💸🧺🍾
+
+[2025-06-23 08:00:08][MAIN] - Week 14/07 - 21/07:  <b>Kitchen</b> 🪑🚰🧴🔪
+
+[2025-06-23 08:00:08][MAIN] - 👍 Congratulations, you have no complaints for the week 09/06 - 16/06!
+[2025-06-23 08:00:08][MAIN] - [[]]
+[2025-06-23 08:00:08][MAIN] - Msg sent:
+[2025-06-23 08:00:08][MAIN] - Hello Natchaya, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-06-23 08:00:08][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-06-23 08:00:08][MAIN] - This week (23/06 - 30/06):  <b>Vacation</b> 💸🧺🍾
+
+[2025-06-23 08:00:08][MAIN] - Next week (30/06 - 07/07):  <b>Vacation</b> 💸🧺🍾
+
+[2025-06-23 08:00:08][MAIN] - Week 07/07 - 14/07:  <b>Vacation</b> 💸🧺🍾
+
+[2025-06-23 08:00:08][MAIN] - Week 14/07 - 21/07:  <b>Vacation</b> 💸🧺🍾
+
+[2025-06-23 08:00:08][MAIN] - 👍 Congratulations, you have no complaints for the week 09/06 - 16/06!
+[2025-06-23 08:00:08][MAIN] - [[]]
+[2025-06-23 08:00:08][MAIN] - Msg sent:
+[2025-06-23 08:00:08][MAIN] - Hello Lea, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-06-23 08:00:08][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-06-23 08:00:08][MAIN] - This week (23/06 - 30/06):  <b>Vacation</b> 💸🧺🍾
+
+[2025-06-23 08:00:08][MAIN] - Next week (30/06 - 07/07):  <b>Bathrooms</b> 🛁🚽🧻🚾
+
+[2025-06-23 08:00:08][MAIN] - Week 07/07 - 14/07:  <b>Kitchen</b> 🪑🚰🧴🔪
+
+[2025-06-23 08:00:08][MAIN] - Week 14/07 - 21/07:  <b>Floor</b> 🧹🪣🫧
+
+[2025-06-23 08:00:08][MAIN] - 👍 Congratulations, you have no complaints for the week 09/06 - 16/06!
+[2025-06-23 08:00:08][MAIN] - [[]]
+[2025-06-23 08:00:08][MAIN] - Msg sent:
+[2025-06-23 08:00:08][MAIN] - Hello Mara, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-06-23 08:00:08][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-06-23 08:00:08][MAIN] - This week (23/06 - 30/06):  <b>Floor</b> 🧹🪣🫧
+
+[2025-06-23 08:00:08][MAIN] - Next week (30/06 - 07/07):  <b>Kitchen</b> 🪑🚰🧴🔪
+
+[2025-06-23 08:00:08][MAIN] - Week 07/07 - 14/07:  <b>Management</b> 💸🧺🍾
+
+[2025-06-23 08:00:08][MAIN] - Week 14/07 - 21/07:  <b>Bathrooms</b> 🛁🚽🧻🚾
+
+[2025-06-23 08:00:08][MAIN] - 👍 Congratulations, you have no complaints for the week 09/06 - 16/06!
+[2025-06-23 08:10:23][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-23 08:21:38][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-06-23 08:21:38][MAIN] - To Arduino: STRIPOFF
+[2025-06-23 08:21:39][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-23 08:21:39][MAIN] - To Arduino: STRIPON
+[2025-06-23 08:21:39][MAIN] - To Arduino: STRIPG4
+[2025-06-23 08:21:39][MAIN] - Command STRIPTOPG4 sent
+[2025-06-23 09:10:37][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-23 10:10:51][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-23 10:39:34][FLASK] - 80.82.65.17 - - [23/Jun/2025 10:39:34] code 400, message Bad HTTP/0.9 request type ("\x03\x00\x00,'à\x00\x00\x00\x00\x00Cookie:")
+[2025-06-23 10:39:34][FLASK] - 80.82.65.17 - - [23/Jun/2025 10:39:34] code 400, message Bad HTTP/0.9 request type ("\x03\x00\x00,'à\x00\x00\x00\x00\x00Cookie:")
+[2025-06-23 10:39:34][FLASK] - 80.82.65.17 - - [23/Jun/2025 10:39:34] code 400, message Bad HTTP/0.9 request type ("\x03\x00\x00,'à\x00\x00\x00\x00\x00Cookie:")
+[2025-06-23 11:11:05][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-23 12:11:31][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-23 12:49:11][FLASK] - 91.231.89.12 - - [23/Jun/2025 12:49:11] code 400, message Bad request version ('À#À¬À®À+À')
+[2025-06-23 12:49:15][FLASK] - PING
+[2025-06-23 13:11:47][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-23 14:12:02][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-23 15:12:17][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-23 16:12:32][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-23 17:12:47][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-23 18:13:16][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-23 19:13:33][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-23 19:21:33][FLASK] - PING
+[2025-06-23 20:13:50][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-23 21:14:07][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-23 21:59:00][MAIN] - To Arduino: LIGHTSOFF
+[2025-06-23 22:14:23][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-23 23:14:39][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-23 23:43:15][FLASK] - STRIP: {'strip': 'i0'}
+[2025-06-23 23:43:15][MAIN] - To Arduino: STRIPOFF
+[2025-06-23 23:43:16][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-23 23:43:16][MAIN] - To Arduino: STRIPTOPCOLSWITCH
+[2025-06-23 23:43:16][MAIN] - To Arduino: STRIPON
+[2025-06-23 23:43:17][MAIN] - To Arduino: STRIPI1
+[2025-06-23 23:43:17][MAIN] - Command STRIPI0 sent
+[2025-06-24 00:14:55][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-24 01:15:11][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-24 02:15:26][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-24 03:15:40][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-24 03:22:41][FLASK] - PING
+[2025-06-24 04:15:55][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-24 05:16:10][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-24 06:16:26][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-24 07:16:41][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-24 07:30:00][MAIN] - To Arduino: LIGHTSON
+[2025-06-24 07:54:00][MAIN] - Audio set off automatically
+[2025-06-24 07:54:00][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-24 07:54:01][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-24 07:54:04][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-24 07:54:04][MAIN] - To Arduino: STRIPTOPOFF
+[2025-06-24 07:54:04][MAIN] - Command AUDIOOFF sent
+[2025-06-24 08:26:45][FLASK] - PING
+[2025-06-24 11:08:05][FLASK] - PING
+[2025-06-24 16:21:07][FLASK] - PING
+[2025-06-24 17:19:50][FLASK] - AUDIO: {'audio': 'on'}
+[2025-06-24 17:19:50][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-24 17:19:51][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-06-24 17:19:51][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-24 17:19:52][MAIN] - To Arduino: STRIPTOPG4
+[2025-06-24 17:19:52][MAIN] - Command AUDIOON sent
+[2025-06-24 17:19:52][MAIN] - To Arduino: STRIPOFF
+[2025-06-24 17:19:52][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-24 17:19:52][MAIN] - To Arduino: STRIPON
+[2025-06-24 17:19:52][MAIN] - To Arduino: STRIPG4
+[2025-06-24 17:19:52][MAIN] - Command STRIPTOPG4 sent
+[2025-06-24 17:45:46][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-24 18:46:12][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-24 19:46:38][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-24 20:47:06][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-24 21:47:24][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-24 21:59:00][MAIN] - To Arduino: LIGHTSOFF
+[2025-06-24 22:47:41][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-24 23:47:56][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-25 00:02:28][FLASK] - STRIP: {'strip': 'i0'}
+[2025-06-25 00:02:28][MAIN] - To Arduino: STRIPOFF
+[2025-06-25 00:02:29][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-25 00:02:29][MAIN] - To Arduino: STRIPTOPCOLSWITCH
+[2025-06-25 00:02:29][MAIN] - To Arduino: STRIPON
+[2025-06-25 00:02:30][MAIN] - To Arduino: STRIPI1
+[2025-06-25 00:02:30][MAIN] - Command STRIPI0 sent
+[2025-06-25 00:48:11][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-25 01:48:25][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-25 02:48:38][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-25 03:48:52][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-25 04:49:06][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-25 05:30:36][FLASK] - PING
+[2025-06-25 05:49:19][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-25 06:49:33][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-25 07:30:00][MAIN] - To Arduino: LIGHTSON
+[2025-06-25 07:49:47][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-25 08:28:11][FLASK] - PING
+[2025-06-25 08:50:01][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-25 08:58:46][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-06-25 08:58:46][MAIN] - To Arduino: STRIPOFF
+[2025-06-25 08:58:47][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-25 08:58:47][MAIN] - To Arduino: STRIPON
+[2025-06-25 08:58:47][MAIN] - To Arduino: STRIPG4
+[2025-06-25 08:58:47][MAIN] - Command STRIPTOPG4 sent
+[2025-06-25 09:50:17][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-25 10:50:31][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-25 11:50:46][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-25 12:51:00][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-25 13:51:15][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-25 14:51:42][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-25 15:51:59][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-25 16:52:15][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-25 17:04:31][FLASK] - PING
+[2025-06-25 17:52:32][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-25 18:52:48][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-25 19:53:06][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-25 20:53:37][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-25 21:53:53][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-25 21:59:00][MAIN] - To Arduino: LIGHTSOFF
+[2025-06-25 22:54:09][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-25 23:54:24][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-26 00:54:39][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-26 01:17:26][FLASK] - STRIP: {'strip': 'i0'}
+[2025-06-26 01:17:26][MAIN] - To Arduino: STRIPOFF
+[2025-06-26 01:17:26][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-26 01:17:27][MAIN] - To Arduino: STRIPTOPCOLSWITCH
+[2025-06-26 01:17:27][MAIN] - To Arduino: STRIPON
+[2025-06-26 01:17:28][MAIN] - To Arduino: STRIPI1
+[2025-06-26 01:17:28][MAIN] - Command STRIPI0 sent
+[2025-06-26 01:54:54][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-26 02:55:19][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-26 02:59:14][FLASK] - PING
+[2025-06-26 03:55:33][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-26 04:55:48][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-26 05:56:01][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-26 06:56:15][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-26 07:09:13][FLASK] - PING
+[2025-06-26 07:30:00][MAIN] - To Arduino: LIGHTSON
+[2025-06-26 07:56:30][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-26 08:34:16][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-06-26 08:34:16][MAIN] - To Arduino: STRIPOFF
+[2025-06-26 08:34:16][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-26 08:34:16][MAIN] - To Arduino: STRIPON
+[2025-06-26 08:34:16][MAIN] - To Arduino: STRIPG4
+[2025-06-26 08:34:16][MAIN] - Command STRIPTOPG4 sent
+[2025-06-26 08:56:45][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-26 09:57:00][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-26 10:57:15][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-26 11:57:30][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-26 12:57:45][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-26 13:57:59][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-26 14:58:14][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-26 15:08:30][FLASK] - PING
+[2025-06-26 15:58:28][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-26 16:58:43][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-26 17:58:59][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-26 18:51:56][FLASK] - PING
+[2025-06-26 18:59:15][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-26 19:44:07][FLASK] - PING
+[2025-06-26 19:59:32][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-26 20:47:19][MAIN] - Issue while trying to upload IP (initialization)
+[2025-06-26 20:47:19][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f2444e3a6e0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-06-26 20:47:26][MAIN] - IP 84.155.64.48 uploaded to:
+[2025-06-26 20:47:26][MAIN] - https://storage.googleapis.com/ip-manager42.appspot.com/RaspberryPi-Cyan/ip_server.txt
+[2025-06-26 20:47:26][FLASK] -  * Serving Flask app 'server'
+[2025-06-26 20:47:26][FLASK] -  * Debug mode: off
+[2025-06-26 20:47:26][FLASK] - Address already in use
+[2025-06-26 20:47:26][FLASK] - Port 10004 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-06-26 20:47:26][WEBSOCKET] -  * Serving Flask app 'websocket_server'
+[2025-06-26 20:47:26][WEBSOCKET] -  * Debug mode: off
+[2025-06-26 20:47:26][WEBSOCKET] - Address already in use
+[2025-06-26 20:47:26][WEBSOCKET] - Port 10003 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-06-26 21:00:01][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-26 21:59:00][MAIN] - To Arduino: LIGHTSOFF
+[2025-06-26 22:00:16][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-26 23:00:33][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-27 00:00:48][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-27 01:01:02][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-27 01:27:51][FLASK] - STRIP: {'strip': 'i0'}
+[2025-06-27 01:27:51][MAIN] - To Arduino: STRIPOFF
+[2025-06-27 01:27:51][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-27 01:27:51][MAIN] - To Arduino: STRIPTOPCOLSWITCH
+[2025-06-27 01:27:52][MAIN] - To Arduino: STRIPON
+[2025-06-27 01:27:53][MAIN] - To Arduino: STRIPI1
+[2025-06-27 01:27:53][MAIN] - Command STRIPI0 sent
+[2025-06-27 02:01:16][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-27 03:01:29][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-27 04:01:43][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-27 04:16:06][MAIN] - Audio set off automatically
+[2025-06-27 04:16:06][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-27 04:16:07][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-27 04:16:10][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-27 04:16:10][MAIN] - To Arduino: STRIPTOPOFF
+[2025-06-27 04:16:10][MAIN] - Command AUDIOOFF sent
+[2025-06-27 06:54:43][FLASK] - PING
+[2025-06-27 07:30:00][MAIN] - To Arduino: LIGHTSON
+[2025-06-27 08:49:22][FLASK] - AUDIO: {'audio': 'on'}
+[2025-06-27 08:49:22][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-27 08:49:23][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-06-27 08:49:23][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-27 08:49:24][MAIN] - To Arduino: STRIPTOPG4
+[2025-06-27 08:49:24][MAIN] - Command AUDIOON sent
+[2025-06-27 08:49:24][MAIN] - To Arduino: STRIPOFF
+[2025-06-27 08:49:24][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-27 08:49:24][MAIN] - To Arduino: STRIPON
+[2025-06-27 08:49:25][MAIN] - To Arduino: STRIPG4
+[2025-06-27 08:49:25][MAIN] - Command STRIPTOPG4 sent
+[2025-06-27 09:38:14][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-27 10:38:40][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-27 11:13:48][FLASK] - 91.196.152.190 - - [27/Jun/2025 11:13:48] code 400, message Bad request version ('À#À¬À®À+À')
+[2025-06-27 11:13:58][FLASK] - PING
+[2025-06-27 11:38:54][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-27 12:39:09][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-27 13:02:33][WEBSOCKET] - 195.184.76.21 - - [27/Jun/2025 13:02:33] code 400, message Bad request version ('À#À¬À®À+À')
+[2025-06-27 13:39:23][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-27 14:39:49][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-27 15:40:14][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-27 16:40:29][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-27 17:40:44][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-27 18:41:00][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-27 19:30:36][FLASK] - PING
+[2025-06-27 19:41:26][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-27 20:41:44][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-27 21:42:00][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-27 21:59:00][MAIN] - To Arduino: LIGHTSOFF
+[2025-06-27 22:26:11][WEBSOCKET] - 195.184.76.167 - - [27/Jun/2025 22:26:11] code 400, message Bad request version ('À#À¬À®À+À')
+[2025-06-27 22:42:17][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-27 23:42:34][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-28 00:09:41][FLASK] - STRIP: {'strip': 'i0'}
+[2025-06-28 00:09:42][MAIN] - To Arduino: STRIPOFF
+[2025-06-28 00:09:42][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-28 00:09:43][MAIN] - To Arduino: STRIPTOPCOLSWITCH
+[2025-06-28 00:09:43][MAIN] - To Arduino: STRIPON
+[2025-06-28 00:09:44][MAIN] - To Arduino: STRIPI1
+[2025-06-28 00:09:44][MAIN] - Command STRIPI0 sent
+[2025-06-28 00:14:52][WEBSOCKET] - 92.63.197.197 - - [28/Jun/2025 00:14:52] code 400, message Bad request version ("J÷f½µ\x00>\x13\x02\x13\x03\x13\x01À,À0\x00\x9fÌ©Ì¨ÌªÀ+À/\x00\x9eÀ$À(\x00kÀ#À'\x00gÀ")
+[2025-06-28 00:42:51][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-28 01:43:08][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-28 02:43:25][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-28 03:43:51][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-28 04:44:05][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-28 05:30:40][FLASK] - PING
+[2025-06-28 05:44:19][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-28 06:44:36][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-28 07:30:00][MAIN] - To Arduino: LIGHTSON
+[2025-06-28 07:44:51][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-28 08:45:06][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-28 09:00:49][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-06-28 09:00:49][MAIN] - To Arduino: STRIPOFF
+[2025-06-28 09:00:50][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-28 09:00:50][MAIN] - To Arduino: STRIPON
+[2025-06-28 09:00:50][MAIN] - To Arduino: STRIPG4
+[2025-06-28 09:00:50][MAIN] - Command STRIPTOPG4 sent
+[2025-06-28 09:45:31][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-28 10:45:45][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-28 11:44:51][FLASK] - PING
+[2025-06-28 11:45:58][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-28 12:46:12][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-28 13:31:25][FLASK] - PING
+[2025-06-28 13:46:26][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-28 14:46:40][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-28 15:28:34][FLASK] - 152.32.200.117 - - [28/Jun/2025 15:28:34] code 400, message Bad request version ('\x00\x9eÌ¨Ìª\x003\x00=\x00\x16À')
+[2025-06-28 15:28:44][FLASK] - PING
+[2025-06-28 15:45:17][WEBSOCKET] - 165.154.49.137 - - [28/Jun/2025 15:45:17] code 400, message Bad request syntax ('\x16\x03\x01\x01\x17\x01\x00\x01\x13\x03\x03\x16\x91E(Å')
+[2025-06-28 15:45:38][WEBSOCKET] - 165.154.49.137 - - [28/Jun/2025 15:45:38] code 400, message Bad request version ('GetClassName\x00\x00\x00\x02\x04\x00\x00\x00\x00\x01\x00')
+[2025-06-28 15:47:05][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-28 16:22:15][FLASK] - PING
+[2025-06-28 16:47:20][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-28 17:47:36][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-28 18:48:03][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-28 19:06:37][FLASK] - 206.168.34.40 - - [28/Jun/2025 19:06:37] code 400, message Bad request version ('À\x14À')
+[2025-06-28 19:06:41][FLASK] - PING
+[2025-06-28 19:06:45][FLASK] - PING
+[2025-06-28 19:06:45][FLASK] - 206.168.34.40 - - [28/Jun/2025 19:06:45] code 505, message Invalid HTTP version (2.0)
+[2025-06-28 19:06:51][FLASK] - 206.168.34.40 - - [28/Jun/2025 19:06:51] code 505, message Invalid HTTP version (2.0)
+[2025-06-28 19:06:54][FLASK] - 206.168.34.40 - - [28/Jun/2025 19:06:54] code 400, message Bad request version ('Õ¶JÙÙ')
+[2025-06-28 19:48:20][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-28 20:09:36][WEBSOCKET] - 47.251.73.94 - - [28/Jun/2025 20:09:36] code 400, message Bad request version ('À\x13À')
+[2025-06-28 20:48:37][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-28 21:49:04][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-28 21:59:00][MAIN] - To Arduino: LIGHTSOFF
+[2025-06-28 22:49:22][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-28 23:49:40][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-29 00:49:57][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-29 01:15:11][FLASK] - 47.251.92.32 - - [29/Jun/2025 01:15:11] code 400, message Bad request version ('À\x13À')
+[2025-06-29 01:15:21][FLASK] - PING
+[2025-06-29 01:16:22][FLASK] - PING
+[2025-06-29 01:47:39][FLASK] - STRIP: {'strip': 'i0'}
+[2025-06-29 01:47:39][MAIN] - To Arduino: STRIPOFF
+[2025-06-29 01:47:40][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-29 01:47:40][MAIN] - To Arduino: STRIPTOPCOLSWITCH
+[2025-06-29 01:47:40][MAIN] - To Arduino: STRIPON
+[2025-06-29 01:47:41][MAIN] - To Arduino: STRIPI1
+[2025-06-29 01:47:41][MAIN] - Command STRIPI0 sent
+[2025-06-29 01:50:13][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-29 02:50:28][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-29 03:50:44][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-29 04:22:34][MAIN] - Serving 5322858471: msg 4908
+[2025-06-29 04:51:00][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-29 05:51:14][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-29 06:51:30][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-29 07:25:44][FLASK] - PING
+[2025-06-29 07:30:00][MAIN] - To Arduino: LIGHTSON
+[2025-06-29 07:51:45][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-29 08:51:59][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-29 09:52:24][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-29 10:30:33][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-06-29 10:30:33][MAIN] - To Arduino: STRIPOFF
+[2025-06-29 10:30:33][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-29 10:30:34][MAIN] - To Arduino: STRIPON
+[2025-06-29 10:30:34][MAIN] - To Arduino: STRIPG4
+[2025-06-29 10:30:34][MAIN] - Command STRIPTOPG4 sent
+[2025-06-29 10:52:40][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-29 11:52:54][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-29 12:53:08][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-29 13:53:22][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-29 14:53:37][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-29 15:54:02][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-29 16:54:29][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-29 17:54:54][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-29 17:56:27][FLASK] - PING
+[2025-06-29 18:29:33][FLASK] - PING
+[2025-06-29 18:35:42][WEBSOCKET] - 206.168.34.68 - - [29/Jun/2025 18:35:42] code 400, message Bad request version ('À\x14À')
+[2025-06-29 18:36:23][WEBSOCKET] - 206.168.34.68 - - [29/Jun/2025 18:36:23] code 400, message Bad request syntax ('ZG\x00\x00\x00\x05\x00+\x0e\x01\x00')
+[2025-06-29 18:55:09][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-29 19:55:26][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-29 19:59:54][FLASK] - PING
+[2025-06-29 20:00:38][FLASK] - 206.168.34.49 - - [29/Jun/2025 20:00:38] code 505, message Invalid HTTP version (2.0)
+[2025-06-29 20:01:12][FLASK] - 206.168.34.49 - - [29/Jun/2025 20:01:12] code 505, message Invalid HTTP version (2.0)
+[2025-06-29 20:01:25][FLASK] - 206.168.34.49 - - [29/Jun/2025 20:01:25] code 400, message Bad HTTP/0.9 request type ('\x16\x03\x01\x00î\x01\x00\x00ê\x03\x03\x02x\x88=UßQ4\x7fpgw\x90¥+\x90\x84ê·@Y)Åo¼§Ý<\x9c0ËÝ')
+[2025-06-29 20:55:41][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-29 21:14:04][FLASK] - PING
+[2025-06-29 21:55:57][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-29 21:59:00][MAIN] - To Arduino: LIGHTSOFF
+[2025-06-29 22:56:13][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-29 23:28:04][FLASK] - STRIP: {'strip': 'i0'}
+[2025-06-29 23:28:04][MAIN] - To Arduino: STRIPOFF
+[2025-06-29 23:28:04][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-29 23:28:05][MAIN] - To Arduino: STRIPTOPCOLSWITCH
+[2025-06-29 23:28:05][MAIN] - To Arduino: STRIPON
+[2025-06-29 23:28:06][MAIN] - To Arduino: STRIPI1
+[2025-06-29 23:28:06][MAIN] - Command STRIPI0 sent
+[2025-06-29 23:56:28][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-30 00:56:43][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-30 01:56:56][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-30 02:57:21][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-30 03:57:46][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-30 04:39:24][WEBSOCKET] - 162.142.125.117 - - [30/Jun/2025 04:39:24] code 505, message Invalid HTTP version (2.0)
+[2025-06-30 04:39:35][WEBSOCKET] - 162.142.125.117 - - [30/Jun/2025 04:39:35] code 505, message Invalid HTTP version (2.0)
+[2025-06-30 04:39:42][WEBSOCKET] - 162.142.125.117 - - [30/Jun/2025 04:39:42] code 400, message Bad request version ('À\x14À')
+[2025-06-30 04:58:00][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-30 05:58:14][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-30 06:58:28][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-30 07:30:00][MAIN] - To Arduino: LIGHTSON
+[2025-06-30 07:58:42][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-30 08:00:01][MAIN] - ANNOUNCEMENTS
+[2025-06-30 08:00:01][MAIN] - 2025-06-30 08:00:01.489267
+[2025-06-30 08:00:02][MAIN] - Pulling from GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-06-30 08:00:04][MAIN] - Already up to date.
+[2025-06-30 08:00:04][MAIN] - [[]]
+[2025-06-30 08:00:04][MAIN] - [[]]
+[2025-06-30 08:00:04][MAIN] - [[]]
+[2025-06-30 08:00:04][MAIN] - [[]]
+[2025-06-30 08:00:04][MAIN] - [[]]
+[2025-06-30 08:00:04][MAIN] - [[]]
+[2025-06-30 08:00:05][MAIN] - History updated.
+[2025-06-30 08:00:05][MAIN] -           Week      Cesare     Claudio  ...         Lea        Mara    Natchaya
+[2025-06-30 08:00:05][MAIN] - [96m53  2025-02-10       Floor   Bathrooms  ...  Management     Kitchen    Vacation[0m
+[2025-06-30 08:00:05][MAIN] - [96m54  2025-02-17  Management    Vacation  ...   Bathrooms    Vacation       Floor[0m
+[2025-06-30 08:00:05][MAIN] - [96m55  2025-02-24    Vacation  Management  ...    Vacation       Floor     Kitchen[0m
+[2025-06-30 08:00:05][MAIN] - [96m56  2025-03-03   Bathrooms       Floor  ...     Kitchen  Management    Vacation[0m
+[2025-06-30 08:00:05][MAIN] - [96m57  2025-03-10       Floor     Kitchen  ...    Vacation    Vacation   Bathrooms[0m
+[2025-06-30 08:00:05][MAIN] - [96m58  2025-03-17    Vacation    Vacation  ...       Floor   Bathrooms  Management[0m
+[2025-06-30 08:00:05][MAIN] - [96m59  2025-03-24     Kitchen   Bathrooms  ...  Management       Floor    Vacation[0m
+[2025-06-30 08:00:05][MAIN] - [96m60  2025-03-31   Bathrooms  Management  ...    Vacation    Vacation     Kitchen[0m
+[2025-06-30 08:00:05][MAIN] - [96m61  2025-04-07    Vacation    Vacation  ...   Bathrooms     Kitchen       Floor[0m
+[2025-06-30 08:00:05][MAIN] - [96m62  2025-04-14  Management       Floor  ...     Kitchen   Bathrooms    Vacation[0m
+[2025-06-30 08:00:05][MAIN] - [96m63  2025-04-21       Floor     Kitchen  ...    Vacation    Vacation  Management[0m
+[2025-06-30 08:00:05][MAIN] - [96m64  2025-04-28    Vacation    Vacation  ...       Floor  Management   Bathrooms[0m
+[2025-06-30 08:00:05][MAIN] - [96m65  2025-05-05     Kitchen   Bathrooms  ...  Management       Floor    Vacation[0m
+[2025-06-30 08:00:05][MAIN] - [96m66  2025-05-12   Bathrooms  Management  ...    Vacation    Vacation     Kitchen[0m
+[2025-06-30 08:00:05][MAIN] - [96m67  2025-05-19    Vacation    Vacation  ...   Bathrooms     Kitchen       Floor[0m
+[2025-06-30 08:00:05][MAIN] - [96m68  2025-05-26  Management       Floor  ...     Kitchen    Vacation    Vacation[0m
+[2025-06-30 08:00:05][MAIN] - [38;5;208m69  2025-06-02       Floor     Kitchen  ...    Vacation   Bathrooms    Vacation[0m
+[2025-06-30 08:00:05][MAIN] - [91m70  2025-06-09     Kitchen    Vacation  ...       Floor  Management   Bathrooms[0m
+[2025-06-30 08:00:05][MAIN] - [91m71  2025-06-16    Vacation   Bathrooms  ...  Management    Vacation     Kitchen[0m
+[2025-06-30 08:00:05][MAIN] - [91m72  2025-06-23   Bathrooms  Management  ...    Vacation       Floor    Vacation[0m
+[2025-06-30 08:00:05][MAIN] - [91m73  2025-06-30  Management       Floor  ...   Bathrooms     Kitchen    Vacation[0m
+[2025-06-30 08:00:05][MAIN] - [91m74  2025-07-07       Floor    Vacation  ...     Kitchen  Management    Vacation[0m
+[2025-06-30 08:00:05][MAIN] - [91m75  2025-07-14    Vacation     Kitchen  ...       Floor   Bathrooms    Vacation[0m
+[2025-06-30 08:00:05][MAIN] - [91m76  2025-07-21     Kitchen   Bathrooms  ...  Management    Vacation    Vacation[0m
+[2025-06-30 08:00:05][MAIN] - [91m77  2025-07-28   Bathrooms    Vacation  ...    Vacation       Floor  Management[0m
+[2025-06-30 08:00:05][MAIN] - [91m78  2025-08-04    Vacation  Management  ...   Bathrooms     Kitchen       Floor[0m
+[2025-06-30 08:00:05][MAIN] - [91m79  2025-08-11  Management       Floor  ...     Kitchen    Vacation    Vacation[0m
+[2025-06-30 08:00:05][MAIN] - [91m[27 rows x 7 columns][0m
+[2025-06-30 08:00:05][MAIN] - Saving at /home/claudio/Python-Projects/RoomServer/wg/data/cleaning_plan_leo6.xlsx
+[2025-06-30 08:00:06][MAIN] - Msg sent to LEO6:
+[2025-06-30 08:00:06][MAIN] - This week (30-06-25):
+
+[2025-06-30 08:00:06][MAIN] - ❗⚠ Manager: Cesare ⚠❗
+
+[2025-06-30 08:00:06][MAIN] - Claudio: Floor 🧹🪣🫧
+
+[2025-06-30 08:00:06][MAIN] - Lea: Bathrooms 🛁🚽🧻🚾
+
+[2025-06-30 08:00:06][MAIN] - Mara: Kitchen 🪑🚰🧴🔪
+
+[2025-06-30 08:00:06][MAIN] - For the others, 💸🧺🍾 !
+
+[2025-06-30 08:00:06][MAIN] - Note: If you want to swap your task with someone else's task, use the SWAP command.
+
+[2025-06-30 08:00:06][MAIN] - You can submit an anonymous complaint for one or more tasks of the previous week by sending a BLAME.
+
+[2025-06-30 08:00:06][MAIN] - Before blaming someone, please warn them first ⚠️ and then wait until Tuesday evening so that the person has time to recover their delayed duty.
+
+[2025-06-30 08:00:06][MAIN] - If a person receives at least 2 blames, they will need to recover the task in the future ☠️.
+
+[2025-06-30 08:00:06][MAIN] - You can also send a message of appreciation 🌟 by sending a PRAISE as well.
+
+[2025-06-30 08:00:06][MAIN] - If you need vacation for a week, you can send book it though BOOK VACATION.
+
+[2025-06-30 08:00:06][MAIN] - Whenever you have a WG expense 💰, use EXPENSE and specify price/reason for it.
+[2025-06-30 08:00:06][MAIN] - Pushing to GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-06-30 08:00:07][MAIN] - [master 44a6554] auto_update
+
+[2025-06-30 08:00:07][MAIN] -  1 file changed, 1 insertion(+)
+[2025-06-30 08:00:07][MAIN] - To github.com:shapelessguy/Python-Projects.git
+
+[2025-06-30 08:00:07][MAIN] -    6744a80..44a6554  master -> master
+[2025-06-30 08:00:07][MAIN] - [[]]
+[2025-06-30 08:00:07][MAIN] - Msg sent:
+[2025-06-30 08:00:07][MAIN] - Hello Jay, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-06-30 08:00:07][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-06-30 08:00:07][MAIN] - This week (30/06 - 07/07):  <b>Vacation</b> 💸🧺🍾
+
+[2025-06-30 08:00:07][MAIN] - Next week (07/07 - 14/07):  <b>Bathrooms</b> 🛁🚽🧻🚾
+
+[2025-06-30 08:00:07][MAIN] - Week 14/07 - 21/07:  <b>Management</b> 💸🧺🍾
+
+[2025-06-30 08:00:07][MAIN] - Week 21/07 - 28/07:  <b>Floor</b> 🧹🪣🫧
+
+[2025-06-30 08:00:07][MAIN] - 👍 Congratulations, you have no complaints for the week 16/06 - 23/06!
+[2025-06-30 08:00:07][MAIN] - [[]]
+[2025-06-30 08:00:07][MAIN] - Msg sent:
+[2025-06-30 08:00:07][MAIN] - Hello Cesare, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-06-30 08:00:07][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-06-30 08:00:07][MAIN] - This week (30/06 - 07/07):  <b>Management</b> 💸🧺🍾
+
+[2025-06-30 08:00:07][MAIN] - Next week (07/07 - 14/07):  <b>Floor</b> 🧹🪣🫧
+
+[2025-06-30 08:00:07][MAIN] - Week 14/07 - 21/07:  <b>Vacation</b> 💸🧺🍾
+
+[2025-06-30 08:00:07][MAIN] - Week 21/07 - 28/07:  <b>Kitchen</b> 🪑🚰🧴🔪
+
+[2025-06-30 08:00:07][MAIN] - 👍 Congratulations, you have no complaints for the week 16/06 - 23/06!
+[2025-06-30 08:00:07][MAIN] - [[]]
+[2025-06-30 08:00:07][MAIN] - Msg sent:
+[2025-06-30 08:00:07][MAIN] - Hello Claudio, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-06-30 08:00:07][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-06-30 08:00:07][MAIN] - This week (30/06 - 07/07):  <b>Floor</b> 🧹🪣🫧
+
+[2025-06-30 08:00:07][MAIN] - Next week (07/07 - 14/07):  <b>Vacation</b> 💸🧺🍾
+
+[2025-06-30 08:00:07][MAIN] - Week 14/07 - 21/07:  <b>Kitchen</b> 🪑🚰🧴🔪
+
+[2025-06-30 08:00:07][MAIN] - Week 21/07 - 28/07:  <b>Bathrooms</b> 🛁🚽🧻🚾
+
+[2025-06-30 08:00:07][MAIN] - 👍 Congratulations, you have no complaints for the week 16/06 - 23/06!
+[2025-06-30 08:00:08][MAIN] - [[]]
+[2025-06-30 08:00:08][MAIN] - Msg sent:
+[2025-06-30 08:00:08][MAIN] - Hello Natchaya, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-06-30 08:00:08][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-06-30 08:00:08][MAIN] - This week (30/06 - 07/07):  <b>Vacation</b> 💸🧺🍾
+
+[2025-06-30 08:00:08][MAIN] - Next week (07/07 - 14/07):  <b>Vacation</b> 💸🧺🍾
+
+[2025-06-30 08:00:08][MAIN] - Week 14/07 - 21/07:  <b>Vacation</b> 💸🧺🍾
+
+[2025-06-30 08:00:08][MAIN] - Week 21/07 - 28/07:  <b>Vacation</b> 💸🧺🍾
+
+[2025-06-30 08:00:08][MAIN] - 👍 Congratulations, you have no complaints for the week 16/06 - 23/06!
+[2025-06-30 08:00:08][MAIN] - [[]]
+[2025-06-30 08:00:08][MAIN] - Msg sent:
+[2025-06-30 08:00:08][MAIN] - Hello Lea, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-06-30 08:00:08][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-06-30 08:00:08][MAIN] - This week (30/06 - 07/07):  <b>Bathrooms</b> 🛁🚽🧻🚾
+
+[2025-06-30 08:00:08][MAIN] - Next week (07/07 - 14/07):  <b>Kitchen</b> 🪑🚰🧴🔪
+
+[2025-06-30 08:00:08][MAIN] - Week 14/07 - 21/07:  <b>Floor</b> 🧹🪣🫧
+
+[2025-06-30 08:00:08][MAIN] - Week 21/07 - 28/07:  <b>Management</b> 💸🧺🍾
+
+[2025-06-30 08:00:08][MAIN] - 👍 Congratulations, you have no complaints for the week 16/06 - 23/06!
+[2025-06-30 08:00:08][MAIN] - [[]]
+[2025-06-30 08:00:08][MAIN] - Msg sent:
+[2025-06-30 08:00:08][MAIN] - Hello Mara, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-06-30 08:00:08][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-06-30 08:00:08][MAIN] - This week (30/06 - 07/07):  <b>Kitchen</b> 🪑🚰🧴🔪
+
+[2025-06-30 08:00:08][MAIN] - Next week (07/07 - 14/07):  <b>Management</b> 💸🧺🍾
+
+[2025-06-30 08:00:08][MAIN] - Week 14/07 - 21/07:  <b>Bathrooms</b> 🛁🚽🧻🚾
+
+[2025-06-30 08:00:08][MAIN] - Week 21/07 - 28/07:  <b>Vacation</b> 💸🧺🍾
+
+[2025-06-30 08:00:08][MAIN] - 👍 Congratulations, you have no complaints for the week 16/06 - 23/06!
+[2025-06-30 08:25:42][FLASK] - PING
+[2025-06-30 08:58:56][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-30 09:44:31][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-06-30 09:44:32][MAIN] - To Arduino: STRIPOFF
+[2025-06-30 09:44:32][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-30 09:44:32][MAIN] - To Arduino: STRIPON
+[2025-06-30 09:44:32][MAIN] - To Arduino: STRIPG4
+[2025-06-30 09:44:32][MAIN] - Command STRIPTOPG4 sent
+[2025-06-30 09:59:32][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-30 10:59:46][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-30 12:00:00][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-30 13:00:15][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-30 13:43:11][FLASK] - PING
+[2025-06-30 14:00:30][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-30 15:00:43][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-30 16:01:09][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-30 17:01:24][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-30 17:14:38][FLASK] - 167.94.138.179 - - [30/Jun/2025 17:14:38] code 400, message Bad request version ('À\x14À')
+[2025-06-30 17:14:43][FLASK] - PING
+[2025-06-30 17:14:51][FLASK] - PING
+[2025-06-30 17:14:57][FLASK] - 167.94.138.179 - - [30/Jun/2025 17:14:57] code 505, message Invalid HTTP version (2.0)
+[2025-06-30 17:15:09][FLASK] - 167.94.138.179 - - [30/Jun/2025 17:15:09] code 505, message Invalid HTTP version (2.0)
+[2025-06-30 17:15:17][FLASK] - 167.94.138.179 - - [30/Jun/2025 17:15:17] code 400, message Bad request version (',Ü')
+[2025-06-30 17:36:38][FLASK] - PING
+[2025-06-30 18:01:39][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-30 19:01:55][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-30 20:02:21][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-30 21:02:36][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-30 21:59:00][MAIN] - To Arduino: LIGHTSOFF
+[2025-06-30 22:02:51][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-30 23:03:07][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-01 00:03:22][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-01 00:14:35][FLASK] - STRIP: {'strip': 'i0'}
+[2025-07-01 00:14:35][MAIN] - To Arduino: STRIPOFF
+[2025-07-01 00:14:35][MAIN] - To Arduino: STRIPTOPDEF
+[2025-07-01 00:14:35][MAIN] - To Arduino: STRIPTOPCOLSWITCH
+[2025-07-01 00:14:36][MAIN] - To Arduino: STRIPON
+[2025-07-01 00:14:37][MAIN] - To Arduino: STRIPI1
+[2025-07-01 00:14:37][MAIN] - Command STRIPI0 sent
+[2025-07-01 00:39:58][MAIN] - Serving 807946519: msg 4922
+[2025-07-01 00:39:58][MAIN] - Serving 807946519: msg 4922
+[2025-07-01 01:03:37][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-01 02:03:51][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-01 03:04:06][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-01 04:04:21][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-01 05:04:35][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-01 05:09:58][WEBSOCKET] - 206.168.34.79 - - [01/Jul/2025 05:09:58] code 505, message Invalid HTTP version (2.0)
+[2025-07-01 05:10:20][WEBSOCKET] - 206.168.34.79 - - [01/Jul/2025 05:10:20] code 505, message Invalid HTTP version (2.0)
+[2025-07-01 05:10:25][WEBSOCKET] - 206.168.34.79 - - [01/Jul/2025 05:10:25] code 400, message Bad request version ('À\x14À')
+[2025-07-01 06:04:49][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-01 07:05:14][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-01 07:30:00][MAIN] - To Arduino: LIGHTSON
+[2025-07-01 08:05:29][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-01 08:12:36][FLASK] - PING
+[2025-07-01 08:45:06][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-07-01 08:45:06][MAIN] - To Arduino: STRIPOFF
+[2025-07-01 08:45:07][MAIN] - To Arduino: STRIPTOPDEF
+[2025-07-01 08:45:07][MAIN] - To Arduino: STRIPON
+[2025-07-01 08:45:07][MAIN] - To Arduino: STRIPG4
+[2025-07-01 08:45:07][MAIN] - Command STRIPTOPG4 sent
+[2025-07-01 09:05:43][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-01 09:14:58][WEBSOCKET] - 206.168.34.192 - - [01/Jul/2025 09:14:58] code 400, message Bad request version ('À\x14À')
+[2025-07-01 10:06:08][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-01 11:06:23][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-01 12:06:37][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-01 13:06:51][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-01 13:53:07][FLASK] - 91.196.152.115 - - [01/Jul/2025 13:53:07] code 400, message Bad request version ('À#À¬À®À+À')
+[2025-07-01 13:53:13][FLASK] - PING
+[2025-07-01 14:07:06][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-01 15:07:19][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-01 16:07:45][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-01 16:40:33][FLASK] - PING
+[2025-07-01 16:51:38][FLASK] - 167.94.138.203 - - [01/Jul/2025 16:51:38] code 400, message Bad request version ('À\x14À')
+[2025-07-01 16:51:42][FLASK] - PING
+[2025-07-01 16:51:47][FLASK] - PING
+[2025-07-01 16:51:48][FLASK] - 167.94.138.203 - - [01/Jul/2025 16:51:48] code 505, message Invalid HTTP version (2.0)
+[2025-07-01 16:51:53][FLASK] - 167.94.138.203 - - [01/Jul/2025 16:51:53] code 505, message Invalid HTTP version (2.0)
+[2025-07-01 16:51:58][FLASK] - 167.94.138.203 - - [01/Jul/2025 16:51:58] code 400, message Bad request syntax ('\x16\x03\x01\x00î\x01\x00\x00ê\x03\x03®T[zSèÕÝj')
+[2025-07-01 17:07:59][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-01 17:12:40][MAIN] - Audio set off automatically
+[2025-07-01 17:12:40][MAIN] - To Arduino: AUDIOON/OFF
+[2025-07-01 17:12:41][MAIN] - To Arduino: AUDIOON/OFF
+[2025-07-01 17:12:44][MAIN] - To Arduino: AUDIOON/OFF
+[2025-07-01 17:12:44][MAIN] - To Arduino: STRIPTOPOFF
+[2025-07-01 17:12:44][MAIN] - Command AUDIOOFF sent
+[2025-07-01 21:16:56][FLASK] - AUDIO: {'audio': 'on'}
+[2025-07-01 21:16:56][MAIN] - To Arduino: AUDIOON/OFF
+[2025-07-01 21:16:57][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-07-01 21:16:57][MAIN] - To Arduino: AUDIOON/OFF
+[2025-07-01 21:16:57][MAIN] - To Arduino: STRIPTOPG4
+[2025-07-01 21:16:57][MAIN] - Command AUDIOON sent
+[2025-07-01 21:16:58][MAIN] - To Arduino: STRIPOFF
+[2025-07-01 21:16:58][MAIN] - To Arduino: STRIPTOPDEF
+[2025-07-01 21:16:58][MAIN] - To Arduino: STRIPON
+[2025-07-01 21:16:58][MAIN] - To Arduino: STRIPG4
+[2025-07-01 21:16:58][MAIN] - Command STRIPTOPG4 sent
+[2025-07-01 21:26:48][FLASK] - 185.170.144.3 - - [01/Jul/2025 21:26:48] code 400, message Bad HTTP/0.9 request type ('\x03\x00\x00/*à\x00\x00\x00\x00\x00Cookie:')
+[2025-07-01 21:59:00][MAIN] - To Arduino: LIGHTSOFF
+[2025-07-01 22:15:31][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-01 23:16:02][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-02 00:17:37][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-02 01:19:26][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-02 01:29:36][FLASK] - STRIP: {'strip': 'i0'}
+[2025-07-02 01:29:36][MAIN] - To Arduino: STRIPOFF
+[2025-07-02 01:29:36][MAIN] - To Arduino: STRIPTOPDEF
+[2025-07-02 01:29:37][MAIN] - To Arduino: STRIPTOPCOLSWITCH
+[2025-07-02 01:29:37][MAIN] - To Arduino: STRIPON
+[2025-07-02 01:29:38][MAIN] - To Arduino: STRIPI1
+[2025-07-02 01:29:38][MAIN] - Command STRIPI0 sent
+[2025-07-02 01:35:15][MAIN] - Issue while trying to upload IP (initialization)
+[2025-07-02 01:35:15][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f24541c3d00>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-07-02 01:35:27][MAIN] - IP 84.155.64.48 uploaded to:
+[2025-07-02 01:35:27][MAIN] - https://storage.googleapis.com/ip-manager42.appspot.com/RaspberryPi-Cyan/ip_server.txt
+[2025-07-02 01:35:27][FLASK] -  * Serving Flask app 'server'
+[2025-07-02 01:35:27][FLASK] -  * Debug mode: off
+[2025-07-02 01:35:27][FLASK] - Address already in use
+[2025-07-02 01:35:27][FLASK] - Port 10004 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-07-02 01:35:27][WEBSOCKET] -  * Serving Flask app 'websocket_server'
+[2025-07-02 01:35:27][WEBSOCKET] -  * Debug mode: off
+[2025-07-02 01:35:27][WEBSOCKET] - Address already in use
+[2025-07-02 01:35:27][WEBSOCKET] - Port 10003 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-07-02 02:21:51][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-02 03:23:48][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-02 04:24:48][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-02 05:25:02][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-02 05:27:34][FLASK] - PING
+[2025-07-02 05:27:41][FLASK] - 91.231.89.10 - - [02/Jul/2025 05:27:41] code 400, message Bad request version ('À#À¬À®À+À')
+[2025-07-02 05:27:45][FLASK] - PING
+[2025-07-02 06:06:01][WEBSOCKET] - 162.142.125.216 - - [02/Jul/2025 06:06:01] code 505, message Invalid HTTP version (2.0)
+[2025-07-02 06:06:04][WEBSOCKET] - 162.142.125.216 - - [02/Jul/2025 06:06:04] code 505, message Invalid HTTP version (2.0)
+[2025-07-02 06:06:09][WEBSOCKET] - 162.142.125.216 - - [02/Jul/2025 06:06:09] code 400, message Bad request version ('À\x14À')
+[2025-07-02 06:25:16][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-02 07:25:29][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-02 07:30:00][MAIN] - To Arduino: LIGHTSON
+[2025-07-02 08:25:43][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-02 09:25:58][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-02 09:35:27][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-07-02 09:35:27][MAIN] - To Arduino: STRIPOFF
+[2025-07-02 09:35:27][MAIN] - To Arduino: STRIPTOPDEF
+[2025-07-02 09:35:28][MAIN] - To Arduino: STRIPON
+[2025-07-02 09:35:28][MAIN] - To Arduino: STRIPG4
+[2025-07-02 09:35:28][MAIN] - Command STRIPTOPG4 sent
+[2025-07-02 10:26:23][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-02 11:26:37][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-02 12:26:51][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-02 13:27:06][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-02 14:27:21][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-02 15:27:37][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-02 16:27:52][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-02 16:39:10][WEBSOCKET] - 195.184.76.17 - - [02/Jul/2025 16:39:10] code 400, message Bad request version ('À#À¬À®À+À')
+[2025-07-02 17:28:07][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-02 18:06:59][FLASK] - PING
+[2025-07-02 18:07:02][FLASK] - 162.142.125.120 - - [02/Jul/2025 18:07:02] code 505, message Invalid HTTP version (2.0)
+[2025-07-02 18:07:14][FLASK] - 162.142.125.120 - - [02/Jul/2025 18:07:14] code 505, message Invalid HTTP version (2.0)
+[2025-07-02 18:07:21][FLASK] - 162.142.125.120 - - [02/Jul/2025 18:07:21] code 400, message Bad request version ('À\x14À')
+[2025-07-02 18:28:23][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-02 19:28:38][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-02 19:29:38][FLASK] - PING
+[2025-07-02 20:06:45][FLASK] - PING
+[2025-07-02 20:28:53][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-02 21:02:43][WEBSOCKET] - 162.142.125.208 - - [02/Jul/2025 21:02:43] code 400, message Bad request version ('\x80G\x88j¿Í\x98be3c\x02!I¯\x7f\x03n5\x88\x06U\x86')
+[2025-07-02 21:02:51][WEBSOCKET] - 162.142.125.208 - - [02/Jul/2025 21:02:51] code 505, message Invalid HTTP version (2.0)
+[2025-07-02 21:02:55][WEBSOCKET] - 162.142.125.208 - - [02/Jul/2025 21:02:55] code 505, message Invalid HTTP version (2.0)
+[2025-07-02 21:02:58][WEBSOCKET] - 162.142.125.208 - - [02/Jul/2025 21:02:58] code 400, message Bad request version ('À\x14À')
+[2025-07-02 21:21:45][FLASK] - 167.94.138.57 - - [02/Jul/2025 21:21:45] code 400, message Bad request version ('À\x14À')
+[2025-07-02 21:21:49][FLASK] - PING
+[2025-07-02 21:21:56][FLASK] - PING
+[2025-07-02 21:21:59][FLASK] - 167.94.138.57 - - [02/Jul/2025 21:21:59] code 505, message Invalid HTTP version (2.0)
+[2025-07-02 21:22:06][FLASK] - 167.94.138.57 - - [02/Jul/2025 21:22:06] code 505, message Invalid HTTP version (2.0)
+[2025-07-02 21:22:15][FLASK] - 167.94.138.57 - - [02/Jul/2025 21:22:15] code 400, message Bad HTTP/0.9 request type ('\x16\x03\x01\x00î\x01\x00\x00ê\x03\x03µjh\x95äC4)rÆ\xadÕ\x82M\x0e{NÊR|\x14çyýÈYÊ\x95)-è\x9c')
+[2025-07-02 21:29:07][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-02 21:40:48][MAIN] - Serving 7129379343: msg 4929
+[2025-07-02 21:40:50][MAIN] - Serving 7129379343: msg 4931
+[2025-07-02 21:57:20][WEBSOCKET] - 185.170.144.3 - - [02/Jul/2025 21:57:20] code 400, message Bad HTTP/0.9 request type ('\x03\x00\x00/*à\x00\x00\x00\x00\x00Cookie:')
+[2025-07-02 21:59:00][MAIN] - To Arduino: LIGHTSOFF
+[2025-07-02 22:29:22][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-02 22:36:58][FLASK] - 185.170.144.3 - - [02/Jul/2025 22:36:58] code 400, message Bad HTTP/0.9 request type ('\x03\x00\x00/*à\x00\x00\x00\x00\x00Cookie:')
+[2025-07-02 23:29:38][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-02 23:55:46][FLASK] - STRIP: {'strip': 'i0'}
+[2025-07-02 23:55:46][MAIN] - To Arduino: STRIPOFF
+[2025-07-02 23:55:47][MAIN] - To Arduino: STRIPTOPDEF
+[2025-07-02 23:55:47][MAIN] - To Arduino: STRIPTOPCOLSWITCH
+[2025-07-02 23:55:47][MAIN] - To Arduino: STRIPON
+[2025-07-02 23:55:48][MAIN] - To Arduino: STRIPI1
+[2025-07-02 23:55:48][MAIN] - Command STRIPI0 sent
+[2025-07-03 00:29:55][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-03 01:30:13][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-03 02:30:30][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-03 02:52:56][FLASK] - PING
+[2025-07-03 03:30:57][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-03 04:31:12][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-03 05:28:01][MAIN] - Issue while trying to upload IP (initialization)
+[2025-07-03 05:28:01][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f24543797b0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-07-03 05:28:07][MAIN] - IP 84.155.64.48 uploaded to:
+[2025-07-03 05:28:07][MAIN] - https://storage.googleapis.com/ip-manager42.appspot.com/RaspberryPi-Cyan/ip_server.txt
+[2025-07-03 05:28:07][FLASK] -  * Serving Flask app 'server'
+[2025-07-03 05:28:07][FLASK] -  * Debug mode: off
+[2025-07-03 05:28:07][FLASK] - Address already in use
+[2025-07-03 05:28:07][FLASK] - Port 10004 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-07-03 05:28:07][WEBSOCKET] -  * Serving Flask app 'websocket_server'
+[2025-07-03 05:28:07][WEBSOCKET] -  * Debug mode: off
+[2025-07-03 05:28:07][WEBSOCKET] - Address already in use
+[2025-07-03 05:28:07][WEBSOCKET] - Port 10003 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-07-03 05:31:27][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-03 05:42:47][WEBSOCKET] - 172.236.228.115 - - [03/Jul/2025 05:42:47] code 400, message Bad request syntax ('\x16\x03\x01\x01')
+[2025-07-03 05:42:47][WEBSOCKET] - 172.236.228.115 - - [03/Jul/2025 05:42:47] code 400, message Bad request syntax ('\x16\x03\x01\x01')
+[2025-07-03 06:30:59][FLASK] - PING
+[2025-07-03 06:31:42][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-03 07:30:00][MAIN] - To Arduino: LIGHTSON
+[2025-07-03 07:31:56][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-03 08:09:12][FLASK] - PING
+[2025-07-03 08:16:51][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-07-03 08:16:51][MAIN] - To Arduino: STRIPOFF
+[2025-07-03 08:16:52][MAIN] - To Arduino: STRIPTOPDEF
+[2025-07-03 08:16:52][MAIN] - To Arduino: STRIPON
+[2025-07-03 08:16:52][MAIN] - To Arduino: STRIPG4
+[2025-07-03 08:16:52][MAIN] - Command STRIPTOPG4 sent
+[2025-07-03 08:32:11][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-03 09:32:28][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-03 10:32:44][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-03 11:32:58][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-03 12:33:12][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-03 13:33:26][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-03 14:33:40][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-03 15:33:55][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-03 16:19:15][FLASK] - PING
+[2025-07-03 16:34:20][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-03 17:34:45][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-03 18:27:47][WEBSOCKET] - 47.237.116.205 - - [03/Jul/2025 18:27:47] code 400, message Bad request version ('À\x13À')
+[2025-07-03 18:35:01][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-03 19:35:18][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-03 19:39:42][WEBSOCKET] - 195.184.76.99 - - [03/Jul/2025 19:39:42] code 400, message Bad request version ('8\x0f=6\x8f°RÖ')
+[2025-07-03 20:35:46][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-03 21:36:03][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-03 21:57:28][WEBSOCKET] - 162.142.125.212 - - [03/Jul/2025 21:57:28] code 505, message Invalid HTTP version (2.0)
+[2025-07-03 21:57:39][WEBSOCKET] - 162.142.125.212 - - [03/Jul/2025 21:57:39] code 505, message Invalid HTTP version (2.0)
+[2025-07-03 21:57:45][WEBSOCKET] - 162.142.125.212 - - [03/Jul/2025 21:57:45] code 400, message Bad request version ('À\x14À')
+[2025-07-03 21:59:00][MAIN] - To Arduino: LIGHTSOFF
+[2025-07-03 21:59:32][FLASK] - PING
+[2025-07-03 21:59:42][FLASK] - 206.168.34.62 - - [03/Jul/2025 21:59:42] code 505, message Invalid HTTP version (2.0)
+[2025-07-03 22:00:25][FLASK] - 206.168.34.62 - - [03/Jul/2025 22:00:25] code 505, message Invalid HTTP version (2.0)
+[2025-07-03 22:00:34][FLASK] - 206.168.34.62 - - [03/Jul/2025 22:00:34] code 400, message Bad request version ('À\x14À')
+[2025-07-03 22:35:43][FLASK] - 167.94.146.63 - - [03/Jul/2025 22:35:43] code 400, message Bad request version ('À\x14À')
+[2025-07-03 22:35:47][FLASK] - PING
+[2025-07-03 22:35:51][FLASK] - PING
+[2025-07-03 22:35:52][FLASK] - 167.94.146.63 - - [03/Jul/2025 22:35:52] code 505, message Invalid HTTP version (2.0)
+[2025-07-03 22:35:58][FLASK] - 167.94.146.63 - - [03/Jul/2025 22:35:58] code 505, message Invalid HTTP version (2.0)
+[2025-07-03 22:36:02][FLASK] - 167.94.146.63 - - [03/Jul/2025 22:36:02] code 400, message Bad request version ('À\x14À')
+[2025-07-03 22:36:20][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-03 22:58:29][WEBSOCKET] - 167.94.138.182 - - [03/Jul/2025 22:58:29] code 400, message Bad request version ('À\x14À')
+[2025-07-03 22:59:10][WEBSOCKET] - 167.94.138.182 - - [03/Jul/2025 22:59:10] code 400, message Bad request syntax ('ZG\x00\x00\x00\x05\x00+\x0e\x01\x00')
+[2025-07-03 23:33:01][FLASK] - 8.211.44.144 - - [03/Jul/2025 23:33:01] code 400, message Bad request version ('À\x13À')
+[2025-07-03 23:33:12][FLASK] - PING
+[2025-07-03 23:36:36][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-04 00:36:51][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-04 00:59:59][FLASK] - STRIP: {'strip': 'i0'}
+[2025-07-04 00:59:59][MAIN] - To Arduino: STRIPOFF
+[2025-07-04 00:59:59][MAIN] - To Arduino: STRIPTOPDEF
+[2025-07-04 01:00:00][MAIN] - To Arduino: STRIPTOPCOLSWITCH
+[2025-07-04 01:00:00][MAIN] - To Arduino: STRIPON
+[2025-07-04 01:00:01][MAIN] - To Arduino: STRIPI1
+[2025-07-04 01:00:01][MAIN] - Command STRIPI0 sent
+[2025-07-04 01:37:06][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-04 02:37:21][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-04 03:37:36][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-04 04:38:01][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-04 05:38:16][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-04 06:38:31][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-04 07:30:00][MAIN] - To Arduino: LIGHTSON
+[2025-07-04 07:38:45][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-04 08:04:21][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-07-04 08:04:21][MAIN] - To Arduino: STRIPOFF
+[2025-07-04 08:04:22][MAIN] - To Arduino: STRIPTOPDEF
+[2025-07-04 08:04:22][MAIN] - To Arduino: STRIPON
+[2025-07-04 08:04:22][MAIN] - To Arduino: STRIPG4
+[2025-07-04 08:04:22][MAIN] - Command STRIPTOPG4 sent
+[2025-07-04 08:12:13][FLASK] - PING
+[2025-07-04 08:39:12][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-04 09:26:18][FLASK] - PING
+[2025-07-04 09:39:28][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-04 10:37:54][FLASK] - Error processing request: 400 Bad Request: The browser (or proxy) sent a request that this server could not understand.
+[2025-07-04 10:39:54][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-04 11:40:08][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-04 11:50:47][WEBSOCKET] - 194.0.234.12 - - [04/Jul/2025 11:50:47] code 400, message Bad HTTP/0.9 request type ('\x03\x00\x00/*à\x00\x00\x00\x00\x00Cookie:')
+[2025-07-04 12:40:23][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-04 13:40:37][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-04 14:13:33][FLASK] - PING
+[2025-07-04 14:40:51][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-04 15:41:06][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-04 16:41:31][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-04 17:41:47][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-04 17:52:31][FLASK] - PING
+[2025-07-04 18:34:48][WEBSOCKET] - 194.0.234.12 - - [04/Jul/2025 18:34:48] code 400, message Bad HTTP/0.9 request type ('\x03\x00\x00/*à\x00\x00\x00\x00\x00Cookie:')
+[2025-07-04 18:42:03][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-04 19:42:20][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-04 19:51:37][WEBSOCKET] - 66.175.213.4 - - [04/Jul/2025 19:51:37] code 400, message Bad request syntax ('\x16\x03\x01\x01')
+[2025-07-04 19:51:38][WEBSOCKET] - 66.175.213.4 - - [04/Jul/2025 19:51:38] code 400, message Bad request syntax ('\x16\x03\x01\x01')
+[2025-07-04 20:42:47][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-04 21:04:56][FLASK] - 167.94.145.110 - - [04/Jul/2025 21:04:56] code 400, message Bad request version ('À\x14À')
+[2025-07-04 21:04:59][FLASK] - PING
+[2025-07-04 21:05:03][FLASK] - PING
+[2025-07-04 21:05:03][FLASK] - 167.94.145.110 - - [04/Jul/2025 21:05:03] code 505, message Invalid HTTP version (2.0)
+[2025-07-04 21:05:07][FLASK] - 167.94.145.110 - - [04/Jul/2025 21:05:07] code 505, message Invalid HTTP version (2.0)
+[2025-07-04 21:05:10][FLASK] - 167.94.145.110 - - [04/Jul/2025 21:05:10] code 400, message Bad request version ('À\x14À')
+[2025-07-04 21:28:54][WEBSOCKET] - 199.45.154.136 - - [04/Jul/2025 21:28:54] code 400, message Bad request version ('À\x14À')
+[2025-07-04 21:29:07][WEBSOCKET] - 199.45.154.136 - - [04/Jul/2025 21:29:07] code 505, message Invalid HTTP version (2.0)
+[2025-07-04 21:29:13][WEBSOCKET] - 199.45.154.136 - - [04/Jul/2025 21:29:13] code 505, message Invalid HTTP version (2.0)
+[2025-07-04 21:29:18][WEBSOCKET] - 199.45.154.136 - - [04/Jul/2025 21:29:18] code 400, message Bad request version ('À\x14À')
+[2025-07-04 21:43:04][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-04 21:59:00][MAIN] - To Arduino: LIGHTSOFF
+[2025-07-04 22:02:49][WEBSOCKET] - 185.170.144.3 - - [04/Jul/2025 22:02:49] code 400, message Bad HTTP/0.9 request type ('\x03\x00\x00/*à\x00\x00\x00\x00\x00Cookie:')
+[2025-07-04 22:43:21][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-04 23:43:37][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-05 00:43:52][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-05 01:41:52][FLASK] - STRIP: {'strip': 'i0'}
+[2025-07-05 01:41:53][MAIN] - To Arduino: STRIPOFF
+[2025-07-05 01:41:53][MAIN] - To Arduino: STRIPTOPDEF
+[2025-07-05 01:41:53][MAIN] - To Arduino: STRIPTOPCOLSWITCH
+[2025-07-05 01:41:54][MAIN] - To Arduino: STRIPON
+[2025-07-05 01:41:55][MAIN] - To Arduino: STRIPI1
+[2025-07-05 01:41:55][MAIN] - Command STRIPI0 sent
+[2025-07-05 01:44:07][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-05 02:44:22][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-05 03:44:36][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-05 04:36:48][MAIN] - Audio set off automatically
+[2025-07-05 04:36:48][MAIN] - To Arduino: AUDIOON/OFF
+[2025-07-05 04:36:49][MAIN] - To Arduino: AUDIOON/OFF
+[2025-07-05 04:36:52][MAIN] - To Arduino: AUDIOON/OFF
+[2025-07-05 04:36:52][MAIN] - To Arduino: STRIPTOPOFF
+[2025-07-05 04:36:52][MAIN] - Command AUDIOOFF sent
+[2025-07-05 07:30:00][MAIN] - To Arduino: LIGHTSON
+[2025-07-05 08:10:10][FLASK] - PING
+[2025-07-05 09:26:38][WEBSOCKET] - 104.234.115.84 - - [05/Jul/2025 09:26:38] code 400, message Bad request version ('Î\x16Õµ¨"²xW7\x10\x7f¸\x8eû\x95è_9')
+[2025-07-05 09:28:26][WEBSOCKET] - 104.234.115.84 - - [05/Jul/2025 09:28:26] code 400, message Bad request version ('À\x14À')
+[2025-07-05 10:37:49][FLASK] - AUDIO: {'audio': 'on'}
+[2025-07-05 10:37:49][MAIN] - To Arduino: AUDIOON/OFF
+[2025-07-05 10:37:50][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-07-05 10:37:50][MAIN] - To Arduino: AUDIOON/OFF
+[2025-07-05 10:37:51][MAIN] - To Arduino: STRIPTOPG4
+[2025-07-05 10:37:51][MAIN] - Command AUDIOON sent
+[2025-07-05 10:37:51][MAIN] - To Arduino: STRIPOFF
+[2025-07-05 10:37:52][MAIN] - To Arduino: STRIPTOPDEF
+[2025-07-05 10:37:52][MAIN] - To Arduino: STRIPON
+[2025-07-05 10:37:52][MAIN] - To Arduino: STRIPG4
+[2025-07-05 10:37:52][MAIN] - Command STRIPTOPG4 sent
+[2025-07-05 10:48:52][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-05 11:49:07][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-05 12:49:21][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-05 13:49:46][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-05 14:50:01][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-05 14:51:07][FLASK] - 167.94.138.169 - - [05/Jul/2025 14:51:07] code 400, message Bad request version ('À\x14À')
+[2025-07-05 14:52:09][FLASK] - 167.94.138.169 - - [05/Jul/2025 14:52:09] code 400, message Bad request syntax ('ZG\x00\x00\x00\x05\x00+\x0e\x01\x00')
+[2025-07-05 15:32:40][WEBSOCKET] - 199.45.155.106 - - [05/Jul/2025 15:32:40] code 400, message Bad request version ('À\x14À')
+[2025-07-05 15:32:49][WEBSOCKET] - 199.45.155.106 - - [05/Jul/2025 15:32:49] code 505, message Invalid HTTP version (2.0)
+[2025-07-05 15:32:54][WEBSOCKET] - 199.45.155.106 - - [05/Jul/2025 15:32:54] code 505, message Invalid HTTP version (2.0)
+[2025-07-05 15:32:57][WEBSOCKET] - 199.45.155.106 - - [05/Jul/2025 15:32:57] code 400, message Bad request version ('À\x14À')
+[2025-07-05 15:50:15][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-05 16:26:23][FLASK] - PING
+[2025-07-05 16:50:40][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-05 17:50:56][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-05 18:51:13][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-05 19:51:31][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-05 20:51:50][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-05 21:21:03][WEBSOCKET] - 185.170.144.3 - - [05/Jul/2025 21:21:03] code 400, message Bad HTTP/0.9 request type ('\x03\x00\x00/*à\x00\x00\x00\x00\x00Cookie:')
+[2025-07-05 21:52:08][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-05 21:58:23][FLASK] - PING
+[2025-07-05 21:58:32][FLASK] - 206.168.34.214 - - [05/Jul/2025 21:58:32] code 505, message Invalid HTTP version (2.0)
+[2025-07-05 21:58:51][FLASK] - 206.168.34.214 - - [05/Jul/2025 21:58:51] code 505, message Invalid HTTP version (2.0)
+[2025-07-05 21:59:00][FLASK] - 206.168.34.214 - - [05/Jul/2025 21:59:00] code 400, message Bad request version ('À\x14À')
+[2025-07-05 21:59:00][MAIN] - To Arduino: LIGHTSOFF
+[2025-07-05 22:25:30][FLASK] - 185.170.144.3 - - [05/Jul/2025 22:25:30] code 400, message Bad HTTP/0.9 request type ('\x03\x00\x00/*à\x00\x00\x00\x00\x00Cookie:')
+[2025-07-05 22:52:59][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-05 23:53:26][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-06 00:53:42][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-06 01:08:51][FLASK] - STRIP: {'strip': 'i0'}
+[2025-07-06 01:08:51][MAIN] - To Arduino: STRIPOFF
+[2025-07-06 01:08:52][MAIN] - To Arduino: STRIPTOPDEF
+[2025-07-06 01:08:52][MAIN] - To Arduino: STRIPTOPCOLSWITCH
+[2025-07-06 01:08:52][MAIN] - To Arduino: STRIPON
+[2025-07-06 01:08:53][MAIN] - To Arduino: STRIPI1
+[2025-07-06 01:08:53][MAIN] - Command STRIPI0 sent
+[2025-07-06 01:41:28][FLASK] - PING
+[2025-07-06 01:53:58][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-06 01:54:46][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-07-06 01:54:46][MAIN] - To Arduino: STRIPOFF
+[2025-07-06 01:54:47][MAIN] - To Arduino: STRIPTOPDEF
+[2025-07-06 01:54:47][MAIN] - To Arduino: STRIPON
+[2025-07-06 01:54:47][MAIN] - To Arduino: STRIPG4
+[2025-07-06 01:54:47][MAIN] - Command STRIPTOPG4 sent
+[2025-07-06 02:54:13][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-06 03:02:48][FLASK] - STRIP: {'strip': 'i0'}
+[2025-07-06 03:02:48][MAIN] - To Arduino: STRIPOFF
+[2025-07-06 03:02:49][MAIN] - To Arduino: STRIPTOPDEF
+[2025-07-06 03:02:49][MAIN] - To Arduino: STRIPTOPCOLSWITCH
+[2025-07-06 03:02:49][MAIN] - To Arduino: STRIPON
+[2025-07-06 03:02:50][MAIN] - To Arduino: STRIPI1
+[2025-07-06 03:02:50][MAIN] - Command STRIPI0 sent
+[2025-07-06 03:54:29][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-06 04:54:43][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-06 05:22:37][FLASK] - PING
+[2025-07-06 05:25:01][MAIN] - Audio set off automatically
+[2025-07-06 05:25:01][MAIN] - To Arduino: AUDIOON/OFF
+[2025-07-06 05:25:02][MAIN] - To Arduino: AUDIOON/OFF
+[2025-07-06 05:25:05][MAIN] - To Arduino: AUDIOON/OFF
+[2025-07-06 05:25:05][MAIN] - To Arduino: STRIPTOPOFF
+[2025-07-06 05:25:05][MAIN] - Command AUDIOOFF sent
+[2025-07-06 07:30:00][MAIN] - To Arduino: LIGHTSON
+[2025-07-06 10:03:51][FLASK] - AUDIO: {'audio': 'on'}
+[2025-07-06 10:03:51][MAIN] - To Arduino: AUDIOON/OFF
+[2025-07-06 10:03:52][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-07-06 10:03:52][MAIN] - To Arduino: AUDIOON/OFF
+[2025-07-06 10:03:53][MAIN] - To Arduino: STRIPTOPG4
+[2025-07-06 10:03:53][MAIN] - Command AUDIOON sent
+[2025-07-06 10:03:53][MAIN] - To Arduino: STRIPOFF
+[2025-07-06 10:03:53][MAIN] - To Arduino: STRIPTOPDEF
+[2025-07-06 10:03:53][MAIN] - To Arduino: STRIPON
+[2025-07-06 10:03:54][MAIN] - To Arduino: STRIPG4
+[2025-07-06 10:03:54][MAIN] - Command STRIPTOPG4 sent
+[2025-07-06 10:36:49][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-06 11:37:05][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-06 12:37:20][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-06 13:37:36][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-06 14:38:20][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-06 15:03:27][FLASK] - 167.94.138.184 - - [06/Jul/2025 15:03:27] code 400, message Bad request version ('À\x14À')
+[2025-07-06 15:03:31][FLASK] - PING
+[2025-07-06 15:03:46][FLASK] - PING
+[2025-07-06 15:03:49][FLASK] - 167.94.138.184 - - [06/Jul/2025 15:03:49] code 505, message Invalid HTTP version (2.0)
+[2025-07-06 15:03:56][FLASK] - 167.94.138.184 - - [06/Jul/2025 15:03:56] code 505, message Invalid HTTP version (2.0)
+[2025-07-06 15:04:02][FLASK] - 167.94.138.184 - - [06/Jul/2025 15:04:02] code 400, message Bad HTTP/0.9 request type ('\x16\x03\x01\x00î\x01\x00\x00ê\x03\x03')
+[2025-07-06 15:28:34][WEBSOCKET] - 167.94.146.54 - - [06/Jul/2025 15:28:34] code 400, message Bad request version ('À\x14À')
+[2025-07-06 15:28:46][WEBSOCKET] - 167.94.146.54 - - [06/Jul/2025 15:28:46] code 505, message Invalid HTTP version (2.0)
+[2025-07-06 15:28:50][WEBSOCKET] - 167.94.146.54 - - [06/Jul/2025 15:28:50] code 505, message Invalid HTTP version (2.0)
+[2025-07-06 15:28:55][WEBSOCKET] - 167.94.146.54 - - [06/Jul/2025 15:28:55] code 400, message Bad request syntax ('\x16\x03\x01\x00î\x01\x00\x00ê\x03\x03\x9dJW|')
+[2025-07-06 15:38:36][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-06 15:56:57][WEBSOCKET] - 206.168.34.93 - - [06/Jul/2025 15:56:57] code 505, message Invalid HTTP version (2.0)
+[2025-07-06 15:57:22][WEBSOCKET] - 206.168.34.93 - - [06/Jul/2025 15:57:22] code 505, message Invalid HTTP version (2.0)
+[2025-07-06 15:57:31][WEBSOCKET] - 206.168.34.93 - - [06/Jul/2025 15:57:31] code 400, message Bad request version ('*òO±\x97')
+[2025-07-06 16:38:54][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-06 17:39:26][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-06 17:45:02][WEBSOCKET] - 185.242.226.45 - - [06/Jul/2025 17:45:02] code 400, message Bad HTTP/0.9 request type ('\x16\x03\x01\x00\x8a\x01\x00\x00\x86\x03\x03ìNÍ)_g;5Ú\x8açæo\x05¢uù\x81\x89®MZ$o\x86eå\x17\x071\x085\x00\x00\x1aÀ/À+À\x11À\x07À\x13À')
+[2025-07-06 18:09:37][FLASK] - PING
+[2025-07-06 18:39:42][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-06 19:40:10][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-06 20:11:40][FLASK] - 172.236.228.197 - - [06/Jul/2025 20:11:40] code 400, message Bad request syntax ('\x16\x03\x01\x01')
+[2025-07-06 20:11:41][FLASK] - 172.236.228.197 - - [06/Jul/2025 20:11:41] code 400, message Bad request syntax ('\x16\x03\x01\x01')
+[2025-07-06 20:40:26][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-06 21:15:53][FLASK] - PING
+[2025-07-06 21:40:41][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-06 21:59:00][MAIN] - To Arduino: LIGHTSOFF
+[2025-07-06 22:40:56][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-06 23:41:12][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-07 00:10:49][FLASK] - STRIP: {'strip': 'i0'}
+[2025-07-07 00:10:49][MAIN] - To Arduino: STRIPOFF
+[2025-07-07 00:10:49][MAIN] - To Arduino: STRIPTOPDEF
+[2025-07-07 00:10:50][MAIN] - To Arduino: STRIPTOPCOLSWITCH
+[2025-07-07 00:10:50][MAIN] - To Arduino: STRIPON
+[2025-07-07 00:10:51][MAIN] - To Arduino: STRIPI1
+[2025-07-07 00:10:51][MAIN] - Command STRIPI0 sent
+[2025-07-07 00:41:29][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-07 01:41:45][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-07 02:41:59][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-07 03:42:14][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-07 04:42:29][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-07 05:42:43][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-07 06:42:58][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-07 07:17:55][FLASK] - PING
+[2025-07-07 07:30:00][MAIN] - To Arduino: LIGHTSON
+[2025-07-07 07:43:15][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-07 08:00:00][MAIN] - ANNOUNCEMENTS
+[2025-07-07 08:00:00][MAIN] - 2025-07-07 08:00:00.798770
+[2025-07-07 08:00:02][MAIN] - Pulling from GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-07-07 08:00:03][MAIN] - Already up to date.
+[2025-07-07 08:00:03][MAIN] - [[]]
+[2025-07-07 08:00:03][MAIN] - [[]]
+[2025-07-07 08:00:03][MAIN] - [[]]
+[2025-07-07 08:00:03][MAIN] - [[]]
+[2025-07-07 08:00:03][MAIN] - [[]]
+[2025-07-07 08:00:03][MAIN] - [[]]
+[2025-07-07 08:00:04][MAIN] - History updated.
+[2025-07-07 08:00:04][MAIN] -           Week      Cesare     Claudio  ...         Lea        Mara    Natchaya
+[2025-07-07 08:00:04][MAIN] - [96m53  2025-02-10       Floor   Bathrooms  ...  Management     Kitchen    Vacation[0m
+[2025-07-07 08:00:04][MAIN] - [96m54  2025-02-17  Management    Vacation  ...   Bathrooms    Vacation       Floor[0m
+[2025-07-07 08:00:04][MAIN] - [96m55  2025-02-24    Vacation  Management  ...    Vacation       Floor     Kitchen[0m
+[2025-07-07 08:00:04][MAIN] - [96m56  2025-03-03   Bathrooms       Floor  ...     Kitchen  Management    Vacation[0m
+[2025-07-07 08:00:04][MAIN] - [96m57  2025-03-10       Floor     Kitchen  ...    Vacation    Vacation   Bathrooms[0m
+[2025-07-07 08:00:04][MAIN] - [96m58  2025-03-17    Vacation    Vacation  ...       Floor   Bathrooms  Management[0m
+[2025-07-07 08:00:04][MAIN] - [96m59  2025-03-24     Kitchen   Bathrooms  ...  Management       Floor    Vacation[0m
+[2025-07-07 08:00:04][MAIN] - [96m60  2025-03-31   Bathrooms  Management  ...    Vacation    Vacation     Kitchen[0m
+[2025-07-07 08:00:04][MAIN] - [96m61  2025-04-07    Vacation    Vacation  ...   Bathrooms     Kitchen       Floor[0m
+[2025-07-07 08:00:04][MAIN] - [96m62  2025-04-14  Management       Floor  ...     Kitchen   Bathrooms    Vacation[0m
+[2025-07-07 08:00:04][MAIN] - [96m63  2025-04-21       Floor     Kitchen  ...    Vacation    Vacation  Management[0m
+[2025-07-07 08:00:04][MAIN] - [96m64  2025-04-28    Vacation    Vacation  ...       Floor  Management   Bathrooms[0m
+[2025-07-07 08:00:04][MAIN] - [96m65  2025-05-05     Kitchen   Bathrooms  ...  Management       Floor    Vacation[0m
+[2025-07-07 08:00:04][MAIN] - [96m66  2025-05-12   Bathrooms  Management  ...    Vacation    Vacation     Kitchen[0m
+[2025-07-07 08:00:04][MAIN] - [96m67  2025-05-19    Vacation    Vacation  ...   Bathrooms     Kitchen       Floor[0m
+[2025-07-07 08:00:04][MAIN] - [96m68  2025-05-26  Management       Floor  ...     Kitchen    Vacation    Vacation[0m
+[2025-07-07 08:00:04][MAIN] - [38;5;208m69  2025-06-02       Floor     Kitchen  ...    Vacation   Bathrooms    Vacation[0m
+[2025-07-07 08:00:04][MAIN] - [91m70  2025-06-09     Kitchen    Vacation  ...       Floor  Management   Bathrooms[0m
+[2025-07-07 08:00:04][MAIN] - [91m71  2025-06-16    Vacation   Bathrooms  ...  Management    Vacation     Kitchen[0m
+[2025-07-07 08:00:04][MAIN] - [91m72  2025-06-23   Bathrooms  Management  ...    Vacation       Floor    Vacation[0m
+[2025-07-07 08:00:04][MAIN] - [91m73  2025-06-30  Management       Floor  ...   Bathrooms     Kitchen    Vacation[0m
+[2025-07-07 08:00:04][MAIN] - [91m74  2025-07-07       Floor    Vacation  ...     Kitchen  Management    Vacation[0m
+[2025-07-07 08:00:04][MAIN] - [91m75  2025-07-14    Vacation     Kitchen  ...       Floor   Bathrooms    Vacation[0m
+[2025-07-07 08:00:04][MAIN] - [91m76  2025-07-21     Kitchen   Bathrooms  ...  Management    Vacation    Vacation[0m
+[2025-07-07 08:00:04][MAIN] - [91m77  2025-07-28   Bathrooms    Vacation  ...    Vacation       Floor  Management[0m
+[2025-07-07 08:00:04][MAIN] - [91m78  2025-08-04    Vacation  Management  ...   Bathrooms     Kitchen       Floor[0m
+[2025-07-07 08:00:04][MAIN] - [91m79  2025-08-11  Management       Floor  ...     Kitchen    Vacation    Vacation[0m
+[2025-07-07 08:00:04][MAIN] - [91m[27 rows x 7 columns][0m
+[2025-07-07 08:00:04][MAIN] - Saving at /home/claudio/Python-Projects/RoomServer/wg/data/cleaning_plan_leo6.xlsx
+[2025-07-07 08:00:05][MAIN] - Msg sent to LEO6:
+[2025-07-07 08:00:05][MAIN] - This week (07-07-25):
+
+[2025-07-07 08:00:05][MAIN] - ❗⚠ Manager: Mara ⚠❗
+
+[2025-07-07 08:00:05][MAIN] - Cesare: Floor 🧹🪣🫧
+
+[2025-07-07 08:00:05][MAIN] - Jay: Bathrooms 🛁🚽🧻🚾
+
+[2025-07-07 08:00:05][MAIN] - Lea: Kitchen 🪑🚰🧴🔪
+
+[2025-07-07 08:00:05][MAIN] - For the others, 💸🧺🍾 !
+
+[2025-07-07 08:00:05][MAIN] - Note: If you want to swap your task with someone else's task, use the SWAP command.
+
+[2025-07-07 08:00:05][MAIN] - You can submit an anonymous complaint for one or more tasks of the previous week by sending a BLAME.
+
+[2025-07-07 08:00:05][MAIN] - Before blaming someone, please warn them first ⚠️ and then wait until Tuesday evening so that the person has time to recover their delayed duty.
+
+[2025-07-07 08:00:05][MAIN] - If a person receives at least 2 blames, they will need to recover the task in the future ☠️.
+
+[2025-07-07 08:00:05][MAIN] - You can also send a message of appreciation 🌟 by sending a PRAISE as well.
+
+[2025-07-07 08:00:05][MAIN] - If you need vacation for a week, you can send book it though BOOK VACATION.
+
+[2025-07-07 08:00:05][MAIN] - Whenever you have a WG expense 💰, use EXPENSE and specify price/reason for it.
+[2025-07-07 08:00:05][MAIN] - Pushing to GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-07-07 08:00:07][MAIN] - [master 7771021] auto_update
+
+[2025-07-07 08:00:07][MAIN] -  1 file changed, 1 insertion(+)
+[2025-07-07 08:00:07][MAIN] - To github.com:shapelessguy/Python-Projects.git
+
+[2025-07-07 08:00:07][MAIN] -    44a6554..7771021  master -> master
+[2025-07-07 08:00:07][MAIN] - [[]]
+[2025-07-07 08:00:07][MAIN] - Msg sent:
+[2025-07-07 08:00:07][MAIN] - Hello Jay, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-07-07 08:00:07][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-07-07 08:00:07][MAIN] - This week (07/07 - 14/07):  <b>Bathrooms</b> 🛁🚽🧻🚾
+
+[2025-07-07 08:00:07][MAIN] - Next week (14/07 - 21/07):  <b>Management</b> 💸🧺🍾
+
+[2025-07-07 08:00:07][MAIN] - Week 21/07 - 28/07:  <b>Floor</b> 🧹🪣🫧
+
+[2025-07-07 08:00:07][MAIN] - Week 28/07 - 04/08:  <b>Kitchen</b> 🪑🚰🧴🔪
+
+[2025-07-07 08:00:07][MAIN] - 👍 Congratulations, you have no complaints for the week 23/06 - 30/06!
+[2025-07-07 08:00:07][MAIN] - [[]]
+[2025-07-07 08:00:07][MAIN] - Msg sent:
+[2025-07-07 08:00:07][MAIN] - Hello Cesare, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-07-07 08:00:07][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-07-07 08:00:07][MAIN] - This week (07/07 - 14/07):  <b>Floor</b> 🧹🪣🫧
+
+[2025-07-07 08:00:07][MAIN] - Next week (14/07 - 21/07):  <b>Vacation</b> 💸🧺🍾
+
+[2025-07-07 08:00:07][MAIN] - Week 21/07 - 28/07:  <b>Kitchen</b> 🪑🚰🧴🔪
+
+[2025-07-07 08:00:07][MAIN] - Week 28/07 - 04/08:  <b>Bathrooms</b> 🛁🚽🧻🚾
+
+[2025-07-07 08:00:07][MAIN] - 👍 Congratulations, you have no complaints for the week 23/06 - 30/06!
+[2025-07-07 08:00:07][MAIN] - [[]]
+[2025-07-07 08:00:07][MAIN] - Msg sent:
+[2025-07-07 08:00:07][MAIN] - Hello Claudio, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-07-07 08:00:07][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-07-07 08:00:07][MAIN] - This week (07/07 - 14/07):  <b>Vacation</b> 💸🧺🍾
+
+[2025-07-07 08:00:07][MAIN] - Next week (14/07 - 21/07):  <b>Kitchen</b> 🪑🚰🧴🔪
+
+[2025-07-07 08:00:07][MAIN] - Week 21/07 - 28/07:  <b>Bathrooms</b> 🛁🚽🧻🚾
+
+[2025-07-07 08:00:07][MAIN] - Week 28/07 - 04/08:  <b>Vacation</b> 💸🧺🍾
+
+[2025-07-07 08:00:07][MAIN] - 👍 Congratulations, you have no complaints for the week 23/06 - 30/06!
+[2025-07-07 08:00:07][MAIN] - [[]]
+[2025-07-07 08:00:07][MAIN] - Msg sent:
+[2025-07-07 08:00:07][MAIN] - Hello Natchaya, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-07-07 08:00:07][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-07-07 08:00:07][MAIN] - This week (07/07 - 14/07):  <b>Vacation</b> 💸🧺🍾
+
+[2025-07-07 08:00:07][MAIN] - Next week (14/07 - 21/07):  <b>Vacation</b> 💸🧺🍾
+
+[2025-07-07 08:00:07][MAIN] - Week 21/07 - 28/07:  <b>Vacation</b> 💸🧺🍾
+
+[2025-07-07 08:00:07][MAIN] - Week 28/07 - 04/08:  <b>Management</b> 💸🧺🍾
+
+[2025-07-07 08:00:07][MAIN] - 👍 Congratulations, you have no complaints for the week 23/06 - 30/06!
+[2025-07-07 08:00:07][MAIN] - [[]]
+[2025-07-07 08:00:07][MAIN] - Msg sent:
+[2025-07-07 08:00:07][MAIN] - Hello Lea, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-07-07 08:00:07][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-07-07 08:00:07][MAIN] - This week (07/07 - 14/07):  <b>Kitchen</b> 🪑🚰🧴🔪
+
+[2025-07-07 08:00:07][MAIN] - Next week (14/07 - 21/07):  <b>Floor</b> 🧹🪣🫧
+
+[2025-07-07 08:00:07][MAIN] - Week 21/07 - 28/07:  <b>Management</b> 💸🧺🍾
+
+[2025-07-07 08:00:07][MAIN] - Week 28/07 - 04/08:  <b>Vacation</b> 💸🧺🍾
+
+[2025-07-07 08:00:07][MAIN] - 👍 Congratulations, you have no complaints for the week 23/06 - 30/06!
+[2025-07-07 08:00:07][MAIN] - [[]]
+[2025-07-07 08:00:07][MAIN] - Msg sent:
+[2025-07-07 08:00:07][MAIN] - Hello Mara, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-07-07 08:00:07][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-07-07 08:00:07][MAIN] - This week (07/07 - 14/07):  <b>Management</b> 💸🧺🍾
+
+[2025-07-07 08:00:07][MAIN] - Next week (14/07 - 21/07):  <b>Bathrooms</b> 🛁🚽🧻🚾
+
+[2025-07-07 08:00:07][MAIN] - Week 21/07 - 28/07:  <b>Vacation</b> 💸🧺🍾
+
+[2025-07-07 08:00:07][MAIN] - Week 28/07 - 04/08:  <b>Floor</b> 🧹🪣🫧
+
+[2025-07-07 08:00:07][MAIN] - 👍 Congratulations, you have no complaints for the week 23/06 - 30/06!
+[2025-07-07 08:43:32][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-07 08:54:10][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-07-07 08:54:10][MAIN] - To Arduino: STRIPOFF
+[2025-07-07 08:54:11][MAIN] - To Arduino: STRIPTOPDEF
+[2025-07-07 08:54:11][MAIN] - To Arduino: STRIPON
+[2025-07-07 08:54:11][MAIN] - To Arduino: STRIPG4
+[2025-07-07 08:54:11][MAIN] - Command STRIPTOPG4 sent
+[2025-07-07 09:43:49][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-07 10:44:06][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-07 11:44:22][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-07 12:44:38][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-07 13:44:54][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-07 14:41:25][WEBSOCKET] - 206.168.34.65 - - [07/Jul/2025 14:41:25] code 505, message Invalid HTTP version (2.0)
+[2025-07-07 14:41:32][WEBSOCKET] - 206.168.34.65 - - [07/Jul/2025 14:41:32] code 505, message Invalid HTTP version (2.0)
+[2025-07-07 14:41:37][WEBSOCKET] - 206.168.34.65 - - [07/Jul/2025 14:41:37] code 400, message Bad request version ('À\x14À')
+[2025-07-07 14:45:09][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-07 15:45:25][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-07 16:03:30][FLASK] - PING
+[2025-07-07 16:03:34][FLASK] - 167.94.138.198 - - [07/Jul/2025 16:03:34] code 505, message Invalid HTTP version (2.0)
+[2025-07-07 16:03:50][FLASK] - 167.94.138.198 - - [07/Jul/2025 16:03:50] code 505, message Invalid HTTP version (2.0)
+[2025-07-07 16:04:01][FLASK] - 167.94.138.198 - - [07/Jul/2025 16:04:01] code 400, message Bad request version ('À\x14À')
+[2025-07-07 16:45:41][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-07 17:45:57][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-07 18:03:37][FLASK] - PING
+[2025-07-07 18:46:13][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-07 19:46:28][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-07 20:46:44][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-07 20:57:44][MAIN] - Serving 7129379343: msg 4940
+[2025-07-07 20:57:46][MAIN] - Serving 7129379343: msg 4942
+[2025-07-07 21:47:01][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-07 21:59:00][MAIN] - To Arduino: LIGHTSOFF
+[2025-07-07 22:47:18][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-07 23:47:33][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-07 23:56:34][FLASK] - STRIP: {'strip': 'i0'}
+[2025-07-07 23:56:34][MAIN] - To Arduino: STRIPOFF
+[2025-07-07 23:56:35][MAIN] - To Arduino: STRIPTOPDEF
+[2025-07-07 23:56:35][MAIN] - To Arduino: STRIPTOPCOLSWITCH
+[2025-07-07 23:56:35][MAIN] - To Arduino: STRIPON
+[2025-07-07 23:56:36][MAIN] - To Arduino: STRIPI1
+[2025-07-07 23:56:36][MAIN] - Command STRIPI0 sent
+[2025-07-08 00:48:01][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-08 01:48:17][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-08 02:48:31][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-08 03:24:10][MAIN] - Audio set off automatically
+[2025-07-08 03:24:10][MAIN] - To Arduino: AUDIOON/OFF
+[2025-07-08 03:24:11][MAIN] - To Arduino: AUDIOON/OFF
+[2025-07-08 03:24:14][MAIN] - To Arduino: AUDIOON/OFF
+[2025-07-08 03:24:14][MAIN] - To Arduino: STRIPTOPOFF
+[2025-07-08 03:24:14][MAIN] - Command AUDIOOFF sent
+[2025-07-08 07:30:00][MAIN] - To Arduino: LIGHTSON
+[2025-07-08 08:25:56][FLASK] - AUDIO: {'audio': 'on'}
+[2025-07-08 08:25:56][MAIN] - To Arduino: AUDIOON/OFF
+[2025-07-08 08:25:57][MAIN] - To Arduino: AUDIOON/OFF
+[2025-07-08 08:25:58][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-07-08 08:25:58][MAIN] - To Arduino: STRIPTOPG4
+[2025-07-08 08:25:58][MAIN] - Command AUDIOON sent
+[2025-07-08 08:25:58][MAIN] - To Arduino: STRIPOFF
+[2025-07-08 08:25:58][MAIN] - To Arduino: STRIPTOPDEF
+[2025-07-08 08:25:59][MAIN] - To Arduino: STRIPON
+[2025-07-08 08:25:59][MAIN] - To Arduino: STRIPG4
+[2025-07-08 08:25:59][MAIN] - Command STRIPTOPG4 sent
+[2025-07-08 08:28:03][FLASK] - PING
+[2025-07-08 08:53:33][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-08 09:53:46][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-08 10:54:00][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-08 11:54:14][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-08 12:54:39][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-08 13:54:53][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-08 14:08:44][FLASK] - 91.196.152.32 - - [08/Jul/2025 14:08:44] code 400, message Bad request syntax ('\x16\x03\x03\x01¥\x01\x00\x01¡\x03\x03.\x9cé')
+[2025-07-08 14:08:52][FLASK] - PING
+[2025-07-08 14:55:08][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-08 15:02:43][WEBSOCKET] - 167.94.138.206 - - [08/Jul/2025 15:02:43] code 505, message Invalid HTTP version (2.0)
+[2025-07-08 15:02:54][WEBSOCKET] - 167.94.138.206 - - [08/Jul/2025 15:02:54] code 505, message Invalid HTTP version (2.0)
+[2025-07-08 15:03:04][WEBSOCKET] - 167.94.138.206 - - [08/Jul/2025 15:03:04] code 400, message Bad request version ('À\x14À')
+[2025-07-08 15:55:22][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-08 16:55:37][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-07-08 16:59:56][FLASK] - PING
+[2025-07-08 17:00:07][FLASK] - 162.142.125.39 - - [08/Jul/2025 17:00:07] code 505, message Invalid HTTP version (2.0)
+[2025-07-08 17:00:20][FLASK] - 162.142.125.39 - - [08/Jul/2025 17:00:20] code 505, message Invalid HTTP version (2.0)
+[2025-07-08 17:00:34][FLASK] - 162.142.125.39 - - [08/Jul/2025 17:00:34] code 400, message Bad request version ('À\x14À')
+[2025-07-08 17:02:35][WEBSOCKET] - 206.168.34.42 - - [08/Jul/2025 17:02:35] code 400, message Bad request version ('À\x14À')
+[2025-07-08 17:02:43][WEBSOCKET] - 206.168.34.42 - - [08/Jul/2025 17:02:43] code 505, message Invalid HTTP version (2.0)
+[2025-07-08 17:02:50][WEBSOCKET] - 206.168.34.42 - - [08/Jul/2025 17:02:50] code 505, message Invalid HTTP version (2.0)
+[2025-07-08 17:03:01][WEBSOCKET] - 206.168.34.42 - - [08/Jul/2025 17:03:01] code 400, message Bad request version ('À\x14À')
+[2025-07-08 17:09:06][FLASK] - 199.45.155.76 - - [08/Jul/2025 17:09:06] code 400, message Bad request version ('À\x14À')
+[2025-07-08 17:09:42][FLASK] - 199.45.155.76 - - [08/Jul/2025 17:09:42] code 400, message Bad request syntax ('ZG\x00\x00\x00\x05\x00+\x0e\x01\x00')
+[2025-07-08 17:55:52][MAIN] - To Arduino: AUDIOPINGVOL

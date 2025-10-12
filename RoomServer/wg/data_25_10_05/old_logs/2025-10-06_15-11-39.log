@@ -1,0 +1,351 @@
+[2025-10-06 15:11:39][MAIN] - Bot is ready.
+[2025-10-06 15:11:39][MAIN] - Pulling from GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-10-06 15:11:40][MAIN] - Contacting Arduino..
+[2025-10-06 15:11:40][MAIN] - Already up to date.
+[2025-10-06 15:11:40][MAIN] - Arduino found!
+[2025-10-06 15:11:40][MAIN] - Actuator running.
+[2025-10-06 15:11:40][MAIN] - To Arduino: LIGHTSON
+[2025-10-06 15:11:43][MAIN] - Serving 807946519: msg 5459
+[2025-10-06 15:11:43][MAIN] - Serving 807946519: msg 5459
+[2025-10-06 15:11:43][MAIN] - Serving 807946519: msg 5459
+[2025-10-06 15:11:43][MAIN] - Serving 807946519: msg 5459
+[2025-10-06 15:11:43][MAIN] - Serving 807946519: msg 5459
+[2025-10-06 15:11:43][MAIN] - Serving 807946519: msg 5459
+[2025-10-06 15:11:44][MAIN] - Serving 807946519: msg 5463
+[2025-10-06 15:11:44][MAIN] - Serving 807946519: msg 5463
+[2025-10-06 15:11:44][MAIN] - Serving 807946519: msg 5463
+[2025-10-06 15:11:44][MAIN] - Serving 807946519: msg 5463
+[2025-10-06 15:11:44][MAIN] - Serving 807946519: msg 5463
+[2025-10-06 15:11:44][MAIN] - Serving 807946519: msg 5463
+[2025-10-06 15:11:45][MAIN] - IP 84.150.106.217 uploaded to:
+[2025-10-06 15:11:45][MAIN] - https://storage.googleapis.com/ip-manager42.appspot.com/RaspberryPi-Cyan/ip_server.txt
+[2025-10-06 15:11:45][FLASK] -  * Serving Flask app 'server'
+[2025-10-06 15:11:45][FLASK] -  * Debug mode: off
+[2025-10-06 15:11:45][WEBSOCKET] -  * Serving Flask app 'websocket_server'
+[2025-10-06 15:11:45][WEBSOCKET] -  * Debug mode: off
+[2025-10-06 15:11:45][MAIN] - Serving 807946519: msg 5467
+[2025-10-06 15:11:45][MAIN] - Serving 807946519: msg 5467
+[2025-10-06 15:11:45][MAIN] - Serving 807946519: msg 5467
+[2025-10-06 15:11:45][MAIN] - Serving 807946519: msg 5467
+[2025-10-06 15:11:45][MAIN] - Serving 807946519: msg 5467
+[2025-10-06 15:11:46][MAIN] - Serving 807946519: msg 5470
+[2025-10-06 15:11:46][MAIN] - Serving 807946519: msg 5470
+[2025-10-06 15:11:46][MAIN] - Serving 807946519: msg 5470
+[2025-10-06 15:11:46][MAIN] - Serving 807946519: msg 5470
+[2025-10-06 15:11:47][MAIN] - Serving 807946519: msg 5473
+[2025-10-06 15:11:47][MAIN] - Serving 807946519: msg 5473
+[2025-10-06 15:11:47][MAIN] - Serving 807946519: msg 5473
+[2025-10-06 15:11:47][MAIN] - Serving 807946519: msg 5473
+[2025-10-06 15:11:48][MAIN] - Serving 807946519: msg 5476
+[2025-10-06 15:11:48][MAIN] - Serving 807946519: msg 5476
+[2025-10-06 15:11:48][MAIN] - Serving 807946519: msg 5476
+[2025-10-06 15:11:48][MAIN] - Serving 807946519: msg 5476
+[2025-10-06 15:11:49][MAIN] - Serving 807946519: msg 5479
+[2025-10-06 15:11:49][MAIN] - Serving 807946519: msg 5479
+[2025-10-06 15:11:49][MAIN] - Serving 807946519: msg 5479
+[2025-10-06 15:11:50][MAIN] - Serving 807946519: msg 5481
+[2025-10-06 15:11:50][MAIN] - Serving 807946519: msg 5481
+[2025-10-06 15:11:51][MAIN] - Serving 807946519: msg 5483
+[2025-10-06 15:11:51][MAIN] - Serving 807946519: msg 5483
+[2025-10-06 15:12:11][MAIN] - Serving 133279076: msg 5485
+[2025-10-06 15:12:11][MAIN] - Serving 133279076: msg 5485
+[2025-10-06 15:12:16][MAIN] - Serving 133279076: msg 5488
+[2025-10-06 15:12:16][MAIN] - Serving 133279076: msg 5488
+[2025-10-06 15:12:16][MAIN] - Serving 133279076: msg 5488
+[2025-10-06 15:12:16][MAIN] - Serving 133279076: msg 5488
+[2025-10-06 15:12:32][MAIN] - Serving 133279076: msg 5491
+[2025-10-06 15:12:32][MAIN] - Serving 133279076: msg 5491
+[2025-10-06 15:12:34][MAIN] - Serving 133279076: msg 5494
+[2025-10-06 15:12:34][MAIN] - Serving 133279076: msg 5494
+[2025-10-06 15:12:38][MAIN] - Serving 133279076: msg 5497
+[2025-10-06 15:12:38][MAIN] - Serving 133279076: msg 5497
+[2025-10-06 15:12:38][MAIN] - Serving 133279076: msg 5497
+[2025-10-06 15:12:38][MAIN] - Serving 133279076: msg 5497
+[2025-10-06 15:12:38][MAIN] - Serving 133279076: msg 5497
+[2025-10-06 15:12:40][MAIN] - Serving 133279076: msg 5499
+[2025-10-06 15:12:40][MAIN] - Serving 133279076: msg 5499
+[2025-10-06 15:12:44][MAIN] - Serving 133279076: msg 5501
+[2025-10-06 15:12:52][MAIN] - Serving 133279076: msg 5503
+[2025-10-06 15:12:56][MAIN] - Serving 133279076: msg 5505
+[2025-10-06 15:27:09][MAIN] - Serving 807946519: msg 5507
+[2025-10-06 15:27:09][MAIN] - Serving 807946519: msg 5507
+[2025-10-06 15:29:51][FLASK] - Error processing request: 400 Bad Request: The browser (or proxy) sent a request that this server could not understand.
+[2025-10-06 16:12:22][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-06 17:11:16][MAIN] - Audio set off automatically
+[2025-10-06 17:11:16][MAIN] - To Arduino: AUDIOON/OFF
+[2025-10-06 17:11:17][MAIN] - To Arduino: AUDIOON/OFF
+[2025-10-06 17:11:20][MAIN] - To Arduino: AUDIOON/OFF
+[2025-10-06 17:11:21][MAIN] - To Arduino: STRIPTOPOFF
+[2025-10-06 17:11:21][MAIN] - Command AUDIOOFF sent
+[2025-10-06 17:39:58][MAIN] - Audio set on automatically
+[2025-10-06 17:39:58][MAIN] - To Arduino: AUDIOON/OFF
+[2025-10-06 17:39:59][MAIN] - To Arduino: AUDIOON/OFF
+[2025-10-06 17:40:00][MAIN] - To Arduino: STRIPTOPG4
+[2025-10-06 17:40:00][MAIN] - Command AUDIOON sent
+[2025-10-06 17:44:19][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-06 18:23:57][WEBSOCKET] - 195.184.76.235 - - [06/Oct/2025 18:23:57] code 400, message Bad request version ('À#À¬À®À+À')
+[2025-10-06 18:44:34][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-06 19:44:49][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-06 20:45:05][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-06 20:48:13][MAIN] - Serving 133279076: msg 5509
+[2025-10-06 20:48:19][MAIN] - Serving 133279076: msg 5511
+[2025-10-06 20:48:19][MAIN] - Traceback (most recent call last):
+
+[2025-10-06 20:48:19][MAIN] -   File "/home/claudio/Python-Projects/RoomServer/announcements.py", line 569, in expense_handler2
+
+[2025-10-06 20:48:19][MAIN] -     price = [int(x) for x in price]
+
+[2025-10-06 20:48:19][MAIN] -   File "/home/claudio/Python-Projects/RoomServer/announcements.py", line 569, in <listcomp>
+
+[2025-10-06 20:48:19][MAIN] -     price = [int(x) for x in price]
+
+[2025-10-06 20:48:19][MAIN] - ValueError: invalid literal for int() with base 10: '6€'
+[2025-10-06 20:48:23][MAIN] - Serving 133279076: msg 5513
+[2025-10-06 20:48:27][MAIN] - Serving 133279076: msg 5515
+[2025-10-06 20:48:32][MAIN] - Serving 133279076: msg 5517
+[2025-10-06 21:45:21][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-06 21:59:00][MAIN] - To Arduino: LIGHTSOFF
+[2025-10-06 22:45:36][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-06 23:12:47][FLASK] - STRIP: {'strip': 'i0'}
+[2025-10-06 23:12:47][MAIN] - To Arduino: STRIPOFF
+[2025-10-06 23:12:47][MAIN] - To Arduino: STRIPTOPDEF
+[2025-10-06 23:12:48][MAIN] - To Arduino: STRIPTOPCOLSWITCH
+[2025-10-06 23:12:48][MAIN] - To Arduino: STRIPON
+[2025-10-06 23:12:49][MAIN] - To Arduino: STRIPI1
+[2025-10-06 23:12:49][MAIN] - Command STRIPI0 sent
+[2025-10-06 23:46:03][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-07 00:46:18][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-07 01:31:55][WEBSOCKET] - 3.134.148.59 - - [07/Oct/2025 01:31:55] code 400, message Bad request syntax ('SSH-2.0-Go')
+[2025-10-07 01:46:32][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-07 02:04:21][WEBSOCKET] - 3.137.73.221 - - [07/Oct/2025 02:04:21] code 400, message Bad request version ('À\x14À')
+[2025-10-07 02:06:28][WEBSOCKET] - 3.137.73.221 - - [07/Oct/2025 02:06:28] code 400, message Bad request syntax ('SSH-2.0-Go')
+[2025-10-07 02:08:24][WEBSOCKET] - 3.137.73.221 - - [07/Oct/2025 02:08:24] code 400, message Bad request version ('À\x14À')
+[2025-10-07 02:46:57][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-07 03:01:57][WEBSOCKET] - 3.132.23.201 - - [07/Oct/2025 03:01:57] code 400, message Bad request version ('À\x14À')
+[2025-10-07 03:03:03][WEBSOCKET] - 3.132.23.201 - - [07/Oct/2025 03:03:03] code 400, message Bad request syntax ('SSH-2.0-Go')
+[2025-10-07 03:05:04][WEBSOCKET] - 3.132.23.201 - - [07/Oct/2025 03:05:04] code 400, message Bad HTTP/0.9 request type ('\x16\x03\x01\x00{\x01\x00\x00w\x03\x03±ÅÇÌ1ÎX\x8dBa;(\x08)\x9d"*V\x8cüê\x9e\x90\x16íá`ï¤)\x94ÿ\x00\x00\x1aÀ/À+À\x11À\x07À\x13À')
+[2025-10-07 03:47:12][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-07 04:47:26][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-07 05:47:41][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-07 06:47:55][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-07 07:30:00][MAIN] - To Arduino: LIGHTSON
+[2025-10-07 07:48:09][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-07 08:29:30][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-10-07 08:29:30][MAIN] - To Arduino: STRIPOFF
+[2025-10-07 08:29:30][MAIN] - To Arduino: STRIPTOPDEF
+[2025-10-07 08:29:31][MAIN] - To Arduino: STRIPON
+[2025-10-07 08:29:31][MAIN] - To Arduino: STRIPG4
+[2025-10-07 08:29:31][MAIN] - Command STRIPTOPG4 sent
+[2025-10-07 08:48:25][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-07 09:48:42][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-07 10:48:59][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-07 11:49:15][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-07 12:49:30][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-07 13:49:45][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-07 14:50:11][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-07 15:50:25][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-07 16:50:40][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-07 17:50:55][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-07 18:51:10][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-07 19:51:24][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-07 20:06:16][MAIN] - Issue while trying to upload IP (initialization)
+[2025-10-07 20:06:16][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f6e0186d570>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-10-07 20:06:22][MAIN] - IP 84.150.106.217 uploaded to:
+[2025-10-07 20:06:22][MAIN] - https://storage.googleapis.com/ip-manager42.appspot.com/RaspberryPi-Cyan/ip_server.txt
+[2025-10-07 20:06:22][FLASK] -  * Serving Flask app 'server'
+[2025-10-07 20:06:22][FLASK] -  * Debug mode: off
+[2025-10-07 20:06:22][FLASK] - Address already in use
+[2025-10-07 20:06:22][FLASK] - Port 10004 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-10-07 20:06:23][WEBSOCKET] -  * Serving Flask app 'websocket_server'
+[2025-10-07 20:06:23][WEBSOCKET] -  * Debug mode: off
+[2025-10-07 20:06:23][WEBSOCKET] - Address already in use
+[2025-10-07 20:06:23][WEBSOCKET] - Port 10003 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-10-07 20:51:52][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-07 21:52:06][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-07 21:59:00][MAIN] - To Arduino: LIGHTSOFF
+[2025-10-07 22:52:21][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-07 23:21:49][FLASK] - STRIP: {'strip': 'i0'}
+[2025-10-07 23:21:49][MAIN] - To Arduino: STRIPOFF
+[2025-10-07 23:21:50][MAIN] - To Arduino: STRIPTOPDEF
+[2025-10-07 23:21:50][MAIN] - To Arduino: STRIPTOPCOLSWITCH
+[2025-10-07 23:21:50][MAIN] - To Arduino: STRIPON
+[2025-10-07 23:21:51][MAIN] - To Arduino: STRIPI1
+[2025-10-07 23:21:51][MAIN] - Command STRIPI0 sent
+[2025-10-07 23:52:37][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-08 00:52:52][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-08 01:53:07][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-08 01:59:14][WEBSOCKET] - 167.94.145.107 - - [08/Oct/2025 01:59:14] code 400, message Bad request version ('À\x14À')
+[2025-10-08 01:59:22][WEBSOCKET] - 167.94.145.107 - - [08/Oct/2025 01:59:22] code 505, message Invalid HTTP version (2.0)
+[2025-10-08 01:59:28][WEBSOCKET] - 167.94.145.107 - - [08/Oct/2025 01:59:28] code 505, message Invalid HTTP version (2.0)
+[2025-10-08 02:53:22][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-08 03:07:21][WEBSOCKET] - 3.131.215.38 - - [08/Oct/2025 03:07:21] code 400, message Bad request version ('À\x14À')
+[2025-10-08 03:09:51][WEBSOCKET] - 3.131.215.38 - - [08/Oct/2025 03:09:51] code 400, message Bad request syntax ('SSH-2.0-Go')
+[2025-10-08 03:11:59][WEBSOCKET] - 3.131.215.38 - - [08/Oct/2025 03:11:59] code 400, message Bad request version ('À\x14À')
+[2025-10-08 03:53:37][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-08 04:53:52][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-08 05:54:07][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-08 06:54:21][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-08 07:30:00][MAIN] - To Arduino: LIGHTSON
+[2025-10-08 07:54:36][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-08 08:54:51][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-08 09:49:12][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-10-08 09:49:12][MAIN] - To Arduino: STRIPOFF
+[2025-10-08 09:49:13][MAIN] - To Arduino: STRIPTOPDEF
+[2025-10-08 09:49:13][MAIN] - To Arduino: STRIPON
+[2025-10-08 09:49:13][MAIN] - To Arduino: STRIPG4
+[2025-10-08 09:49:13][MAIN] - Command STRIPTOPG4 sent
+[2025-10-08 09:55:05][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-08 10:23:58][MAIN] - Serving 807946519: msg 5519
+[2025-10-08 10:24:05][MAIN] - Serving 807946519: msg 5521
+[2025-10-08 10:24:11][MAIN] - Serving 807946519: msg 5523
+[2025-10-08 10:55:19][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-08 11:55:34][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-08 12:55:48][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-08 13:56:03][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-08 14:56:31][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-08 15:56:46][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-08 16:57:01][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-08 17:06:33][MAIN] - Audio set off automatically
+[2025-10-08 17:06:33][MAIN] - To Arduino: AUDIOON/OFF
+[2025-10-08 17:06:34][MAIN] - To Arduino: AUDIOON/OFF
+[2025-10-08 17:06:37][MAIN] - To Arduino: AUDIOON/OFF
+[2025-10-08 17:06:37][MAIN] - To Arduino: STRIPTOPOFF
+[2025-10-08 17:06:37][MAIN] - Command AUDIOOFF sent
+[2025-10-08 17:32:59][MAIN] - Audio set on automatically
+[2025-10-08 17:32:59][MAIN] - To Arduino: AUDIOON/OFF
+[2025-10-08 17:33:00][MAIN] - To Arduino: AUDIOON/OFF
+[2025-10-08 17:33:00][MAIN] - To Arduino: STRIPTOPG4
+[2025-10-08 17:33:00][MAIN] - Command AUDIOON sent
+[2025-10-08 18:26:32][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-08 19:26:48][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-08 20:27:13][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-08 21:27:27][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-08 21:53:04][MAIN] - Serving 807946519: msg 5525
+[2025-10-08 21:53:08][MAIN] - Serving 807946519: msg 5527
+[2025-10-08 21:53:12][MAIN] - Serving 807946519: msg 5529
+[2025-10-08 21:53:18][MAIN] - Serving 807946519: msg 5531
+[2025-10-08 21:53:21][MAIN] - Serving 807946519: msg 5533
+[2025-10-08 21:53:21][MAIN] - Serving 807946519: msg 5533
+[2025-10-08 21:53:21][MAIN] - Serving 807946519: msg 5533
+[2025-10-08 21:53:24][MAIN] - Serving 807946519: msg 5535
+[2025-10-08 21:53:27][MAIN] - Serving 807946519: msg 5537
+[2025-10-08 21:53:31][MAIN] - Serving 807946519: msg 5539
+[2025-10-08 21:59:00][MAIN] - To Arduino: LIGHTSOFF
+[2025-10-08 22:27:41][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-08 22:49:47][FLASK] - STRIP: {'strip': 'i0'}
+[2025-10-08 22:49:47][MAIN] - To Arduino: STRIPOFF
+[2025-10-08 22:49:48][MAIN] - To Arduino: STRIPTOPDEF
+[2025-10-08 22:49:48][MAIN] - To Arduino: STRIPTOPCOLSWITCH
+[2025-10-08 22:49:48][MAIN] - To Arduino: STRIPON
+[2025-10-08 22:49:49][MAIN] - To Arduino: STRIPI1
+[2025-10-08 22:49:49][MAIN] - Command STRIPI0 sent
+[2025-10-08 23:27:54][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-09 00:28:09][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-09 01:28:23][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-09 02:28:36][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-09 03:21:54][WEBSOCKET] - 66.132.153.113 - - [09/Oct/2025 03:21:54] code 505, message Invalid HTTP version (2.0)
+[2025-10-09 03:22:23][WEBSOCKET] - 66.132.153.113 - - [09/Oct/2025 03:22:23] code 505, message Invalid HTTP version (2.0)
+[2025-10-09 03:28:49][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-09 03:57:58][WEBSOCKET] - 3.134.148.59 - - [09/Oct/2025 03:57:58] code 400, message Bad request version ('À\x14À')
+[2025-10-09 04:00:34][WEBSOCKET] - 3.134.148.59 - - [09/Oct/2025 04:00:34] code 400, message Bad request syntax ('SSH-2.0-Go')
+[2025-10-09 04:02:25][WEBSOCKET] - 3.134.148.59 - - [09/Oct/2025 04:02:25] code 400, message Bad HTTP/0.9 request type ('\x16\x03\x01\x00{\x01\x00\x00w\x03\x03\x89ù+Êß>¦\x01Óð5^}\x0f+Èvä\x99\x7f\x96kEî×Y>¨hL¾É\x00\x00\x1aÀ/À+À\x11À\x07À\x13À')
+[2025-10-09 04:29:02][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-09 05:29:16][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-09 06:29:30][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-09 07:29:44][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-09 07:30:00][MAIN] - To Arduino: LIGHTSON
+[2025-10-09 08:19:47][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-10-09 08:19:47][MAIN] - To Arduino: STRIPOFF
+[2025-10-09 08:19:47][MAIN] - To Arduino: STRIPTOPDEF
+[2025-10-09 08:19:47][MAIN] - To Arduino: STRIPON
+[2025-10-09 08:19:47][MAIN] - To Arduino: STRIPG4
+[2025-10-09 08:19:47][MAIN] - Command STRIPTOPG4 sent
+[2025-10-09 08:29:57][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-09 09:30:22][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-09 10:30:36][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-09 11:19:22][WEBSOCKET] - 167.94.138.33 - - [09/Oct/2025 11:19:22] code 400, message Bad request version ('À\x14À')
+[2025-10-09 11:19:35][WEBSOCKET] - 167.94.138.33 - - [09/Oct/2025 11:19:35] code 505, message Invalid HTTP version (2.0)
+[2025-10-09 11:19:40][WEBSOCKET] - 167.94.138.33 - - [09/Oct/2025 11:19:40] code 505, message Invalid HTTP version (2.0)
+[2025-10-09 11:30:49][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-09 12:31:08][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-09 13:31:35][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-09 14:31:52][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-09 15:32:16][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-09 16:23:35][WEBSOCKET] - 194.0.234.12 - - [09/Oct/2025 16:23:35] code 400, message Bad HTTP/0.9 request type ('\x03\x00\x00/*à\x00\x00\x00\x00\x00Cookie:')
+[2025-10-09 16:32:30][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-09 17:31:29][WEBSOCKET] - 194.0.234.12 - - [09/Oct/2025 17:31:29] code 400, message Bad HTTP/0.9 request type ('\x03\x00\x00/*à\x00\x00\x00\x00\x00Cookie:')
+[2025-10-09 17:32:43][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-09 18:28:26][MAIN] - Audio set off automatically
+[2025-10-09 18:28:26][MAIN] - To Arduino: AUDIOON/OFF
+[2025-10-09 18:28:27][MAIN] - To Arduino: AUDIOON/OFF
+[2025-10-09 18:28:30][MAIN] - To Arduino: AUDIOON/OFF
+[2025-10-09 18:28:30][MAIN] - To Arduino: STRIPTOPOFF
+[2025-10-09 18:28:30][MAIN] - Command AUDIOOFF sent
+[2025-10-09 18:41:37][MAIN] - Audio set on automatically
+[2025-10-09 18:41:37][MAIN] - To Arduino: AUDIOON/OFF
+[2025-10-09 18:41:38][MAIN] - To Arduino: AUDIOON/OFF
+[2025-10-09 18:41:38][MAIN] - To Arduino: STRIPTOPG4
+[2025-10-09 18:41:38][MAIN] - Command AUDIOON sent
+[2025-10-09 18:48:58][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-09 19:16:54][MAIN] - Audio set off automatically
+[2025-10-09 19:16:54][MAIN] - To Arduino: AUDIOON/OFF
+[2025-10-09 19:16:55][MAIN] - To Arduino: AUDIOON/OFF
+[2025-10-09 19:16:58][MAIN] - To Arduino: AUDIOON/OFF
+[2025-10-09 19:16:59][MAIN] - To Arduino: STRIPTOPOFF
+[2025-10-09 19:16:59][MAIN] - Command AUDIOOFF sent
+[2025-10-09 19:20:35][MAIN] - Audio set on automatically
+[2025-10-09 19:20:35][MAIN] - To Arduino: AUDIOON/OFF
+[2025-10-09 19:20:36][MAIN] - To Arduino: AUDIOON/OFF
+[2025-10-09 19:20:36][MAIN] - To Arduino: STRIPTOPG4
+[2025-10-09 19:20:36][MAIN] - Command AUDIOON sent
+[2025-10-09 19:56:13][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-09 20:56:27][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-09 21:56:42][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-09 21:59:00][MAIN] - To Arduino: LIGHTSOFF
+[2025-10-09 22:57:08][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-09 23:57:21][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-10 00:57:35][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-10 01:57:49][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-10 02:02:15][FLASK] - STRIP: {'strip': 'i0'}
+[2025-10-10 02:02:15][MAIN] - To Arduino: STRIPOFF
+[2025-10-10 02:02:16][MAIN] - To Arduino: STRIPTOPDEF
+[2025-10-10 02:02:16][MAIN] - To Arduino: STRIPTOPCOLSWITCH
+[2025-10-10 02:02:16][MAIN] - To Arduino: STRIPON
+[2025-10-10 02:02:17][MAIN] - To Arduino: STRIPI1
+[2025-10-10 02:02:17][MAIN] - Command STRIPI0 sent
+[2025-10-10 02:58:02][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-10 03:58:15][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-10 04:33:05][WEBSOCKET] - 3.132.23.201 - - [10/Oct/2025 04:33:05] code 400, message Bad request version ('y')
+[2025-10-10 04:34:42][WEBSOCKET] - 3.132.23.201 - - [10/Oct/2025 04:34:42] code 400, message Bad request syntax ('SSH-2.0-Go')
+[2025-10-10 04:35:48][WEBSOCKET] - 3.132.23.201 - - [10/Oct/2025 04:35:48] code 400, message Bad request version ('À\x14À')
+[2025-10-10 04:58:29][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-10 05:58:42][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-10 06:20:13][FLASK] - PING
+[2025-10-10 06:58:55][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-10 07:30:00][MAIN] - To Arduino: LIGHTSON
+[2025-10-10 07:59:09][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-10 08:59:22][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-10 09:13:10][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-10-10 09:13:11][MAIN] - To Arduino: STRIPOFF
+[2025-10-10 09:13:11][MAIN] - To Arduino: STRIPTOPDEF
+[2025-10-10 09:13:11][MAIN] - To Arduino: STRIPON
+[2025-10-10 09:13:11][MAIN] - To Arduino: STRIPG4
+[2025-10-10 09:13:11][MAIN] - Command STRIPTOPG4 sent
+[2025-10-10 09:59:36][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-10 10:59:49][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-10 12:00:25][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-10 12:14:07][WEBSOCKET] - 162.142.125.221 - - [10/Oct/2025 12:14:07] code 505, message Invalid HTTP version (2.0)
+[2025-10-10 12:14:10][WEBSOCKET] - 162.142.125.221 - - [10/Oct/2025 12:14:10] code 505, message Invalid HTTP version (2.0)
+[2025-10-10 12:33:11][WEBSOCKET] - 167.94.138.193 - - [10/Oct/2025 12:33:11] code 400, message Bad request version ('À\x14À')
+[2025-10-10 12:33:24][WEBSOCKET] - 167.94.138.193 - - [10/Oct/2025 12:33:24] code 505, message Invalid HTTP version (2.0)
+[2025-10-10 12:33:29][WEBSOCKET] - 167.94.138.193 - - [10/Oct/2025 12:33:29] code 505, message Invalid HTTP version (2.0)
+[2025-10-10 13:00:39][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-10 14:00:54][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-10 15:01:08][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-10 16:01:22][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-10 17:01:37][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-10 17:22:58][MAIN] - Serving 807946519: msg 5541
+[2025-10-10 17:23:03][MAIN] - Serving 807946519: msg 5543
+[2025-10-10 17:23:08][MAIN] - Serving 807946519: msg 5545
+[2025-10-10 18:02:01][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-10 19:02:16][MAIN] - To Arduino: AUDIOPINGVOL

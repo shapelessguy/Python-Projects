@@ -1,0 +1,17 @@
+[2025-02-08 18:41:44][MAIN] - Cannot open port /dev/ttyUSB0
+[2025-02-08 18:41:45][MAIN] - Cannot open port /dev/ttyUSB0
+[2025-02-08 18:41:46][MAIN] - Cannot open port /dev/ttyUSB0
+[2025-02-08 18:41:47][MAIN] - Cannot open port /dev/ttyUSB0
+[2025-02-08 18:41:48][MAIN] - Traceback (most recent call last):
+[2025-02-08 18:41:48][MAIN] -   File "/home/claudio/Python-Projects/RoomServer/main.py", line 89, in <module>
+[2025-02-08 18:41:48][MAIN] - main()
+[2025-02-08 18:41:48][MAIN] -   File "/home/claudio/Python-Projects/RoomServer/main.py", line 77, in main
+[2025-02-08 18:41:48][MAIN] - time.sleep(0.5)
+[2025-02-08 18:41:48][MAIN] - KeyboardInterrupt
+[2025-02-08 18:41:48][MAIN] - Exception ignored in: 
+[2025-02-08 18:41:48][MAIN] - <module 'threading' from '/usr/lib/python3.10/threading.py'>
+[2025-02-08 18:41:48][MAIN] - Traceback (most recent call last):
+[2025-02-08 18:41:48][MAIN] -   File "/usr/lib/python3.10/threading.py", line 1567, in _shutdown
+[2025-02-08 18:41:48][MAIN] - lock.acquire()
+[2025-02-08 18:41:48][MAIN] - KeyboardInterrupt
+[2025-02-08 18:41:48][MAIN] - : 

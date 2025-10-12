@@ -1,0 +1,21 @@
+[2025-10-10 19:35:04][MAIN] - Bot is ready.
+[2025-10-10 19:35:04][MAIN] - Pulling from GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-10-10 19:35:05][MAIN] - Contacting Arduino..
+[2025-10-10 19:35:05][MAIN] - Already up to date.
+[2025-10-10 19:35:05][MAIN] - Arduino found!
+[2025-10-10 19:35:05][MAIN] - Actuator running.
+[2025-10-10 19:35:05][MAIN] - To Arduino: LIGHTSON
+[2025-10-10 19:35:07][MAIN] - Serving 807946519: msg 5581
+[2025-10-10 19:35:10][MAIN] - IP 84.150.106.217 uploaded to:
+[2025-10-10 19:35:10][MAIN] - https://storage.googleapis.com/ip-manager42.appspot.com/RaspberryPi-Cyan/ip_server.txt
+[2025-10-10 19:35:10][FLASK] -  * Serving Flask app 'server'
+[2025-10-10 19:35:10][FLASK] -  * Debug mode: off
+[2025-10-10 19:35:10][WEBSOCKET] -  * Serving Flask app 'websocket_server'
+[2025-10-10 19:35:10][WEBSOCKET] -  * Debug mode: off
+[2025-10-10 19:35:17][MAIN] - Serving 807946519: msg 5583
+[2025-10-10 19:35:22][MAIN] - Serving 807946519: msg 5585
+[2025-10-10 19:35:22][MAIN] - /home/claudio/Python-Projects/RoomServer/wg/data/expenses.json
+[2025-10-10 19:38:40][MAIN] - Serving 807946519: msg 5587
+[2025-10-10 19:38:42][MAIN] - Serving 807946519: msg 5589
+[2025-10-10 19:38:42][MAIN] - Serving 807946519: msg 5589
+[2025-10-10 19:38:42][MAIN] - /home/claudio/Python-Projects/RoomServer/wg/data/expenses.json

@@ -1,0 +1,150 @@
+[2025-02-23 04:00:18][MAIN] - Bot is ready.
+[2025-02-23 04:00:19][MAIN] - Contacting Arduino..
+[2025-02-23 04:00:20][MAIN] - Arduino found!
+[2025-02-23 04:00:20][MAIN] - Actuator running.
+[2025-02-23 04:00:20][MAIN] - To Arduino: AUDIOON/OFF
+[2025-02-23 04:00:21][MAIN] - To Arduino: AUDIOON/OFF
+[2025-02-23 04:00:24][MAIN] - To Arduino: AUDIOON/OFF
+[2025-02-23 04:00:24][MAIN] - IP 84.150.103.227 uploaded to:
+[2025-02-23 04:00:24][MAIN] - https://storage.googleapis.com/ip-manager42.appspot.com/RaspberryPi-Cyan/ip_server.txt
+[2025-02-23 04:00:24][FLASK] -  * Serving Flask app 'server'
+[2025-02-23 04:00:24][FLASK] -  * Debug mode: off
+[2025-02-23 04:00:24][MAIN] - To Arduino: STRIPTOPOFF
+[2025-02-23 04:00:24][MAIN] - Pulling from GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-02-23 04:00:24][WEBSOCKET] -  * Serving Flask app 'websocket'
+[2025-02-23 04:00:24][WEBSOCKET] -  * Debug mode: off
+[2025-02-23 04:00:25][MAIN] - Already up to date.
+[2025-02-23 04:00:25][MAIN] - Audio set on automatically
+[2025-02-23 04:00:25][MAIN] - To Arduino: AUDIOON/OFF
+[2025-02-23 04:00:26][MAIN] - To Arduino: AUDIOON/OFF
+[2025-02-23 04:00:27][MAIN] - To Arduino: STRIPTOPG4
+[2025-02-23 04:00:27][MAIN] - Command AUDIOON sent
+[2025-02-23 04:00:27][MAIN] - To Arduino: LIGHTSOFF
+[2025-02-23 04:03:25][MAIN] - Audio set off automatically
+[2025-02-23 04:03:25][MAIN] - To Arduino: AUDIOON/OFF
+[2025-02-23 04:03:26][MAIN] - To Arduino: AUDIOON/OFF
+[2025-02-23 04:03:29][MAIN] - To Arduino: AUDIOON/OFF
+[2025-02-23 04:03:30][MAIN] - To Arduino: STRIPTOPOFF
+[2025-02-23 04:03:30][MAIN] - Command AUDIOOFF sent
+[2025-02-23 05:15:03][FLASK] - PING
+[2025-02-23 07:30:00][MAIN] - To Arduino: LIGHTSON
+[2025-02-23 09:12:12][FLASK] - AUDIO: {'audio': 'on'}
+[2025-02-23 09:12:12][MAIN] - To Arduino: AUDIOON/OFF
+[2025-02-23 09:12:13][MAIN] - To Arduino: AUDIOON/OFF
+[2025-02-23 09:12:14][MAIN] - To Arduino: STRIPTOPG4
+[2025-02-23 09:12:14][MAIN] - Command AUDIOON sent
+[2025-02-23 09:12:14][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-02-23 09:12:14][MAIN] - To Arduino: STRIPOFF
+[2025-02-23 09:12:15][MAIN] - To Arduino: STRIPTOPDEF
+[2025-02-23 09:12:15][MAIN] - To Arduino: STRIPON
+[2025-02-23 09:12:15][MAIN] - To Arduino: STRIPG4
+[2025-02-23 09:12:15][MAIN] - Command STRIPTOPG4 sent
+[2025-02-23 09:12:22][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:12:32][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:12:42][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:12:52][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:13:02][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:13:12][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:13:22][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:13:32][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:13:42][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:13:52][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:14:02][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:14:12][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:14:22][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:14:32][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:14:42][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:14:52][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:15:03][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:15:13][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:15:23][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:15:33][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:15:43][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:15:53][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:16:03][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:16:13][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:16:23][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:16:33][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:16:43][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:16:53][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:17:03][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:17:13][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:17:23][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:17:33][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:17:43][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:17:53][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:18:03][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:18:13][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:18:23][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:18:33][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:18:43][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:18:54][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:19:04][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:19:14][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:19:24][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:19:34][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:19:44][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:19:54][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:20:04][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:20:14][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:20:24][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:20:34][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:20:44][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:20:54][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:21:04][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:21:14][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:21:24][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:21:34][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:21:44][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:21:54][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:22:04][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:22:14][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:22:24][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:22:34][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:22:44][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:22:55][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:23:05][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:23:15][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:23:26][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:23:36][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:23:46][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:23:56][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:24:06][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:24:16][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:24:26][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:24:36][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:24:46][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:24:56][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:25:06][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:25:16][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:25:26][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:25:36][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:25:46][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:25:56][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:26:06][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:26:16][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:26:26][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:26:36][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:26:46][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:26:56][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:27:06][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:27:16][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:27:26][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:27:36][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:27:47][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:27:57][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:28:07][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:28:17][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:28:27][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:28:37][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:28:47][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:28:57][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:29:07][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:29:17][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:29:27][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:29:37][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:29:47][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:29:57][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:30:07][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:30:17][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 09:30:27][FLASK] - AUDIO: {'audio': 'pingvol'}

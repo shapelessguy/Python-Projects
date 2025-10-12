@@ -1,0 +1,23 @@
+[2025-04-20 09:37:05][MAIN] - Bot is ready.
+[2025-04-20 09:37:05][MAIN] - Pulling from GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-04-20 09:37:06][MAIN] - Contacting Arduino..
+[2025-04-20 09:37:06][MAIN] - Arduino found!
+[2025-04-20 09:37:06][MAIN] - Actuator running.
+[2025-04-20 09:37:06][MAIN] - To Arduino: LIGHTSON
+[2025-04-20 09:37:15][MAIN] - ssh: Could not resolve hostname github.com: Temporary failure in name resolution
+
+[2025-04-20 09:37:15][MAIN] - fatal: Could not read from remote repository.
+
+[2025-04-20 09:37:15][MAIN] - Please make sure you have the correct access rights
+
+[2025-04-20 09:37:15][MAIN] - and the repository exists.
+[2025-04-20 09:37:15][MAIN] - Actuators killed.
+[2025-04-20 09:37:15][MAIN] - Server control terminated.
+[2025-04-20 09:37:15][MAIN] - Websocket control terminated.
+[2025-04-20 09:37:18][MAIN] - Bot killed.
+[2025-04-20 09:37:20][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-20 09:37:20][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f895bcdc730>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-20 09:37:20][MAIN] - Firebase task terminated.
+[2025-04-20 09:37:20][MAIN] - RESTART
+[2025-04-20 09:37:20][MAIN] - Failed to kill process on port 10003 — maybe no process is using it or permission denied.
+[2025-04-20 09:37:20][MAIN] - Failed to kill process on port 10004 — maybe no process is using it or permission denied.

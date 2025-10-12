@@ -1,0 +1,33 @@
+[2025-02-08 20:04:20][MAIN] - Cannot open port /dev/ttyUSB0
+[2025-02-08 20:04:21][MAIN] - Cannot open port /dev/ttyUSB0
+[2025-02-08 20:04:22][MAIN] - Cannot open port /dev/ttyUSB0
+[2025-02-08 20:04:23][MAIN] - Cannot open port /dev/ttyUSB0
+[2025-02-08 20:04:24][MAIN] - Cannot open port /dev/ttyUSB0
+[2025-02-08 20:04:25][MAIN] - Cannot open port /dev/ttyUSB0
+[2025-02-08 20:04:26][MAIN] - Cannot open port /dev/ttyUSB0
+[2025-02-08 20:04:26][MAIN] - IP 84.150.103.227 uploaded to:
+[2025-02-08 20:04:26][MAIN] - https://storage.googleapis.com/ip-manager42.appspot.com/RaspberryPi-Cyan/ip_server.txt
+[2025-02-08 20:04:26][FLASK] -  * Serving Flask app 'server'
+[2025-02-08 20:04:26][FLASK] -  * Debug mode: off
+[2025-02-08 20:04:27][WEBSOCKET] -  * Serving Flask app 'websocket'
+[2025-02-08 20:04:27][WEBSOCKET] -  * Debug mode: off
+[2025-02-08 20:04:27][MAIN] - Cannot open port /dev/ttyUSB0
+[2025-02-08 20:04:28][MAIN] - Cannot open port /dev/ttyUSB0
+[2025-02-08 20:04:29][MAIN] - Cannot open port /dev/ttyUSB0
+[2025-02-08 20:04:30][MAIN] - Cannot open port /dev/ttyUSB0
+[2025-02-08 20:04:31][MAIN] - Cannot open port /dev/ttyUSB0
+[2025-02-08 20:04:32][MAIN] - Cannot open port /dev/ttyUSB0
+[2025-02-08 20:04:33][MAIN] - Traceback (most recent call last):
+[2025-02-08 20:04:33][MAIN] -   File "/home/claudio/Python-Projects/RoomServer/main.py", line 89, in <module>
+[2025-02-08 20:04:33][MAIN] - main()
+[2025-02-08 20:04:33][MAIN] -   File "/home/claudio/Python-Projects/RoomServer/main.py", line 77, in main
+[2025-02-08 20:04:33][MAIN] - time.sleep(0.5)
+[2025-02-08 20:04:33][MAIN] - KeyboardInterrupt
+[2025-02-08 20:04:33][MAIN] - Cannot open port /dev/ttyUSB0
+[2025-02-08 20:04:33][MAIN] - Exception ignored in: 
+[2025-02-08 20:04:33][MAIN] - <module 'threading' from '/usr/lib/python3.10/threading.py'>
+[2025-02-08 20:04:33][MAIN] - Traceback (most recent call last):
+[2025-02-08 20:04:33][MAIN] -   File "/usr/lib/python3.10/threading.py", line 1567, in _shutdown
+[2025-02-08 20:04:33][MAIN] - lock.acquire()
+[2025-02-08 20:04:33][MAIN] - KeyboardInterrupt
+[2025-02-08 20:04:33][MAIN] - : 

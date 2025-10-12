@@ -1,0 +1,36 @@
+[2025-02-08 18:44:59][MAIN] - Contacting Arduino..
+[2025-02-08 18:44:59][MAIN] - Arduino found!
+[2025-02-08 18:44:59][MAIN] - Actuator running.
+[2025-02-08 18:44:59][MAIN] - Pulling from GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-02-08 18:45:00][MAIN] - Already up to date.
+[2025-02-08 18:45:00][MAIN] - To Arduino: LIGHTSON
+[2025-02-08 18:45:04][MAIN] - IP 84.150.103.227 uploaded to:
+[2025-02-08 18:45:04][MAIN] - https://storage.googleapis.com/ip-manager42.appspot.com/RaspberryPi-Cyan/ip_server.txt
+[2025-02-08 18:45:04][FLASK] -  * Serving Flask app 'server'
+[2025-02-08 18:45:04][FLASK] -  * Debug mode: off
+[2025-02-08 18:45:04][WEBSOCKET] -  * Serving Flask app 'websocket'
+[2025-02-08 18:45:04][WEBSOCKET] -  * Debug mode: off
+[2025-02-08 18:45:13][MAIN] - Serving 807946519: msg 3402
+[2025-02-08 18:45:14][MAIN] - Serving 807946519: msg 3404
+[2025-02-08 18:45:14][MAIN] - Serving 807946519: msg 3404
+[2025-02-08 18:45:16][MAIN] - Serving 807946519: msg 3406
+[2025-02-08 18:45:16][MAIN] - Serving 807946519: msg 3406
+[2025-02-08 18:47:59][MAIN] - Audio set off automatically
+[2025-02-08 18:47:59][MAIN] - To Arduino: AUDIOON/OFF
+[2025-02-08 18:48:00][MAIN] - To Arduino: AUDIOON/OFF
+[2025-02-08 18:48:03][MAIN] - To Arduino: AUDIOON/OFF
+[2025-02-08 18:48:04][MAIN] - To Arduino: STRIPTOPOFF
+[2025-02-08 18:48:04][MAIN] - Command AUDIOOFF sent
+[2025-02-08 18:49:16][MAIN] - Traceback (most recent call last):
+[2025-02-08 18:49:16][MAIN] -   File "/home/claudio/Python-Projects/RoomServer/main.py", line 89, in <module>
+[2025-02-08 18:49:16][MAIN] - main()
+[2025-02-08 18:49:16][MAIN] -   File "/home/claudio/Python-Projects/RoomServer/main.py", line 77, in main
+[2025-02-08 18:49:16][MAIN] - time.sleep(0.5)
+[2025-02-08 18:49:16][MAIN] - KeyboardInterrupt
+[2025-02-08 18:49:17][MAIN] - Exception ignored in: 
+[2025-02-08 18:49:17][MAIN] - <module 'threading' from '/usr/lib/python3.10/threading.py'>
+[2025-02-08 18:49:17][MAIN] - Traceback (most recent call last):
+[2025-02-08 18:49:17][MAIN] -   File "/usr/lib/python3.10/threading.py", line 1567, in _shutdown
+[2025-02-08 18:49:17][MAIN] - lock.acquire()
+[2025-02-08 18:49:17][MAIN] - KeyboardInterrupt
+[2025-02-08 18:49:17][MAIN] - : 

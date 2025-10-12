@@ -1,0 +1,186 @@
+[2025-10-06 11:14:47][MAIN] - Bot is ready.
+[2025-10-06 11:14:47][MAIN] - Pulling from GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-10-06 11:14:48][MAIN] - Contacting Arduino..
+[2025-10-06 11:14:48][MAIN] - Already up to date.
+[2025-10-06 11:14:48][MAIN] - ANNOUNCEMENTS
+[2025-10-06 11:14:48][MAIN] - 2025-10-06 11:14:48.478284
+[2025-10-06 11:14:48][MAIN] - Arduino found!
+[2025-10-06 11:14:48][MAIN] - Actuator running.
+[2025-10-06 11:14:48][MAIN] - To Arduino: LIGHTSON
+[2025-10-06 11:14:49][MAIN] - Pulling from GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-10-06 11:14:51][MAIN] - Already up to date.
+[2025-10-06 11:14:51][MAIN] - History updated
+[2025-10-06 11:14:51][MAIN] -           Week     Claudio         Jay         Lea        Mara    Natchaya
+[2025-10-06 11:14:51][MAIN] - [38;5;208m0   2025-10-06   Bathrooms     Kitchen    Vacation    Vacation  Management[0m
+[2025-10-06 11:14:51][MAIN] - [91m1   2025-10-13     Kitchen    Vacation   Bathrooms  Management    Vacation[0m
+[2025-10-06 11:14:51][MAIN] - [91m2   2025-10-20    Vacation   Bathrooms  Management    Vacation     Kitchen[0m
+[2025-10-06 11:14:51][MAIN] - [91m3   2025-10-27  Management    Vacation    Vacation     Kitchen   Bathrooms[0m
+[2025-10-06 11:14:51][MAIN] - [91m4   2025-11-03    Vacation  Management     Kitchen   Bathrooms    Vacation[0m
+[2025-10-06 11:14:51][MAIN] - [91m5   2025-11-10   Bathrooms     Kitchen    Vacation    Vacation  Management[0m
+[2025-10-06 11:14:51][MAIN] - [91m6   2025-11-17     Kitchen    Vacation   Bathrooms  Management    Vacation[0m
+[2025-10-06 11:14:51][MAIN] - [91m7   2025-11-24    Vacation   Bathrooms  Management    Vacation     Kitchen[0m
+[2025-10-06 11:14:51][MAIN] - [91m8   2025-12-01  Management    Vacation    Vacation     Kitchen   Bathrooms[0m
+[2025-10-06 11:14:51][MAIN] - [91m9   2025-12-08    Vacation  Management     Kitchen   Bathrooms    Vacation[0m
+[2025-10-06 11:14:51][MAIN] - [91m10  2025-12-15   Bathrooms     Kitchen    Vacation    Vacation  Management[0m
+[2025-10-06 11:14:51][MAIN] - Saving at /home/claudio/Python-Projects/RoomServer/wg/data/cleaning_plan_leo6.xlsx
+[2025-10-06 11:14:51][MAIN] - Jay
+[2025-10-06 11:14:51][MAIN] - 1
+[2025-10-06 11:14:51][MAIN] - 3
+[2025-10-06 11:14:51][MAIN] - Claudio
+[2025-10-06 11:14:51][MAIN] - 1
+[2025-10-06 11:14:51][MAIN] - 2
+[2025-10-06 11:14:51][MAIN] - Natchaya
+[2025-10-06 11:14:51][MAIN] - 1
+[2025-10-06 11:14:51][MAIN] - 2
+[2025-10-06 11:14:51][MAIN] - Lea
+[2025-10-06 11:14:51][MAIN] - 0
+[2025-10-06 11:14:51][MAIN] - 1
+[2025-10-06 11:14:51][MAIN] - Mara
+[2025-10-06 11:14:51][MAIN] - 0
+[2025-10-06 11:14:51][MAIN] - 1
+[2025-10-06 11:14:52][MAIN] - Msg sent to LEO6:
+[2025-10-06 11:14:52][MAIN] - This week (06-10-25):
+
+[2025-10-06 11:14:52][MAIN] - ❗⚠ Manager: Natchaya ⚠❗
+
+[2025-10-06 11:14:52][MAIN] - Claudio: Bathrooms 🛁🚽🧻🚾
+
+[2025-10-06 11:14:52][MAIN] - Jay: Kitchen 🪑🚰🧴🔪
+
+[2025-10-06 11:14:52][MAIN] - For the others, 💸🧺🍾 !
+
+[2025-10-06 11:14:52][MAIN] - Note: If you want to swap your task with someone else's task, use the SWAP command.
+
+[2025-10-06 11:14:52][MAIN] - Before blaming someone, please warn them first ⚠️ and then wait until Tuesday evening so that the person has time to recover their delayed duty.
+
+[2025-10-06 11:14:52][MAIN] - If a person receives at least 2 blames, they will need to recover the task in the future ☠️.
+
+[2025-10-06 11:14:52][MAIN] - Whenever you have a WG expense 💰, use EXPENSE and specify price/reason for it.
+[2025-10-06 11:14:52][MAIN] - Pushing to GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-10-06 11:14:53][MAIN] - IP 84.150.106.217 uploaded to:
+[2025-10-06 11:14:53][MAIN] - https://storage.googleapis.com/ip-manager42.appspot.com/RaspberryPi-Cyan/ip_server.txt
+[2025-10-06 11:14:53][FLASK] -  * Serving Flask app 'server'
+[2025-10-06 11:14:53][FLASK] -  * Debug mode: off
+[2025-10-06 11:14:53][WEBSOCKET] -  * Serving Flask app 'websocket_server'
+[2025-10-06 11:14:53][WEBSOCKET] -  * Debug mode: off
+[2025-10-06 11:14:53][MAIN] - [master e382b61] auto_update
+
+[2025-10-06 11:14:53][MAIN] -  5 files changed, 6 insertions(+)
+
+[2025-10-06 11:14:53][MAIN] -  create mode 100644 RoomServer/wg/data/all_wg_logs/announcements.txt
+
+[2025-10-06 11:14:53][MAIN] -  create mode 100644 RoomServer/wg/data/all_wg_logs/blame_log.json
+
+[2025-10-06 11:14:53][MAIN] -  create mode 100644 RoomServer/wg/data/all_wg_logs/last_idx_reads.json
+
+[2025-10-06 11:14:53][MAIN] -  create mode 100644 RoomServer/wg/data/all_wg_logs/warn_log.json
+
+[2025-10-06 11:14:53][MAIN] -  create mode 100644 RoomServer/wg/data/history.csv
+[2025-10-06 11:14:53][MAIN] - To github.com:shapelessguy/Python-Projects.git
+
+[2025-10-06 11:14:53][MAIN] -    8a85105..e382b61  master -> master
+[2025-10-06 11:14:53][MAIN] - Msg sent:
+[2025-10-06 11:14:53][MAIN] - Hello Jay, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-10-06 11:14:53][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-10-06 11:14:53][MAIN] - This week (06/10 - 13/10):  <b>Kitchen</b> 🪑🚰🧴🔪
+
+[2025-10-06 11:14:53][MAIN] - Next week (13/10 - 20/10):  <b>Vacation</b> 💸🧺🍾
+
+[2025-10-06 11:14:53][MAIN] - Week 20/10 - 27/10:  <b>Bathrooms</b> 🛁🚽🧻🚾
+
+[2025-10-06 11:14:53][MAIN] - Week 27/10 - 03/11:  <b>Vacation</b> 💸🧺🍾
+
+[2025-10-06 11:14:53][MAIN] - 👍 Congratulations, you have no complaints for the week 22/09 - 29/09!
+[2025-10-06 11:14:53][MAIN] - Msg sent:
+[2025-10-06 11:14:53][MAIN] - Hello Claudio, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-10-06 11:14:53][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-10-06 11:14:53][MAIN] - This week (06/10 - 13/10):  <b>Bathrooms</b> 🛁🚽🧻🚾
+
+[2025-10-06 11:14:53][MAIN] - Next week (13/10 - 20/10):  <b>Kitchen</b> 🪑🚰🧴🔪
+
+[2025-10-06 11:14:53][MAIN] - Week 20/10 - 27/10:  <b>Vacation</b> 💸🧺🍾
+
+[2025-10-06 11:14:53][MAIN] - Week 27/10 - 03/11:  <b>Management</b> 💸🧺🍾
+
+[2025-10-06 11:14:53][MAIN] - 👍 Congratulations, you have no complaints for the week 22/09 - 29/09!
+[2025-10-06 11:14:54][MAIN] - Msg sent:
+[2025-10-06 11:14:54][MAIN] - Hello Natchaya, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-10-06 11:14:54][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-10-06 11:14:54][MAIN] - This week (06/10 - 13/10):  <b>Management</b> 💸🧺🍾
+
+[2025-10-06 11:14:54][MAIN] - Next week (13/10 - 20/10):  <b>Vacation</b> 💸🧺🍾
+
+[2025-10-06 11:14:54][MAIN] - Week 20/10 - 27/10:  <b>Kitchen</b> 🪑🚰🧴🔪
+
+[2025-10-06 11:14:54][MAIN] - Week 27/10 - 03/11:  <b>Bathrooms</b> 🛁🚽🧻🚾
+
+[2025-10-06 11:14:54][MAIN] - 👍 Congratulations, you have no complaints for the week 22/09 - 29/09!
+[2025-10-06 11:14:54][MAIN] - Msg sent:
+[2025-10-06 11:14:54][MAIN] - Hello Lea, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-10-06 11:14:54][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-10-06 11:14:54][MAIN] - This week (06/10 - 13/10):  <b>Vacation</b> 💸🧺🍾
+
+[2025-10-06 11:14:54][MAIN] - Next week (13/10 - 20/10):  <b>Bathrooms</b> 🛁🚽🧻🚾
+
+[2025-10-06 11:14:54][MAIN] - Week 20/10 - 27/10:  <b>Management</b> 💸🧺🍾
+
+[2025-10-06 11:14:54][MAIN] - Week 27/10 - 03/11:  <b>Vacation</b> 💸🧺🍾
+
+[2025-10-06 11:14:54][MAIN] - 👍 Congratulations, you have no complaints for the week 22/09 - 29/09!
+[2025-10-06 11:14:54][MAIN] - Msg sent:
+[2025-10-06 11:14:54][MAIN] - Hello Mara, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-10-06 11:14:54][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-10-06 11:14:54][MAIN] - This week (06/10 - 13/10):  <b>Vacation</b> 💸🧺🍾
+
+[2025-10-06 11:14:54][MAIN] - Next week (13/10 - 20/10):  <b>Management</b> 💸🧺🍾
+
+[2025-10-06 11:14:54][MAIN] - Week 20/10 - 27/10:  <b>Vacation</b> 💸🧺🍾
+
+[2025-10-06 11:14:54][MAIN] - Week 27/10 - 03/11:  <b>Kitchen</b> 🪑🚰🧴🔪
+
+[2025-10-06 11:14:54][MAIN] - 👍 Congratulations, you have no complaints for the week 22/09 - 29/09!
+[2025-10-06 12:15:01][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-06 13:15:26][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-06 14:15:42][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-10-06 15:09:31][MAIN] - Serving 133279076: msg 5425
+[2025-10-06 15:09:31][MAIN] - Serving 133279076: msg 5426
+[2025-10-06 15:09:33][MAIN] - Serving 133279076: msg 5429
+[2025-10-06 15:09:33][MAIN] - Serving 133279076: msg 5429
+[2025-10-06 15:09:39][MAIN] - Serving 133279076: msg 5432
+[2025-10-06 15:09:39][MAIN] - Serving 133279076: msg 5432
+[2025-10-06 15:09:39][MAIN] - Serving 133279076: msg 5432
+[2025-10-06 15:09:39][MAIN] - Serving 133279076: msg 5432
+[2025-10-06 15:09:39][MAIN] - reasoning..
+[2025-10-06 15:09:39][MAIN] - Traceback (most recent call last):
+
+[2025-10-06 15:09:39][MAIN] -   File "/home/claudio/Python-Projects/RoomServer/bot_ai/reasoner.py", line 63, in analyze_message
+
+[2025-10-06 15:09:39][MAIN] -     The cleaning activities in our WG are the following: {', '.join(md['activities'])}. People in our WG are: {', '.join(md['wg_members'].values())}.
+
+[2025-10-06 15:09:39][MAIN] - KeyError: 'wg_members'
+[2025-10-06 15:09:45][MAIN] - Serving 133279076: msg 5437
+[2025-10-06 15:09:45][MAIN] - Serving 133279076: msg 5437
+[2025-10-06 15:09:49][MAIN] - Serving 133279076: msg 5440
+[2025-10-06 15:09:49][MAIN] - Serving 133279076: msg 5440
+[2025-10-06 15:09:49][MAIN] - Serving 133279076: msg 5440
+[2025-10-06 15:09:49][MAIN] - Serving 133279076: msg 5440
+[2025-10-06 15:09:49][MAIN] - Serving 133279076: msg 5440
+[2025-10-06 15:09:49][MAIN] - Serving 133279076: msg 5440
+[2025-10-06 15:10:03][MAIN] - Serving 133279076: msg 5443
+[2025-10-06 15:10:03][MAIN] - Serving 133279076: msg 5443
+[2025-10-06 15:10:04][MAIN] - Serving 133279076: msg 5443
+[2025-10-06 15:10:04][MAIN] - Serving 133279076: msg 5443
+[2025-10-06 15:10:05][MAIN] - Serving 133279076: msg 5446
+[2025-10-06 15:10:05][MAIN] - Serving 133279076: msg 5446
+[2025-10-06 15:10:05][MAIN] - Serving 133279076: msg 5446
+[2025-10-06 15:10:05][MAIN] - Serving 133279076: msg 5446

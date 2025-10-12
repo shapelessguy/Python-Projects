@@ -1,0 +1,47 @@
+[2025-02-08 18:41:59][MAIN] - Contacting Arduino..
+[2025-02-08 18:41:59][MAIN] - Arduino found!
+[2025-02-08 18:41:59][MAIN] - Actuator running.
+[2025-02-08 18:41:59][MAIN] - To Arduino: AUDIOON/OFF
+[2025-02-08 18:42:00][MAIN] - To Arduino: AUDIOON/OFF
+[2025-02-08 18:42:03][MAIN] - To Arduino: AUDIOON/OFF
+[2025-02-08 18:42:04][MAIN] - To Arduino: STRIPTOPOFF
+[2025-02-08 18:42:04][MAIN] - Pulling from GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-02-08 18:42:04][MAIN] - IP 84.150.103.227 uploaded to:
+[2025-02-08 18:42:04][MAIN] - https://storage.googleapis.com/ip-manager42.appspot.com/RaspberryPi-Cyan/ip_server.txt
+[2025-02-08 18:42:04][FLASK] -  * Serving Flask app 'server'
+[2025-02-08 18:42:04][FLASK] -  * Debug mode: off
+[2025-02-08 18:42:04][WEBSOCKET] - Process Process-3:
+[2025-02-08 18:42:04][WEBSOCKET] - Traceback (most recent call last):
+[2025-02-08 18:42:04][WEBSOCKET] -   File "/usr/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+
+[2025-02-08 18:42:04][WEBSOCKET] -     self.run()
+[2025-02-08 18:42:04][WEBSOCKET] -   File "/usr/lib/python3.10/multiprocessing/process.py", line 108, in run
+
+[2025-02-08 18:42:04][WEBSOCKET] -     self._target(*self._args, **self._kwargs)
+[2025-02-08 18:42:04][WEBSOCKET] -   File "/home/claudio/Python-Projects/RoomServer/websocket.py", line 70, in start_websocket
+
+[2025-02-08 18:42:04][WEBSOCKET] -     socketio.run(app, host='0.0.0.0', port=HOSTNAME['websocket_port'])
+[2025-02-08 18:42:04][WEBSOCKET] -   File "/home/claudio/Python-Projects/RoomServer/.venv/lib/python3.10/site-packages/flask_socketio/__init__.py", line 651, in run
+
+[2025-02-08 18:42:04][WEBSOCKET] -     raise RuntimeError('The Werkzeug web server is not '
+[2025-02-08 18:42:04][WEBSOCKET] - RuntimeError: The Werkzeug web server is not designed to run in production. Pass allow_unsafe_werkzeug=True to the run() method to disable this error.
+[2025-02-08 18:42:05][MAIN] - Already up to date.
+[2025-02-08 18:42:05][MAIN] - Audio set on automatically
+[2025-02-08 18:42:05][MAIN] - To Arduino: AUDIOON/OFF
+[2025-02-08 18:42:06][MAIN] - To Arduino: AUDIOON/OFF
+[2025-02-08 18:42:06][MAIN] - To Arduino: STRIPTOPG4
+[2025-02-08 18:42:06][MAIN] - Command AUDIOON sent
+[2025-02-08 18:42:06][MAIN] - To Arduino: LIGHTSON
+[2025-02-08 18:43:14][MAIN] - Traceback (most recent call last):
+[2025-02-08 18:43:14][MAIN] -   File "/home/claudio/Python-Projects/RoomServer/main.py", line 89, in <module>
+[2025-02-08 18:43:14][MAIN] - main()
+[2025-02-08 18:43:14][MAIN] -   File "/home/claudio/Python-Projects/RoomServer/main.py", line 77, in main
+[2025-02-08 18:43:14][MAIN] - time.sleep(0.5)
+[2025-02-08 18:43:14][MAIN] - KeyboardInterrupt
+[2025-02-08 18:43:14][MAIN] - Exception ignored in: 
+[2025-02-08 18:43:14][MAIN] - <module 'threading' from '/usr/lib/python3.10/threading.py'>
+[2025-02-08 18:43:14][MAIN] - Traceback (most recent call last):
+[2025-02-08 18:43:14][MAIN] -   File "/usr/lib/python3.10/threading.py", line 1567, in _shutdown
+[2025-02-08 18:43:14][MAIN] - lock.acquire()
+[2025-02-08 18:43:14][MAIN] - KeyboardInterrupt
+[2025-02-08 18:43:14][MAIN] - : 

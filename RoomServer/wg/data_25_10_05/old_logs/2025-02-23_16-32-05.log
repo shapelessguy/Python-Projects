@@ -1,0 +1,109 @@
+[2025-02-23 16:32:05][MAIN] - Bot is ready.
+[2025-02-23 16:32:06][MAIN] - Contacting Arduino..
+[2025-02-23 16:32:07][MAIN] - Arduino found!
+[2025-02-23 16:32:07][MAIN] - Actuator running.
+[2025-02-23 16:32:07][MAIN] - Pulling from GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-02-23 16:32:08][MAIN] - Already up to date.
+[2025-02-23 16:32:08][MAIN] - To Arduino: LIGHTSON
+[2025-02-23 16:32:11][MAIN] - IP 84.150.103.227 uploaded to:
+[2025-02-23 16:32:11][MAIN] - https://storage.googleapis.com/ip-manager42.appspot.com/RaspberryPi-Cyan/ip_server.txt
+[2025-02-23 16:32:12][FLASK] -  * Serving Flask app 'server'
+[2025-02-23 16:32:12][FLASK] -  * Debug mode: off
+[2025-02-23 16:32:12][WEBSOCKET] -  * Serving Flask app 'websocket'
+[2025-02-23 16:32:12][WEBSOCKET] -  * Debug mode: off
+[2025-02-23 16:32:20][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:32:30][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:32:40][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:32:50][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:33:00][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:33:10][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:33:20][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:33:30][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:33:40][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:33:50][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:34:00][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:34:11][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:34:21][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:34:31][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:34:41][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:34:51][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:35:01][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:35:11][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:35:21][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:35:31][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:35:41][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:35:51][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:36:01][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:36:11][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:36:21][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:36:31][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:36:41][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:36:51][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:37:01][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:37:11][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:37:21][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:37:31][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:37:41][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:37:51][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:38:01][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:38:11][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:38:22][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:38:32][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:38:42][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:38:52][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:39:02][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:39:12][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:39:22][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:39:32][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:39:42][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:39:52][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:40:02][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:40:12][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:40:22][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:40:32][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:40:42][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:40:52][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:41:02][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:41:12][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:41:22][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:41:32][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:41:42][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:41:52][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:42:02][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:42:12][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:42:22][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:42:32][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:42:42][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:42:53][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:43:03][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:43:13][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:43:23][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:43:33][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:43:43][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:43:53][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:44:03][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:44:13][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:44:23][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:44:33][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:44:43][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:44:53][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:45:03][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:45:13][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:45:23][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:45:33][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:45:43][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:45:53][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:46:03][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:46:06][MAIN] - Serving 807946519: msg 4275
+[2025-02-23 16:46:08][MAIN] - Serving 807946519: msg 4277
+[2025-02-23 16:46:13][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:46:23][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:46:33][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:46:43][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:46:54][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:47:04][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:47:14][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:47:24][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-23 16:47:30][MAIN] - Serving 807946519: msg 4279
+[2025-02-23 16:47:31][MAIN] - Serving 807946519: msg 4281
+[2025-02-23 16:47:34][FLASK] - AUDIO: {'audio': 'pingvol'}

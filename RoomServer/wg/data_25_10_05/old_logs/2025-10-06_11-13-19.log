@@ -1,0 +1,155 @@
+[2025-10-06 11:13:19][MAIN] - Bot is ready.
+[2025-10-06 11:13:19][MAIN] - Pulling from GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-10-06 11:13:20][MAIN] - Contacting Arduino..
+[2025-10-06 11:13:21][MAIN] - Arduino found!
+[2025-10-06 11:13:21][MAIN] - Actuator running.
+[2025-10-06 11:13:21][MAIN] - To Arduino: LIGHTSON
+[2025-10-06 11:13:21][MAIN] - Already up to date.
+[2025-10-06 11:13:21][MAIN] - ANNOUNCEMENTS
+[2025-10-06 11:13:21][MAIN] - 2025-10-06 11:13:21.340002
+[2025-10-06 11:13:22][MAIN] - Pulling from GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-10-06 11:13:24][MAIN] - Already up to date.
+[2025-10-06 11:13:24][MAIN] - History updated
+[2025-10-06 11:13:25][MAIN] -           Week     Claudio         Jay         Lea        Mara    Natchaya
+[2025-10-06 11:13:25][MAIN] - [38;5;208m0   2025-10-06   Bathrooms     Kitchen    Vacation    Vacation  Management[0m
+[2025-10-06 11:13:25][MAIN] - [91m1   2025-10-13     Kitchen    Vacation   Bathrooms  Management    Vacation[0m
+[2025-10-06 11:13:25][MAIN] - [91m2   2025-10-20    Vacation   Bathrooms  Management    Vacation     Kitchen[0m
+[2025-10-06 11:13:25][MAIN] - [91m3   2025-10-27  Management    Vacation    Vacation     Kitchen   Bathrooms[0m
+[2025-10-06 11:13:25][MAIN] - [91m4   2025-11-03    Vacation  Management     Kitchen   Bathrooms    Vacation[0m
+[2025-10-06 11:13:25][MAIN] - [91m5   2025-11-10   Bathrooms     Kitchen    Vacation    Vacation  Management[0m
+[2025-10-06 11:13:25][MAIN] - [91m6   2025-11-17     Kitchen    Vacation   Bathrooms  Management    Vacation[0m
+[2025-10-06 11:13:25][MAIN] - [91m7   2025-11-24    Vacation   Bathrooms  Management    Vacation     Kitchen[0m
+[2025-10-06 11:13:25][MAIN] - [91m8   2025-12-01  Management    Vacation    Vacation     Kitchen   Bathrooms[0m
+[2025-10-06 11:13:25][MAIN] - [91m9   2025-12-08    Vacation  Management     Kitchen   Bathrooms    Vacation[0m
+[2025-10-06 11:13:25][MAIN] - [91m10  2025-12-15   Bathrooms     Kitchen    Vacation    Vacation  Management[0m
+[2025-10-06 11:13:25][MAIN] - Saving at /home/claudio/Python-Projects/RoomServer/wg/data/cleaning_plan_leo6.xlsx
+[2025-10-06 11:13:25][MAIN] - Jay
+[2025-10-06 11:13:25][MAIN] - 1
+[2025-10-06 11:13:25][MAIN] - 3
+[2025-10-06 11:13:25][MAIN] - Claudio
+[2025-10-06 11:13:25][MAIN] - 1
+[2025-10-06 11:13:25][MAIN] - 2
+[2025-10-06 11:13:25][MAIN] - Natchaya
+[2025-10-06 11:13:25][MAIN] - 1
+[2025-10-06 11:13:25][MAIN] - 2
+[2025-10-06 11:13:25][MAIN] - Lea
+[2025-10-06 11:13:25][MAIN] - 0
+[2025-10-06 11:13:25][MAIN] - 1
+[2025-10-06 11:13:25][MAIN] - Mara
+[2025-10-06 11:13:25][MAIN] - 0
+[2025-10-06 11:13:25][MAIN] - 1
+[2025-10-06 11:13:25][MAIN] - Msg sent to LEO6:
+[2025-10-06 11:13:25][MAIN] - This week (06-10-25):
+
+[2025-10-06 11:13:25][MAIN] - ❗⚠ Manager: Natchaya ⚠❗
+
+[2025-10-06 11:13:25][MAIN] - Claudio: Bathrooms 🛁🚽🧻🚾
+
+[2025-10-06 11:13:25][MAIN] - Jay: Kitchen 🪑🚰🧴🔪
+
+[2025-10-06 11:13:25][MAIN] - For the others, 💸🧺🍾 !
+
+[2025-10-06 11:13:25][MAIN] - Note: If you want to swap your task with someone else's task, use the SWAP command.
+
+[2025-10-06 11:13:25][MAIN] - Before blaming someone, please warn them first ⚠️ and then wait until Tuesday evening so that the person has time to recover their delayed duty.
+
+[2025-10-06 11:13:25][MAIN] - If a person receives at least 2 blames, they will need to recover the task in the future ☠️.
+
+[2025-10-06 11:13:25][MAIN] - Whenever you have a WG expense 💰, use EXPENSE and specify price/reason for it.
+[2025-10-06 11:13:25][MAIN] - Pushing to GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-10-06 11:13:26][MAIN] - IP 84.150.106.217 uploaded to:
+[2025-10-06 11:13:26][MAIN] - https://storage.googleapis.com/ip-manager42.appspot.com/RaspberryPi-Cyan/ip_server.txt
+[2025-10-06 11:13:26][FLASK] -  * Serving Flask app 'server'
+[2025-10-06 11:13:26][FLASK] -  * Debug mode: off
+[2025-10-06 11:13:26][WEBSOCKET] -  * Serving Flask app 'websocket_server'
+[2025-10-06 11:13:26][WEBSOCKET] -  * Debug mode: off
+[2025-10-06 11:13:27][MAIN] - [master 949fd5e] auto_update
+
+[2025-10-06 11:13:27][MAIN] -  7 files changed, 7 insertions(+)
+
+[2025-10-06 11:13:27][MAIN] -  create mode 100644 RoomServer/all_wg_logs/expenses.xlsx
+
+[2025-10-06 11:13:27][MAIN] -  create mode 100644 RoomServer/all_wg_logs/last_idx_reads.json
+
+[2025-10-06 11:13:27][MAIN] -  create mode 100644 RoomServer/wg/data/all_wg_logs/announcements.txt
+
+[2025-10-06 11:13:27][MAIN] -  create mode 100644 RoomServer/wg/data/all_wg_logs/blame_log.json
+
+[2025-10-06 11:13:27][MAIN] -  create mode 100644 RoomServer/wg/data/all_wg_logs/last_idx_reads.json
+
+[2025-10-06 11:13:27][MAIN] -  create mode 100644 RoomServer/wg/data/all_wg_logs/warn_log.json
+
+[2025-10-06 11:13:27][MAIN] -  create mode 100644 RoomServer/wg/data/history.csv
+[2025-10-06 11:13:27][MAIN] - To github.com:shapelessguy/Python-Projects.git
+
+[2025-10-06 11:13:27][MAIN] -    15c49e1..949fd5e  master -> master
+[2025-10-06 11:13:27][MAIN] - Msg sent:
+[2025-10-06 11:13:27][MAIN] - Hello Jay, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-10-06 11:13:27][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-10-06 11:13:27][MAIN] - This week (06/10 - 13/10):  <b>Kitchen</b> 🪑🚰🧴🔪
+
+[2025-10-06 11:13:27][MAIN] - Next week (13/10 - 20/10):  <b>Vacation</b> 💸🧺🍾
+
+[2025-10-06 11:13:27][MAIN] - Week 20/10 - 27/10:  <b>Bathrooms</b> 🛁🚽🧻🚾
+
+[2025-10-06 11:13:27][MAIN] - Week 27/10 - 03/11:  <b>Vacation</b> 💸🧺🍾
+
+[2025-10-06 11:13:27][MAIN] - 👍 Congratulations, you have no complaints for the week 22/09 - 29/09!
+[2025-10-06 11:13:27][MAIN] - Msg sent:
+[2025-10-06 11:13:27][MAIN] - Hello Claudio, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-10-06 11:13:27][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-10-06 11:13:27][MAIN] - This week (06/10 - 13/10):  <b>Bathrooms</b> 🛁🚽🧻🚾
+
+[2025-10-06 11:13:27][MAIN] - Next week (13/10 - 20/10):  <b>Kitchen</b> 🪑🚰🧴🔪
+
+[2025-10-06 11:13:27][MAIN] - Week 20/10 - 27/10:  <b>Vacation</b> 💸🧺🍾
+
+[2025-10-06 11:13:27][MAIN] - Week 27/10 - 03/11:  <b>Management</b> 💸🧺🍾
+
+[2025-10-06 11:13:27][MAIN] - 👍 Congratulations, you have no complaints for the week 22/09 - 29/09!
+[2025-10-06 11:13:27][MAIN] - Msg sent:
+[2025-10-06 11:13:27][MAIN] - Hello Natchaya, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-10-06 11:13:27][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-10-06 11:13:27][MAIN] - This week (06/10 - 13/10):  <b>Management</b> 💸🧺🍾
+
+[2025-10-06 11:13:27][MAIN] - Next week (13/10 - 20/10):  <b>Vacation</b> 💸🧺🍾
+
+[2025-10-06 11:13:27][MAIN] - Week 20/10 - 27/10:  <b>Kitchen</b> 🪑🚰🧴🔪
+
+[2025-10-06 11:13:27][MAIN] - Week 27/10 - 03/11:  <b>Bathrooms</b> 🛁🚽🧻🚾
+
+[2025-10-06 11:13:27][MAIN] - 👍 Congratulations, you have no complaints for the week 22/09 - 29/09!
+[2025-10-06 11:13:27][MAIN] - Msg sent:
+[2025-10-06 11:13:27][MAIN] - Hello Lea, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-10-06 11:13:27][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-10-06 11:13:27][MAIN] - This week (06/10 - 13/10):  <b>Vacation</b> 💸🧺🍾
+
+[2025-10-06 11:13:27][MAIN] - Next week (13/10 - 20/10):  <b>Bathrooms</b> 🛁🚽🧻🚾
+
+[2025-10-06 11:13:27][MAIN] - Week 20/10 - 27/10:  <b>Management</b> 💸🧺🍾
+
+[2025-10-06 11:13:27][MAIN] - Week 27/10 - 03/11:  <b>Vacation</b> 💸🧺🍾
+
+[2025-10-06 11:13:27][MAIN] - 👍 Congratulations, you have no complaints for the week 22/09 - 29/09!
+[2025-10-06 11:13:27][MAIN] - Msg sent:
+[2025-10-06 11:13:27][MAIN] - Hello Mara, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-10-06 11:13:27][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-10-06 11:13:27][MAIN] - This week (06/10 - 13/10):  <b>Vacation</b> 💸🧺🍾
+
+[2025-10-06 11:13:27][MAIN] - Next week (13/10 - 20/10):  <b>Management</b> 💸🧺🍾
+
+[2025-10-06 11:13:27][MAIN] - Week 20/10 - 27/10:  <b>Vacation</b> 💸🧺🍾
+
+[2025-10-06 11:13:27][MAIN] - Week 27/10 - 03/11:  <b>Kitchen</b> 🪑🚰🧴🔪
+
+[2025-10-06 11:13:27][MAIN] - 👍 Congratulations, you have no complaints for the week 22/09 - 29/09!

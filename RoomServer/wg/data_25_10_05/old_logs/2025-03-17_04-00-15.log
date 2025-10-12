@@ -1,0 +1,219 @@
+[2025-03-17 04:00:15][MAIN] - Bot is ready.
+[2025-03-17 04:00:15][MAIN] - Pulling from GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-03-17 04:00:16][MAIN] - Contacting Arduino..
+[2025-03-17 04:00:16][MAIN] - Already up to date.
+[2025-03-17 04:00:20][MAIN] - IP 84.150.109.119 uploaded to:
+[2025-03-17 04:00:20][MAIN] - https://storage.googleapis.com/ip-manager42.appspot.com/RaspberryPi-Cyan/ip_server.txt
+[2025-03-17 04:00:21][FLASK] -  * Serving Flask app 'server'
+[2025-03-17 04:00:21][FLASK] -  * Debug mode: off
+[2025-03-17 04:00:21][FLASK] - Address already in use
+[2025-03-17 04:00:21][FLASK] - Port 10004 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-03-17 04:00:21][WEBSOCKET] -  * Serving Flask app 'websocket_server'
+[2025-03-17 04:00:21][WEBSOCKET] -  * Debug mode: off
+[2025-03-17 04:00:21][WEBSOCKET] - Address already in use
+[2025-03-17 04:00:21][WEBSOCKET] - Port 10003 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-03-17 08:00:00][MAIN] - ANNOUNCEMENTS
+[2025-03-17 08:00:00][MAIN] - 2025-03-17 08:00:00.523043
+[2025-03-17 08:00:02][MAIN] - Pulling from GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-03-17 08:00:03][MAIN] - Already up to date.
+[2025-03-17 08:00:06][MAIN] - History updated.
+[2025-03-17 08:00:06][MAIN] -           Week       Arman      Cesare     Claudio         Lea        Mara    Natchaya
+[2025-03-17 08:00:06][MAIN] - [96m41  2024-11-18    Vacation    Vacation       Floor   Bathrooms  Management     Kitchen[0m
+[2025-03-17 08:00:06][MAIN] - [96m42  2024-11-25   Bathrooms    Vacation     Kitchen    Vacation       Floor  Management[0m
+[2025-03-17 08:00:06][MAIN] - [96m43  2024-12-02    Vacation     Kitchen  Management       Floor    Vacation   Bathrooms[0m
+[2025-03-17 08:00:06][MAIN] - [96m44  2024-12-09     Kitchen  Management    Vacation    Vacation   Bathrooms       Floor[0m
+[2025-03-17 08:00:06][MAIN] - [96m45  2024-12-16     Anarchy     Anarchy     Anarchy     Anarchy     Anarchy     Anarchy[0m
+[2025-03-17 08:00:06][MAIN] - [96m46  2024-12-23     Anarchy     Anarchy     Anarchy     Anarchy     Anarchy     Anarchy[0m
+[2025-03-17 08:00:06][MAIN] - [96m47  2024-12-30       Floor   Bathrooms    Vacation    Vacation     Kitchen  Management[0m
+[2025-03-17 08:00:06][MAIN] - [96m48  2025-01-06    Vacation    Vacation   Bathrooms  Management       Floor     Kitchen[0m
+[2025-03-17 08:00:06][MAIN] - [96m49  2025-01-13  Management       Floor       Blame   Bathrooms    Vacation    Vacation[0m
+[2025-03-17 08:00:06][MAIN] - [96m50  2025-01-20    Vacation    Vacation       Floor     Kitchen  Management   Bathrooms[0m
+[2025-03-17 08:00:06][MAIN] - [96m51  2025-01-27   Bathrooms     Kitchen  Management       Floor    Vacation    Vacation[0m
+[2025-03-17 08:00:06][MAIN] - [96m52  2025-02-03       Floor    Vacation     Kitchen    Vacation   Bathrooms  Management[0m
+[2025-03-17 08:00:06][MAIN] - [96m53  2025-02-10    Vacation       Floor   Bathrooms  Management     Kitchen    Vacation[0m
+[2025-03-17 08:00:06][MAIN] - [96m54  2025-02-17     Kitchen  Management    Vacation   Bathrooms    Vacation       Floor[0m
+[2025-03-17 08:00:06][MAIN] - [96m55  2025-02-24   Bathrooms    Vacation  Management    Vacation       Floor     Kitchen[0m
+[2025-03-17 08:00:06][MAIN] - [96m56  2025-03-03    Vacation   Bathrooms       Floor     Kitchen  Management    Vacation[0m
+[2025-03-17 08:00:06][MAIN] - [38;5;208m57  2025-03-10  Management       Floor     Kitchen    Vacation    Vacation   Bathrooms[0m
+[2025-03-17 08:00:06][MAIN] - [91m58  2025-03-17     Kitchen    Vacation    Vacation       Floor   Bathrooms  Management[0m
+[2025-03-17 08:00:06][MAIN] - [91m59  2025-03-24    Vacation     Kitchen   Bathrooms  Management       Floor    Vacation[0m
+[2025-03-17 08:00:06][MAIN] - [91m60  2025-03-31       Floor   Bathrooms  Management    Vacation    Vacation     Kitchen[0m
+[2025-03-17 08:00:06][MAIN] - [91m61  2025-04-07  Management    Vacation    Vacation   Bathrooms     Kitchen       Floor[0m
+[2025-03-17 08:00:06][MAIN] - [91m62  2025-04-14    Vacation  Management       Floor     Kitchen   Bathrooms    Vacation[0m
+[2025-03-17 08:00:06][MAIN] - [91m63  2025-04-21   Bathrooms       Floor     Kitchen    Vacation    Vacation  Management[0m
+[2025-03-17 08:00:06][MAIN] - [91m64  2025-04-28     Kitchen    Vacation    Vacation       Floor  Management   Bathrooms[0m
+[2025-03-17 08:00:06][MAIN] - [91m65  2025-05-05    Vacation     Kitchen   Bathrooms  Management       Floor    Vacation[0m
+[2025-03-17 08:00:06][MAIN] - [91m66  2025-05-12       Floor   Bathrooms  Management    Vacation    Vacation     Kitchen[0m
+[2025-03-17 08:00:06][MAIN] - [91m67  2025-05-19  Management    Vacation    Vacation   Bathrooms     Kitchen       Floor[0m
+[2025-03-17 08:00:06][MAIN] - Saving at /home/claudio/Python-Projects/RoomServer/wg/data/cleaning_plan_leo6.xlsx
+[2025-03-17 08:00:07][MAIN] - Msg sent to LEO6:
+[2025-03-17 08:00:07][MAIN] - This week (17-03-25):
+
+[2025-03-17 08:00:07][MAIN] - ❗⚠ Manager: Natchaya ⚠❗
+
+[2025-03-17 08:00:07][MAIN] - Arman: Kitchen 🪑🚰🧴🔪
+
+[2025-03-17 08:00:07][MAIN] - Lea: Floor 🧹🪣🫧
+
+[2025-03-17 08:00:07][MAIN] - Mara: Bathrooms 🛁🚽🧻🚾
+
+[2025-03-17 08:00:07][MAIN] - For the others, 💸🧺🍾 !
+
+[2025-03-17 08:00:07][MAIN] - Note: If you want to swap your task with someone else's task, use the SWAP command.
+
+[2025-03-17 08:00:07][MAIN] - You can submit an anonymous complaint for one or more tasks of the previous week by sending a BLAME.
+
+[2025-03-17 08:00:07][MAIN] - Before blaming someone, please warn them first ⚠️ and then wait until Tuesday evening so that the person has time to recover their delayed duty.
+
+[2025-03-17 08:00:07][MAIN] - If a person receives at least 2 blames, they will need to recover the task in the future ☠️.
+
+[2025-03-17 08:00:07][MAIN] - You can also send a message of appreciation 🌟 by sending a PRAISE as well.
+
+[2025-03-17 08:00:07][MAIN] - If you need vacation for a week, you can send book it though BOOK VACATION.
+
+[2025-03-17 08:00:07][MAIN] - Whenever you have a WG expense 💰, use EXPENSE and specify price/reason for it.
+[2025-03-17 08:00:07][MAIN] - Pushing to GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-03-17 08:00:10][MAIN] - [master 11205cb] auto_update
+
+[2025-03-17 08:00:10][MAIN] -  2 files changed, 13 insertions(+)
+[2025-03-17 08:00:10][MAIN] - To github.com:shapelessguy/Python-Projects.git
+
+[2025-03-17 08:00:10][MAIN] -    dac081f..11205cb  master -> master
+[2025-03-17 08:00:10][MAIN] - Msg sent:
+[2025-03-17 08:00:10][MAIN] - Hello Arman, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-03-17 08:00:10][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-03-17 08:00:10][MAIN] - This week (17/03 - 24/03):  <b>Kitchen</b> 🪑🚰🧴🔪
+
+[2025-03-17 08:00:10][MAIN] - Next week (24/03 - 31/03):  <b>Vacation</b> 💸🧺🍾
+
+[2025-03-17 08:00:10][MAIN] - Week 31/03 - 07/04:  <b>Floor</b> 🧹🪣🫧
+
+[2025-03-17 08:00:10][MAIN] - Week 07/04 - 14/04:  <b>Management</b> 💸🧺🍾
+[2025-03-17 08:00:10][MAIN] - Msg sent:
+[2025-03-17 08:00:10][MAIN] - Hello Cesare, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-03-17 08:00:10][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-03-17 08:00:10][MAIN] - This week (17/03 - 24/03):  <b>Vacation</b> 💸🧺🍾
+
+[2025-03-17 08:00:10][MAIN] - Next week (24/03 - 31/03):  <b>Kitchen</b> 🪑🚰🧴🔪
+
+[2025-03-17 08:00:10][MAIN] - Week 31/03 - 07/04:  <b>Bathrooms</b> 🛁🚽🧻🚾
+
+[2025-03-17 08:00:10][MAIN] - Week 07/04 - 14/04:  <b>Vacation</b> 💸🧺🍾
+
+[2025-03-17 08:00:10][MAIN] - 👍 Congratulations, you have no complaints for the week 03/03 - 10/03!
+[2025-03-17 08:00:10][MAIN] - Msg sent:
+[2025-03-17 08:00:10][MAIN] - Hello Claudio, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-03-17 08:00:10][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-03-17 08:00:10][MAIN] - This week (17/03 - 24/03):  <b>Vacation</b> 💸🧺🍾
+
+[2025-03-17 08:00:10][MAIN] - Next week (24/03 - 31/03):  <b>Bathrooms</b> 🛁🚽🧻🚾
+
+[2025-03-17 08:00:10][MAIN] - Week 31/03 - 07/04:  <b>Management</b> 💸🧺🍾
+
+[2025-03-17 08:00:10][MAIN] - Week 07/04 - 14/04:  <b>Vacation</b> 💸🧺🍾
+
+[2025-03-17 08:00:10][MAIN] - 👍 Congratulations, you have no complaints for the week 03/03 - 10/03!
+[2025-03-17 08:00:10][MAIN] - Msg sent:
+[2025-03-17 08:00:10][MAIN] - Hello Natchaya, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-03-17 08:00:10][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-03-17 08:00:10][MAIN] - This week (17/03 - 24/03):  <b>Management</b> 💸🧺🍾
+
+[2025-03-17 08:00:10][MAIN] - Next week (24/03 - 31/03):  <b>Vacation</b> 💸🧺🍾
+
+[2025-03-17 08:00:10][MAIN] - Week 31/03 - 07/04:  <b>Kitchen</b> 🪑🚰🧴🔪
+
+[2025-03-17 08:00:10][MAIN] - Week 07/04 - 14/04:  <b>Floor</b> 🧹🪣🫧
+[2025-03-17 08:00:10][MAIN] - Msg sent:
+[2025-03-17 08:00:10][MAIN] - Hello Lea, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-03-17 08:00:10][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-03-17 08:00:10][MAIN] - This week (17/03 - 24/03):  <b>Floor</b> 🧹🪣🫧
+
+[2025-03-17 08:00:10][MAIN] - Next week (24/03 - 31/03):  <b>Management</b> 💸🧺🍾
+
+[2025-03-17 08:00:10][MAIN] - Week 31/03 - 07/04:  <b>Vacation</b> 💸🧺🍾
+
+[2025-03-17 08:00:10][MAIN] - Week 07/04 - 14/04:  <b>Bathrooms</b> 🛁🚽🧻🚾
+
+[2025-03-17 08:00:10][MAIN] - 👍 Congratulations, you have no complaints for the week 03/03 - 10/03!
+[2025-03-17 08:00:10][MAIN] - Msg sent:
+[2025-03-17 08:00:10][MAIN] - Hello Mara, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-03-17 08:00:10][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-03-17 08:00:10][MAIN] - This week (17/03 - 24/03):  <b>Bathrooms</b> 🛁🚽🧻🚾
+
+[2025-03-17 08:00:10][MAIN] - Next week (24/03 - 31/03):  <b>Floor</b> 🧹🪣🫧
+
+[2025-03-17 08:00:10][MAIN] - Week 31/03 - 07/04:  <b>Vacation</b> 💸🧺🍾
+
+[2025-03-17 08:00:10][MAIN] - Week 07/04 - 14/04:  <b>Kitchen</b> 🪑🚰🧴🔪
+
+[2025-03-17 08:00:10][MAIN] - 👍 Congratulations, you have no complaints for the week 03/03 - 10/03!
+[2025-03-17 10:58:41][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-17 10:58:41][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f42dc1ef7c0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-17 10:58:56][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-17 10:58:56][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f42dc1c9a80>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-17 10:59:11][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-17 10:59:11][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f42dc3823b0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-17 10:59:26][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-17 10:59:26][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f42dc383490>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-17 10:59:41][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-17 10:59:41][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f42dc1c9090>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-17 10:59:57][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-17 10:59:57][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f42dc1c8ca0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-17 11:00:12][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-17 11:00:12][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f42dc323c10>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-17 11:00:27][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-17 11:00:27][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f42dc1edb70>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-17 11:00:42][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-17 11:00:42][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f42dc1cb790>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-17 11:00:57][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-17 11:00:57][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f42dc1ec820>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-17 11:01:12][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-17 11:01:12][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f42dc1ee2f0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-17 11:01:27][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-17 11:01:27][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f42dc208fa0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-17 11:01:42][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-17 11:01:42][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f42dc1edc30>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-17 11:01:57][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-17 11:01:57][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f42dc1ed9c0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-17 11:02:12][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-17 11:02:12][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f42dc2097e0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-17 11:02:27][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-17 11:02:27][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f42dc1c8940>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-17 11:02:47][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-17 11:02:47][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f42dc20bf10>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-17 11:02:58][MAIN] - IP 84.155.74.137 uploaded to:
+[2025-03-17 11:02:58][MAIN] - https://storage.googleapis.com/ip-manager42.appspot.com/RaspberryPi-Cyan/ip_server.txt
+[2025-03-17 11:02:58][FLASK] -  * Serving Flask app 'server'
+[2025-03-17 11:02:58][FLASK] -  * Debug mode: off
+[2025-03-17 11:02:58][FLASK] - Address already in use
+[2025-03-17 11:02:58][FLASK] - Port 10004 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-03-17 11:02:58][WEBSOCKET] -  * Serving Flask app 'websocket_server'
+[2025-03-17 11:02:58][WEBSOCKET] -  * Debug mode: off
+[2025-03-17 11:02:58][WEBSOCKET] - Address already in use
+[2025-03-17 11:02:58][WEBSOCKET] - Port 10003 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-03-18 04:00:00][MAIN] - Firebase task terminated.
+[2025-03-18 04:00:00][MAIN] - Arduino found!
+[2025-03-18 04:00:00][MAIN] - Actuator running.
+[2025-03-18 04:00:00][MAIN] - To Arduino: AUDIOON/OFF
+[2025-03-18 04:00:00][MAIN] - Flask server killed
+[2025-03-18 04:00:00][MAIN] - Server control terminated.
+[2025-03-18 04:00:00][MAIN] - Websocket killed
+[2025-03-18 04:00:00][MAIN] - Websocket control terminated.
+[2025-03-18 04:00:01][MAIN] - To Arduino: AUDIOON/OFF
+[2025-03-18 04:00:04][MAIN] - To Arduino: AUDIOON/OFF
+[2025-03-18 04:00:04][MAIN] - To Arduino: STRIPTOPOFF
+[2025-03-18 04:00:04][MAIN] - Actuators killed.
+[2025-03-18 04:00:18][MAIN] - Bot killed.
+[2025-03-18 04:00:18][MAIN] - RESTART

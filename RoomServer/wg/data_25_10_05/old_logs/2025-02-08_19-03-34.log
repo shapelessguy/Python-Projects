@@ -1,0 +1,72 @@
+[2025-02-08 19:03:35][MAIN] - Contacting Arduino..
+[2025-02-08 19:03:36][MAIN] - Arduino found!
+[2025-02-08 19:03:36][MAIN] - Actuator running.
+[2025-02-08 19:03:36][MAIN] - To Arduino: AUDIOON/OFF
+[2025-02-08 19:03:37][MAIN] - To Arduino: AUDIOON/OFF
+[2025-02-08 19:03:40][MAIN] - To Arduino: AUDIOON/OFF
+[2025-02-08 19:03:40][MAIN] - To Arduino: STRIPTOPOFF
+[2025-02-08 19:03:40][MAIN] - Pulling from GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-02-08 19:03:40][MAIN] - IP 84.150.103.227 uploaded to:
+[2025-02-08 19:03:40][MAIN] - https://storage.googleapis.com/ip-manager42.appspot.com/RaspberryPi-Cyan/ip_server.txt
+[2025-02-08 19:03:41][FLASK] -  * Serving Flask app 'server'
+[2025-02-08 19:03:41][FLASK] -  * Debug mode: off
+[2025-02-08 19:03:41][WEBSOCKET] -  * Serving Flask app 'websocket'
+[2025-02-08 19:03:41][WEBSOCKET] -  * Debug mode: off
+[2025-02-08 19:03:42][MAIN] - Already up to date.
+[2025-02-08 19:03:42][MAIN] - Audio set on automatically
+[2025-02-08 19:03:42][MAIN] - To Arduino: AUDIOON/OFF
+[2025-02-08 19:03:43][MAIN] - To Arduino: AUDIOON/OFF
+[2025-02-08 19:03:43][MAIN] - To Arduino: STRIPTOPG4
+[2025-02-08 19:03:43][MAIN] - Command AUDIOON sent
+[2025-02-08 19:03:43][MAIN] - To Arduino: LIGHTSON
+[2025-02-08 19:06:42][MAIN] - Audio set off automatically
+[2025-02-08 19:06:42][MAIN] - To Arduino: AUDIOON/OFF
+[2025-02-08 19:06:43][MAIN] - To Arduino: AUDIOON/OFF
+[2025-02-08 19:06:46][MAIN] - To Arduino: AUDIOON/OFF
+[2025-02-08 19:06:46][MAIN] - To Arduino: STRIPTOPOFF
+[2025-02-08 19:06:46][MAIN] - Command AUDIOOFF sent
+[2025-02-08 19:07:10][FLASK] - AUDIO: {'audio': 'on'}
+[2025-02-08 19:07:10][MAIN] - To Arduino: AUDIOON/OFF
+[2025-02-08 19:07:11][MAIN] - To Arduino: AUDIOON/OFF
+[2025-02-08 19:07:11][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-02-08 19:07:11][MAIN] - To Arduino: STRIPTOPG4
+[2025-02-08 19:07:11][MAIN] - Command AUDIOON sent
+[2025-02-08 19:07:12][MAIN] - To Arduino: STRIPOFF
+[2025-02-08 19:07:12][MAIN] - To Arduino: STRIPTOPDEF
+[2025-02-08 19:07:12][MAIN] - To Arduino: STRIPON
+[2025-02-08 19:07:12][MAIN] - To Arduino: STRIPG4
+[2025-02-08 19:07:12][MAIN] - Command STRIPTOPG4 sent
+[2025-02-08 19:07:16][FLASK] - LIGHTS: {'lights': 'off'}
+[2025-02-08 19:07:16][MAIN] - Mode set to: LIGHTSOFF
+[2025-02-08 19:07:16][MAIN] - To Arduino: LIGHTSOFF
+[2025-02-08 19:07:17][FLASK] - LIGHTS: {'lights': 'on'}
+[2025-02-08 19:07:17][MAIN] - Mode set to: LIGHTSON
+[2025-02-08 19:07:17][MAIN] - To Arduino: LIGHTSON
+[2025-02-08 19:07:18][FLASK] - LIGHTS: {'lights': 'auto'}
+[2025-02-08 19:07:18][MAIN] - Mode set to: LIGHTSAUTO
+[2025-02-08 19:07:20][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-08 19:07:28][FLASK] - AUDIO: {'audio': 'on'}
+[2025-02-08 19:07:28][MAIN] - To Arduino: AUDIOON/OFF
+[2025-02-08 19:07:29][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-02-08 19:07:29][MAIN] - To Arduino: AUDIOON/OFF
+[2025-02-08 19:07:30][MAIN] - To Arduino: STRIPTOPG4
+[2025-02-08 19:07:30][MAIN] - Command AUDIOON sent
+[2025-02-08 19:07:30][MAIN] - To Arduino: STRIPOFF
+[2025-02-08 19:07:31][MAIN] - To Arduino: STRIPTOPDEF
+[2025-02-08 19:07:31][MAIN] - To Arduino: STRIPON
+[2025-02-08 19:07:31][MAIN] - To Arduino: STRIPG4
+[2025-02-08 19:07:31][MAIN] - Command STRIPTOPG4 sent
+[2025-02-08 19:07:38][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-02-08 19:07:47][MAIN] - Traceback (most recent call last):
+[2025-02-08 19:07:47][MAIN] -   File "/home/claudio/Python-Projects/RoomServer/main.py", line 89, in <module>
+[2025-02-08 19:07:47][MAIN] - main()
+[2025-02-08 19:07:47][MAIN] -   File "/home/claudio/Python-Projects/RoomServer/main.py", line 77, in main
+[2025-02-08 19:07:47][MAIN] - time.sleep(0.5)
+[2025-02-08 19:07:47][MAIN] - KeyboardInterrupt
+[2025-02-08 19:07:47][MAIN] - Exception ignored in: 
+[2025-02-08 19:07:47][MAIN] - <module 'threading' from '/usr/lib/python3.10/threading.py'>
+[2025-02-08 19:07:47][MAIN] - Traceback (most recent call last):
+[2025-02-08 19:07:47][MAIN] -   File "/usr/lib/python3.10/threading.py", line 1567, in _shutdown
+[2025-02-08 19:07:47][MAIN] - lock.acquire()
+[2025-02-08 19:07:47][MAIN] - KeyboardInterrupt
+[2025-02-08 19:07:47][MAIN] - : 

@@ -1,0 +1,66 @@
+[2025-03-21 04:00:22][MAIN] - Bot is ready.
+[2025-03-21 04:00:22][MAIN] - Pulling from GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-03-21 04:00:23][MAIN] - Contacting Arduino..
+[2025-03-21 04:00:23][MAIN] - Already up to date.
+[2025-03-21 04:00:28][MAIN] - IP 84.155.74.137 uploaded to:
+[2025-03-21 04:00:28][MAIN] - https://storage.googleapis.com/ip-manager42.appspot.com/RaspberryPi-Cyan/ip_server.txt
+[2025-03-21 04:00:28][FLASK] -  * Serving Flask app 'server'
+[2025-03-21 04:00:28][FLASK] -  * Debug mode: off
+[2025-03-21 04:00:28][FLASK] - Address already in use
+[2025-03-21 04:00:28][FLASK] - Port 10004 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-03-21 04:00:28][WEBSOCKET] -  * Serving Flask app 'websocket_server'
+[2025-03-21 04:00:28][WEBSOCKET] -  * Debug mode: off
+[2025-03-21 04:00:28][WEBSOCKET] - Address already in use
+[2025-03-21 04:00:28][WEBSOCKET] - Port 10003 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-03-21 15:23:04][MAIN] - Serving 6448393940: msg 4451
+[2025-03-21 15:23:41][MAIN] - reasoning..
+[2025-03-21 15:23:41][MAIN] - Traceback (most recent call last):
+
+[2025-03-21 15:23:41][MAIN] -   File "/home/claudio/Python-Projects/RoomServer/bot_ai/reasoner.py", line 63, in analyze_message
+
+[2025-03-21 15:23:41][MAIN] -     The cleaning activities in our WG are the following: {', '.join(md['activities'])}. People in our WG are: {', '.join(md['wg_members'].values())}.
+
+[2025-03-21 15:23:41][MAIN] - KeyError: 'wg_members'
+[2025-03-21 15:23:55][MAIN] - reasoning..
+[2025-03-21 15:23:55][MAIN] - Traceback (most recent call last):
+
+[2025-03-21 15:23:55][MAIN] -   File "/home/claudio/Python-Projects/RoomServer/bot_ai/reasoner.py", line 63, in analyze_message
+
+[2025-03-21 15:23:55][MAIN] -     The cleaning activities in our WG are the following: {', '.join(md['activities'])}. People in our WG are: {', '.join(md['wg_members'].values())}.
+
+[2025-03-21 15:23:55][MAIN] - KeyError: 'wg_members'
+[2025-03-21 15:24:07][MAIN] - Serving 6448393940: msg 4457
+[2025-03-21 15:24:14][MAIN] - Serving 6448393940: msg 4459
+[2025-03-21 15:24:36][MAIN] - Serving 6448393940: msg 4461
+[2025-03-21 15:24:47][MAIN] - Serving 6448393940: msg 4463
+[2025-03-21 15:25:02][MAIN] - Serving 6448393940: msg 4465
+[2025-03-21 15:25:15][MAIN] - Serving 6448393940: msg 4467
+[2025-03-21 15:25:17][MAIN] - Serving 6448393940: msg 4469
+[2025-03-21 15:25:26][MAIN] - Serving 6448393940: msg 4471
+[2025-03-21 15:25:35][MAIN] - Serving 6448393940: msg 4473
+[2025-03-21 15:25:40][MAIN] - Serving 6448393940: msg 4475
+[2025-03-21 15:25:47][MAIN] - Serving 6448393940: msg 4477
+[2025-03-21 15:25:58][MAIN] - Serving 6448393940: msg 4479
+[2025-03-21 15:26:04][MAIN] - Serving 6448393940: msg 4481
+[2025-03-21 15:26:12][MAIN] - Serving 6448393940: msg 4483
+[2025-03-21 15:27:32][MAIN] - Serving 6448393940: msg 4485
+[2025-03-21 16:31:14][MAIN] - Serving 6448393940: msg 4487
+[2025-03-21 16:31:36][MAIN] - Serving 6448393940: msg 4489
+[2025-03-21 16:31:48][MAIN] - Serving 6448393940: msg 4491
+[2025-03-21 16:31:57][MAIN] - Serving 6448393940: msg 4493
+[2025-03-21 16:32:05][MAIN] - Serving 6448393940: msg 4495
+[2025-03-21 16:32:12][MAIN] - Serving 6448393940: msg 4497
+[2025-03-22 04:00:00][MAIN] - Arduino found!
+[2025-03-22 04:00:00][MAIN] - Actuator running.
+[2025-03-22 04:00:00][MAIN] - To Arduino: AUDIOON/OFF
+[2025-03-22 04:00:00][MAIN] - Firebase task terminated.
+[2025-03-22 04:00:00][MAIN] - Flask server killed
+[2025-03-22 04:00:00][MAIN] - Server control terminated.
+[2025-03-22 04:00:00][MAIN] - Websocket killed
+[2025-03-22 04:00:00][MAIN] - Websocket control terminated.
+[2025-03-22 04:00:01][MAIN] - To Arduino: AUDIOON/OFF
+[2025-03-22 04:00:03][MAIN] - Bot killed.
+[2025-03-22 04:00:04][MAIN] - To Arduino: AUDIOON/OFF
+[2025-03-22 04:00:04][MAIN] - To Arduino: STRIPTOPOFF
+[2025-03-22 04:00:04][MAIN] - Actuators killed.
+[2025-03-22 04:00:04][MAIN] - RESTART

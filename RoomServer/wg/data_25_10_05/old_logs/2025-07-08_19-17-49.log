@@ -1,0 +1,17 @@
+[2025-07-08 19:17:49][MAIN] - Bot is ready.
+[2025-07-08 19:17:49][MAIN] - Pulling from GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-07-08 19:17:50][MAIN] - Contacting Arduino..
+[2025-07-08 19:17:51][MAIN] - Already up to date.
+[2025-07-08 19:17:51][MAIN] - Arduino found!
+[2025-07-08 19:17:51][MAIN] - Actuator running.
+[2025-07-08 19:17:51][MAIN] - To Arduino: LIGHTSON
+[2025-07-08 19:17:56][MAIN] - IP 84.155.64.48 uploaded to:
+[2025-07-08 19:17:56][MAIN] - https://storage.googleapis.com/ip-manager42.appspot.com/RaspberryPi-Cyan/ip_server.txt
+[2025-07-08 19:17:56][FLASK] -  * Serving Flask app 'server'
+[2025-07-08 19:17:56][FLASK] -  * Debug mode: off
+[2025-07-08 19:17:56][WEBSOCKET] -  * Serving Flask app 'websocket_server'
+[2025-07-08 19:17:56][WEBSOCKET] -  * Debug mode: off
+[2025-07-08 19:17:59][MAIN] - Serving 807946519: msg 5004
+[2025-07-08 19:17:59][MAIN] - Serving 807946519: msg 5004
+[2025-07-08 19:18:06][MAIN] - Serving 807946519: msg 5006
+[2025-07-08 19:18:15][MAIN] - Serving 807946519: msg 5008

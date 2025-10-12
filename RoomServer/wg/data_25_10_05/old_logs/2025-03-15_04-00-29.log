@@ -1,0 +1,28 @@
+[2025-03-15 04:00:29][MAIN] - Bot is ready.
+[2025-03-15 04:00:29][MAIN] - Pulling from GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-03-15 04:00:30][MAIN] - Contacting Arduino..
+[2025-03-15 04:00:30][MAIN] - Already up to date.
+[2025-03-15 04:00:35][MAIN] - IP 84.150.109.119 uploaded to:
+[2025-03-15 04:00:35][MAIN] - https://storage.googleapis.com/ip-manager42.appspot.com/RaspberryPi-Cyan/ip_server.txt
+[2025-03-15 04:00:35][FLASK] -  * Serving Flask app 'server'
+[2025-03-15 04:00:35][FLASK] -  * Debug mode: off
+[2025-03-15 04:00:35][FLASK] - Address already in use
+[2025-03-15 04:00:35][FLASK] - Port 10004 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-03-15 04:00:36][WEBSOCKET] -  * Serving Flask app 'websocket_server'
+[2025-03-15 04:00:36][WEBSOCKET] -  * Debug mode: off
+[2025-03-15 04:00:36][WEBSOCKET] - Address already in use
+[2025-03-15 04:00:36][WEBSOCKET] - Port 10003 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-03-16 04:00:00][MAIN] - Websocket killed
+[2025-03-16 04:00:00][MAIN] - Websocket control terminated.
+[2025-03-16 04:00:00][MAIN] - Arduino found!
+[2025-03-16 04:00:00][MAIN] - Actuator running.
+[2025-03-16 04:00:00][MAIN] - To Arduino: AUDIOON/OFF
+[2025-03-16 04:00:00][MAIN] - Firebase task terminated.
+[2025-03-16 04:00:00][MAIN] - Flask server killed
+[2025-03-16 04:00:00][MAIN] - Server control terminated.
+[2025-03-16 04:00:01][MAIN] - To Arduino: AUDIOON/OFF
+[2025-03-16 04:00:04][MAIN] - To Arduino: AUDIOON/OFF
+[2025-03-16 04:00:05][MAIN] - To Arduino: STRIPTOPOFF
+[2025-03-16 04:00:05][MAIN] - Actuators killed.
+[2025-03-16 04:00:08][MAIN] - Bot killed.
+[2025-03-16 04:00:08][MAIN] - RESTART

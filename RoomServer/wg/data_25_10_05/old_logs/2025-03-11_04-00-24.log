@@ -1,0 +1,283 @@
+[2025-03-11 04:00:24][MAIN] - Bot is ready.
+[2025-03-11 04:00:24][MAIN] - Pulling from GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-03-11 04:00:25][MAIN] - Contacting Arduino..
+[2025-03-11 04:00:26][MAIN] - Already up to date.
+[2025-03-11 04:00:26][MAIN] - ANNOUNCEMENTS
+[2025-03-11 04:00:26][MAIN] - 2025-03-11 04:00:26.087754
+[2025-03-11 04:00:27][MAIN] - Pulling from GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-03-11 04:00:28][MAIN] - Already up to date.
+[2025-03-11 04:00:30][MAIN] - History updated.
+[2025-03-11 04:00:30][MAIN] -           Week       Arman      Cesare  ...         Lea        Mara    Natchaya
+[2025-03-11 04:00:30][MAIN] - [96m40  2024-11-11  Management   Bathrooms  ...       Blame    Vacation    Vacation[0m
+[2025-03-11 04:00:30][MAIN] - [96m41  2024-11-18    Vacation    Vacation  ...   Bathrooms  Management     Kitchen[0m
+[2025-03-11 04:00:30][MAIN] - [96m42  2024-11-25   Bathrooms    Vacation  ...    Vacation       Floor  Management[0m
+[2025-03-11 04:00:30][MAIN] - [96m43  2024-12-02    Vacation     Kitchen  ...       Floor    Vacation   Bathrooms[0m
+[2025-03-11 04:00:30][MAIN] - [96m44  2024-12-09     Kitchen  Management  ...    Vacation   Bathrooms       Floor[0m
+[2025-03-11 04:00:30][MAIN] - [96m45  2024-12-16     Anarchy     Anarchy  ...     Anarchy     Anarchy     Anarchy[0m
+[2025-03-11 04:00:30][MAIN] - [96m46  2024-12-23     Anarchy     Anarchy  ...     Anarchy     Anarchy     Anarchy[0m
+[2025-03-11 04:00:30][MAIN] - [96m47  2024-12-30       Floor   Bathrooms  ...    Vacation     Kitchen  Management[0m
+[2025-03-11 04:00:30][MAIN] - [96m48  2025-01-06    Vacation    Vacation  ...  Management       Floor     Kitchen[0m
+[2025-03-11 04:00:30][MAIN] - [96m49  2025-01-13  Management       Floor  ...   Bathrooms    Vacation    Vacation[0m
+[2025-03-11 04:00:30][MAIN] - [96m50  2025-01-20    Vacation    Vacation  ...     Kitchen  Management   Bathrooms[0m
+[2025-03-11 04:00:30][MAIN] - [96m51  2025-01-27   Bathrooms     Kitchen  ...       Floor    Vacation    Vacation[0m
+[2025-03-11 04:00:30][MAIN] - [96m52  2025-02-03       Floor    Vacation  ...    Vacation   Bathrooms  Management[0m
+[2025-03-11 04:00:30][MAIN] - [96m53  2025-02-10    Vacation       Floor  ...  Management     Kitchen    Vacation[0m
+[2025-03-11 04:00:30][MAIN] - [96m54  2025-02-17     Kitchen  Management  ...   Bathrooms    Vacation       Floor[0m
+[2025-03-11 04:00:30][MAIN] - [96m55  2025-02-24   Bathrooms    Vacation  ...    Vacation       Floor     Kitchen[0m
+[2025-03-11 04:00:30][MAIN] - [38;5;208m56  2025-03-03    Vacation   Bathrooms  ...     Kitchen  Management    Vacation[0m
+[2025-03-11 04:00:30][MAIN] - [91m57  2025-03-10  Management       Floor  ...    Vacation    Vacation   Bathrooms[0m
+[2025-03-11 04:00:30][MAIN] - [91m58  2025-03-17     Kitchen    Vacation  ...       Floor   Bathrooms  Management[0m
+[2025-03-11 04:00:30][MAIN] - [91m59  2025-03-24    Vacation     Kitchen  ...  Management       Floor    Vacation[0m
+[2025-03-11 04:00:30][MAIN] - [91m60  2025-03-31       Floor   Bathrooms  ...    Vacation    Vacation     Kitchen[0m
+[2025-03-11 04:00:30][MAIN] - [91m61  2025-04-07  Management    Vacation  ...   Bathrooms     Kitchen       Floor[0m
+[2025-03-11 04:00:30][MAIN] - [91m62  2025-04-14    Vacation  Management  ...     Kitchen   Bathrooms    Vacation[0m
+[2025-03-11 04:00:30][MAIN] - [91m63  2025-04-21   Bathrooms       Floor  ...    Vacation    Vacation  Management[0m
+[2025-03-11 04:00:30][MAIN] - [91m64  2025-04-28     Kitchen    Vacation  ...       Floor  Management   Bathrooms[0m
+[2025-03-11 04:00:30][MAIN] - [91m65  2025-05-05    Vacation     Kitchen  ...  Management       Floor    Vacation[0m
+[2025-03-11 04:00:30][MAIN] - [91m66  2025-05-12       Floor   Bathrooms  ...    Vacation    Vacation     Kitchen[0m
+[2025-03-11 04:00:30][MAIN] - list index out of range
+[2025-03-11 04:00:30][MAIN] - Traceback (most recent call last):
+
+[2025-03-11 04:00:30][MAIN] -   File "/home/claudio/Python-Projects/RoomServer/announcements.py", line 1120, in set_announcement
+
+[2025-03-11 04:00:30][MAIN] -     text, week_schedule = bac.generate_plan()
+
+[2025-03-11 04:00:30][MAIN] -   File "/home/claudio/Python-Projects/RoomServer/wg/bac.py", line 412, in generate_plan
+
+[2025-03-11 04:00:30][MAIN] -     save_plan(wg_members, current_date, start_end_dates)
+
+[2025-03-11 04:00:30][MAIN] -   File "/home/claudio/Python-Projects/RoomServer/wg/bac.py", line 227, in save_plan
+
+[2025-03-11 04:00:30][MAIN] -     print_df(reduced_df, current_date)
+
+[2025-03-11 04:00:30][MAIN] -   File "/home/claudio/Python-Projects/RoomServer/wg/bac.py", line 210, in print_df
+
+[2025-03-11 04:00:30][MAIN] -     date_str = line.split()[1]
+
+[2025-03-11 04:00:30][MAIN] - IndexError: list index out of range
+[2025-03-11 04:00:30][MAIN] - IP 84.150.102.105 uploaded to:
+[2025-03-11 04:00:30][MAIN] - https://storage.googleapis.com/ip-manager42.appspot.com/RaspberryPi-Cyan/ip_server.txt
+[2025-03-11 04:00:31][FLASK] -  * Serving Flask app 'server'
+[2025-03-11 04:00:31][FLASK] -  * Debug mode: off
+[2025-03-11 04:00:31][FLASK] - Address already in use
+[2025-03-11 04:00:31][FLASK] - Port 10004 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-03-11 04:00:31][WEBSOCKET] -  * Serving Flask app 'websocket_server'
+[2025-03-11 04:00:31][WEBSOCKET] -  * Debug mode: off
+[2025-03-11 04:00:31][WEBSOCKET] - Address already in use
+[2025-03-11 04:00:31][WEBSOCKET] - Port 10003 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-03-11 14:26:41][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 14:26:41][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x7fd76807d240>: Failed to establish a new connection: [Errno 101] Network is unreachable'))
+[2025-03-11 14:26:49][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 14:26:49][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x7fd76807fca0>: Failed to establish a new connection: [Errno 101] Network is unreachable'))
+[2025-03-11 14:26:57][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 14:26:57][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x7fd7682257b0>: Failed to establish a new connection: [Errno 101] Network is unreachable'))
+[2025-03-11 14:27:05][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 14:27:05][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x7fd76809da20>: Failed to establish a new connection: [Errno 101] Network is unreachable'))
+[2025-03-11 14:27:13][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 14:27:13][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x7fd7680e3af0>: Failed to establish a new connection: [Errno 101] Network is unreachable'))
+[2025-03-11 14:27:21][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 14:27:21][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x7fd768050850>: Failed to establish a new connection: [Errno 101] Network is unreachable'))
+[2025-03-11 14:27:29][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 14:27:29][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x7fd7680e1930>: Failed to establish a new connection: [Errno 101] Network is unreachable'))
+[2025-03-11 14:27:44][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 14:27:44][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd76809d330>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 14:28:04][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 14:28:04][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd768105ea0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 14:28:19][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 14:28:19][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd768106470>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 14:28:34][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 14:28:34][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd76809eb90>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 14:28:49][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 14:28:49][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd768106770>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 14:29:04][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 14:29:04][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd768105270>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 14:29:19][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 14:29:19][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd758784880>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 14:29:34][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 14:29:34][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd768104340>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 14:29:49][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 14:29:49][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd7681059f0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 14:30:04][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 14:30:04][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd7681061d0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 14:30:19][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 14:30:19][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd76809f3a0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 14:30:34][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 14:30:34][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd768106440>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 14:30:50][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 14:30:50][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd7681058d0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 14:31:01][MAIN] - IP 84.150.107.232 uploaded to:
+[2025-03-11 14:31:01][MAIN] - https://storage.googleapis.com/ip-manager42.appspot.com/RaspberryPi-Cyan/ip_server.txt
+[2025-03-11 14:31:01][FLASK] -  * Serving Flask app 'server'
+[2025-03-11 14:31:01][FLASK] -  * Debug mode: off
+[2025-03-11 14:31:01][FLASK] - Address already in use
+[2025-03-11 14:31:01][FLASK] - Port 10004 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-03-11 14:31:01][WEBSOCKET] -  * Serving Flask app 'websocket_server'
+[2025-03-11 14:31:01][WEBSOCKET] -  * Debug mode: off
+[2025-03-11 14:31:01][WEBSOCKET] - Address already in use
+[2025-03-11 14:31:01][WEBSOCKET] - Port 10003 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-03-11 17:31:03][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:31:03][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd76809e350>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:31:18][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:31:18][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd768050040>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:31:33][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:31:33][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd7680e36a0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:31:48][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:31:48][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd768051510>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:32:03][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:32:03][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd7680e1ed0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:32:18][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:32:18][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd7680538e0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:32:33][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:32:33][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd768226050>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:32:48][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:32:48][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd7680e1450>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:33:03][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:33:03][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd76809e260>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:33:19][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:33:19][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd768226920>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:33:34][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:33:34][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd7680538e0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:33:49][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:33:49][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd768105a50>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:34:04][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:34:04][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd768107a60>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:34:19][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:34:19][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd76807e4a0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:34:34][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:34:34][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd7680e1450>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:34:49][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:34:49][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd7587858d0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:35:04][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:35:04][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd758785ea0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:35:19][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:35:19][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd7587865f0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:35:34][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:35:34][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd758787400>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:35:49][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:35:49][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd758786830>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:36:04][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:36:04][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd7587c4ee0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:36:19][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:36:19][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd7587c55d0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:36:34][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:36:34][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd7587873d0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:36:49][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:36:49][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd7587c73d0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:37:04][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:37:04][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd758786080>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:37:19][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:37:19][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd758786d40>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:37:34][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:37:34][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd758786650>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:37:49][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:37:49][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd768106a40>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:38:14][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:38:14][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd758785a20>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:38:39][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:38:39][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd768104490>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:39:04][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:39:04][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd758786d10>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:39:29][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:39:29][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd7587c6170>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:39:44][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:39:44][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd7680e3fa0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:40:00][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:40:00][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd768105b10>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:40:15][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:40:15][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd7680e3a90>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:40:30][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:40:30][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd768107e50>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:40:45][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:40:45][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd7680e3cd0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:41:00][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:41:00][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd76807e9e0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:41:15][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:41:15][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd7680e2ad0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:41:30][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:41:30][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd7681061a0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:41:45][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:41:45][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd7680e3970>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:42:00][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:42:00][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd7680e3eb0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:42:15][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:42:15][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd768224ee0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:42:30][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:42:30][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd768105ed0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:42:45][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:42:45][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd758785780>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:43:00][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:43:00][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd768105000>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:43:15][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:43:15][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd7587c6ce0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:43:30][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:43:30][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd76807e9e0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:43:45][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:43:45][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd758784280>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:44:00][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:44:00][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd7587c6d70>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:44:15][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:44:15][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd7587c4070>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:44:30][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:44:30][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd7587c64d0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:44:45][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:44:45][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd7587c6ec0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:45:00][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:45:00][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd7587864d0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:45:15][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:45:15][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd758787310>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:45:30][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:45:30][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd76807f7f0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:45:45][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:45:45][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd7587c6bc0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:46:00][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:46:00][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd76807f910>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:46:16][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:46:16][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd768105e10>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:46:31][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:46:31][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd7587c6f20>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:46:46][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:46:46][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd768105f60>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:47:01][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:47:01][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd7587c6ce0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:47:16][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:47:16][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd768224700>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:47:31][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:47:31][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd7587c73d0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:47:46][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:47:46][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd7587c6530>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:48:01][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:48:01][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd7680e1630>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:48:16][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:48:16][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd7682271f0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:48:31][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:48:31][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd7680e1f00>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:48:46][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:48:46][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd768104b50>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:49:01][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:49:01][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd7587e1150>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:49:16][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:49:16][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd7587e18a0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:49:31][MAIN] - Issue while trying to upload IP (initialization)
+[2025-03-11 17:49:31][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fd7680538e0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-03-11 17:49:37][MAIN] - IP 84.150.103.95 uploaded to:
+[2025-03-11 17:49:37][MAIN] - https://storage.googleapis.com/ip-manager42.appspot.com/RaspberryPi-Cyan/ip_server.txt
+[2025-03-11 17:49:37][FLASK] -  * Serving Flask app 'server'
+[2025-03-11 17:49:37][FLASK] -  * Debug mode: off
+[2025-03-11 17:49:37][FLASK] - Address already in use
+[2025-03-11 17:49:37][FLASK] - Port 10004 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-03-11 17:49:38][WEBSOCKET] -  * Serving Flask app 'websocket_server'
+[2025-03-11 17:49:38][WEBSOCKET] -  * Debug mode: off
+[2025-03-11 17:49:38][WEBSOCKET] - Address already in use
+[2025-03-11 17:49:38][WEBSOCKET] - Port 10003 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-03-11 18:59:38][MAIN] - Serving 807946519: msg 4389
+[2025-03-11 18:59:40][MAIN] - Serving 807946519: msg 4391
+[2025-03-12 04:00:00][MAIN] - Arduino found!
+[2025-03-12 04:00:00][MAIN] - Actuator running.
+[2025-03-12 04:00:00][MAIN] - Actuators killed.
+[2025-03-12 04:00:00][MAIN] - Firebase task terminated.
+[2025-03-12 04:00:00][MAIN] - Flask server killed
+[2025-03-12 04:00:00][MAIN] - Websocket killed
+[2025-03-12 04:00:00][MAIN] - Server control terminated.
+[2025-03-12 04:00:00][MAIN] - Websocket control terminated.
+[2025-03-12 04:00:20][MAIN] - Bot killed.
+[2025-03-12 04:00:20][MAIN] - RESTART

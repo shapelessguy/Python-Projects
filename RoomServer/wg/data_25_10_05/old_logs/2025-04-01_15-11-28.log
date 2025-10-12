@@ -1,0 +1,453 @@
+[2025-04-01 15:11:28][MAIN] - Bot is ready.
+[2025-04-01 15:11:28][MAIN] - Pulling from GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-04-01 15:11:29][MAIN] - Contacting Arduino..
+[2025-04-01 15:11:29][MAIN] - Already up to date.
+[2025-04-01 15:11:29][MAIN] - ANNOUNCEMENTS
+[2025-04-01 15:11:29][MAIN] - 2025-04-01 15:11:29.617112
+[2025-04-01 15:11:29][MAIN] - Arduino found!
+[2025-04-01 15:11:29][MAIN] - Actuator running.
+[2025-04-01 15:11:29][MAIN] - To Arduino: AUDIOON/OFF
+[2025-04-01 15:11:30][MAIN] - To Arduino: AUDIOON/OFF
+[2025-04-01 15:11:31][MAIN] - Pulling from GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-04-01 15:11:32][MAIN] - Already up to date.
+[2025-04-01 15:11:33][MAIN] - To Arduino: AUDIOON/OFF
+[2025-04-01 15:11:34][MAIN] - To Arduino: STRIPTOPOFF
+[2025-04-01 15:11:34][MAIN] - Audio set on automatically
+[2025-04-01 15:11:34][MAIN] - To Arduino: AUDIOON/OFF
+[2025-04-01 15:11:34][MAIN] - IP 84.155.74.137 uploaded to:
+[2025-04-01 15:11:34][MAIN] - https://storage.googleapis.com/ip-manager42.appspot.com/RaspberryPi-Cyan/ip_server.txt
+[2025-04-01 15:11:34][MAIN] - History updated.
+[2025-04-01 15:11:34][FLASK] -  * Serving Flask app 'server'
+[2025-04-01 15:11:34][FLASK] -  * Debug mode: off
+[2025-04-01 15:11:34][MAIN] -           Week      Cesare     Claudio         Jay         Lea        Mara    Natchaya
+[2025-04-01 15:11:34][MAIN] - [96m44  2024-12-09  Management    Vacation     Kitchen    Vacation   Bathrooms       Floor[0m
+[2025-04-01 15:11:34][MAIN] - [96m45  2024-12-16     Anarchy     Anarchy     Anarchy     Anarchy     Anarchy     Anarchy[0m
+[2025-04-01 15:11:34][MAIN] - [96m46  2024-12-23     Anarchy     Anarchy     Anarchy     Anarchy     Anarchy     Anarchy[0m
+[2025-04-01 15:11:34][MAIN] - [96m47  2024-12-30   Bathrooms    Vacation       Floor    Vacation     Kitchen  Management[0m
+[2025-04-01 15:11:34][MAIN] - [96m48  2025-01-06    Vacation   Bathrooms    Vacation  Management       Floor     Kitchen[0m
+[2025-04-01 15:11:34][MAIN] - [96m49  2025-01-13       Floor       Blame  Management   Bathrooms    Vacation    Vacation[0m
+[2025-04-01 15:11:34][MAIN] - [96m50  2025-01-20    Vacation       Floor    Vacation     Kitchen  Management   Bathrooms[0m
+[2025-04-01 15:11:34][MAIN] - [96m51  2025-01-27     Kitchen  Management   Bathrooms       Floor    Vacation    Vacation[0m
+[2025-04-01 15:11:34][MAIN] - [96m52  2025-02-03    Vacation     Kitchen       Floor    Vacation   Bathrooms  Management[0m
+[2025-04-01 15:11:34][MAIN] - [96m53  2025-02-10       Floor   Bathrooms    Vacation  Management     Kitchen    Vacation[0m
+[2025-04-01 15:11:34][MAIN] - [96m54  2025-02-17  Management    Vacation     Kitchen   Bathrooms    Vacation       Floor[0m
+[2025-04-01 15:11:34][MAIN] - [96m55  2025-02-24    Vacation  Management   Bathrooms    Vacation       Floor     Kitchen[0m
+[2025-04-01 15:11:34][MAIN] - [96m56  2025-03-03   Bathrooms       Floor    Vacation     Kitchen  Management    Vacation[0m
+[2025-04-01 15:11:34][MAIN] - [96m57  2025-03-10       Floor     Kitchen  Management    Vacation    Vacation   Bathrooms[0m
+[2025-04-01 15:11:34][MAIN] - [96m58  2025-03-17    Vacation    Vacation     Kitchen       Floor   Bathrooms  Management[0m
+[2025-04-01 15:11:34][MAIN] - [96m59  2025-03-24     Kitchen   Bathrooms    Vacation  Management       Floor    Vacation[0m
+[2025-04-01 15:11:34][MAIN] - [38;5;208m60  2025-03-31   Bathrooms  Management       Floor    Vacation    Vacation     Kitchen[0m
+[2025-04-01 15:11:34][MAIN] - [91m61  2025-04-07    Vacation    Vacation  Management   Bathrooms     Kitchen       Floor[0m
+[2025-04-01 15:11:34][MAIN] - [91m62  2025-04-14  Management       Floor    Vacation     Kitchen   Bathrooms    Vacation[0m
+[2025-04-01 15:11:34][MAIN] - [91m63  2025-04-21       Floor     Kitchen   Bathrooms    Vacation    Vacation  Management[0m
+[2025-04-01 15:11:34][MAIN] - [91m64  2025-04-28    Vacation    Vacation     Kitchen       Floor  Management   Bathrooms[0m
+[2025-04-01 15:11:34][MAIN] - [91m65  2025-05-05     Kitchen   Bathrooms    Vacation  Management       Floor    Vacation[0m
+[2025-04-01 15:11:34][MAIN] - [91m66  2025-05-12   Bathrooms  Management       Floor    Vacation    Vacation     Kitchen[0m
+[2025-04-01 15:11:34][MAIN] - [91m67  2025-05-19    Vacation    Vacation  Management   Bathrooms     Kitchen       Floor[0m
+[2025-04-01 15:11:34][MAIN] - [91m68  2025-05-26  Management       Floor    Vacation     Kitchen   Bathrooms    Vacation[0m
+[2025-04-01 15:11:34][MAIN] - [91m69  2025-06-02       Floor     Kitchen   Bathrooms    Vacation    Vacation  Management[0m
+[2025-04-01 15:11:34][MAIN] - [91m70  2025-06-09    Vacation    Vacation     Kitchen       Floor  Management   Bathrooms[0m
+[2025-04-01 15:11:34][MAIN] - Saving at /home/claudio/Python-Projects/RoomServer/wg/data/cleaning_plan_leo6.xlsx
+[2025-04-01 15:11:34][WEBSOCKET] -  * Serving Flask app 'websocket_server'
+[2025-04-01 15:11:34][WEBSOCKET] -  * Debug mode: off
+[2025-04-01 15:11:35][MAIN] - Msg sent to LEO6:
+[2025-04-01 15:11:35][MAIN] - This week (31-03-25):
+
+[2025-04-01 15:11:35][MAIN] - ❗⚠ Manager: Claudio ⚠❗
+
+[2025-04-01 15:11:35][MAIN] - Cesare: Bathrooms 🛁🚽🧻🚾
+
+[2025-04-01 15:11:35][MAIN] - Jay: Floor 🧹🪣🫧
+
+[2025-04-01 15:11:35][MAIN] - Natchaya: Kitchen 🪑🚰🧴🔪
+
+[2025-04-01 15:11:35][MAIN] - For the others, 💸🧺🍾 !
+
+[2025-04-01 15:11:35][MAIN] - Note: If you want to swap your task with someone else's task, use the SWAP command.
+
+[2025-04-01 15:11:35][MAIN] - You can submit an anonymous complaint for one or more tasks of the previous week by sending a BLAME.
+
+[2025-04-01 15:11:35][MAIN] - Before blaming someone, please warn them first ⚠️ and then wait until Tuesday evening so that the person has time to recover their delayed duty.
+
+[2025-04-01 15:11:35][MAIN] - If a person receives at least 2 blames, they will need to recover the task in the future ☠️.
+
+[2025-04-01 15:11:35][MAIN] - You can also send a message of appreciation 🌟 by sending a PRAISE as well.
+
+[2025-04-01 15:11:35][MAIN] - If you need vacation for a week, you can send book it though BOOK VACATION.
+
+[2025-04-01 15:11:35][MAIN] - Whenever you have a WG expense 💰, use EXPENSE and specify price/reason for it.
+[2025-04-01 15:11:35][MAIN] - Pushing to GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-04-01 15:11:35][MAIN] - To Arduino: AUDIOON/OFF
+[2025-04-01 15:11:36][MAIN] - To Arduino: STRIPTOPG4
+[2025-04-01 15:11:36][MAIN] - Command AUDIOON sent
+[2025-04-01 15:11:36][MAIN] - To Arduino: LIGHTSON
+[2025-04-01 15:11:37][MAIN] - [master eff54f7] auto_update
+
+[2025-04-01 15:11:37][MAIN] -  2 files changed, 2 insertions(+)
+[2025-04-01 15:11:37][MAIN] - To github.com:shapelessguy/Python-Projects.git
+
+[2025-04-01 15:11:37][MAIN] -    2425742..eff54f7  master -> master
+[2025-04-01 15:11:37][MAIN] - Msg sent:
+[2025-04-01 15:11:37][MAIN] - Hello Jay, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-04-01 15:11:37][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-04-01 15:11:37][MAIN] - This week (31/03 - 07/04):  <b>Floor</b> 🧹🪣🫧
+
+[2025-04-01 15:11:37][MAIN] - Next week (07/04 - 14/04):  <b>Management</b> 💸🧺🍾
+
+[2025-04-01 15:11:37][MAIN] - Week 14/04 - 21/04:  <b>Vacation</b> 💸🧺🍾
+
+[2025-04-01 15:11:37][MAIN] - Week 21/04 - 28/04:  <b>Bathrooms</b> 🛁🚽🧻🚾
+
+[2025-04-01 15:11:37][MAIN] - 👍 Congratulations, you have no complaints for the week 17/03 - 24/03!
+[2025-04-01 15:11:37][MAIN] - A request to the Telegram API was unsuccessful. Error code: 403. Description: Forbidden: bot was blocked by the user
+[2025-04-01 15:11:37][MAIN] - Traceback (most recent call last):
+
+[2025-04-01 15:11:37][MAIN] -   File "/home/claudio/Python-Projects/RoomServer/announcements.py", line 1170, in set_announcement
+
+[2025-04-01 15:11:37][MAIN] -     bh.send_msg(telegram_id, string, parse_mode="HTML")
+
+[2025-04-01 15:11:37][MAIN] -   File "/home/claudio/Python-Projects/RoomServer/announcements.py", line 766, in send_msg
+
+[2025-04-01 15:11:37][MAIN] -     self.bot.send_message(*args, **kwargs)
+
+[2025-04-01 15:11:37][MAIN] -   File "/home/claudio/Python-Projects/RoomServer/.venv/lib/python3.10/site-packages/telebot/__init__.py", line 1800, in send_message
+
+[2025-04-01 15:11:37][MAIN] -     apihelper.send_message(
+
+[2025-04-01 15:11:37][MAIN] -   File "/home/claudio/Python-Projects/RoomServer/.venv/lib/python3.10/site-packages/telebot/apihelper.py", line 275, in send_message
+
+[2025-04-01 15:11:37][MAIN] -     return _make_request(token, method_url, params=payload, method='post')
+
+[2025-04-01 15:11:37][MAIN] -   File "/home/claudio/Python-Projects/RoomServer/.venv/lib/python3.10/site-packages/telebot/apihelper.py", line 168, in _make_request
+
+[2025-04-01 15:11:37][MAIN] -     json_result = _check_result(method_name, result)
+
+[2025-04-01 15:11:37][MAIN] -   File "/home/claudio/Python-Projects/RoomServer/.venv/lib/python3.10/site-packages/telebot/apihelper.py", line 195, in _check_result
+
+[2025-04-01 15:11:37][MAIN] -     raise ApiTelegramException(method_name, result, result_json)
+
+[2025-04-01 15:11:37][MAIN] - telebot.apihelper.ApiTelegramException: A request to the Telegram API was unsuccessful. Error code: 403. Description: Forbidden: bot was blocked by the user
+[2025-04-01 15:11:44][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:11:54][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:12:05][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:12:15][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:12:25][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:12:35][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:12:45][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:12:55][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:13:05][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:13:15][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:13:25][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:13:35][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:13:45][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:13:55][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:14:05][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:14:15][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:14:25][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:14:35][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:14:45][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:14:55][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:15:05][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:15:16][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:15:26][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:15:36][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:15:46][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:15:56][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:16:06][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:16:16][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:16:26][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:16:36][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:16:46][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:16:56][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:17:06][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:17:16][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:17:26][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:17:36][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:17:46][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:17:56][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:18:06][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:18:16][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:18:26][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:18:36][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:18:46][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:18:56][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:19:06][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:19:17][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:19:27][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:19:37][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:19:47][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:19:57][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:20:07][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:20:17][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:20:27][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:20:37][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:20:47][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:20:57][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:21:07][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:21:17][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:21:27][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:21:37][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:21:47][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:21:57][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:22:07][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:22:17][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:22:27][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:22:37][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:22:47][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:22:57][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:23:07][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:23:17][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:23:27][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:23:38][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:23:48][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:23:58][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:24:08][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:24:18][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:24:28][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:24:38][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:24:48][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:24:58][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:25:08][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:25:29][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:25:39][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:25:49][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:25:59][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:26:09][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:26:19][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:26:29][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:26:39][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:26:49][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:26:59][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:27:09][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:27:19][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:27:29][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:27:39][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:27:50][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:28:00][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:28:10][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:28:20][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:28:30][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:28:40][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:28:50][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:29:00][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:29:10][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:29:20][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:29:30][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:29:40][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:29:50][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:30:00][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:30:10][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:30:20][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:30:30][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:30:40][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:30:50][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:31:00][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:31:10][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:31:20][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:31:30][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:31:40][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:31:50][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:32:01][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:32:11][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:32:21][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:32:31][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:32:41][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:32:51][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:33:01][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:33:11][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:33:21][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:33:31][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:33:41][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:33:51][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:34:01][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:34:11][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:34:21][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:34:31][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:34:41][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:34:51][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:35:01][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:35:11][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:35:21][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:35:31][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:35:41][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:35:51][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:36:01][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:36:11][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:36:22][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:36:32][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:36:42][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:36:52][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:37:02][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:37:12][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:37:22][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:37:32][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:37:42][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:37:52][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:38:02][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:38:12][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:38:22][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:38:32][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:38:42][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:38:52][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:39:02][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:39:12][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:39:22][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:39:32][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:39:42][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:39:52][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:40:02][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:40:12][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:40:22][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:40:33][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:40:43][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:40:53][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:41:03][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:41:13][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:41:23][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:41:33][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:41:43][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:41:53][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:42:03][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:42:13][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:42:23][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:42:33][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:42:43][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:43:03][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:43:13][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:43:23][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:43:33][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:43:43][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:43:53][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:44:03][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:44:13][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:44:23][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:44:34][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:44:44][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:44:54][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:45:04][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:45:14][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:45:24][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:45:34][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:45:44][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:45:54][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:46:04][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:46:14][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:46:24][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:46:34][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:46:44][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:46:54][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:47:04][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:47:14][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:47:24][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:47:34][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:47:44][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:47:54][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:48:04][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:48:14][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:48:25][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:48:35][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:48:45][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:48:55][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:49:15][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:49:25][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:49:35][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:49:45][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:49:55][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:50:05][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:50:15][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:50:25][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:50:45][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:50:55][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:51:05][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:51:15][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:51:25][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:51:35][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:51:45][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:51:55][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:52:05][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:52:15][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:52:25][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:52:35][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:52:46][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:52:56][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:53:06][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:53:16][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:53:26][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:53:36][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:53:46][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:53:56][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:54:06][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:54:16][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:54:26][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:54:36][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:54:46][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:54:56][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:55:06][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:55:16][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:55:26][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:55:36][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:55:46][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:55:56][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:56:06][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:56:16][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:56:26][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:56:36][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:56:46][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:56:56][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:57:06][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:57:16][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:57:27][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:57:37][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:57:47][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:57:57][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:58:07][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:58:17][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:58:27][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:58:37][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:58:47][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:58:57][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:59:07][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:59:17][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:59:27][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:59:37][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:59:47][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 15:59:57][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 16:00:07][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 16:00:17][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 16:00:27][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 16:00:37][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 16:00:47][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 16:00:57][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 16:01:07][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 16:01:17][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 16:01:27][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 16:01:38][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 16:01:48][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 16:01:58][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 16:02:08][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 16:02:18][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 16:02:28][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 16:02:38][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 16:02:48][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 16:02:58][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 16:03:08][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 16:03:18][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 16:03:28][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 16:03:38][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 16:03:48][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 16:03:58][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-01 16:04:08][MAIN] - Traceback (most recent call last):
+[2025-04-01 16:04:08][MAIN] -   File "/home/claudio/Python-Projects/RoomServer/main.py", line 89, in <module>
+[2025-04-01 16:04:08][MAIN] - main()
+[2025-04-01 16:04:08][MAIN] -   File "/home/claudio/Python-Projects/RoomServer/main.py", line 77, in main
+[2025-04-01 16:04:08][MAIN] - time.sleep(0.5)
+[2025-04-01 16:04:08][MAIN] - KeyboardInterrupt
+[2025-04-01 16:04:08][MAIN] - Exception ignored in: 
+[2025-04-01 16:04:08][MAIN] - <module 'threading' from '/usr/lib/python3.10/threading.py'>
+[2025-04-01 16:04:08][MAIN] - Traceback (most recent call last):
+[2025-04-01 16:04:08][MAIN] -   File "/usr/lib/python3.10/threading.py", line 1567, in _shutdown
+[2025-04-01 16:04:08][MAIN] - lock.acquire()
+[2025-04-01 16:04:08][MAIN] - KeyboardInterrupt
+[2025-04-01 16:04:08][MAIN] - : 

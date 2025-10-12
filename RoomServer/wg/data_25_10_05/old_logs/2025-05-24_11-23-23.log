@@ -1,0 +1,1114 @@
+[2025-05-24 11:23:23][MAIN] - Bot is ready.
+[2025-05-24 11:23:23][MAIN] - Pulling from GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-05-24 11:23:24][MAIN] - Contacting Arduino..
+[2025-05-24 11:23:25][MAIN] - Already up to date.
+[2025-05-24 11:23:25][MAIN] - ANNOUNCEMENTS
+[2025-05-24 11:23:25][MAIN] - 2025-05-24 11:23:25.075501
+[2025-05-24 11:23:25][MAIN] - Arduino found!
+[2025-05-24 11:23:25][MAIN] - Actuator running.
+[2025-05-24 11:23:25][MAIN] - To Arduino: LIGHTSON
+[2025-05-24 11:23:26][MAIN] - Pulling from GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-05-24 11:23:27][MAIN] - Already up to date.
+[2025-05-24 11:23:27][MAIN] - [['Vacation']]
+[2025-05-24 11:23:27][MAIN] - [['Kitchen']]
+[2025-05-24 11:23:27][MAIN] - [['Bathrooms']]
+[2025-05-24 11:23:27][MAIN] - [['Vacation']]
+[2025-05-24 11:23:27][MAIN] - [['Management']]
+[2025-05-24 11:23:27][MAIN] - [['Floor']]
+[2025-05-24 11:23:29][MAIN] - History updated.
+[2025-05-24 11:23:29][MAIN] -           Week      Cesare     Claudio         Jay         Lea        Mara    Natchaya
+[2025-05-24 11:23:29][MAIN] - [96m51  2025-01-27     Kitchen  Management   Bathrooms       Floor    Vacation    Vacation[0m
+[2025-05-24 11:23:29][MAIN] - [96m52  2025-02-03    Vacation     Kitchen       Floor    Vacation   Bathrooms  Management[0m
+[2025-05-24 11:23:29][MAIN] - [96m53  2025-02-10       Floor   Bathrooms    Vacation  Management     Kitchen    Vacation[0m
+[2025-05-24 11:23:29][MAIN] - [96m54  2025-02-17  Management    Vacation     Kitchen   Bathrooms    Vacation       Floor[0m
+[2025-05-24 11:23:29][MAIN] - [96m55  2025-02-24    Vacation  Management   Bathrooms    Vacation       Floor     Kitchen[0m
+[2025-05-24 11:23:29][MAIN] - [96m56  2025-03-03   Bathrooms       Floor    Vacation     Kitchen  Management    Vacation[0m
+[2025-05-24 11:23:29][MAIN] - [96m57  2025-03-10       Floor     Kitchen  Management    Vacation    Vacation   Bathrooms[0m
+[2025-05-24 11:23:29][MAIN] - [96m58  2025-03-17    Vacation    Vacation     Kitchen       Floor   Bathrooms  Management[0m
+[2025-05-24 11:23:29][MAIN] - [96m59  2025-03-24     Kitchen   Bathrooms    Vacation  Management       Floor    Vacation[0m
+[2025-05-24 11:23:29][MAIN] - [96m60  2025-03-31   Bathrooms  Management       Floor    Vacation    Vacation     Kitchen[0m
+[2025-05-24 11:23:29][MAIN] - [96m61  2025-04-07    Vacation    Vacation  Management   Bathrooms     Kitchen       Floor[0m
+[2025-05-24 11:23:29][MAIN] - [96m62  2025-04-14  Management       Floor    Vacation     Kitchen   Bathrooms    Vacation[0m
+[2025-05-24 11:23:29][MAIN] - [96m63  2025-04-21       Floor     Kitchen   Bathrooms    Vacation    Vacation  Management[0m
+[2025-05-24 11:23:29][MAIN] - [96m64  2025-04-28    Vacation    Vacation     Kitchen       Floor  Management   Bathrooms[0m
+[2025-05-24 11:23:29][MAIN] - [96m65  2025-05-05     Kitchen   Bathrooms    Vacation  Management       Floor    Vacation[0m
+[2025-05-24 11:23:29][MAIN] - [96m66  2025-05-12   Bathrooms  Management       Floor    Vacation    Vacation     Kitchen[0m
+[2025-05-24 11:23:29][MAIN] - [38;5;208m67  2025-05-19    Vacation    Vacation  Management   Bathrooms     Kitchen       Floor[0m
+[2025-05-24 11:23:29][MAIN] - [91m68  2025-05-26  Management       Floor    Vacation     Kitchen   Bathrooms    Vacation[0m
+[2025-05-24 11:23:29][MAIN] - [91m69  2025-06-02       Floor     Kitchen   Bathrooms    Vacation    Vacation  Management[0m
+[2025-05-24 11:23:29][MAIN] - [91m70  2025-06-09    Vacation    Vacation     Kitchen       Floor  Management   Bathrooms[0m
+[2025-05-24 11:23:29][MAIN] - [91m71  2025-06-16     Kitchen   Bathrooms    Vacation  Management       Floor    Vacation[0m
+[2025-05-24 11:23:29][MAIN] - [91m72  2025-06-23   Bathrooms  Management       Floor    Vacation    Vacation     Kitchen[0m
+[2025-05-24 11:23:29][MAIN] - [91m73  2025-06-30    Vacation       Floor  Management   Bathrooms     Kitchen    Vacation[0m
+[2025-05-24 11:23:29][MAIN] - [91m74  2025-07-07       Floor    Vacation   Bathrooms     Kitchen  Management    Vacation[0m
+[2025-05-24 11:23:29][MAIN] - [91m75  2025-07-14  Management     Kitchen    Vacation       Floor   Bathrooms    Vacation[0m
+[2025-05-24 11:23:29][MAIN] - [91m76  2025-07-21     Kitchen   Bathrooms       Floor  Management    Vacation    Vacation[0m
+[2025-05-24 11:23:29][MAIN] - [91m77  2025-07-28    Vacation  Management     Kitchen    Vacation       Floor   Bathrooms[0m
+[2025-05-24 11:23:29][MAIN] - Saving at /home/claudio/Python-Projects/RoomServer/wg/data/cleaning_plan_leo6.xlsx
+[2025-05-24 11:23:29][MAIN] - IP 84.150.97.85 uploaded to:
+[2025-05-24 11:23:29][MAIN] - https://storage.googleapis.com/ip-manager42.appspot.com/RaspberryPi-Cyan/ip_server.txt
+[2025-05-24 11:23:30][MAIN] - Msg sent to LEO6:
+[2025-05-24 11:23:30][MAIN] - This week (19-05-25):
+
+[2025-05-24 11:23:30][MAIN] - ❗⚠ Manager: Jay ⚠❗
+
+[2025-05-24 11:23:30][MAIN] - Lea: Bathrooms 🛁🚽🧻🚾
+
+[2025-05-24 11:23:30][MAIN] - Mara: Kitchen 🪑🚰🧴🔪
+
+[2025-05-24 11:23:30][MAIN] - Natchaya: Floor 🧹🪣🫧
+
+[2025-05-24 11:23:30][MAIN] - For the others, 💸🧺🍾 !
+
+[2025-05-24 11:23:30][MAIN] - Note: If you want to swap your task with someone else's task, use the SWAP command.
+
+[2025-05-24 11:23:30][MAIN] - You can submit an anonymous complaint for one or more tasks of the previous week by sending a BLAME.
+
+[2025-05-24 11:23:30][MAIN] - Before blaming someone, please warn them first ⚠️ and then wait until Tuesday evening so that the person has time to recover their delayed duty.
+
+[2025-05-24 11:23:30][MAIN] - If a person receives at least 2 blames, they will need to recover the task in the future ☠️.
+
+[2025-05-24 11:23:30][MAIN] - You can also send a message of appreciation 🌟 by sending a PRAISE as well.
+
+[2025-05-24 11:23:30][MAIN] - If you need vacation for a week, you can send book it though BOOK VACATION.
+
+[2025-05-24 11:23:30][MAIN] - Whenever you have a WG expense 💰, use EXPENSE and specify price/reason for it.
+[2025-05-24 11:23:30][MAIN] - Pushing to GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-05-24 11:23:30][FLASK] -  * Serving Flask app 'server'
+[2025-05-24 11:23:30][FLASK] -  * Debug mode: off
+[2025-05-24 11:23:30][WEBSOCKET] -  * Serving Flask app 'websocket_server'
+[2025-05-24 11:23:30][WEBSOCKET] -  * Debug mode: off
+[2025-05-24 11:23:31][MAIN] - [master 7dc81f8] auto_update
+
+[2025-05-24 11:23:31][MAIN] -  1 file changed, 1 insertion(+), 1 deletion(-)
+[2025-05-24 11:23:31][MAIN] - To github.com:shapelessguy/Python-Projects.git
+
+[2025-05-24 11:23:31][MAIN] -    464d62f..7dc81f8  master -> master
+[2025-05-24 11:23:31][MAIN] - [['Vacation']]
+[2025-05-24 11:23:31][MAIN] - Msg sent:
+[2025-05-24 11:23:31][MAIN] - Hello Jay, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-05-24 11:23:31][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-05-24 11:23:31][MAIN] - This week (19/05 - 26/05):  <b>Management</b> 💸🧺🍾
+
+[2025-05-24 11:23:31][MAIN] - Next week (26/05 - 02/06):  <b>Vacation</b> 💸🧺🍾
+
+[2025-05-24 11:23:31][MAIN] - Week 02/06 - 09/06:  <b>Bathrooms</b> 🛁🚽🧻🚾
+
+[2025-05-24 11:23:31][MAIN] - Week 09/06 - 16/06:  <b>Kitchen</b> 🪑🚰🧴🔪
+[2025-05-24 11:23:32][MAIN] - [['Kitchen']]
+[2025-05-24 11:23:32][MAIN] - Msg sent:
+[2025-05-24 11:23:32][MAIN] - Hello Cesare, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-05-24 11:23:32][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-05-24 11:23:32][MAIN] - This week (19/05 - 26/05):  <b>Vacation</b> 💸🧺🍾
+
+[2025-05-24 11:23:32][MAIN] - Next week (26/05 - 02/06):  <b>Management</b> 💸🧺🍾
+
+[2025-05-24 11:23:32][MAIN] - Week 02/06 - 09/06:  <b>Floor</b> 🧹🪣🫧
+
+[2025-05-24 11:23:32][MAIN] - Week 09/06 - 16/06:  <b>Vacation</b> 💸🧺🍾
+
+[2025-05-24 11:23:32][MAIN] - 👍 Congratulations, you have no complaints for the week 05/05 - 12/05!
+[2025-05-24 11:23:32][MAIN] - [['Bathrooms']]
+[2025-05-24 11:23:32][MAIN] - Msg sent:
+[2025-05-24 11:23:32][MAIN] - Hello Claudio, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-05-24 11:23:32][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-05-24 11:23:32][MAIN] - This week (19/05 - 26/05):  <b>Vacation</b> 💸🧺🍾
+
+[2025-05-24 11:23:32][MAIN] - Next week (26/05 - 02/06):  <b>Floor</b> 🧹🪣🫧
+
+[2025-05-24 11:23:32][MAIN] - Week 02/06 - 09/06:  <b>Kitchen</b> 🪑🚰🧴🔪
+
+[2025-05-24 11:23:32][MAIN] - Week 09/06 - 16/06:  <b>Vacation</b> 💸🧺🍾
+
+[2025-05-24 11:23:32][MAIN] - 👍 Congratulations, you have no complaints for the week 05/05 - 12/05!
+[2025-05-24 11:23:32][MAIN] - [['Vacation']]
+[2025-05-24 11:23:32][MAIN] - Msg sent:
+[2025-05-24 11:23:32][MAIN] - Hello Natchaya, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-05-24 11:23:32][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-05-24 11:23:32][MAIN] - This week (19/05 - 26/05):  <b>Floor</b> 🧹🪣🫧
+
+[2025-05-24 11:23:32][MAIN] - Next week (26/05 - 02/06):  <b>Vacation</b> 💸🧺🍾
+
+[2025-05-24 11:23:32][MAIN] - Week 02/06 - 09/06:  <b>Management</b> 💸🧺🍾
+
+[2025-05-24 11:23:32][MAIN] - Week 09/06 - 16/06:  <b>Bathrooms</b> 🛁🚽🧻🚾
+[2025-05-24 11:23:32][MAIN] - [['Management']]
+[2025-05-24 11:23:32][MAIN] - Msg sent:
+[2025-05-24 11:23:32][MAIN] - Hello Lea, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-05-24 11:23:32][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-05-24 11:23:32][MAIN] - This week (19/05 - 26/05):  <b>Bathrooms</b> 🛁🚽🧻🚾
+
+[2025-05-24 11:23:32][MAIN] - Next week (26/05 - 02/06):  <b>Kitchen</b> 🪑🚰🧴🔪
+
+[2025-05-24 11:23:32][MAIN] - Week 02/06 - 09/06:  <b>Vacation</b> 💸🧺🍾
+
+[2025-05-24 11:23:32][MAIN] - Week 09/06 - 16/06:  <b>Floor</b> 🧹🪣🫧
+
+[2025-05-24 11:23:32][MAIN] - 👍 Congratulations, you have no complaints for the week 05/05 - 12/05!
+[2025-05-24 11:23:32][MAIN] - [['Floor']]
+[2025-05-24 11:23:32][MAIN] - Msg sent:
+[2025-05-24 11:23:32][MAIN] - Hello Mara, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-05-24 11:23:32][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-05-24 11:23:32][MAIN] - This week (19/05 - 26/05):  <b>Kitchen</b> 🪑🚰🧴🔪
+
+[2025-05-24 11:23:32][MAIN] - Next week (26/05 - 02/06):  <b>Bathrooms</b> 🛁🚽🧻🚾
+
+[2025-05-24 11:23:32][MAIN] - Week 02/06 - 09/06:  <b>Vacation</b> 💸🧺🍾
+
+[2025-05-24 11:23:32][MAIN] - Week 09/06 - 16/06:  <b>Management</b> 💸🧺🍾
+
+[2025-05-24 11:23:32][MAIN] - 👍 Congratulations, you have no complaints for the week 05/05 - 12/05!
+[2025-05-24 11:24:28][MAIN] - Serving 807946519: msg 4722
+[2025-05-24 11:24:30][MAIN] - Serving 807946519: msg 4724
+[2025-05-24 11:24:36][MAIN] - Serving 807946519: msg 4726
+[2025-05-24 11:24:46][MAIN] - Serving 807946519: msg 4728
+[2025-05-24 11:44:13][MAIN] - Serving 133279076: msg 4731
+[2025-05-24 11:44:14][MAIN] - Serving 133279076: msg 4733
+[2025-05-24 11:44:18][MAIN] - Serving 133279076: msg 4735
+[2025-05-24 11:44:20][MAIN] - Serving 133279076: msg 4736
+[2025-05-24 11:44:22][MAIN] - Serving 133279076: msg 4736
+[2025-05-24 11:44:30][MAIN] - Serving 133279076: msg 4736
+[2025-05-24 11:44:30][MAIN] - Serving 133279076: msg 4736
+[2025-05-24 11:44:44][MAIN] - Serving 133279076: msg 4738
+[2025-05-24 12:23:37][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-24 13:23:52][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-24 14:24:06][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-24 15:24:21][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-24 16:24:36][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-24 17:24:52][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-24 18:25:07][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-24 18:32:33][MAIN] - Issue while trying to upload IP (initialization)
+[2025-05-24 18:32:33][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7ff61445fee0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-05-24 18:32:39][MAIN] - IP 84.150.97.85 uploaded to:
+[2025-05-24 18:32:39][MAIN] - https://storage.googleapis.com/ip-manager42.appspot.com/RaspberryPi-Cyan/ip_server.txt
+[2025-05-24 18:32:39][FLASK] -  * Serving Flask app 'server'
+[2025-05-24 18:32:39][FLASK] -  * Debug mode: off
+[2025-05-24 18:32:39][FLASK] - Address already in use
+[2025-05-24 18:32:39][FLASK] - Port 10004 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-05-24 18:32:40][WEBSOCKET] -  * Serving Flask app 'websocket_server'
+[2025-05-24 18:32:40][WEBSOCKET] -  * Debug mode: off
+[2025-05-24 18:32:40][WEBSOCKET] - Address already in use
+[2025-05-24 18:32:40][WEBSOCKET] - Port 10003 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-05-24 19:25:27][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-24 20:26:05][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-24 21:26:23][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-24 21:59:00][MAIN] - To Arduino: LIGHTSOFF
+[2025-05-24 22:26:53][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-24 23:27:12][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-25 00:27:30][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-25 00:33:31][MAIN] - Issue while trying to upload IP (initialization)
+[2025-05-25 00:33:31][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7ff61447f4f0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-05-25 00:33:37][MAIN] - IP 84.150.97.85 uploaded to:
+[2025-05-25 00:33:37][MAIN] - https://storage.googleapis.com/ip-manager42.appspot.com/RaspberryPi-Cyan/ip_server.txt
+[2025-05-25 00:33:38][FLASK] -  * Serving Flask app 'server'
+[2025-05-25 00:33:38][FLASK] -  * Debug mode: off
+[2025-05-25 00:33:38][FLASK] - Address already in use
+[2025-05-25 00:33:38][FLASK] - Port 10004 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-05-25 00:33:38][WEBSOCKET] -  * Serving Flask app 'websocket_server'
+[2025-05-25 00:33:38][WEBSOCKET] -  * Debug mode: off
+[2025-05-25 00:33:38][WEBSOCKET] - Address already in use
+[2025-05-25 00:33:38][WEBSOCKET] - Port 10003 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-05-25 01:27:56][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-25 01:53:55][FLASK] - STRIP: {'strip': 'i0'}
+[2025-05-25 01:53:55][MAIN] - To Arduino: STRIPOFF
+[2025-05-25 01:53:55][MAIN] - To Arduino: STRIPTOPDEF
+[2025-05-25 01:53:56][MAIN] - To Arduino: STRIPTOPCOLSWITCH
+[2025-05-25 01:53:56][MAIN] - To Arduino: STRIPON
+[2025-05-25 01:53:57][MAIN] - To Arduino: STRIPI1
+[2025-05-25 01:53:57][MAIN] - Command STRIPI0 sent
+[2025-05-25 02:28:11][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-25 03:28:26][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-25 03:36:17][FLASK] - PING
+[2025-05-25 04:28:39][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-25 04:43:32][MAIN] - Audio set off automatically
+[2025-05-25 04:43:32][MAIN] - To Arduino: AUDIOON/OFF
+[2025-05-25 04:43:33][MAIN] - To Arduino: AUDIOON/OFF
+[2025-05-25 04:43:36][MAIN] - To Arduino: AUDIOON/OFF
+[2025-05-25 04:43:37][MAIN] - To Arduino: STRIPTOPOFF
+[2025-05-25 04:43:37][MAIN] - Command AUDIOOFF sent
+[2025-05-25 07:00:25][FLASK] - PING
+[2025-05-25 07:30:00][MAIN] - To Arduino: LIGHTSON
+[2025-05-25 10:33:16][FLASK] - AUDIO: {'audio': 'on'}
+[2025-05-25 10:33:16][MAIN] - To Arduino: AUDIOON/OFF
+[2025-05-25 10:33:17][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-05-25 10:33:17][MAIN] - To Arduino: AUDIOON/OFF
+[2025-05-25 10:33:18][MAIN] - To Arduino: STRIPTOPG4
+[2025-05-25 10:33:18][MAIN] - Command AUDIOON sent
+[2025-05-25 10:33:18][MAIN] - To Arduino: STRIPOFF
+[2025-05-25 10:33:18][MAIN] - To Arduino: STRIPTOPDEF
+[2025-05-25 10:33:19][MAIN] - To Arduino: STRIPON
+[2025-05-25 10:33:19][MAIN] - To Arduino: STRIPG4
+[2025-05-25 10:33:19][MAIN] - Command STRIPTOPG4 sent
+[2025-05-25 10:41:23][FLASK] - Error processing request: 400 Bad Request: The browser (or proxy) sent a request that this server could not understand.
+[2025-05-25 11:24:01][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-25 12:24:16][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-25 13:08:06][FLASK] - PING
+[2025-05-25 13:24:31][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-25 14:24:46][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-25 14:49:29][FLASK] - 57.128.230.106 - - [25/May/2025 14:49:29] code 400, message Bad HTTP/0.9 request type ('\x16\x03\x01\x00{\x01\x00\x00w\x03\x03.\x89,=\x06¨\x9b\x04Âõ\x07Ru¾\xad£\x86¿Ò\x11§¥!=´1\x00-¬f=\x7f\x00\x00\x1aÀ/À+À\x11À\x07À\x13À')
+[2025-05-25 15:25:00][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-25 16:25:16][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-25 16:37:45][FLASK] - 194.0.234.34 - - [25/May/2025 16:37:45] code 400, message Bad HTTP/0.9 request type ('\x03\x00\x00/*à\x00\x00\x00\x00\x00Cookie:')
+[2025-05-25 17:25:30][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-25 18:20:45][FLASK] - PING
+[2025-05-25 18:25:46][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-25 19:26:02][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-25 20:26:20][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-25 21:26:48][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-25 21:59:00][MAIN] - To Arduino: LIGHTSOFF
+[2025-05-25 22:16:56][FLASK] - 194.0.234.34 - - [25/May/2025 22:16:56] code 400, message Bad HTTP/0.9 request type ('\x03\x00\x00/*à\x00\x00\x00\x00\x00Cookie:')
+[2025-05-25 22:27:04][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-25 23:27:19][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-26 00:07:01][FLASK] - STRIP: {'strip': 'i0'}
+[2025-05-26 00:07:01][MAIN] - To Arduino: STRIPOFF
+[2025-05-26 00:07:02][MAIN] - To Arduino: STRIPTOPDEF
+[2025-05-26 00:07:02][MAIN] - To Arduino: STRIPTOPCOLSWITCH
+[2025-05-26 00:07:02][MAIN] - To Arduino: STRIPON
+[2025-05-26 00:07:03][MAIN] - To Arduino: STRIPI1
+[2025-05-26 00:07:03][MAIN] - Command STRIPI0 sent
+[2025-05-26 00:27:34][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-26 01:27:48][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-26 02:07:26][FLASK] - PING
+[2025-05-26 02:12:28][MAIN] - Audio set off automatically
+[2025-05-26 02:12:28][MAIN] - To Arduino: AUDIOON/OFF
+[2025-05-26 02:12:29][MAIN] - To Arduino: AUDIOON/OFF
+[2025-05-26 02:12:32][MAIN] - To Arduino: AUDIOON/OFF
+[2025-05-26 02:12:33][MAIN] - To Arduino: STRIPTOPOFF
+[2025-05-26 02:12:33][MAIN] - Command AUDIOOFF sent
+[2025-05-26 05:40:34][FLASK] - PING
+[2025-05-26 07:30:00][MAIN] - To Arduino: LIGHTSON
+[2025-05-26 08:00:00][MAIN] - ANNOUNCEMENTS
+[2025-05-26 08:00:00][MAIN] - 2025-05-26 08:00:00.156718
+[2025-05-26 08:00:01][MAIN] - Pulling from GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-05-26 08:00:03][MAIN] - Already up to date.
+[2025-05-26 08:00:03][MAIN] - [['Floor']]
+[2025-05-26 08:00:03][MAIN] - [['Bathrooms']]
+[2025-05-26 08:00:03][MAIN] - [['Management']]
+[2025-05-26 08:00:03][MAIN] - [['Kitchen']]
+[2025-05-26 08:00:03][MAIN] - [['Vacation']]
+[2025-05-26 08:00:03][MAIN] - [['Vacation']]
+[2025-05-26 08:00:04][MAIN] - History updated.
+[2025-05-26 08:00:04][MAIN] -           Week      Cesare     Claudio         Jay         Lea        Mara    Natchaya
+[2025-05-26 08:00:04][MAIN] - [96m51  2025-01-27     Kitchen  Management   Bathrooms       Floor    Vacation    Vacation[0m
+[2025-05-26 08:00:04][MAIN] - [96m52  2025-02-03    Vacation     Kitchen       Floor    Vacation   Bathrooms  Management[0m
+[2025-05-26 08:00:04][MAIN] - [96m53  2025-02-10       Floor   Bathrooms    Vacation  Management     Kitchen    Vacation[0m
+[2025-05-26 08:00:04][MAIN] - [96m54  2025-02-17  Management    Vacation     Kitchen   Bathrooms    Vacation       Floor[0m
+[2025-05-26 08:00:04][MAIN] - [96m55  2025-02-24    Vacation  Management   Bathrooms    Vacation       Floor     Kitchen[0m
+[2025-05-26 08:00:04][MAIN] - [96m56  2025-03-03   Bathrooms       Floor    Vacation     Kitchen  Management    Vacation[0m
+[2025-05-26 08:00:04][MAIN] - [96m57  2025-03-10       Floor     Kitchen  Management    Vacation    Vacation   Bathrooms[0m
+[2025-05-26 08:00:04][MAIN] - [96m58  2025-03-17    Vacation    Vacation     Kitchen       Floor   Bathrooms  Management[0m
+[2025-05-26 08:00:04][MAIN] - [96m59  2025-03-24     Kitchen   Bathrooms    Vacation  Management       Floor    Vacation[0m
+[2025-05-26 08:00:04][MAIN] - [96m60  2025-03-31   Bathrooms  Management       Floor    Vacation    Vacation     Kitchen[0m
+[2025-05-26 08:00:04][MAIN] - [96m61  2025-04-07    Vacation    Vacation  Management   Bathrooms     Kitchen       Floor[0m
+[2025-05-26 08:00:04][MAIN] - [96m62  2025-04-14  Management       Floor    Vacation     Kitchen   Bathrooms    Vacation[0m
+[2025-05-26 08:00:04][MAIN] - [96m63  2025-04-21       Floor     Kitchen   Bathrooms    Vacation    Vacation  Management[0m
+[2025-05-26 08:00:04][MAIN] - [96m64  2025-04-28    Vacation    Vacation     Kitchen       Floor  Management   Bathrooms[0m
+[2025-05-26 08:00:04][MAIN] - [96m65  2025-05-05     Kitchen   Bathrooms    Vacation  Management       Floor    Vacation[0m
+[2025-05-26 08:00:04][MAIN] - [96m66  2025-05-12   Bathrooms  Management       Floor    Vacation    Vacation     Kitchen[0m
+[2025-05-26 08:00:04][MAIN] - [38;5;208m67  2025-05-19    Vacation    Vacation  Management   Bathrooms     Kitchen       Floor[0m
+[2025-05-26 08:00:04][MAIN] - [91m68  2025-05-26  Management       Floor   Bathrooms     Kitchen    Vacation    Vacation[0m
+[2025-05-26 08:00:04][MAIN] - [91m69  2025-06-02       Floor     Kitchen    Vacation    Vacation   Bathrooms  Management[0m
+[2025-05-26 08:00:04][MAIN] - [91m70  2025-06-09    Vacation    Vacation     Kitchen       Floor  Management   Bathrooms[0m
+[2025-05-26 08:00:04][MAIN] - [91m71  2025-06-16     Kitchen   Bathrooms       Floor  Management    Vacation    Vacation[0m
+[2025-05-26 08:00:04][MAIN] - [91m72  2025-06-23   Bathrooms  Management    Vacation    Vacation       Floor     Kitchen[0m
+[2025-05-26 08:00:04][MAIN] - [91m73  2025-06-30    Vacation       Floor  Management   Bathrooms     Kitchen    Vacation[0m
+[2025-05-26 08:00:04][MAIN] - [91m74  2025-07-07       Floor    Vacation   Bathrooms     Kitchen  Management    Vacation[0m
+[2025-05-26 08:00:04][MAIN] - [91m75  2025-07-14  Management   Bathrooms     Kitchen       Floor    Vacation    Vacation[0m
+[2025-05-26 08:00:04][MAIN] - [91m76  2025-07-21     Kitchen  Management       Floor    Vacation   Bathrooms    Vacation[0m
+[2025-05-26 08:00:04][MAIN] - [91m77  2025-07-28    Vacation     Kitchen    Vacation   Bathrooms       Floor  Management[0m
+[2025-05-26 08:00:04][MAIN] - Saving at /home/claudio/Python-Projects/RoomServer/wg/data/cleaning_plan_leo6.xlsx
+[2025-05-26 08:00:05][MAIN] - Msg sent to LEO6:
+[2025-05-26 08:00:05][MAIN] - This week (26-05-25):
+
+[2025-05-26 08:00:05][MAIN] - ❗⚠ Manager: Cesare ⚠❗
+
+[2025-05-26 08:00:05][MAIN] - Claudio: Floor 🧹🪣🫧
+
+[2025-05-26 08:00:05][MAIN] - Jay: Bathrooms 🛁🚽🧻🚾
+
+[2025-05-26 08:00:05][MAIN] - Lea: Kitchen 🪑🚰🧴🔪
+
+[2025-05-26 08:00:05][MAIN] - For the others, 💸🧺🍾 !
+
+[2025-05-26 08:00:05][MAIN] - Note: If you want to swap your task with someone else's task, use the SWAP command.
+
+[2025-05-26 08:00:05][MAIN] - You can submit an anonymous complaint for one or more tasks of the previous week by sending a BLAME.
+
+[2025-05-26 08:00:05][MAIN] - Before blaming someone, please warn them first ⚠️ and then wait until Tuesday evening so that the person has time to recover their delayed duty.
+
+[2025-05-26 08:00:05][MAIN] - If a person receives at least 2 blames, they will need to recover the task in the future ☠️.
+
+[2025-05-26 08:00:05][MAIN] - You can also send a message of appreciation 🌟 by sending a PRAISE as well.
+
+[2025-05-26 08:00:05][MAIN] - If you need vacation for a week, you can send book it though BOOK VACATION.
+
+[2025-05-26 08:00:05][MAIN] - Whenever you have a WG expense 💰, use EXPENSE and specify price/reason for it.
+[2025-05-26 08:00:05][MAIN] - Pushing to GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-05-26 08:00:06][MAIN] - [master 36842fb] auto_update
+
+[2025-05-26 08:00:06][MAIN] -  3 files changed, 15 insertions(+)
+[2025-05-26 08:00:06][MAIN] - To github.com:shapelessguy/Python-Projects.git
+
+[2025-05-26 08:00:06][MAIN] -    7dc81f8..36842fb  master -> master
+[2025-05-26 08:00:06][MAIN] - [['Floor']]
+[2025-05-26 08:00:06][MAIN] - Msg sent:
+[2025-05-26 08:00:06][MAIN] - Hello Jay, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-05-26 08:00:06][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-05-26 08:00:06][MAIN] - This week (26/05 - 02/06):  <b>Bathrooms</b> 🛁🚽🧻🚾
+
+[2025-05-26 08:00:06][MAIN] - Next week (02/06 - 09/06):  <b>Vacation</b> 💸🧺🍾
+
+[2025-05-26 08:00:06][MAIN] - Week 09/06 - 16/06:  <b>Kitchen</b> 🪑🚰🧴🔪
+
+[2025-05-26 08:00:06][MAIN] - Week 16/06 - 23/06:  <b>Floor</b> 🧹🪣🫧
+
+[2025-05-26 08:00:06][MAIN] - 👍 Congratulations, you have no complaints for the week 12/05 - 19/05!
+[2025-05-26 08:00:07][MAIN] - [['Bathrooms']]
+[2025-05-26 08:00:07][MAIN] - Msg sent:
+[2025-05-26 08:00:07][MAIN] - Hello Cesare, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-05-26 08:00:07][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-05-26 08:00:07][MAIN] - This week (26/05 - 02/06):  <b>Management</b> 💸🧺🍾
+
+[2025-05-26 08:00:07][MAIN] - Next week (02/06 - 09/06):  <b>Floor</b> 🧹🪣🫧
+
+[2025-05-26 08:00:07][MAIN] - Week 09/06 - 16/06:  <b>Vacation</b> 💸🧺🍾
+
+[2025-05-26 08:00:07][MAIN] - Week 16/06 - 23/06:  <b>Kitchen</b> 🪑🚰🧴🔪
+
+[2025-05-26 08:00:07][MAIN] - 👍 Congratulations, you have no complaints for the week 12/05 - 19/05!
+[2025-05-26 08:00:07][MAIN] - [['Management']]
+[2025-05-26 08:00:07][MAIN] - Msg sent:
+[2025-05-26 08:00:07][MAIN] - Hello Claudio, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-05-26 08:00:07][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-05-26 08:00:07][MAIN] - This week (26/05 - 02/06):  <b>Floor</b> 🧹🪣🫧
+
+[2025-05-26 08:00:07][MAIN] - Next week (02/06 - 09/06):  <b>Kitchen</b> 🪑🚰🧴🔪
+
+[2025-05-26 08:00:07][MAIN] - Week 09/06 - 16/06:  <b>Vacation</b> 💸🧺🍾
+
+[2025-05-26 08:00:07][MAIN] - Week 16/06 - 23/06:  <b>Bathrooms</b> 🛁🚽🧻🚾
+
+[2025-05-26 08:00:07][MAIN] - 👍 Congratulations, you have no complaints for the week 12/05 - 19/05!
+[2025-05-26 08:00:07][MAIN] - [['Kitchen']]
+[2025-05-26 08:00:07][MAIN] - Msg sent:
+[2025-05-26 08:00:07][MAIN] - Hello Natchaya, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-05-26 08:00:07][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-05-26 08:00:07][MAIN] - This week (26/05 - 02/06):  <b>Vacation</b> 💸🧺🍾
+
+[2025-05-26 08:00:07][MAIN] - Next week (02/06 - 09/06):  <b>Management</b> 💸🧺🍾
+
+[2025-05-26 08:00:07][MAIN] - Week 09/06 - 16/06:  <b>Bathrooms</b> 🛁🚽🧻🚾
+
+[2025-05-26 08:00:07][MAIN] - Week 16/06 - 23/06:  <b>Vacation</b> 💸🧺🍾
+
+[2025-05-26 08:00:07][MAIN] - 👍 Congratulations, you have no complaints for the week 12/05 - 19/05!
+[2025-05-26 08:00:07][MAIN] - [['Vacation']]
+[2025-05-26 08:00:07][MAIN] - Msg sent:
+[2025-05-26 08:00:07][MAIN] - Hello Lea, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-05-26 08:00:07][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-05-26 08:00:07][MAIN] - This week (26/05 - 02/06):  <b>Kitchen</b> 🪑🚰🧴🔪
+
+[2025-05-26 08:00:07][MAIN] - Next week (02/06 - 09/06):  <b>Vacation</b> 💸🧺🍾
+
+[2025-05-26 08:00:07][MAIN] - Week 09/06 - 16/06:  <b>Floor</b> 🧹🪣🫧
+
+[2025-05-26 08:00:07][MAIN] - Week 16/06 - 23/06:  <b>Management</b> 💸🧺🍾
+[2025-05-26 08:00:07][MAIN] - [['Vacation']]
+[2025-05-26 08:00:07][MAIN] - Msg sent:
+[2025-05-26 08:00:07][MAIN] - Hello Mara, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-05-26 08:00:07][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-05-26 08:00:07][MAIN] - This week (26/05 - 02/06):  <b>Vacation</b> 💸🧺🍾
+
+[2025-05-26 08:00:07][MAIN] - Next week (02/06 - 09/06):  <b>Bathrooms</b> 🛁🚽🧻🚾
+
+[2025-05-26 08:00:07][MAIN] - Week 09/06 - 16/06:  <b>Management</b> 💸🧺🍾
+
+[2025-05-26 08:00:07][MAIN] - Week 16/06 - 23/06:  <b>Vacation</b> 💸🧺🍾
+[2025-05-26 08:36:49][MAIN] - Serving 6448393940: msg 4747
+[2025-05-26 08:36:51][MAIN] - Serving 6448393940: msg 4749
+[2025-05-26 08:37:06][MAIN] - Serving 6448393940: msg 4751
+[2025-05-26 08:37:10][MAIN] - Serving 6448393940: msg 4752
+[2025-05-26 08:37:15][MAIN] - Serving 6448393940: msg 4752
+[2025-05-26 08:37:17][MAIN] - Serving 6448393940: msg 4752
+[2025-05-26 08:37:17][MAIN] - Serving 6448393940: msg 4752
+[2025-05-26 08:40:26][FLASK] - AUDIO: {'audio': 'on'}
+[2025-05-26 08:40:26][MAIN] - To Arduino: AUDIOON/OFF
+[2025-05-26 08:40:27][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-05-26 08:40:27][MAIN] - To Arduino: AUDIOON/OFF
+[2025-05-26 08:40:28][MAIN] - To Arduino: STRIPTOPG4
+[2025-05-26 08:40:28][MAIN] - Command AUDIOON sent
+[2025-05-26 08:40:28][MAIN] - To Arduino: STRIPOFF
+[2025-05-26 08:40:28][MAIN] - To Arduino: STRIPTOPDEF
+[2025-05-26 08:40:28][MAIN] - To Arduino: STRIPON
+[2025-05-26 08:40:29][MAIN] - To Arduino: STRIPG4
+[2025-05-26 08:40:29][MAIN] - Command STRIPTOPG4 sent
+[2025-05-26 08:59:00][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-26 09:59:14][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-26 10:59:28][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-26 11:59:42][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-26 12:59:55][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-26 14:00:09][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-26 15:00:34][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-26 16:00:48][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-26 17:01:02][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-26 18:01:16][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-26 18:15:31][FLASK] - PING
+[2025-05-26 19:01:31][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-26 20:01:57][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-26 21:02:12][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-26 21:59:00][MAIN] - To Arduino: LIGHTSOFF
+[2025-05-26 22:02:28][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-26 23:02:44][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-26 23:18:54][FLASK] - 185.170.144.3 - - [26/May/2025 23:18:54] code 400, message Bad HTTP/0.9 request type ('\x03\x00\x00/*à\x00\x00\x00\x00\x00Cookie:')
+[2025-05-27 00:02:59][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-27 00:27:00][FLASK] - STRIP: {'strip': 'i0'}
+[2025-05-27 00:27:00][MAIN] - To Arduino: STRIPOFF
+[2025-05-27 00:27:00][MAIN] - To Arduino: STRIPTOPDEF
+[2025-05-27 00:27:01][MAIN] - To Arduino: STRIPTOPCOLSWITCH
+[2025-05-27 00:27:01][MAIN] - To Arduino: STRIPON
+[2025-05-27 00:27:02][MAIN] - To Arduino: STRIPI1
+[2025-05-27 00:27:02][MAIN] - Command STRIPI0 sent
+[2025-05-27 01:03:13][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-27 02:03:26][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-27 03:03:40][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-27 03:09:01][FLASK] - Error processing request: 400 Bad Request: The browser (or proxy) sent a request that this server could not understand.
+[2025-05-27 03:11:51][MAIN] - Audio set off automatically
+[2025-05-27 03:11:51][MAIN] - To Arduino: AUDIOON/OFF
+[2025-05-27 03:11:52][MAIN] - To Arduino: AUDIOON/OFF
+[2025-05-27 03:11:55][MAIN] - To Arduino: AUDIOON/OFF
+[2025-05-27 03:11:56][MAIN] - To Arduino: STRIPTOPOFF
+[2025-05-27 03:11:56][MAIN] - Command AUDIOOFF sent
+[2025-05-27 03:51:17][MAIN] - Issue while trying to upload IP (initialization)
+[2025-05-27 03:51:17][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x7ff61447d720>, 'Connection to api.ipify.org timed out. (connect timeout=None)'))
+[2025-05-27 03:51:55][MAIN] - IP 84.150.97.85 uploaded to:
+[2025-05-27 03:51:55][MAIN] - https://storage.googleapis.com/ip-manager42.appspot.com/RaspberryPi-Cyan/ip_server.txt
+[2025-05-27 03:51:55][FLASK] -  * Serving Flask app 'server'
+[2025-05-27 03:51:55][FLASK] -  * Debug mode: off
+[2025-05-27 03:51:55][FLASK] - Address already in use
+[2025-05-27 03:51:55][FLASK] - Port 10004 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-05-27 03:51:55][WEBSOCKET] -  * Serving Flask app 'websocket_server'
+[2025-05-27 03:51:55][WEBSOCKET] -  * Debug mode: off
+[2025-05-27 03:51:55][WEBSOCKET] - Address already in use
+[2025-05-27 03:51:55][WEBSOCKET] - Port 10003 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-05-27 04:40:28][FLASK] - PING
+[2025-05-27 07:30:00][MAIN] - To Arduino: LIGHTSON
+[2025-05-27 07:54:30][FLASK] - PING
+[2025-05-27 14:29:59][MAIN] - Issue while trying to upload IP (initialization)
+[2025-05-27 14:29:59][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x7ff61447e080>: Failed to establish a new connection: [Errno 101] Network is unreachable'))
+[2025-05-27 14:30:15][MAIN] - Issue while trying to upload IP (initialization)
+[2025-05-27 14:30:15][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x7ff617df2950>: Failed to establish a new connection: [Errno 101] Network is unreachable'))
+[2025-05-27 14:30:30][MAIN] - Issue while trying to upload IP (initialization)
+[2025-05-27 14:30:30][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7ff617df2170>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-05-27 14:30:45][MAIN] - IP 84.150.117.161 uploaded to:
+[2025-05-27 14:30:45][MAIN] - https://storage.googleapis.com/ip-manager42.appspot.com/RaspberryPi-Cyan/ip_server.txt
+[2025-05-27 14:30:45][WEBSOCKET] -  * Serving Flask app 'websocket_server'
+[2025-05-27 14:30:45][WEBSOCKET] -  * Debug mode: off
+[2025-05-27 14:30:45][WEBSOCKET] - Address already in use
+[2025-05-27 14:30:45][WEBSOCKET] - Port 10003 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-05-27 14:30:46][FLASK] -  * Serving Flask app 'server'
+[2025-05-27 14:30:46][FLASK] -  * Debug mode: off
+[2025-05-27 14:30:46][FLASK] - Address already in use
+[2025-05-27 14:30:46][FLASK] - Port 10004 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-05-27 14:31:48][MAIN] - Issue while trying to upload IP (initialization)
+[2025-05-27 14:31:48][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x7ff6144a0580>: Failed to establish a new connection: [Errno 101] Network is unreachable'))
+[2025-05-27 14:32:00][MAIN] - Issue while trying to upload IP (initialization)
+[2025-05-27 14:32:00][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x7ff61447eec0>: Failed to establish a new connection: [Errno 101] Network is unreachable'))
+[2025-05-27 14:32:07][MAIN] - Issue while trying to upload IP
+[2025-05-27 14:32:13][MAIN] - IP 84.150.109.207 uploaded to:
+[2025-05-27 14:32:13][MAIN] - https://storage.googleapis.com/ip-manager42.appspot.com/RaspberryPi-Cyan/ip_server.txt
+[2025-05-27 14:32:13][FLASK] -  * Serving Flask app 'server'
+[2025-05-27 14:32:13][FLASK] -  * Debug mode: off
+[2025-05-27 14:32:13][FLASK] - Address already in use
+[2025-05-27 14:32:13][FLASK] - Port 10004 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-05-27 14:32:14][WEBSOCKET] -  * Serving Flask app 'websocket_server'
+[2025-05-27 14:32:14][WEBSOCKET] -  * Debug mode: off
+[2025-05-27 14:32:14][WEBSOCKET] - Address already in use
+[2025-05-27 14:32:14][WEBSOCKET] - Port 10003 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-05-27 14:45:25][MAIN] - Issue while trying to upload IP (initialization)
+[2025-05-27 14:45:25][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x7ff6142d46a0>: Failed to establish a new connection: [Errno 101] Network is unreachable'))
+[2025-05-27 14:45:33][MAIN] - Issue while trying to upload IP (initialization)
+[2025-05-27 14:45:33][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x7ff6144a13c0>: Failed to establish a new connection: [Errno 101] Network is unreachable'))
+[2025-05-27 14:45:53][MAIN] - Issue while trying to upload IP (initialization)
+[2025-05-27 14:45:53][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7ff6144a34c0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-05-27 14:46:08][MAIN] - Issue while trying to upload IP (initialization)
+[2025-05-27 14:46:08][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7ff6142d44f0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-05-27 14:46:24][MAIN] - IP 84.150.125.103 uploaded to:
+[2025-05-27 14:46:24][MAIN] - https://storage.googleapis.com/ip-manager42.appspot.com/RaspberryPi-Cyan/ip_server.txt
+[2025-05-27 14:46:25][FLASK] -  * Serving Flask app 'server'
+[2025-05-27 14:46:25][FLASK] -  * Debug mode: off
+[2025-05-27 14:46:25][FLASK] - Address already in use
+[2025-05-27 14:46:25][FLASK] - Port 10004 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-05-27 14:46:25][WEBSOCKET] -  * Serving Flask app 'websocket_server'
+[2025-05-27 14:46:25][WEBSOCKET] -  * Debug mode: off
+[2025-05-27 14:46:25][WEBSOCKET] - Address already in use
+[2025-05-27 14:46:25][WEBSOCKET] - Port 10003 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-05-27 14:48:45][MAIN] - Issue while trying to upload IP (initialization)
+[2025-05-27 14:48:45][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7ff6144a0580>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-05-27 14:48:53][MAIN] - Issue while trying to upload IP (initialization)
+[2025-05-27 14:48:53][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x7ff6144a1f60>: Failed to establish a new connection: [Errno 101] Network is unreachable'))
+[2025-05-27 14:49:13][MAIN] - Issue while trying to upload IP (initialization)
+[2025-05-27 14:49:13][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7ff6142d5d50>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-05-27 14:49:21][MAIN] - Issue while trying to upload IP (initialization)
+[2025-05-27 14:49:21][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x7ff614145c60>: Failed to establish a new connection: [Errno 101] Network is unreachable'))
+[2025-05-27 14:49:29][MAIN] - Issue while trying to upload IP (initialization)
+[2025-05-27 14:49:29][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x7ff614146470>: Failed to establish a new connection: [Errno 101] Network is unreachable'))
+[2025-05-27 14:49:40][MAIN] - Issue while trying to upload IP (initialization)
+[2025-05-27 14:49:40][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x7ff614145450>: Failed to establish a new connection: [Errno 101] Network is unreachable'))
+[2025-05-27 14:50:00][MAIN] - Issue while trying to upload IP (initialization)
+[2025-05-27 14:50:00][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7ff614146b60>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-05-27 14:50:08][MAIN] - Issue while trying to upload IP (initialization)
+[2025-05-27 14:50:08][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x7ff614145450>: Failed to establish a new connection: [Errno 101] Network is unreachable'))
+[2025-05-27 14:50:16][MAIN] - Issue while trying to upload IP (initialization)
+[2025-05-27 14:50:16][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x7ff614147ee0>: Failed to establish a new connection: [Errno 101] Network is unreachable'))
+[2025-05-27 14:50:24][MAIN] - Issue while trying to upload IP (initialization)
+[2025-05-27 14:50:24][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x7ff614174760>: Failed to establish a new connection: [Errno 101] Network is unreachable'))
+[2025-05-27 14:50:49][MAIN] - Issue while trying to upload IP (initialization)
+[2025-05-27 14:50:49][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7ff614147b50>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-05-27 14:51:55][MAIN] - Issue while trying to upload IP
+[2025-05-27 14:52:01][MAIN] - IP 84.150.115.163 uploaded to:
+[2025-05-27 14:52:01][MAIN] - https://storage.googleapis.com/ip-manager42.appspot.com/RaspberryPi-Cyan/ip_server.txt
+[2025-05-27 14:52:01][WEBSOCKET] -  * Serving Flask app 'websocket_server'
+[2025-05-27 14:52:01][WEBSOCKET] -  * Debug mode: off
+[2025-05-27 14:52:01][WEBSOCKET] - Address already in use
+[2025-05-27 14:52:02][WEBSOCKET] - Port 10003 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-05-27 14:52:02][FLASK] -  * Serving Flask app 'server'
+[2025-05-27 14:52:02][FLASK] -  * Debug mode: off
+[2025-05-27 14:52:02][FLASK] - Address already in use
+[2025-05-27 14:52:02][FLASK] - Port 10004 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-05-27 14:57:24][MAIN] - IP 84.155.72.26 uploaded to:
+[2025-05-27 14:57:24][MAIN] - https://storage.googleapis.com/ip-manager42.appspot.com/RaspberryPi-Cyan/ip_server.txt
+[2025-05-27 14:57:24][FLASK] -  * Serving Flask app 'server'
+[2025-05-27 14:57:24][FLASK] -  * Debug mode: off
+[2025-05-27 14:57:24][FLASK] - Address already in use
+[2025-05-27 14:57:24][FLASK] - Port 10004 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-05-27 14:57:25][WEBSOCKET] -  * Serving Flask app 'websocket_server'
+[2025-05-27 14:57:25][WEBSOCKET] -  * Debug mode: off
+[2025-05-27 14:57:25][WEBSOCKET] - Address already in use
+[2025-05-27 14:57:25][WEBSOCKET] - Port 10003 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-05-27 15:00:35][MAIN] - Issue while trying to upload IP (initialization)
+[2025-05-27 15:00:35][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7ff6142d54b0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-05-27 15:00:55][MAIN] - Issue while trying to upload IP (initialization)
+[2025-05-27 15:00:55][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7ff614147640>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-05-27 15:01:10][MAIN] - Issue while trying to upload IP (initialization)
+[2025-05-27 15:01:10][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7ff6142d7280>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-05-27 15:01:36][MAIN] - Issue while trying to upload IP (initialization)
+[2025-05-27 15:01:36][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7ff6142d77f0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-05-27 15:02:01][MAIN] - Issue while trying to upload IP (initialization)
+[2025-05-27 15:02:01][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7ff61445ee90>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-05-27 15:02:21][MAIN] - Issue while trying to upload IP (initialization)
+[2025-05-27 15:02:21][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7ff61445f670>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-05-27 15:02:46][MAIN] - Issue while trying to upload IP (initialization)
+[2025-05-27 15:02:46][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7ff6142d45b0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-05-27 15:03:11][MAIN] - Issue while trying to upload IP (initialization)
+[2025-05-27 15:03:11][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7ff617df23e0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-05-27 15:03:36][MAIN] - Issue while trying to upload IP (initialization)
+[2025-05-27 15:03:36][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7ff61447e8c0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-05-27 15:04:01][MAIN] - Issue while trying to upload IP (initialization)
+[2025-05-27 15:04:01][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7ff6142d5330>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-05-27 15:04:17][MAIN] - Issue while trying to upload IP (initialization)
+[2025-05-27 15:04:17][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7ff61447d270>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-05-27 15:04:37][MAIN] - Issue while trying to upload IP (initialization)
+[2025-05-27 15:04:37][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7ff6144a3220>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-05-27 15:05:02][MAIN] - Issue while trying to upload IP (initialization)
+[2025-05-27 15:05:02][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7ff6144a32e0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-05-27 15:05:17][MAIN] - Issue while trying to upload IP (initialization)
+[2025-05-27 15:05:17][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7ff6142d5e10>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-05-27 15:05:42][MAIN] - Issue while trying to upload IP (initialization)
+[2025-05-27 15:05:42][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7ff6144a25f0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-05-27 15:05:57][MAIN] - Issue while trying to upload IP (initialization)
+[2025-05-27 15:05:57][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7ff6144a2ec0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-05-27 15:07:07][MAIN] - Issue while trying to upload IP
+[2025-05-27 15:07:13][MAIN] - IP 84.150.113.149 uploaded to:
+[2025-05-27 15:07:13][MAIN] - https://storage.googleapis.com/ip-manager42.appspot.com/RaspberryPi-Cyan/ip_server.txt
+[2025-05-27 15:07:13][FLASK] -  * Serving Flask app 'server'
+[2025-05-27 15:07:13][FLASK] -  * Debug mode: off
+[2025-05-27 15:07:13][FLASK] - Address already in use
+[2025-05-27 15:07:13][FLASK] - Port 10004 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-05-27 15:07:13][WEBSOCKET] -  * Serving Flask app 'websocket_server'
+[2025-05-27 15:07:13][WEBSOCKET] -  * Debug mode: off
+[2025-05-27 15:07:13][WEBSOCKET] - Address already in use
+[2025-05-27 15:07:13][WEBSOCKET] - Port 10003 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-05-27 19:52:40][MAIN] - Serving 133279076: msg 4754
+[2025-05-27 19:52:43][MAIN] - Serving 133279076: msg 4756
+[2025-05-27 19:53:11][MAIN] - Serving 133279076: msg 4758
+[2025-05-27 21:59:00][MAIN] - To Arduino: LIGHTSOFF
+[2025-05-28 07:30:00][MAIN] - To Arduino: LIGHTSON
+[2025-05-28 08:53:32][MAIN] - Audio set on automatically
+[2025-05-28 08:53:32][MAIN] - To Arduino: AUDIOON/OFF
+[2025-05-28 08:53:33][MAIN] - To Arduino: AUDIOON/OFF
+[2025-05-28 08:53:33][MAIN] - To Arduino: STRIPTOPG4
+[2025-05-28 08:53:33][MAIN] - Command AUDIOON sent
+[2025-05-28 09:48:25][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-28 10:28:49][WEBSOCKET] - 185.170.144.3 - - [28/May/2025 10:28:49] code 400, message Bad HTTP/0.9 request type ('\x03\x00\x00/*à\x00\x00\x00\x00\x00Cookie:')
+[2025-05-28 10:48:39][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-28 11:48:54][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-28 12:49:09][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-28 13:49:24][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-28 14:49:40][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-28 15:49:57][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-28 16:50:13][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-28 17:50:40][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-28 18:50:56][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-28 19:51:12][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-28 20:27:57][MAIN] - Serving 7129379343: msg 4761
+[2025-05-28 20:28:07][MAIN] - Serving 7129379343: msg 4763
+[2025-05-28 20:28:14][MAIN] - Serving 7129379343: msg 4765
+[2025-05-28 20:28:25][MAIN] - Serving 7129379343: msg 4767
+[2025-05-28 20:51:28][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-28 21:37:16][FLASK] - 47.254.245.119 - - [28/May/2025 21:37:16] code 400, message Bad request version ('À\x13À')
+[2025-05-28 21:37:26][FLASK] - PING
+[2025-05-28 21:38:09][FLASK] - PING
+[2025-05-28 21:51:45][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-28 21:59:00][MAIN] - To Arduino: LIGHTSOFF
+[2025-05-28 22:18:47][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-05-28 22:18:48][MAIN] - To Arduino: STRIPOFF
+[2025-05-28 22:18:48][MAIN] - To Arduino: STRIPTOPDEF
+[2025-05-28 22:18:48][MAIN] - To Arduino: STRIPON
+[2025-05-28 22:18:48][MAIN] - To Arduino: STRIPG4
+[2025-05-28 22:18:48][MAIN] - Command STRIPTOPG4 sent
+[2025-05-28 22:52:04][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-28 23:42:58][FLASK] - STRIP: {'strip': 'i0'}
+[2025-05-28 23:42:58][MAIN] - To Arduino: STRIPOFF
+[2025-05-28 23:42:58][MAIN] - To Arduino: STRIPTOPDEF
+[2025-05-28 23:42:59][MAIN] - To Arduino: STRIPTOPCOLSWITCH
+[2025-05-28 23:42:59][MAIN] - To Arduino: STRIPON
+[2025-05-28 23:43:00][MAIN] - To Arduino: STRIPI1
+[2025-05-28 23:43:00][MAIN] - Command STRIPI0 sent
+[2025-05-28 23:52:21][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-29 00:52:37][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-29 01:52:52][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-29 02:04:55][MAIN] - Audio set off automatically
+[2025-05-29 02:04:55][MAIN] - To Arduino: AUDIOON/OFF
+[2025-05-29 02:04:56][MAIN] - To Arduino: AUDIOON/OFF
+[2025-05-29 02:04:59][MAIN] - To Arduino: AUDIOON/OFF
+[2025-05-29 02:04:59][MAIN] - To Arduino: STRIPTOPOFF
+[2025-05-29 02:04:59][MAIN] - Command AUDIOOFF sent
+[2025-05-29 07:30:00][MAIN] - To Arduino: LIGHTSON
+[2025-05-29 08:56:45][FLASK] - AUDIO: {'audio': 'on'}
+[2025-05-29 08:56:45][MAIN] - To Arduino: AUDIOON/OFF
+[2025-05-29 08:56:46][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-05-29 08:56:46][MAIN] - To Arduino: AUDIOON/OFF
+[2025-05-29 08:56:47][MAIN] - To Arduino: STRIPTOPG4
+[2025-05-29 08:56:47][MAIN] - Command AUDIOON sent
+[2025-05-29 08:56:47][MAIN] - To Arduino: STRIPOFF
+[2025-05-29 08:56:47][MAIN] - To Arduino: STRIPTOPDEF
+[2025-05-29 08:56:47][MAIN] - To Arduino: STRIPON
+[2025-05-29 08:56:47][MAIN] - To Arduino: STRIPG4
+[2025-05-29 08:56:47][MAIN] - Command STRIPTOPG4 sent
+[2025-05-29 09:00:05][FLASK] - PING
+[2025-05-29 09:47:57][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-29 10:33:12][WEBSOCKET] - 185.170.144.3 - - [29/May/2025 10:33:12] code 400, message Bad HTTP/0.9 request type ('\x03\x00\x00/*à\x00\x00\x00\x00\x00Cookie:')
+[2025-05-29 10:48:22][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-29 11:19:37][FLASK] - 185.170.144.3 - - [29/May/2025 11:19:37] code 400, message Bad HTTP/0.9 request type ('\x03\x00\x00/*à\x00\x00\x00\x00\x00Cookie:')
+[2025-05-29 11:48:37][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-29 11:59:12][WEBSOCKET] - 195.184.76.23 - - [29/May/2025 11:59:12] code 400, message Bad request syntax ('\x16\x03\x03\x01§\x01\x00\x01£\x03\x033j#»\x81í=Ù°L1g5ãÛØü?ÑûÓv(\x9f')
+[2025-05-29 12:48:51][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-29 13:49:05][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-29 14:49:20][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-29 15:49:34][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-29 16:49:49][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-29 17:50:04][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-29 18:50:20][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-29 18:55:08][FLASK] - PING
+[2025-05-29 19:50:36][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-29 20:50:53][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-29 21:51:09][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-29 21:59:00][MAIN] - To Arduino: LIGHTSOFF
+[2025-05-29 22:51:25][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-29 23:51:41][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-30 00:51:58][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-30 01:27:05][FLASK] - STRIP: {'strip': 'i0'}
+[2025-05-30 01:27:05][MAIN] - To Arduino: STRIPOFF
+[2025-05-30 01:27:06][MAIN] - To Arduino: STRIPTOPDEF
+[2025-05-30 01:27:06][MAIN] - To Arduino: STRIPTOPCOLSWITCH
+[2025-05-30 01:27:06][MAIN] - To Arduino: STRIPON
+[2025-05-30 01:27:07][MAIN] - To Arduino: STRIPI1
+[2025-05-30 01:27:07][MAIN] - Command STRIPI0 sent
+[2025-05-30 01:52:12][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-30 02:52:26][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-30 03:31:34][MAIN] - Audio set off automatically
+[2025-05-30 03:31:34][MAIN] - To Arduino: AUDIOON/OFF
+[2025-05-30 03:31:35][MAIN] - To Arduino: AUDIOON/OFF
+[2025-05-30 03:31:38][MAIN] - To Arduino: AUDIOON/OFF
+[2025-05-30 03:31:39][MAIN] - To Arduino: STRIPTOPOFF
+[2025-05-30 03:31:39][MAIN] - Command AUDIOOFF sent
+[2025-05-30 05:01:31][FLASK] - PING
+[2025-05-30 07:30:00][MAIN] - To Arduino: LIGHTSON
+[2025-05-30 10:41:37][WEBSOCKET] - 8.221.138.135 - - [30/May/2025 10:41:37] code 400, message Bad request version ('À\x13À')
+[2025-05-30 11:00:46][WEBSOCKET] - 195.184.76.111 - - [30/May/2025 11:00:46] code 400, message Bad request version ('À#À¬À®À+À')
+[2025-05-30 12:17:56][FLASK] - AUDIO: {'audio': 'on'}
+[2025-05-30 12:17:56][MAIN] - To Arduino: AUDIOON/OFF
+[2025-05-30 12:17:56][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-05-30 12:17:57][MAIN] - To Arduino: AUDIOON/OFF
+[2025-05-30 12:17:57][MAIN] - To Arduino: STRIPTOPG4
+[2025-05-30 12:17:57][MAIN] - Command AUDIOON sent
+[2025-05-30 12:17:57][MAIN] - To Arduino: STRIPOFF
+[2025-05-30 12:17:58][MAIN] - To Arduino: STRIPTOPDEF
+[2025-05-30 12:17:58][MAIN] - To Arduino: STRIPON
+[2025-05-30 12:17:58][MAIN] - To Arduino: STRIPG4
+[2025-05-30 12:17:58][MAIN] - Command STRIPTOPG4 sent
+[2025-05-30 12:42:01][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-30 13:42:15][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-30 14:42:29][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-30 15:42:44][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-30 16:42:57][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-30 17:43:11][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-30 18:43:26][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-30 19:07:15][FLASK] - PING
+[2025-05-30 19:43:42][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-30 20:44:09][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-30 21:44:28][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-30 21:59:00][MAIN] - To Arduino: LIGHTSOFF
+[2025-05-30 22:44:46][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-30 23:45:05][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-31 00:45:21][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-31 01:45:37][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-31 02:30:22][FLASK] - STRIP: {'strip': 'i0'}
+[2025-05-31 02:30:22][MAIN] - To Arduino: STRIPOFF
+[2025-05-31 02:30:22][MAIN] - To Arduino: STRIPTOPDEF
+[2025-05-31 02:30:23][MAIN] - To Arduino: STRIPTOPCOLSWITCH
+[2025-05-31 02:30:23][MAIN] - To Arduino: STRIPON
+[2025-05-31 02:30:24][MAIN] - To Arduino: STRIPI1
+[2025-05-31 02:30:24][MAIN] - Command STRIPI0 sent
+[2025-05-31 02:45:53][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-31 03:46:08][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-31 04:35:50][MAIN] - Audio set off automatically
+[2025-05-31 04:35:50][MAIN] - To Arduino: AUDIOON/OFF
+[2025-05-31 04:35:51][MAIN] - To Arduino: AUDIOON/OFF
+[2025-05-31 04:35:54][MAIN] - To Arduino: AUDIOON/OFF
+[2025-05-31 04:35:54][MAIN] - To Arduino: STRIPTOPOFF
+[2025-05-31 04:35:54][MAIN] - Command AUDIOOFF sent
+[2025-05-31 05:50:39][FLASK] - PING
+[2025-05-31 07:30:00][MAIN] - To Arduino: LIGHTSON
+[2025-05-31 11:11:18][FLASK] - AUDIO: {'audio': 'on'}
+[2025-05-31 11:11:18][MAIN] - To Arduino: AUDIOON/OFF
+[2025-05-31 11:11:19][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-05-31 11:11:19][MAIN] - To Arduino: AUDIOON/OFF
+[2025-05-31 11:11:20][MAIN] - To Arduino: STRIPTOPG4
+[2025-05-31 11:11:20][MAIN] - Command AUDIOON sent
+[2025-05-31 11:11:20][MAIN] - To Arduino: STRIPOFF
+[2025-05-31 11:11:21][MAIN] - To Arduino: STRIPTOPDEF
+[2025-05-31 11:11:21][MAIN] - To Arduino: STRIPON
+[2025-05-31 11:11:21][MAIN] - To Arduino: STRIPG4
+[2025-05-31 11:11:21][MAIN] - Command STRIPTOPG4 sent
+[2025-05-31 11:24:52][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-31 12:25:06][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-31 12:45:10][MAIN] - Serving 7129379343: msg 4769
+[2025-05-31 12:45:16][MAIN] - Serving 7129379343: msg 4771
+[2025-05-31 12:45:19][MAIN] - Serving 7129379343: msg 4773
+[2025-05-31 13:12:16][MAIN] - Serving 7129379343: msg 4775
+[2025-05-31 13:12:20][MAIN] - Serving 7129379343: msg 4777
+[2025-05-31 13:12:20][MAIN] - Serving 7129379343: msg 4777
+[2025-05-31 13:12:20][MAIN] - Serving 7129379343: msg 4777
+[2025-05-31 13:25:32][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-31 14:25:47][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-31 15:26:03][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-31 16:27:22][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-31 16:42:37][FLASK] - PING
+[2025-05-31 17:27:59][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-31 18:28:46][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-31 19:29:02][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-31 20:29:30][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-31 21:29:46][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-31 21:43:46][FLASK] - 91.231.89.212 - - [31/May/2025 21:43:46] code 400, message Bad request version ('À#À¬À®À+À')
+[2025-05-31 21:43:54][FLASK] - PING
+[2025-05-31 21:59:00][MAIN] - To Arduino: LIGHTSOFF
+[2025-05-31 22:30:04][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-05-31 23:30:21][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-01 00:30:36][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-01 00:45:39][FLASK] - STRIP: {'strip': 'i0'}
+[2025-06-01 00:45:39][MAIN] - To Arduino: STRIPOFF
+[2025-06-01 00:45:39][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-01 00:45:40][MAIN] - To Arduino: STRIPTOPCOLSWITCH
+[2025-06-01 00:45:40][MAIN] - To Arduino: STRIPON
+[2025-06-01 00:45:41][MAIN] - To Arduino: STRIPI1
+[2025-06-01 00:45:41][MAIN] - Command STRIPI0 sent
+[2025-06-01 01:31:03][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-01 02:31:18][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-01 03:31:34][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-01 04:31:49][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-01 04:46:52][MAIN] - Audio set off automatically
+[2025-06-01 04:46:52][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-01 04:46:53][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-01 04:46:56][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-01 04:46:57][MAIN] - To Arduino: STRIPTOPOFF
+[2025-06-01 04:46:57][MAIN] - Command AUDIOOFF sent
+[2025-06-01 05:39:57][FLASK] - PING
+[2025-06-01 06:54:13][WEBSOCKET] - 185.242.226.45 - - [01/Jun/2025 06:54:13] code 400, message Bad request version ('À\x14À')
+[2025-06-01 07:30:00][MAIN] - To Arduino: LIGHTSON
+[2025-06-01 07:33:23][FLASK] - 91.196.152.92 - - [01/Jun/2025 07:33:23] code 400, message Bad request version ('À#À¬À®À+À')
+[2025-06-01 07:33:27][FLASK] - PING
+[2025-06-01 10:13:44][FLASK] - AUDIO: {'audio': 'on'}
+[2025-06-01 10:13:44][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-01 10:13:45][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-06-01 10:13:45][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-01 10:13:46][MAIN] - To Arduino: STRIPTOPG4
+[2025-06-01 10:13:46][MAIN] - Command AUDIOON sent
+[2025-06-01 10:13:46][MAIN] - To Arduino: STRIPOFF
+[2025-06-01 10:13:47][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-01 10:13:47][MAIN] - To Arduino: STRIPON
+[2025-06-01 10:13:47][MAIN] - To Arduino: STRIPG4
+[2025-06-01 10:13:47][MAIN] - Command STRIPTOPG4 sent
+[2025-06-01 10:16:45][MAIN] - Audio set off automatically
+[2025-06-01 10:16:45][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-01 10:16:46][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-01 10:16:49][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-01 10:16:49][MAIN] - To Arduino: STRIPTOPOFF
+[2025-06-01 10:16:49][MAIN] - Command AUDIOOFF sent
+[2025-06-01 10:17:36][MAIN] - Audio set on automatically
+[2025-06-01 10:17:36][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-01 10:17:37][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-01 10:17:38][MAIN] - To Arduino: STRIPTOPG4
+[2025-06-01 10:17:38][MAIN] - Command AUDIOON sent
+[2025-06-01 11:05:36][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-01 12:05:50][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-01 13:06:04][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-01 14:06:30][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-01 15:07:07][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-01 16:07:22][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-01 17:07:48][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-01 18:04:56][MAIN] - Serving 7129379343: msg 4779
+[2025-06-01 18:04:58][MAIN] - Serving 7129379343: msg 4781
+[2025-06-01 18:05:23][MAIN] - Serving 7129379343: msg 4783
+[2025-06-01 18:08:05][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-01 18:13:29][FLASK] - PING
+[2025-06-01 19:08:43][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-01 20:09:12][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-01 21:09:39][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-01 21:59:00][MAIN] - To Arduino: LIGHTSOFF
+[2025-06-01 22:10:09][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-01 23:10:26][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-01 23:59:04][FLASK] - STRIP: {'strip': 'i0'}
+[2025-06-01 23:59:04][MAIN] - To Arduino: STRIPOFF
+[2025-06-01 23:59:04][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-01 23:59:05][MAIN] - To Arduino: STRIPTOPCOLSWITCH
+[2025-06-01 23:59:05][MAIN] - To Arduino: STRIPON
+[2025-06-01 23:59:06][MAIN] - To Arduino: STRIPI1
+[2025-06-01 23:59:06][MAIN] - Command STRIPI0 sent
+[2025-06-02 00:10:43][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-02 01:11:02][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-02 02:11:19][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-02 02:23:21][MAIN] - Audio set off automatically
+[2025-06-02 02:23:21][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-02 02:23:22][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-02 02:23:25][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-02 02:23:26][MAIN] - To Arduino: STRIPTOPOFF
+[2025-06-02 02:23:26][MAIN] - Command AUDIOOFF sent
+[2025-06-02 07:20:08][WEBSOCKET] - 46.105.70.190 - - [02/Jun/2025 07:20:08] code 400, message Bad HTTP/0.9 request type ('\x16\x03\x01\x00{\x01\x00\x00w\x03\x03\x13[\x1b')
+[2025-06-02 07:30:00][MAIN] - To Arduino: LIGHTSON
+[2025-06-02 07:35:15][FLASK] - PING
+[2025-06-02 08:00:00][MAIN] - ANNOUNCEMENTS
+[2025-06-02 08:00:00][MAIN] - 2025-06-02 08:00:00.290212
+[2025-06-02 08:00:01][MAIN] - Pulling from GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-06-02 08:00:04][MAIN] - Already up to date.
+[2025-06-02 08:00:04][MAIN] - [['Management']]
+[2025-06-02 08:00:04][MAIN] - [['Vacation']]
+[2025-06-02 08:00:04][MAIN] - [['Vacation']]
+[2025-06-02 08:00:04][MAIN] - [['Floor']]
+[2025-06-02 08:00:04][MAIN] - [['Bathrooms']]
+[2025-06-02 08:00:04][MAIN] - [['Kitchen']]
+[2025-06-02 08:00:05][MAIN] - History updated.
+[2025-06-02 08:00:05][MAIN] -           Week      Cesare     Claudio         Jay         Lea        Mara    Natchaya
+[2025-06-02 08:00:05][MAIN] - [96m51  2025-01-27     Kitchen  Management   Bathrooms       Floor    Vacation    Vacation[0m
+[2025-06-02 08:00:05][MAIN] - [96m52  2025-02-03    Vacation     Kitchen       Floor    Vacation   Bathrooms  Management[0m
+[2025-06-02 08:00:05][MAIN] - [96m53  2025-02-10       Floor   Bathrooms    Vacation  Management     Kitchen    Vacation[0m
+[2025-06-02 08:00:05][MAIN] - [96m54  2025-02-17  Management    Vacation     Kitchen   Bathrooms    Vacation       Floor[0m
+[2025-06-02 08:00:05][MAIN] - [96m55  2025-02-24    Vacation  Management   Bathrooms    Vacation       Floor     Kitchen[0m
+[2025-06-02 08:00:05][MAIN] - [96m56  2025-03-03   Bathrooms       Floor    Vacation     Kitchen  Management    Vacation[0m
+[2025-06-02 08:00:05][MAIN] - [96m57  2025-03-10       Floor     Kitchen  Management    Vacation    Vacation   Bathrooms[0m
+[2025-06-02 08:00:05][MAIN] - [96m58  2025-03-17    Vacation    Vacation     Kitchen       Floor   Bathrooms  Management[0m
+[2025-06-02 08:00:05][MAIN] - [96m59  2025-03-24     Kitchen   Bathrooms    Vacation  Management       Floor    Vacation[0m
+[2025-06-02 08:00:05][MAIN] - [96m60  2025-03-31   Bathrooms  Management       Floor    Vacation    Vacation     Kitchen[0m
+[2025-06-02 08:00:05][MAIN] - [96m61  2025-04-07    Vacation    Vacation  Management   Bathrooms     Kitchen       Floor[0m
+[2025-06-02 08:00:05][MAIN] - [96m62  2025-04-14  Management       Floor    Vacation     Kitchen   Bathrooms    Vacation[0m
+[2025-06-02 08:00:05][MAIN] - [96m63  2025-04-21       Floor     Kitchen   Bathrooms    Vacation    Vacation  Management[0m
+[2025-06-02 08:00:05][MAIN] - [96m64  2025-04-28    Vacation    Vacation     Kitchen       Floor  Management   Bathrooms[0m
+[2025-06-02 08:00:05][MAIN] - [96m65  2025-05-05     Kitchen   Bathrooms    Vacation  Management       Floor    Vacation[0m
+[2025-06-02 08:00:05][MAIN] - [96m66  2025-05-12   Bathrooms  Management       Floor    Vacation    Vacation     Kitchen[0m
+[2025-06-02 08:00:05][MAIN] - [38;5;208m67  2025-05-19    Vacation    Vacation  Management   Bathrooms     Kitchen       Floor[0m
+[2025-06-02 08:00:05][MAIN] - [91m68  2025-05-26  Management       Floor   Bathrooms     Kitchen    Vacation    Vacation[0m
+[2025-06-02 08:00:05][MAIN] - [91m69  2025-06-02       Floor     Kitchen  Management    Vacation   Bathrooms    Vacation[0m
+[2025-06-02 08:00:05][MAIN] - [91m70  2025-06-09     Kitchen    Vacation    Vacation       Floor  Management   Bathrooms[0m
+[2025-06-02 08:00:05][MAIN] - [91m71  2025-06-16    Vacation   Bathrooms       Floor  Management    Vacation     Kitchen[0m
+[2025-06-02 08:00:05][MAIN] - [91m72  2025-06-23   Bathrooms  Management     Kitchen    Vacation       Floor    Vacation[0m
+[2025-06-02 08:00:05][MAIN] - [91m73  2025-06-30  Management       Floor    Vacation   Bathrooms     Kitchen    Vacation[0m
+[2025-06-02 08:00:05][MAIN] - [91m74  2025-07-07       Floor    Vacation   Bathrooms     Kitchen  Management    Vacation[0m
+[2025-06-02 08:00:05][MAIN] - [91m75  2025-07-14    Vacation     Kitchen  Management       Floor   Bathrooms    Vacation[0m
+[2025-06-02 08:00:05][MAIN] - [91m76  2025-07-21     Kitchen   Bathrooms       Floor  Management    Vacation    Vacation[0m
+[2025-06-02 08:00:05][MAIN] - [91m77  2025-07-28   Bathrooms    Vacation     Kitchen    Vacation       Floor  Management[0m
+[2025-06-02 08:00:05][MAIN] - Saving at /home/claudio/Python-Projects/RoomServer/wg/data/cleaning_plan_leo6.xlsx
+[2025-06-02 08:00:06][MAIN] - Msg sent to LEO6:
+[2025-06-02 08:00:06][MAIN] - This week (02-06-25):
+
+[2025-06-02 08:00:06][MAIN] - ❗⚠ Manager: Jay ⚠❗
+
+[2025-06-02 08:00:06][MAIN] - Cesare: Floor 🧹🪣🫧
+
+[2025-06-02 08:00:06][MAIN] - Claudio: Kitchen 🪑🚰🧴🔪
+
+[2025-06-02 08:00:06][MAIN] - Mara: Bathrooms 🛁🚽🧻🚾
+
+[2025-06-02 08:00:06][MAIN] - For the others, 💸🧺🍾 !
+
+[2025-06-02 08:00:06][MAIN] - Note: If you want to swap your task with someone else's task, use the SWAP command.
+
+[2025-06-02 08:00:06][MAIN] - You can submit an anonymous complaint for one or more tasks of the previous week by sending a BLAME.
+
+[2025-06-02 08:00:06][MAIN] - Before blaming someone, please warn them first ⚠️ and then wait until Tuesday evening so that the person has time to recover their delayed duty.
+
+[2025-06-02 08:00:06][MAIN] - If a person receives at least 2 blames, they will need to recover the task in the future ☠️.
+
+[2025-06-02 08:00:06][MAIN] - You can also send a message of appreciation 🌟 by sending a PRAISE as well.
+
+[2025-06-02 08:00:06][MAIN] - If you need vacation for a week, you can send book it though BOOK VACATION.
+
+[2025-06-02 08:00:06][MAIN] - Whenever you have a WG expense 💰, use EXPENSE and specify price/reason for it.
+[2025-06-02 08:00:06][MAIN] - Pushing to GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-06-02 08:00:08][MAIN] - [master b67b83f] auto_update
+
+[2025-06-02 08:00:08][MAIN] -  4 files changed, 36 insertions(+)
+[2025-06-02 08:00:08][MAIN] - To github.com:shapelessguy/Python-Projects.git
+
+[2025-06-02 08:00:08][MAIN] -    36842fb..b67b83f  master -> master
+[2025-06-02 08:00:08][MAIN] - [['Management']]
+[2025-06-02 08:00:08][MAIN] - Msg sent:
+[2025-06-02 08:00:08][MAIN] - Hello Jay, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-06-02 08:00:08][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-06-02 08:00:08][MAIN] - This week (02/06 - 09/06):  <b>Management</b> 💸🧺🍾
+
+[2025-06-02 08:00:08][MAIN] - Next week (09/06 - 16/06):  <b>Vacation</b> 💸🧺🍾
+
+[2025-06-02 08:00:08][MAIN] - Week 16/06 - 23/06:  <b>Floor</b> 🧹🪣🫧
+
+[2025-06-02 08:00:08][MAIN] - Week 23/06 - 30/06:  <b>Kitchen</b> 🪑🚰🧴🔪
+
+[2025-06-02 08:00:08][MAIN] - 👍 Congratulations, you have no complaints for the week 19/05 - 26/05!
+[2025-06-02 08:00:08][MAIN] - [['Vacation']]
+[2025-06-02 08:00:08][MAIN] - Msg sent:
+[2025-06-02 08:00:08][MAIN] - Hello Cesare, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-06-02 08:00:08][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-06-02 08:00:08][MAIN] - This week (02/06 - 09/06):  <b>Floor</b> 🧹🪣🫧
+
+[2025-06-02 08:00:08][MAIN] - Next week (09/06 - 16/06):  <b>Kitchen</b> 🪑🚰🧴🔪
+
+[2025-06-02 08:00:08][MAIN] - Week 16/06 - 23/06:  <b>Vacation</b> 💸🧺🍾
+
+[2025-06-02 08:00:08][MAIN] - Week 23/06 - 30/06:  <b>Bathrooms</b> 🛁🚽🧻🚾
+[2025-06-02 08:00:08][MAIN] - [['Vacation']]
+[2025-06-02 08:00:08][MAIN] - Msg sent:
+[2025-06-02 08:00:08][MAIN] - Hello Claudio, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-06-02 08:00:08][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-06-02 08:00:08][MAIN] - This week (02/06 - 09/06):  <b>Kitchen</b> 🪑🚰🧴🔪
+
+[2025-06-02 08:00:08][MAIN] - Next week (09/06 - 16/06):  <b>Vacation</b> 💸🧺🍾
+
+[2025-06-02 08:00:08][MAIN] - Week 16/06 - 23/06:  <b>Bathrooms</b> 🛁🚽🧻🚾
+
+[2025-06-02 08:00:08][MAIN] - Week 23/06 - 30/06:  <b>Management</b> 💸🧺🍾
+[2025-06-02 08:00:08][MAIN] - [['Floor']]
+[2025-06-02 08:00:08][MAIN] - Msg sent:
+[2025-06-02 08:00:08][MAIN] - Hello Natchaya, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-06-02 08:00:08][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-06-02 08:00:08][MAIN] - This week (02/06 - 09/06):  <b>Vacation</b> 💸🧺🍾
+
+[2025-06-02 08:00:08][MAIN] - Next week (09/06 - 16/06):  <b>Bathrooms</b> 🛁🚽🧻🚾
+
+[2025-06-02 08:00:08][MAIN] - Week 16/06 - 23/06:  <b>Kitchen</b> 🪑🚰🧴🔪
+
+[2025-06-02 08:00:08][MAIN] - Week 23/06 - 30/06:  <b>Vacation</b> 💸🧺🍾
+
+[2025-06-02 08:00:08][MAIN] - 👍 Congratulations, you have no complaints for the week 19/05 - 26/05!
+[2025-06-02 08:00:08][MAIN] - [['Bathrooms']]
+[2025-06-02 08:00:08][MAIN] - Msg sent:
+[2025-06-02 08:00:08][MAIN] - Hello Lea, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-06-02 08:00:08][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-06-02 08:00:08][MAIN] - This week (02/06 - 09/06):  <b>Vacation</b> 💸🧺🍾
+
+[2025-06-02 08:00:08][MAIN] - Next week (09/06 - 16/06):  <b>Floor</b> 🧹🪣🫧
+
+[2025-06-02 08:00:08][MAIN] - Week 16/06 - 23/06:  <b>Management</b> 💸🧺🍾
+
+[2025-06-02 08:00:08][MAIN] - Week 23/06 - 30/06:  <b>Vacation</b> 💸🧺🍾
+
+[2025-06-02 08:00:08][MAIN] - 👍 Congratulations, you have no complaints for the week 19/05 - 26/05!
+[2025-06-02 08:00:08][MAIN] - [['Kitchen']]
+[2025-06-02 08:00:08][MAIN] - Msg sent:
+[2025-06-02 08:00:08][MAIN] - Hello Mara, this is the schedule for the next weeks, waiting for you! 🤩
+
+[2025-06-02 08:00:08][MAIN] - Keep in mind that this is just a preview on your next activities.. things may change!
+
+[2025-06-02 08:00:08][MAIN] - This week (02/06 - 09/06):  <b>Bathrooms</b> 🛁🚽🧻🚾
+
+[2025-06-02 08:00:08][MAIN] - Next week (09/06 - 16/06):  <b>Management</b> 💸🧺🍾
+
+[2025-06-02 08:00:08][MAIN] - Week 16/06 - 23/06:  <b>Vacation</b> 💸🧺🍾
+
+[2025-06-02 08:00:08][MAIN] - Week 23/06 - 30/06:  <b>Floor</b> 🧹🪣🫧
+
+[2025-06-02 08:00:08][MAIN] - 👍 Congratulations, you have no complaints for the week 19/05 - 26/05!
+[2025-06-02 08:00:42][MAIN] - Serving 7129379343: msg 4793
+[2025-06-02 08:00:44][MAIN] - Serving 7129379343: msg 4795
+[2025-06-02 08:00:55][MAIN] - Serving 7129379343: msg 4797
+[2025-06-02 08:00:57][MAIN] - Serving 7129379343: msg 4799
+[2025-06-02 09:02:13][FLASK] - AUDIO: {'audio': 'on'}
+[2025-06-02 09:02:13][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-02 09:02:14][FLASK] - STRIP: {'strip': 'topG4'}
+[2025-06-02 09:02:14][MAIN] - To Arduino: AUDIOON/OFF
+[2025-06-02 09:02:15][MAIN] - To Arduino: STRIPTOPG4
+[2025-06-02 09:02:15][MAIN] - Command AUDIOON sent
+[2025-06-02 09:02:15][MAIN] - To Arduino: STRIPOFF
+[2025-06-02 09:02:16][MAIN] - To Arduino: STRIPTOPDEF
+[2025-06-02 09:02:16][MAIN] - To Arduino: STRIPON
+[2025-06-02 09:02:16][MAIN] - To Arduino: STRIPG4
+[2025-06-02 09:02:16][MAIN] - Command STRIPTOPG4 sent
+[2025-06-02 09:53:36][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-02 10:54:02][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-02 11:54:27][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-02 12:54:43][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-02 13:54:58][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-02 14:50:22][FLASK] - 57.128.230.106 - - [02/Jun/2025 14:50:22] code 400, message Bad request version ('À\x14À')
+[2025-06-02 14:55:24][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-02 15:55:40][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-02 16:55:54][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-02 17:56:09][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-02 18:12:59][FLASK] - PING
+[2025-06-02 18:56:27][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-02 19:56:44][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-06-02 20:19:42][MAIN] - Serving 7129379343: msg 4801
+[2025-06-02 20:19:44][MAIN] - Serving 7129379343: msg 4803
+[2025-06-02 20:20:39][MAIN] - Serving 807946519: msg 4805
+[2025-06-02 20:20:47][MAIN] - Serving 807946519: msg 4807

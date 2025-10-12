@@ -1,0 +1,84 @@
+[2025-03-12 20:29:20][MAIN] - Bot is ready.
+[2025-03-12 20:29:20][MAIN] - Pulling from GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-03-12 20:29:21][MAIN] - Contacting Arduino..
+[2025-03-12 20:29:21][MAIN] - Already up to date.
+[2025-03-12 20:29:21][MAIN] - ANNOUNCEMENTS
+[2025-03-12 20:29:21][MAIN] - 2025-03-12 20:29:21.615849
+[2025-03-12 20:29:21][MAIN] - Arduino found!
+[2025-03-12 20:29:21][MAIN] - Actuator running.
+[2025-03-12 20:29:21][MAIN] - To Arduino: LIGHTSON
+[2025-03-12 20:29:23][MAIN] - Pulling from GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-03-12 20:29:24][MAIN] - Already up to date.
+[2025-03-12 20:29:26][MAIN] - History updated.
+[2025-03-12 20:29:26][MAIN] -           Week       Arman      Cesare  ...         Lea        Mara    Natchaya
+[2025-03-12 20:29:26][MAIN] - [96m41  2024-11-18    Vacation    Vacation  ...   Bathrooms  Management     Kitchen[0m
+[2025-03-12 20:29:26][MAIN] - [96m42  2024-11-25   Bathrooms    Vacation  ...    Vacation       Floor  Management[0m
+[2025-03-12 20:29:26][MAIN] - [96m43  2024-12-02    Vacation     Kitchen  ...       Floor    Vacation   Bathrooms[0m
+[2025-03-12 20:29:26][MAIN] - [96m44  2024-12-09     Kitchen  Management  ...    Vacation   Bathrooms       Floor[0m
+[2025-03-12 20:29:26][MAIN] - [96m45  2024-12-16     Anarchy     Anarchy  ...     Anarchy     Anarchy     Anarchy[0m
+[2025-03-12 20:29:26][MAIN] - [96m46  2024-12-23     Anarchy     Anarchy  ...     Anarchy     Anarchy     Anarchy[0m
+[2025-03-12 20:29:26][MAIN] - [96m47  2024-12-30       Floor   Bathrooms  ...    Vacation     Kitchen  Management[0m
+[2025-03-12 20:29:26][MAIN] - [96m48  2025-01-06    Vacation    Vacation  ...  Management       Floor     Kitchen[0m
+[2025-03-12 20:29:26][MAIN] - [96m49  2025-01-13  Management       Floor  ...   Bathrooms    Vacation    Vacation[0m
+[2025-03-12 20:29:26][MAIN] - [96m50  2025-01-20    Vacation    Vacation  ...     Kitchen  Management   Bathrooms[0m
+[2025-03-12 20:29:26][MAIN] - [96m51  2025-01-27   Bathrooms     Kitchen  ...       Floor    Vacation    Vacation[0m
+[2025-03-12 20:29:26][MAIN] - [96m52  2025-02-03       Floor    Vacation  ...    Vacation   Bathrooms  Management[0m
+[2025-03-12 20:29:26][MAIN] - [96m53  2025-02-10    Vacation       Floor  ...  Management     Kitchen    Vacation[0m
+[2025-03-12 20:29:26][MAIN] - [96m54  2025-02-17     Kitchen  Management  ...   Bathrooms    Vacation       Floor[0m
+[2025-03-12 20:29:26][MAIN] - [96m55  2025-02-24   Bathrooms    Vacation  ...    Vacation       Floor     Kitchen[0m
+[2025-03-12 20:29:26][MAIN] - [96m56  2025-03-03    Vacation   Bathrooms  ...     Kitchen  Management    Vacation[0m
+[2025-03-12 20:29:26][MAIN] - [38;5;208m57  2025-03-10  Management       Floor  ...    Vacation    Vacation   Bathrooms[0m
+[2025-03-12 20:29:26][MAIN] - [91m58  2025-03-17     Kitchen    Vacation  ...       Floor   Bathrooms  Management[0m
+[2025-03-12 20:29:26][MAIN] - [91m59  2025-03-24    Vacation     Kitchen  ...  Management       Floor    Vacation[0m
+[2025-03-12 20:29:26][MAIN] - [91m60  2025-03-31       Floor   Bathrooms  ...    Vacation    Vacation     Kitchen[0m
+[2025-03-12 20:29:26][MAIN] - [91m61  2025-04-07  Management    Vacation  ...   Bathrooms     Kitchen       Floor[0m
+[2025-03-12 20:29:26][MAIN] - [91m62  2025-04-14    Vacation  Management  ...     Kitchen   Bathrooms    Vacation[0m
+[2025-03-12 20:29:26][MAIN] - [91m63  2025-04-21   Bathrooms       Floor  ...    Vacation    Vacation  Management[0m
+[2025-03-12 20:29:26][MAIN] - [91m64  2025-04-28     Kitchen    Vacation  ...       Floor  Management   Bathrooms[0m
+[2025-03-12 20:29:26][MAIN] - [91m65  2025-05-05    Vacation     Kitchen  ...  Management       Floor    Vacation[0m
+[2025-03-12 20:29:26][MAIN] - [91m66  2025-05-12       Floor   Bathrooms  ...    Vacation    Vacation     Kitchen[0m
+[2025-03-12 20:29:26][MAIN] - [91m67  2025-05-19  Management    Vacation  ...   Bathrooms     Kitchen       Floor[0m
+[2025-03-12 20:29:26][MAIN] - list index out of range
+[2025-03-12 20:29:26][MAIN] - IP 84.150.103.95 uploaded to:
+[2025-03-12 20:29:26][MAIN] - https://storage.googleapis.com/ip-manager42.appspot.com/RaspberryPi-Cyan/ip_server.txt
+[2025-03-12 20:29:26][MAIN] - Traceback (most recent call last):
+
+[2025-03-12 20:29:26][MAIN] -   File "/home/claudio/Python-Projects/RoomServer/announcements.py", line 1120, in set_announcement
+
+[2025-03-12 20:29:26][MAIN] -     text, week_schedule = bac.generate_plan()
+
+[2025-03-12 20:29:26][MAIN] -   File "/home/claudio/Python-Projects/RoomServer/wg/bac.py", line 412, in generate_plan
+
+[2025-03-12 20:29:26][MAIN] -     save_plan(wg_members, current_date, start_end_dates)
+
+[2025-03-12 20:29:26][MAIN] -   File "/home/claudio/Python-Projects/RoomServer/wg/bac.py", line 227, in save_plan
+
+[2025-03-12 20:29:26][MAIN] -     print_df(reduced_df, current_date)
+
+[2025-03-12 20:29:26][MAIN] -   File "/home/claudio/Python-Projects/RoomServer/wg/bac.py", line 210, in print_df
+
+[2025-03-12 20:29:26][MAIN] -     date_str = line.split()[1]
+
+[2025-03-12 20:29:26][MAIN] - IndexError: list index out of range
+[2025-03-12 20:29:27][FLASK] -  * Serving Flask app 'server'
+[2025-03-12 20:29:27][FLASK] -  * Debug mode: off
+[2025-03-12 20:29:27][WEBSOCKET] -  * Serving Flask app 'websocket_server'
+[2025-03-12 20:29:27][WEBSOCKET] -  * Debug mode: off
+[2025-03-12 20:29:33][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-03-12 20:29:43][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-03-12 20:29:53][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-03-12 20:30:03][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-03-12 20:30:13][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-03-12 20:30:19][MAIN] - Traceback (most recent call last):
+[2025-03-12 20:30:19][MAIN] -   File "/home/claudio/Python-Projects/RoomServer/main.py", line 89, in <module>
+[2025-03-12 20:30:19][MAIN] - main()
+[2025-03-12 20:30:19][MAIN] -   File "/home/claudio/Python-Projects/RoomServer/main.py", line 77, in main
+[2025-03-12 20:30:19][MAIN] - time.sleep(0.5)
+[2025-03-12 20:30:19][MAIN] - KeyboardInterrupt
+[2025-03-12 20:30:20][MAIN] - Exception ignored in: 
+[2025-03-12 20:30:20][MAIN] - <module 'threading' from '/usr/lib/python3.10/threading.py'>
+[2025-03-12 20:30:20][MAIN] - Traceback (most recent call last):
+[2025-03-12 20:30:20][MAIN] -   File "/usr/lib/python3.10/threading.py", line 1567, in _shutdown
+[2025-03-12 20:30:20][MAIN] - lock.acquire()
+[2025-03-12 20:30:20][MAIN] - KeyboardInterrupt
+[2025-03-12 20:30:20][MAIN] - : 

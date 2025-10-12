@@ -1,0 +1,26 @@
+[2025-05-24 11:22:15][MAIN] - Bot is ready.
+[2025-05-24 11:22:15][MAIN] - Pulling from GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-05-24 11:22:16][MAIN] - Contacting Arduino..
+[2025-05-24 11:22:16][MAIN] - Already up to date.
+[2025-05-24 11:22:16][MAIN] - Arduino found!
+[2025-05-24 11:22:16][MAIN] - Actuator running.
+[2025-05-24 11:22:16][MAIN] - To Arduino: LIGHTSON
+[2025-05-24 11:22:21][MAIN] - IP 84.150.97.85 uploaded to:
+[2025-05-24 11:22:21][MAIN] - https://storage.googleapis.com/ip-manager42.appspot.com/RaspberryPi-Cyan/ip_server.txt
+[2025-05-24 11:22:21][FLASK] -  * Serving Flask app 'server'
+[2025-05-24 11:22:21][FLASK] -  * Debug mode: off
+[2025-05-24 11:22:21][WEBSOCKET] -  * Serving Flask app 'websocket_server'
+[2025-05-24 11:22:21][WEBSOCKET] -  * Debug mode: off
+[2025-05-24 11:22:47][MAIN] - Traceback (most recent call last):
+[2025-05-24 11:22:47][MAIN] -   File "/home/claudio/Python-Projects/RoomServer/main.py", line 101, in <module>
+[2025-05-24 11:22:47][MAIN] - main()
+[2025-05-24 11:22:47][MAIN] -   File "/home/claudio/Python-Projects/RoomServer/main.py", line 87, in main
+[2025-05-24 11:22:47][MAIN] - time.sleep(0.5)
+[2025-05-24 11:22:47][MAIN] - KeyboardInterrupt
+[2025-05-24 11:22:47][MAIN] - Exception ignored in: 
+[2025-05-24 11:22:47][MAIN] - <module 'threading' from '/usr/lib/python3.10/threading.py'>
+[2025-05-24 11:22:47][MAIN] - Traceback (most recent call last):
+[2025-05-24 11:22:47][MAIN] -   File "/usr/lib/python3.10/threading.py", line 1567, in _shutdown
+[2025-05-24 11:22:47][MAIN] - lock.acquire()
+[2025-05-24 11:22:47][MAIN] - KeyboardInterrupt
+[2025-05-24 11:22:47][MAIN] - : 

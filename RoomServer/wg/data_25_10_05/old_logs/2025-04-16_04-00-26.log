@@ -1,0 +1,913 @@
+[2025-04-16 04:00:26][MAIN] - Bot is ready.
+[2025-04-16 04:00:26][MAIN] - Pulling from GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-04-16 04:00:27][MAIN] - Contacting Arduino..
+[2025-04-16 04:00:27][MAIN] - Arduino found!
+[2025-04-16 04:00:27][MAIN] - Actuator running.
+[2025-04-16 04:00:27][MAIN] - To Arduino: LIGHTSOFF
+[2025-04-16 04:00:27][MAIN] - Already up to date.
+[2025-04-16 04:00:31][MAIN] - IP 84.150.122.194 uploaded to:
+[2025-04-16 04:00:31][MAIN] - https://storage.googleapis.com/ip-manager42.appspot.com/RaspberryPi-Cyan/ip_server.txt
+[2025-04-16 04:00:32][FLASK] -  * Serving Flask app 'server'
+[2025-04-16 04:00:32][FLASK] -  * Debug mode: off
+[2025-04-16 04:00:32][WEBSOCKET] -  * Serving Flask app 'websocket_server'
+[2025-04-16 04:00:32][WEBSOCKET] -  * Debug mode: off
+[2025-04-16 04:00:41][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 04:00:51][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 04:01:01][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 04:01:11][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 04:01:21][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 04:01:32][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 04:01:42][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 04:01:52][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 04:02:02][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 04:02:12][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 04:02:22][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 04:02:32][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 04:02:42][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 04:02:52][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 04:03:02][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 04:03:12][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 04:03:22][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 04:03:32][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 04:03:42][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 04:03:52][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 04:04:02][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 04:04:12][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 04:04:22][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 04:04:32][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 04:04:42][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 04:04:52][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 04:05:02][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 04:05:12][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 04:05:23][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 04:05:33][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 04:05:43][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 04:05:53][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 04:06:03][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 04:09:03][MAIN] - Audio set off automatically
+[2025-04-16 04:09:03][MAIN] - To Arduino: AUDIOON/OFF
+[2025-04-16 04:09:04][MAIN] - To Arduino: AUDIOON/OFF
+[2025-04-16 04:09:07][MAIN] - To Arduino: AUDIOON/OFF
+[2025-04-16 04:09:07][MAIN] - To Arduino: STRIPTOPOFF
+[2025-04-16 04:09:08][MAIN] - Command AUDIOOFF sent
+[2025-04-16 04:13:53][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-16 04:13:53][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x7f8c90180b20>: Failed to establish a new connection: [Errno 101] Network is unreachable'))
+[2025-04-16 04:14:16][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-16 04:14:16][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c904ba8f0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-16 04:14:34][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-16 04:14:34][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c901ae680>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-16 04:14:49][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-16 04:14:49][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c904b89a0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-16 04:15:04][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-16 04:15:04][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c90181b40>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-16 04:15:20][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-16 04:15:20][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c901ae680>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-16 04:15:35][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-16 04:15:35][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c901afee0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-16 04:15:50][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-16 04:15:50][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c90181e10>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-16 04:16:08][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-16 04:16:08][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c90181c60>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-16 04:16:23][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-16 04:16:23][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c904ba200>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-16 04:16:38][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-16 04:16:38][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c90182a40>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-16 04:16:53][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-16 04:16:53][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c904b9900>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-16 04:17:08][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-16 04:17:08][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c90183700>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-16 04:17:23][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-16 04:17:23][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c90155cf0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-16 04:17:44][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-16 04:17:44][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c904b8ee0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-16 04:18:04][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-16 04:18:04][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c90181f30>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-16 04:18:14][MAIN] - IP 84.155.74.116 uploaded to:
+[2025-04-16 04:18:14][MAIN] - https://storage.googleapis.com/ip-manager42.appspot.com/RaspberryPi-Cyan/ip_server.txt
+[2025-04-16 04:18:15][FLASK] -  * Serving Flask app 'server'
+[2025-04-16 04:18:15][FLASK] -  * Debug mode: off
+[2025-04-16 04:18:15][FLASK] - Address already in use
+[2025-04-16 04:18:15][FLASK] - Port 10004 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-04-16 04:18:15][WEBSOCKET] -  * Serving Flask app 'websocket_server'
+[2025-04-16 04:18:15][WEBSOCKET] -  * Debug mode: off
+[2025-04-16 04:18:15][WEBSOCKET] - Address already in use
+[2025-04-16 04:18:15][WEBSOCKET] - Port 10003 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-04-16 04:55:35][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-16 04:55:35][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c901ae860>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-16 04:55:58][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-16 04:55:58][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c90180fa0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-16 04:56:13][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-16 04:56:13][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c90183010>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-16 04:56:31][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-16 04:56:31][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c90154dc0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-16 04:56:46][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-16 04:56:46][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c904e0760>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-16 04:57:01][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-16 04:57:01][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c901828f0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-16 04:57:16][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-16 04:57:16][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c904e23b0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-16 04:57:31][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-16 04:57:31][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c901aee00>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-16 04:57:46][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-16 04:57:46][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c901acd30>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-16 04:58:05][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-16 04:58:05][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c90180940>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-16 04:58:29][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-16 04:58:29][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c901ae2f0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-16 04:58:45][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-16 04:58:45][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c904e1de0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-16 04:59:03][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-16 04:59:03][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c93e22ce0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-16 04:59:18][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-16 04:59:18][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c901af760>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-16 04:59:34][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-16 04:59:34][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c901addb0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-16 04:59:52][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-16 04:59:52][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c901aee30>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-16 05:00:09][MAIN] - IP 84.150.98.2 uploaded to:
+[2025-04-16 05:00:09][MAIN] - https://storage.googleapis.com/ip-manager42.appspot.com/RaspberryPi-Cyan/ip_server.txt
+[2025-04-16 05:00:10][FLASK] -  * Serving Flask app 'server'
+[2025-04-16 05:00:10][FLASK] -  * Debug mode: off
+[2025-04-16 05:00:10][FLASK] - Address already in use
+[2025-04-16 05:00:10][FLASK] - Port 10004 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-04-16 05:00:10][WEBSOCKET] -  * Serving Flask app 'websocket_server'
+[2025-04-16 05:00:10][WEBSOCKET] -  * Debug mode: off
+[2025-04-16 05:00:10][WEBSOCKET] - Address already in use
+[2025-04-16 05:00:10][WEBSOCKET] - Port 10003 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-04-16 05:11:22][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-16 05:11:22][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c90154c70>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-16 05:11:38][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-16 05:11:38][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x7f8c90155a50>: Failed to establish a new connection: [Errno 101] Network is unreachable'))
+[2025-04-16 05:11:51][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-16 05:11:51][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x7f8c901561a0>: Failed to establish a new connection: [Errno 101] Network is unreachable'))
+[2025-04-16 05:12:14][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-16 05:12:14][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c901543a0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-16 05:12:31][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-16 05:12:31][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x7f8c901afdc0>: Failed to establish a new connection: [Errno 101] Network is unreachable'))
+[2025-04-16 05:12:42][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-16 05:12:42][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x7f8c901812d0>: Failed to establish a new connection: [Errno 101] Network is unreachable'))
+[2025-04-16 05:12:52][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-16 05:12:52][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x7f8c90157e20>: Failed to establish a new connection: [Errno 101] Network is unreachable'))
+[2025-04-16 05:13:08][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-16 05:13:08][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x7f8c90155e70>: Failed to establish a new connection: [Errno 101] Network is unreachable'))
+[2025-04-16 05:13:28][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-16 05:13:28][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c90182050>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-16 05:13:44][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-16 05:13:44][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c90155f00>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-16 05:13:59][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-16 05:13:59][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c90156da0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-16 05:14:17][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-16 05:14:17][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c904ba950>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-16 05:14:34][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-16 05:14:34][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c901d0370>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-16 05:14:52][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-16 05:14:52][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c90156260>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-16 05:15:01][MAIN] - IP 84.150.116.7 uploaded to:
+[2025-04-16 05:15:01][MAIN] - https://storage.googleapis.com/ip-manager42.appspot.com/RaspberryPi-Cyan/ip_server.txt
+[2025-04-16 05:15:01][FLASK] -  * Serving Flask app 'server'
+[2025-04-16 05:15:01][FLASK] -  * Debug mode: off
+[2025-04-16 05:15:01][FLASK] - Address already in use
+[2025-04-16 05:15:01][FLASK] - Port 10004 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-04-16 05:15:02][WEBSOCKET] -  * Serving Flask app 'websocket_server'
+[2025-04-16 05:15:02][WEBSOCKET] -  * Debug mode: off
+[2025-04-16 05:15:02][WEBSOCKET] - Address already in use
+[2025-04-16 05:15:02][WEBSOCKET] - Port 10003 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-04-16 07:30:00][MAIN] - To Arduino: LIGHTSON
+[2025-04-16 09:19:31][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:19:31][MAIN] - Audio set on automatically
+[2025-04-16 09:19:31][MAIN] - To Arduino: AUDIOON/OFF
+[2025-04-16 09:19:32][MAIN] - To Arduino: AUDIOON/OFF
+[2025-04-16 09:19:32][MAIN] - To Arduino: STRIPTOPG4
+[2025-04-16 09:19:32][MAIN] - Command AUDIOON sent
+[2025-04-16 09:19:41][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:19:51][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:20:01][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:20:11][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:20:21][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:20:31][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:20:41][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:20:51][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:21:01][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:21:11][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:21:21][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:21:31][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:21:41][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:21:51][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:22:01][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:22:11][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:22:21][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:22:31][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:22:42][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:22:52][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:23:02][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:23:12][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:23:22][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:23:32][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:23:42][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:23:52][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:24:02][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:24:12][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:24:22][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:24:32][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:24:42][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:24:52][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:25:02][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:25:12][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:25:22][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:25:32][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:25:42][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:25:52][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:26:02][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:26:12][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:26:22][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:26:32][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:26:42][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:26:52][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:27:03][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:27:13][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:27:23][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:27:33][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:27:43][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:27:53][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:28:03][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:28:13][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:28:23][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:28:33][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:28:43][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:28:53][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:29:03][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:29:13][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:29:23][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:29:33][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:29:43][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:29:53][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:30:03][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:30:13][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:30:23][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:30:33][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:30:43][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:30:53][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:31:03][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:31:14][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:31:24][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:31:34][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:31:44][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:31:54][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:32:04][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:32:14][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:32:24][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:32:34][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:32:44][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:32:54][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:33:04][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:33:14][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:33:24][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:33:34][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:33:44][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:33:54][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:34:04][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:34:14][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:34:24][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:34:34][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:34:44][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:34:54][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:35:05][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:35:15][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:35:25][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:35:35][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:35:45][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:35:55][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:36:05][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:36:15][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:36:25][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:36:35][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:36:45][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:36:55][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:37:05][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:37:15][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:37:25][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:37:35][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:37:45][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:37:55][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:38:05][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:38:15][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:38:25][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:38:35][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:38:45][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:38:55][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:39:06][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:39:16][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:39:26][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:39:36][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:39:46][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:39:56][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:40:06][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:40:16][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:40:26][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:40:36][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:40:46][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:40:56][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:41:06][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:41:16][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:41:26][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:41:36][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:41:46][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:41:56][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:42:06][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:42:16][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:42:26][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:42:36][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:42:46][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:42:56][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:43:07][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:43:17][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:43:27][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:43:37][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:43:47][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:43:57][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:44:07][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:44:17][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:44:27][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:44:37][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:44:47][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:44:57][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:45:07][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:45:17][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:45:27][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:45:37][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:45:47][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:45:57][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:46:07][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:46:17][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:46:27][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:46:37][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:46:47][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:46:57][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:47:07][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:47:18][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:47:28][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:47:38][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:47:48][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:47:58][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:48:08][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:48:18][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:48:28][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:48:38][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:48:48][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:48:58][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:49:08][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:49:18][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:49:28][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:49:38][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:49:48][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:49:58][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:50:08][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:50:18][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:50:28][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:50:38][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:50:49][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:50:59][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:51:09][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:51:19][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:51:29][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:51:39][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:51:49][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:51:59][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:52:09][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:52:19][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:52:29][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:52:39][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:52:49][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:52:59][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:53:09][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:53:19][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:53:29][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:53:39][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:53:49][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:53:59][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:54:09][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:54:19][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:54:29][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:54:39][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:54:50][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:55:00][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:55:10][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:55:20][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:55:30][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:55:40][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:55:50][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:56:00][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:56:10][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:56:20][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:56:30][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:56:40][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:56:50][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:57:00][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:57:10][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:57:20][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:57:30][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:57:40][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:57:50][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:58:00][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:58:10][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:58:20][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:58:30][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:58:40][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:58:50][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:59:01][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:59:11][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:59:21][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:59:31][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:59:41][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 09:59:51][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:00:01][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:00:11][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:00:21][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:00:31][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:00:41][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:00:51][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:01:01][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:01:11][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:01:21][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:01:31][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:01:41][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:01:51][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:02:01][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:02:11][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:02:21][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:02:31][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:02:41][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:02:51][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:03:01][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:03:11][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:03:21][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:03:31][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:03:42][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:03:52][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:04:02][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:04:12][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:04:22][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:04:32][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:04:42][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:04:52][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:05:02][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:05:12][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:05:22][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:05:32][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:05:42][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:05:52][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:06:02][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:06:12][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:06:22][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:06:32][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:06:42][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:06:52][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:07:02][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:07:12][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:07:22][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:07:33][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:07:43][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:07:53][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:08:03][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:08:13][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:08:23][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:08:33][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:08:43][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:08:53][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:09:03][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:09:13][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:09:23][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:09:33][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:09:43][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:09:53][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:10:03][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:10:13][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:10:23][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:10:33][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:10:43][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:10:53][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:11:04][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:11:14][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:11:24][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:11:34][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:11:44][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:11:54][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:12:04][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:12:14][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:12:24][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:12:34][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:12:44][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:12:54][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:13:04][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:13:14][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:13:24][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:13:34][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:13:44][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:13:54][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:13:54][MAIN] - To Arduino: AUDIOPINGVOL
+[2025-04-16 10:14:04][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:14:14][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:14:24][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:14:34][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:14:44][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:14:54][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:15:04][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:15:14][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:15:25][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:15:35][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:15:45][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:15:55][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:16:05][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:16:15][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:16:25][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:16:35][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:16:45][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:16:55][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:17:05][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:17:15][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:17:25][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:17:35][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:17:45][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:17:55][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:18:05][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:18:15][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:18:25][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:18:35][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:18:45][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:18:55][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:19:05][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:19:15][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:19:25][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:19:35][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:19:45][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:19:55][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:20:06][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:20:16][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:20:26][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:20:36][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:20:46][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:20:56][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:21:06][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:21:16][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:21:26][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:21:36][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:21:46][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:21:56][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:22:06][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:22:16][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:22:26][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:22:36][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:22:46][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:22:56][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:23:06][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:23:16][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:23:26][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:23:36][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:23:46][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:23:56][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:24:06][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:24:16][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:24:26][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:24:37][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:24:47][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:24:57][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:25:07][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:25:17][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:25:27][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:25:37][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:25:47][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:25:57][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:26:07][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:26:17][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:26:27][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:26:37][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:26:47][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:26:57][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:27:07][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:27:17][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:27:27][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:27:37][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:27:47][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:27:57][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:28:07][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:28:17][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:28:27][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:28:37][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:28:48][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:28:58][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:29:08][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:29:18][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:29:28][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:29:38][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:29:48][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:29:58][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:30:08][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:30:18][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:30:28][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:30:38][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:30:48][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:30:58][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:31:08][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:31:18][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:31:28][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:31:38][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:31:48][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:31:58][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:32:08][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:32:18][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:32:28][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:32:38][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:32:48][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:32:58][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:33:09][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:33:19][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:33:29][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:33:39][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:33:49][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:33:59][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:34:09][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:34:19][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:34:29][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:34:39][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:34:49][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:34:59][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:35:09][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:35:19][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:35:29][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:35:39][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:35:49][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:35:59][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:36:09][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:36:19][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:36:29][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:36:39][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:36:49][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:36:59][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:37:09][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:37:20][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:37:30][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:37:40][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:37:50][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:38:00][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:38:10][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:38:20][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:38:30][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:38:40][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:38:50][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:39:00][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:39:10][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:39:20][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:39:30][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:39:40][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:39:50][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:40:00][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:40:10][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:40:20][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:40:30][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:40:40][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:40:50][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:41:00][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:41:10][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:41:20][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:41:30][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:41:40][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:41:51][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:42:01][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:42:11][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:42:21][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:42:31][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:42:41][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:42:51][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:43:01][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:43:11][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:43:21][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:43:31][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:43:41][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:43:51][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:44:01][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:44:11][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:44:21][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:44:31][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:44:41][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:44:51][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:45:01][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:45:11][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:45:21][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:45:31][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:45:41][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:45:51][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:46:01][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:46:12][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:46:22][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:46:32][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:46:42][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:46:52][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:47:02][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:47:12][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:47:22][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:47:32][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:47:42][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:47:52][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:48:02][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:48:12][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:48:22][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:48:32][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:48:42][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:48:52][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:49:02][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:49:12][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:49:22][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:49:32][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:49:42][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:49:52][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:50:02][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:50:12][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:50:22][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:50:33][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:50:43][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:50:53][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:51:03][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:51:13][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:51:23][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:51:33][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:51:43][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:51:53][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:52:03][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:52:13][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:52:23][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:52:33][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:52:43][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:52:53][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:53:03][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:53:13][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:53:23][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:53:33][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:53:43][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:53:53][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:54:03][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:54:13][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:54:23][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:54:33][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:54:43][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:54:54][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:55:04][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:55:14][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:55:24][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:55:34][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:55:44][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:55:54][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:56:04][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:56:14][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:56:24][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:56:34][FLASK] - AUDIO: {'audio': 'pingvol'}
+[2025-04-16 10:59:34][MAIN] - Audio set off automatically
+[2025-04-16 10:59:34][MAIN] - To Arduino: AUDIOON/OFF
+[2025-04-16 10:59:35][MAIN] - To Arduino: AUDIOON/OFF
+[2025-04-16 10:59:38][MAIN] - To Arduino: AUDIOON/OFF
+[2025-04-16 10:59:39][MAIN] - To Arduino: STRIPTOPOFF
+[2025-04-16 10:59:39][MAIN] - Command AUDIOOFF sent
+[2025-04-16 18:29:36][WEBSOCKET] - 18.117.101.187 - - [16/Apr/2025 18:29:36] code 400, message Bad HTTP/0.9 request type ('\x16\x03\x01\x00{\x01\x00\x00w\x03\x03mº\x118³E?l\x8aÆa\x1aÒa!\x91q')
+[2025-04-16 18:32:12][WEBSOCKET] - 18.117.101.187 - - [16/Apr/2025 18:32:12] code 400, message Bad request syntax ('SSH-2.0-Go')
+[2025-04-16 18:34:27][WEBSOCKET] - 18.117.101.187 - - [16/Apr/2025 18:34:27] code 400, message Bad request version ('À\x14À')
+[2025-04-16 20:11:32][FLASK] - PING
+[2025-04-16 20:13:53][FLASK] - PING
+[2025-04-16 20:15:58][FLASK] - 3.148.251.183 - - [16/Apr/2025 20:15:58] code 400, message Bad request version ('À\x14À')
+[2025-04-16 20:18:08][FLASK] - 3.148.251.183 - - [16/Apr/2025 20:18:08] code 400, message Bad request syntax ('SSH-2.0-Go')
+[2025-04-16 20:20:11][FLASK] - 3.148.251.183 - - [16/Apr/2025 20:20:11] code 400, message Bad request version ('À\x14À')
+[2025-04-16 21:59:00][MAIN] - To Arduino: LIGHTSOFF
+[2025-04-17 00:14:04][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-17 00:14:04][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x7f8c904ba4d0>: Failed to establish a new connection: [Errno 101] Network is unreachable'))
+[2025-04-17 00:14:17][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-17 00:14:17][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x7f8c901d2bc0>: Failed to establish a new connection: [Errno 101] Network is unreachable'))
+[2025-04-17 00:14:32][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-17 00:14:32][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c904b8c40>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-17 00:14:55][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-17 00:14:55][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x7f8c90182b90>: Failed to establish a new connection: [Errno 101] Network is unreachable'))
+[2025-04-17 00:15:10][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-17 00:15:10][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c901d2ce0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-17 00:15:25][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-17 00:15:25][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c901d2320>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-17 00:15:40][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-17 00:15:40][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c90180ee0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-17 00:15:55][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-17 00:15:55][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c901811b0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-17 00:16:10][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-17 00:16:10][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c93e227d0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-17 00:16:25][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-17 00:16:25][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c93e22cb0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-17 00:16:40][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-17 00:16:40][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c904b9690>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-17 00:16:55][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-17 00:16:55][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c901557b0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-17 00:17:10][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-17 00:17:10][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c90317d90>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-17 00:17:25][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-17 00:17:25][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c901560b0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-17 00:17:40][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-17 00:17:40][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c90155f60>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-17 00:17:55][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-17 00:17:55][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c90157280>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-17 00:18:06][MAIN] - IP 84.155.68.119 uploaded to:
+[2025-04-17 00:18:06][MAIN] - https://storage.googleapis.com/ip-manager42.appspot.com/RaspberryPi-Cyan/ip_server.txt
+[2025-04-17 00:18:07][FLASK] -  * Serving Flask app 'server'
+[2025-04-17 00:18:07][FLASK] -  * Debug mode: off
+[2025-04-17 00:18:07][FLASK] - Address already in use
+[2025-04-17 00:18:07][FLASK] - Port 10004 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-04-17 00:18:07][WEBSOCKET] -  * Serving Flask app 'websocket_server'
+[2025-04-17 00:18:07][WEBSOCKET] -  * Debug mode: off
+[2025-04-17 00:18:07][WEBSOCKET] - Address already in use
+[2025-04-17 00:18:07][WEBSOCKET] - Port 10003 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-04-17 01:53:37][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-17 01:53:37][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x7f8c90154e80>: Failed to establish a new connection: [Errno 101] Network is unreachable'))
+[2025-04-17 01:53:45][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-17 01:53:45][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x7f8c901d30d0>: Failed to establish a new connection: [Errno 101] Network is unreachable'))
+[2025-04-17 01:53:53][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-17 01:53:53][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x7f8c904bb490>: Failed to establish a new connection: [Errno 101] Network is unreachable'))
+[2025-04-17 01:54:01][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-17 01:54:01][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x7f8c90154d60>: Failed to establish a new connection: [Errno 101] Network is unreachable'))
+[2025-04-17 01:54:16][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-17 01:54:16][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c90180a30>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-17 01:54:31][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-17 01:54:31][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c90157160>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-17 01:54:39][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-17 01:54:39][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x7f8c901acb50>: Failed to establish a new connection: [Errno 101] Network is unreachable'))
+[2025-04-17 01:54:52][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-17 01:54:52][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x7f8c90156e90>: Failed to establish a new connection: [Errno 101] Network is unreachable'))
+[2025-04-17 01:55:05][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-17 01:55:05][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x7f8c901ad270>: Failed to establish a new connection: [Errno 101] Network is unreachable'))
+[2025-04-17 01:55:13][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-17 01:55:13][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x7f8c901809d0>: Failed to establish a new connection: [Errno 101] Network is unreachable'))
+[2025-04-17 01:55:21][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-17 01:55:21][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x7f8c93eb9390>: Failed to establish a new connection: [Errno 101] Network is unreachable'))
+[2025-04-17 01:55:29][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-17 01:55:29][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x7f8c901af9d0>: Failed to establish a new connection: [Errno 101] Network is unreachable'))
+[2025-04-17 01:55:44][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-17 01:55:44][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c901aea70>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-17 01:55:59][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-17 01:55:59][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c904bad40>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-17 01:56:14][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-17 01:56:14][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c901806d0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-17 01:56:29][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-17 01:56:29][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c904b9840>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-17 01:56:44][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-17 01:56:44][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c90182170>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-17 01:56:59][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-17 01:56:59][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c904b9e10>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-17 01:57:15][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-17 01:57:15][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c901d3400>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-17 01:57:21][MAIN] - IP 84.155.65.224 uploaded to:
+[2025-04-17 01:57:21][MAIN] - https://storage.googleapis.com/ip-manager42.appspot.com/RaspberryPi-Cyan/ip_server.txt
+[2025-04-17 01:57:21][WEBSOCKET] -  * Serving Flask app 'websocket_server'
+[2025-04-17 01:57:21][WEBSOCKET] -  * Debug mode: off
+[2025-04-17 01:57:21][WEBSOCKET] - Address already in use
+[2025-04-17 01:57:21][WEBSOCKET] - Port 10003 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-04-17 01:57:21][FLASK] -  * Serving Flask app 'server'
+[2025-04-17 01:57:21][FLASK] -  * Debug mode: off
+[2025-04-17 01:57:21][FLASK] - Address already in use
+[2025-04-17 01:57:21][FLASK] - Port 10004 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-04-17 02:04:37][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-17 02:04:37][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x7f8c901ad2a0>: Failed to establish a new connection: [Errno 101] Network is unreachable'))
+[2025-04-17 02:04:57][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-17 02:04:57][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c901d2140>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-17 02:05:12][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-17 02:05:12][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c904e2440>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-17 02:05:27][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-17 02:05:27][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c90183010>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-17 02:05:42][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-17 02:05:42][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c901d32b0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-17 02:06:02][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-17 02:06:02][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c90183550>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-17 02:06:17][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-17 02:06:17][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c93eb9ea0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-17 02:06:32][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-17 02:06:32][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c90180820>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-17 02:06:52][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-17 02:06:52][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c93eba0b0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-17 02:07:12][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-17 02:07:12][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c90182da0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-17 02:07:33][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-17 02:07:33][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c7070dea0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-17 02:07:48][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-17 02:07:48][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c7070c1c0>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-17 02:08:08][MAIN] - Issue while trying to upload IP (initialization)
+[2025-04-17 02:08:08][MAIN] - HTTPSConnectionPool(host='api.ipify.org', port=443): Max retries exceeded with url: / (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7f8c7070c160>: Failed to resolve 'api.ipify.org' ([Errno -3] Temporary failure in name resolution)"))
+[2025-04-17 02:08:19][MAIN] - IP 84.155.64.60 uploaded to:
+[2025-04-17 02:08:19][MAIN] - https://storage.googleapis.com/ip-manager42.appspot.com/RaspberryPi-Cyan/ip_server.txt
+[2025-04-17 02:08:19][WEBSOCKET] -  * Serving Flask app 'websocket_server'
+[2025-04-17 02:08:19][WEBSOCKET] -  * Debug mode: off
+[2025-04-17 02:08:19][WEBSOCKET] - Address already in use
+[2025-04-17 02:08:19][WEBSOCKET] - Port 10003 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-04-17 02:08:19][FLASK] -  * Serving Flask app 'server'
+[2025-04-17 02:08:19][FLASK] -  * Debug mode: off
+[2025-04-17 02:08:19][FLASK] - Address already in use
+[2025-04-17 02:08:19][FLASK] - Port 10004 is in use by another program. Either identify and stop that program, or start the server with a different port.
+[2025-04-17 04:00:00][MAIN] - Flask server killed
+[2025-04-17 04:00:00][MAIN] - Server control terminated.
+[2025-04-17 04:00:00][MAIN] - Actuators killed.
+[2025-04-17 04:00:00][MAIN] - Websocket killed
+[2025-04-17 04:00:00][MAIN] - Websocket control terminated.
+[2025-04-17 04:00:00][MAIN] - Firebase task terminated.
+[2025-04-17 04:00:14][MAIN] - Bot killed.
+[2025-04-17 04:00:14][MAIN] - RESTART
+[2025-04-17 04:00:14][MAIN] - Successfully killed process using port 10003
+[2025-04-17 04:00:14][MAIN] - Successfully killed process using port 10004

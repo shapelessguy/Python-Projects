@@ -1,0 +1,13 @@
+[2025-05-24 11:21:48][MAIN] - Bot is ready.
+[2025-05-24 11:21:48][MAIN] - Pulling from GitHub: /home/claudio/Python-Projects/RoomServer
+[2025-05-24 11:21:49][MAIN] - Contacting Arduino..
+[2025-05-24 11:21:49][MAIN] - Already up to date.
+[2025-05-24 11:21:50][MAIN] - Arduino found!
+[2025-05-24 11:21:50][MAIN] - Actuator running.
+[2025-05-24 11:21:50][MAIN] - To Arduino: LIGHTSON
+[2025-05-24 11:21:54][MAIN] - IP 84.150.97.85 uploaded to:
+[2025-05-24 11:21:54][MAIN] - https://storage.googleapis.com/ip-manager42.appspot.com/RaspberryPi-Cyan/ip_server.txt
+[2025-05-24 11:21:55][WEBSOCKET] -  * Serving Flask app 'websocket_server'
+[2025-05-24 11:21:55][WEBSOCKET] -  * Debug mode: off
+[2025-05-24 11:21:55][FLASK] -  * Serving Flask app 'server'
+[2025-05-24 11:21:55][FLASK] -  * Debug mode: off

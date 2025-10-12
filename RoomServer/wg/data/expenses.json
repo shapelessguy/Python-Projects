@@ -1,4 +1,49 @@
 {
     "entries": [
+        {
+            "index": 0,
+            "name": "Claudio",
+            "price": 84.85,
+            "reason": "Wg stuff",
+            "year": 2025,
+            "month": 10,
+            "day": 6
+        },
+        {
+            "index": 1,
+            "name": "Natchaya",
+            "price": 5.98,
+            "reason": "Big trash bags",
+            "year": 2025,
+            "month": 10,
+            "day": 6
+        },
+        {
+            "index": 2,
+            "name": "Natchaya",
+            "price": 0.59,
+            "reason": "Small trash bags",
+            "year": 2025,
+            "month": 10,
+            "day": 6
+        },
+        {
+            "index": 3,
+            "name": "Natchaya",
+            "price": 2.19,
+            "reason": "Dishwasher",
+            "year": 2025,
+            "month": 10,
+            "day": 6
+        },
+        {
+            "index": 4,
+            "name": "Claudio",
+            "price": 96.32,
+            "reason": "mova accessories",
+            "year": 2025,
+            "month": 10,
+            "day": 6
+        }
     ]
 }
