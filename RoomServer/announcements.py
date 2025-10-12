@@ -596,11 +596,11 @@ def expense_handler3(message, continue_chain=True):
         price_str = temp_data[message.chat.id]['expense_str']
         reason = message.text
         
-        current_week = (req_dt - timedelta(days=req_dt.weekday())).date()
+        current_day = req_dt.date()
         expenses = temp_data[message.chat.id]['md']['functions']['get_expenses']()
         index = (max([x['index'] for x in expenses['entries']]) + 1) if len(expenses['entries']) > 0 else 0
         expenses['entries'].append({'index': index, 'name': sender_name, 'price': price, 'reason': reason,
-                                    'year': current_week.year, 'month': current_week.month, 'day': current_week.day})
+                                    'year': current_day.year, 'month': current_day.month, 'day': current_day.day})
         temp_data[message.chat.id]['md']['functions']['save_expenses'](expenses)
         reason_str = f' "{reason}"' if reason != '' else ''
         new_request(message, f'✅ Your expense{reason_str} for {price_str} has been recorded! 🤑', continue_chain)
