@@ -10,7 +10,7 @@ serialPort: serial.Serial
 lights = False
 auto_time = None
 initialized = False
-active_times = [('7:30', '21:59')]
+active_times = [('9:00', '19:59')]
 signal = None
 
 
