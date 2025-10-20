@@ -44,6 +44,42 @@
             "year": 2025,
             "month": 10,
             "day": 12
+        },
+        {
+            "index": 5,
+            "name": "Jay",
+            "price": 0.75,
+            "reason": "salt",
+            "year": 2025,
+            "month": 10,
+            "day": 14
+        },
+        {
+            "index": 6,
+            "name": "Jay",
+            "price": 3.38,
+            "reason": "Oil - 2 quantity",
+            "year": 2025,
+            "month": 10,
+            "day": 16
+        },
+        {
+            "index": 7,
+            "name": "Jay",
+            "price": 1.3,
+            "reason": "sponge scrubber - 2",
+            "year": 2025,
+            "month": 10,
+            "day": 19
+        },
+        {
+            "index": 8,
+            "name": "Jay",
+            "price": 1.3,
+            "reason": "sponge scrubber - 2",
+            "year": 2025,
+            "month": 10,
+            "day": 19
         }
     ]
 }
