@@ -1,0 +1,30 @@
+// Create service
+sudo nano /etc/systemd/system/roomserver.service
+
+
+// Insert the following text:
+[Unit]
+Description=RoomServer Python app in tmux
+After=network.target
+
+[Service]
+Type=forking
+User=claudio
+WorkingDirectory=/home/claudio/Python-Projects/RoomServer
+ExecStart=/usr/bin/tmux new -s roomserver -d '/home/claudio/Python-Projects/RoomServer/.venv/bin/python /home/claudio/Python-Projects/RoomServer/main.py'
+ExecStop=/usr/bin/tmux kill-session -t roomserver
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+
+
+// Reload daemon
+sudo systemctl daemon-reload
+
+// Enable the service
+sudo systemctl enable roomserver.service
+
+// Start manually
+sudo systemctl start roomserver.service
+
