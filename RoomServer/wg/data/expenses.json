@@ -89,6 +89,24 @@
             "year": 2025,
             "month": 10,
             "day": 23
+        },
+        {
+            "index": 10,
+            "name": "Claudio",
+            "price": 54.0,
+            "reason": "Olive oil",
+            "year": 2025,
+            "month": 10,
+            "day": 25
+        },
+        {
+            "index": 11,
+            "name": "Lea",
+            "price": 2.0,
+            "reason": "Oil and salt",
+            "year": 2025,
+            "month": 10,
+            "day": 26
         }
     ]
 }
