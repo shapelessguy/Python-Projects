@@ -10,6 +10,8 @@ model = genai.GenerativeModel("gemini-2.0-flash")
 
 def reason(message, bh, functions, history, md):
     print('reasoning..')
+    bh.send_msg(message.chat.id, "🧠 I am stupid sorry!")
+    return False
     result = analyze_message(message, functions, history, md)
 
     args = [x.replace('[', '') for x in result.split(']') if x not in ['[', ']', '']]

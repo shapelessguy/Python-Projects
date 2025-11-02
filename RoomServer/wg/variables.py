@@ -21,6 +21,11 @@ members = [
     "role": "paesant"
   },
   {
+    "name": "Vianny",
+    "telegram_id": 5215669115,
+    "role": "paesant"
+  },
+  {
     "name": "Mara",
     "telegram_id": 133279076,
     "role": "boss"
@@ -36,6 +41,7 @@ nominal_activities = [
         "Surfaces + table",
         "Dish space + sink",
         "Oven + small kitchen appliances",
+        "Grease filter",
         "Stove"
     ]
   },
