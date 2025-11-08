@@ -1,2 +1,5 @@
 .api.json
 rife-ncnn-vulkan-20221029-windows/
+dist/
+spec_temp/
+.env

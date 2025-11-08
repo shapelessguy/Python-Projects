@@ -631,7 +631,7 @@ def expenses_handler1(message, continue_chain=True):
         if continue_chain:
             markup.row("NO", "YES")
             markup.row(BREAK_TOKEN)
-            bh.send_msg(message.chat.id, f"Do you want to continue from last index?", reply_markup=markup)
+            bh.send_msg(message.chat.id, f"Do you want to view last updates only?", reply_markup=markup)
             bh.bot.register_next_step_handler(message, expenses_handler2)
     except Exception:
         print(traceback.format_exc())

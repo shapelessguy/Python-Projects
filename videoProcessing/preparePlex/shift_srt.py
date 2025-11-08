@@ -60,6 +60,6 @@ def shift_srt_subs(input_file, output_file, ms_to_add):
 
 
 if __name__ == "__main__":
-    input_file = r"F:\Video\Movies\Fight Club\Fight Club - ENG +20s.srt"
-    output_file = r"F:\Video\Movies\Fight Club\Fight Club - ENG +20s_.srt"
-    shift_srt_subs(input_file, output_file, 20000)
+    input_file = r"D:\Purgatory\.working\Deadpool (2016)\Deadpool (2016).ita.srt"
+    output_file = input_file
+    shift_srt_subs(input_file, output_file, 1800)
