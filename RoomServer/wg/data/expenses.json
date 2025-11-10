@@ -116,6 +116,51 @@
             "year": 2025,
             "month": 10,
             "day": 31
+        },
+        {
+            "index": 13,
+            "name": "Mara",
+            "price": 5.99,
+            "reason": "Olive oil",
+            "year": 2025,
+            "month": 11,
+            "day": 3
+        },
+        {
+            "index": 14,
+            "name": "Mara",
+            "price": 3.95,
+            "reason": "Toilet paper",
+            "year": 2025,
+            "month": 11,
+            "day": 3
+        },
+        {
+            "index": 15,
+            "name": "Mara",
+            "price": 1.29,
+            "reason": "Garlic",
+            "year": 2025,
+            "month": 11,
+            "day": 4
+        },
+        {
+            "index": 16,
+            "name": "Claudio",
+            "price": 8.55,
+            "reason": "Oil bottles",
+            "year": 2025,
+            "month": 11,
+            "day": 7
+        },
+        {
+            "index": 17,
+            "name": "Claudio",
+            "price": 4.0,
+            "reason": "bottle opener",
+            "year": 2025,
+            "month": 11,
+            "day": 8
         }
     ]
 }
