@@ -7,6 +7,10 @@ if %errorlevel% neq 0 (
     exit /b
 )
 
+pip install colorama
+pip install requests
+pip install dotenv
+
 REM Registry path for the right-click background menu
 set "REG_PATH=HKCR\Directory\Background\shell\preparePlex"
 
@@ -23,7 +27,6 @@ REM Create the command subkey
 reg add "%REG_PATH%\command" /f
 
 REM Set the command to run your EXE
-reg add "%REG_PATH%\command" /ve /d "\"%~dp0launch_prepareForPlex.bat\" \"%%V\"" /f
+reg add "%REG_PATH%\command" /ve /d "\"%~dp0launch_prepareForPlex.bat\" %%V" /f
 
-echo Context menu entry created successfully!
-pause
+powershell -Command "Write-Host 'Context menu preparePlex created successfully!' -ForegroundColor Green"

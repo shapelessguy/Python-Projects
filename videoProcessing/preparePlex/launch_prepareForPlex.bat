@@ -1,5 +1,5 @@
 @echo off
-set "arg=%1"
+set arg=%*
 
 net session >nul 2>&1
 if %errorLevel% NEQ 0 (
@@ -10,4 +10,4 @@ if %errorLevel% NEQ 0 (
 
 cd /d "%~dp0"
 echo %~dp0
-"C:\Users\shape\AppData\Local\Programs\Python\Python311\python.exe" "prepareForPlex.py" "%arg%"
+"C:\Users\shape\AppData\Local\Programs\Python\Python311\python.exe" "prepareForPlex.py" %arg%

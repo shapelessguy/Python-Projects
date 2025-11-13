@@ -6,7 +6,6 @@ if %errorlevel% neq 0 (
     powershell -Command "Start-Process '%~f0' -Verb RunAs"
     exit /b
 )
-echo Running with administrator privileges.
 
 REM -------------------------------
 REM Build Plex launcher EXE
@@ -28,15 +27,18 @@ cd /d "%BASE_DIR%"
 
 REM Check if the folders exists
 if not exist "%MVP64_DLL%" (
-    echo ERROR: Dll "%MVP64_DLL%" not found! Make sure SVP4 is installed together with its plugins like mvp.
+    powershell -Command "Write-Host 'ERROR: Dll ''%MVP64_DLL%'' not found! Make sure SVP4 is installed together with its plugins like mvp.' -ForegroundColor Red"
+    pause
     exit /b 1
 )
 if not exist "%PLEX_DIR%" (
-    echo ERROR: Folder "%PLEX_DIR%" not found! Make sure Plex for Windows is installed.
+    powershell -Command "Write-Host 'ERROR: Folder ''%PLEX_DIR%'' not found! Make sure Plex for Windows is installed.' -ForegroundColor Red"
+    pause
     exit /b 1
 )
 if not exist "%PLEX_CONFIG_PATH%" (
-    echo ERROR: Configuration file "%PLEX_CONFIG_PATH%" not found! Way to proceed unkwnown.
+    powershell -Command "Write-Host 'ERROR: Configuration file ''%PLEX_CONFIG_PATH%'' not found! Way to proceed unkwnown.' -ForegroundColor Red"
+    pause
     exit /b 1
 )
 
@@ -46,46 +48,52 @@ echo input-ipc-server=mpvpipe
 echo hwdec-codecs=all
 echo hr-seek-framedrop=no
 ) > "%PLEX_CONFIG_PATH%"
-pause
 
-@REM REM Optional: remove previous temporary folders if they exist
-@REM if exist %BUILD_DIR% rmdir /s /q %BUILD_DIR%
-@REM if exist %SPEC_DIR%  rmdir /s /q %SPEC_DIR%
-@REM if exist %DIST_DIR%  rmdir /s /q %DIST_DIR%
+REM Optional: remove previous temporary folders if they exist
+if exist %BUILD_DIR% rmdir /s /q %BUILD_DIR%
+if exist %SPEC_DIR%  rmdir /s /q %SPEC_DIR%
+if exist %DIST_DIR%  rmdir /s /q %DIST_DIR%
 
-@REM REM Recreate dist folder
-@REM mkdir %DIST_DIR%
+REM Recreate dist folder
+mkdir %DIST_DIR%
 
-@REM REM Create dist folder
-@REM mkdir %DIST_DIR%
+REM Create dist folder
+mkdir %DIST_DIR%
 
-@REM REM Build EXE
-@REM pip install pyinstaller
-@REM pyinstaller --onefile --noconsole --distpath %DIST_DIR% --name="PlexLauncher" --icon=../plex.ico --workpath %BUILD_DIR% --specpath %SPEC_DIR% %SCRIPT%
+REM Build EXE
+pip install pyinstaller
+pyinstaller --onefile --noconsole --distpath %DIST_DIR% --name="PlexLauncher" --icon=../plex.ico --workpath %BUILD_DIR% --specpath %SPEC_DIR% %SCRIPT%
 
-@REM echo.
-@REM echo Build complete. EXE is located in %DIST_DIR%
+set "PLEX_LAUNCHER=%DIST_DIR%\PlexLauncher.exe"
+if not exist "%MVP64_DLL%" (
+    powershell -Command "Write-Host 'ERROR: PlexLauncher.exe has not been generated.' -ForegroundColor Red"
+    pause
+    exit /b 1
+)
+powershell -Command "Write-Host 'Build complete. EXE is located in %DIST_DIR%' -ForegroundColor Green"
 
-@REM mkdir "%PLEX_SVP_LAUNCHER_DIR%"
-@REM copy "%DIST_DIR%\PlexLauncher.exe" "%PLEX_SVP_LAUNCHER_DIR%\" /y
+mkdir "%PLEX_SVP_LAUNCHER_DIR%"
+copy "%PLEX_LAUNCHER%" "%PLEX_SVP_LAUNCHER_DIR%\" /y
 
-@REM REM Delete old Plex shortcut if it exists
-@REM del "%LINK_DIR%\Plex.lnk" /f /q
+REM Delete old Plex shortcut if it exists
+del "%LINK_DIR%\Plex.lnk" /f /q
 
-@REM REM Create new Plex shortcut pointing to the EXE
-@REM powershell -NoProfile -Command ^
-@REM   "$s=(New-Object -COM WScript.Shell).CreateShortcut('%LINK_DIR%\Plex.lnk');" ^
-@REM   "$s.TargetPath='%PLEX_SVP_LAUNCHER_DIR%\PlexLauncher.exe';" ^
-@REM   "$s.WorkingDirectory='%PLEX_SVP_LAUNCHER_DIR%';" ^
-@REM   "$s.IconLocation='%BASE_DIR%\plex.ico,0';" ^
-@REM   "$s.Save()"
+REM Create new Plex shortcut pointing to the EXE
+powershell -NoProfile -Command ^
+  "$s=(New-Object -COM WScript.Shell).CreateShortcut('%LINK_DIR%\Plex.lnk');" ^
+  "$s.TargetPath='%PLEX_SVP_LAUNCHER_DIR%\PlexLauncher.exe';" ^
+  "$s.WorkingDirectory='%PLEX_SVP_LAUNCHER_DIR%';" ^
+  "$s.IconLocation='%BASE_DIR%\plex.ico,0';" ^
+  "$s.Save()"
+  
+if not exist "%LINK_DIR%\Plex.lnk" (
+    powershell -Command "Write-Host 'ERROR: Plex link has not been created.' -ForegroundColor Red"
+    pause
+    exit /b 1
+)
+powershell -Command "Write-Host 'Plex shortcut created' -ForegroundColor Green"
 
-@REM echo Plex shortcut recreated
-
-@REM REM Clean up temporary folders
-@REM if exist %BUILD_DIR% rmdir /s /q %BUILD_DIR%
-@REM if exist %SPEC_DIR%  rmdir /s /q %SPEC_DIR%
-@REM if exist %DIST_DIR%  rmdir /s /q %DIST_DIR%
-
-@REM echo Plex link replaced
-@REM pause
+REM Clean up temporary folders
+if exist %BUILD_DIR% rmdir /s /q %BUILD_DIR%
+if exist %SPEC_DIR%  rmdir /s /q %SPEC_DIR%
+if exist %DIST_DIR%  rmdir /s /q %DIST_DIR%
