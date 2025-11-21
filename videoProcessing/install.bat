@@ -51,6 +51,15 @@ if not exist "%VLC_PATH%" (
     exit /b 1
 )
 
+
+echo Installing contextMenuUtilities...
+call %~dp0iconApplier\install_contextMenuUtilities.bat
+if %ERRORLEVEL% neq 0 (
+    powershell -Command "Write-Host 'ERROR: install_contextMenuUtilities failed!' -ForegroundColor Red"
+    pause
+    exit /b 1
+)
+
 echo Installing applyIcon...
 call %~dp0iconApplier\install_iconApplier.bat
 if %ERRORLEVEL% neq 0 (
