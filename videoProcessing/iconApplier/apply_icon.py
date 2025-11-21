@@ -101,4 +101,3 @@ if __name__ == "__main__":
         ensure_icon(icon_filepath, system_ico_filepath)
         set_folder_icon(targeted_folder, system_ico_filepath)
         refresh_explorer()
-        print(icon_filepath, icon_filepath.suffix)

@@ -4,11 +4,10 @@ set arg=%*
 net session >nul 2>&1
 if %errorLevel% NEQ 0 (
     echo Running as admin...
-    powershell -Command "Start-Process '%~f0' -Verb RunAs -ArgumentList '%arg%'"
+    powershell -Command "Start-Process '%~f0' -Verb RunAs -WindowStyle Hidden -ArgumentList '%arg%'"
     exit /b
 )
 
 cd /d "%~dp0"
 echo %~dp0
-"C:\Users\shape\AppData\Local\Programs\Python\Python311\python.exe" "%~dp0apply_icon.py" %arg%
-pause
+"C:\Users\shape\AppData\Local\Programs\Python\Python311\pythonw.exe" "%~dp0apply_icon.py" %arg%
