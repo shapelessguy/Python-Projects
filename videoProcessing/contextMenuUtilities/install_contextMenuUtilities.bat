@@ -78,14 +78,14 @@ reg add "%REG_PATH%" /f
 reg add "%REG_PATH%" /v "MUIVerb" /d "Open with Git" /f
 reg add "%REG_PATH%" /v "Icon" /d "%~dp0git.ico" /f
 reg add "%REG_PATH%\command" /f
-reg add "%REG_PATH%\command" /ve /d "\"C:\Program Files\Git\git-bash.exe\" --cd=\"%%V\"" /f
+reg add "%REG_PATH%\command" /ve /d "\"%ProgramFiles%\Git\git-bash.exe\" --cd=\"%%V\"" /f
 
 set "REG_PATH=HKCR\Folder\shell\launchGit"
 reg add "%REG_PATH%" /f
 reg add "%REG_PATH%" /v "MUIVerb" /d "Open with Git" /f
 reg add "%REG_PATH%" /v "Icon" /d "%~dp0git.ico" /f
 reg add "%REG_PATH%\command" /f
-reg add "%REG_PATH%\command" /ve /d "\"C:\Program Files\Git\git-bash.exe\" --cd=\"%%V\"" /f
+reg add "%REG_PATH%\command" /ve /d "\"%ProgramFiles%\Git\git-bash.exe\" --cd=\"%%V\"" /f
 
 REM -------------- Normal VSCode
 
