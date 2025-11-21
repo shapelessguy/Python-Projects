@@ -157,11 +157,55 @@ def initialize_windows(stock_symbol):
     return Windows(windows)
 
 
-windows = initialize_windows("CSSPXM.XD")
-windows.get_formatted("1D")
+
+import requests
+
+url = "https://authx.alpaca.markets/v1/oauth2/token"
+
+payload = { "grant_type": "client_credentials" }
+headers = {
+    "accept": "application/json",
+    "content-type": "application/x-www-form-urlencoded"
+}
+
+response = requests.post(url, data=payload, headers=headers)
+
+print(response.text)
+
+# windows = initialize_windows("CSSPXM.XD")
+# windows.get_formatted("1D")
 # windows.plot(365)
 # for _ in range(100):
 #     windows.insert(1)
 # while True:
 #     windows.insert(2)
 #     time.sleep(1)
+
+from alpaca.data.live import StockDataStream
+import asyncio
+
+import asyncio
+import nest_asyncio
+from alpaca.data.live import StockDataStream
+
+nest_asyncio.apply()  # Allow nested event loops
+
+
+API_KEY = "PKXKD2ZOOYNQEUJNANYK6RI3TR"
+SECRET_KEY = "9rHzQiKHgcezXmRa88QYJp52xg5jUbUZyzpSXdxFLmJ1"
+
+async def handler(bar):
+    print(f"{bar.symbol} Close: {bar.close} Volume: {bar.volume}")
+
+async def main():
+    stream = StockDataStream(
+        api_key=API_KEY,
+        secret_key=SECRET_KEY,
+        url_override="wss://data.alpaca.markets/stream"
+    )
+
+    stream.subscribe_bars(handler, "BABA")
+    print("Start streaming...")
+    await stream.run()
+
+asyncio.run(main())

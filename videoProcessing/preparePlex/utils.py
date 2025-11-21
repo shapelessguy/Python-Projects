@@ -19,9 +19,10 @@ if sys.platform == "win32":
     kernel32.SetConsoleMode(hStdOut, mode.value | 0x0004)
 
 
+config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".config")
 API_KEY = dotenv_values(os.path.join(os.path.dirname(__file__), ".env"))["IMDB_KEY"]
-FINAL_MOVIE_HOLDER_PATH = dotenv_values(os.path.join(os.path.dirname(__file__), ".config"))["FINAL_MOVIE_HOLDER_PATH"]
-PURGATORY_FOLDER = dotenv_values(os.path.join(os.path.dirname(__file__), ".config"))["PURGATORY_FOLDER"]
+FINAL_MOVIE_HOLDER_PATH = dotenv_values(config_path)["FINAL_MOVIE_HOLDER_PATH"]
+PURGATORY_FOLDER = dotenv_values(config_path)["PURGATORY_FOLDER"]
 VLC_PATH = r"C:\Program Files\VideoLAN\VLC\vlc.exe"
 
 

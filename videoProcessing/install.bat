@@ -51,6 +51,14 @@ if not exist "%VLC_PATH%" (
     exit /b 1
 )
 
+echo Installing applyIcon...
+call %~dp0iconApplier\install_iconApplier.bat
+if %ERRORLEVEL% neq 0 (
+    powershell -Command "Write-Host 'ERROR: install_iconApplier failed!' -ForegroundColor Red"
+    pause
+    exit /b 1
+)
+
 echo Installing Plex Launcher...
 call %~dp0PlexLauncher\install_plex_launcher.bat
 if %ERRORLEVEL% neq 0 (
