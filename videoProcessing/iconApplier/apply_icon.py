@@ -8,6 +8,7 @@ from pathlib import Path
 from PIL import Image
 import configparser
 import ctypes
+import traceback
 config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".config")
 ICON_FOLDER = dotenv_values(config_path)["ICON_FOLDER"]
 SYSTEM_ICON_FOLDER = Path(dotenv_values(config_path)["SYSTEM_ICON_FOLDER"])
@@ -26,7 +27,7 @@ def refresh_explorer():
 
 
 def set_folder_icon(folder: Path, icon_path: Path):
-    desktop_ini = folder / "desktop.ini"
+    desktop_ini = folder.joinpath("desktop.ini")
 
     config = configparser.ConfigParser()
     config.optionxform = str  # Preserve case of keys
@@ -79,25 +80,29 @@ def ensure_icon(icon_filepath: Path, system_ico_filepath: Path):
 
 
 if __name__ == "__main__":
-    targeted_folder = Path(sys.argv[1])
-    if not SYSTEM_ICON_FOLDER.exists():
-        os.mkdir(SYSTEM_ICON_FOLDER)
-        os.system(f'attrib +s "{SYSTEM_ICON_FOLDER}"')
+    try:
+        targeted_folder = Path(" ".join(sys.argv[1:]))
+        if not SYSTEM_ICON_FOLDER.exists():
+            os.mkdir(SYSTEM_ICON_FOLDER)
+            os.system(f'attrib +s "{SYSTEM_ICON_FOLDER}"')
 
-    root = tk.Tk()
-    root.withdraw()
+        root = tk.Tk()
+        root.withdraw()
 
-    icon_filepath = filedialog.askopenfilename(
-        initialdir=ICON_FOLDER,
-        title="Select a PNG file",
-        filetypes=[("Image", "*.png *.jpg *.jpeg *.ico"), ("PNG", "*.png"), ("JPEG", "*.jpeg"), ("JPG", "*.jpg"), ("ICO", "*.ico"), ("ALL", "*.*")]
-    )
+        icon_filepath = filedialog.askopenfilename(
+            initialdir=ICON_FOLDER,
+            title="Select a PNG file",
+            filetypes=[("Image", "*.png *.jpg *.jpeg *.ico"), ("PNG", "*.png"), ("JPEG", "*.jpeg"), ("JPG", "*.jpg"), ("ICO", "*.ico"), ("ALL", "*.*")]
+        )
 
-    root.destroy()
-    if icon_filepath:
-        icon_filepath = Path(icon_filepath)
-        icon_name = str(targeted_folder).replace(":", "").replace("\\", "_") + ".ico"
-        system_ico_filepath = SYSTEM_ICON_FOLDER.joinpath(icon_name)
-        ensure_icon(icon_filepath, system_ico_filepath)
-        set_folder_icon(targeted_folder, system_ico_filepath)
-        refresh_explorer()
+        root.destroy()
+        if icon_filepath:
+            icon_filepath = Path(icon_filepath)
+            icon_name = str(targeted_folder).replace(":", "").replace("\\", "_") + ".ico"
+            system_ico_filepath = SYSTEM_ICON_FOLDER.joinpath(icon_name)
+            ensure_icon(icon_filepath, system_ico_filepath)
+            set_folder_icon(targeted_folder, system_ico_filepath)
+            refresh_explorer()
+    except:
+        print(traceback.format_exc())
+        input("Press a key to exit...")

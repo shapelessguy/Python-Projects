@@ -7,6 +7,9 @@ if %errorlevel% neq 0 (
     exit /b
 )
 
+pip install dotenv
+pip install pillow
+
 REM Registry path for the right-click background menu
 set "REG_PATH=HKCR\Folder\shell\iconSetter"
 
