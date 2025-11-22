@@ -10,8 +10,8 @@ import os
 import subprocess
 
 # Set environment variables for this process
-os.environ["PATH"] = r"C:\Program Files (x86)\SVP 4\mpv64;" + os.environ["PATH"]
-os.environ["PYTHONHOME"] = r"C:\Program Files (x86)\SVP 4\mpv64"
+os.environ["PATH"] = r"C:\Program Files\SVP 4\mpv64;" + os.environ["PATH"]
+os.environ["PYTHONHOME"] = r"C:\Program Files\SVP 4\mpv64"
 
 # Path to Plex executable
 plex_exe = r"C:\Program Files\Plex\Plex\Plex.exe"

@@ -126,14 +126,14 @@ reg add "%REG_PATH%" /f
 reg add "%REG_PATH%" /v "MUIVerb" /d "Open with Visual Studio" /f
 reg add "%REG_PATH%" /v "Icon" /d "%~dp0vs.ico" /f
 reg add "%REG_PATH%\command" /f
-reg add "%REG_PATH%\command" /ve /d "\"%ProgramFiles%\Microsoft Visual Studio\2022\Community\Common7\IDE\devenv.exe\" \"%%V\"" /f
+reg add "%REG_PATH%\command" /ve /d "\"%ProgramFiles%\Microsoft Visual Studio\18\Insiders\Common7\IDE\devenv.exe\" \"%%V\"" /f
 
 set "REG_PATH=HKCR\Folder\shell\launchVS"
 reg add "%REG_PATH%" /f
 reg add "%REG_PATH%" /v "MUIVerb" /d "Open with Visual Studio" /f
 reg add "%REG_PATH%" /v "Icon" /d "%~dp0vs.ico" /f
 reg add "%REG_PATH%\command" /f
-reg add "%REG_PATH%\command" /ve /d "\"%ProgramFiles%\Microsoft Visual Studio\2022\Community\Common7\IDE\devenv.exe\" \"%%V\"" /f
+reg add "%REG_PATH%\command" /ve /d "\"%ProgramFiles%\Microsoft Visual Studio\18\Insiders\Common7\IDE\devenv.exe\" \"%%V\"" /f
 
 REM -------------- Admin Visual Studio
 
@@ -142,14 +142,14 @@ reg add "%REG_PATH%" /f
 reg add "%REG_PATH%" /v "MUIVerb" /d "Open with Visual Studio (Admin)" /f
 reg add "%REG_PATH%" /v "Icon" /d "%~dp0vs.ico" /f
 reg add "%REG_PATH%\command" /f
-reg add "%REG_PATH%\command" /ve /d "powershell -Command \"Start-Process '%ProgramFiles%\Microsoft Visual Studio\2022\Community\Common7\IDE\devenv.exe' -ArgumentList '%%V' -Verb RunAs\"" /f
+reg add "%REG_PATH%\command" /ve /d "powershell -Command \"Start-Process '%ProgramFiles%\Microsoft Visual Studio\18\Insiders\Common7\IDE\devenv.exe' -ArgumentList '%%V' -Verb RunAs\"" /f
 
 set "REG_PATH=HKCR\Folder\shell\launchVSAsAdmin"
 reg add "%REG_PATH%" /f
 reg add "%REG_PATH%" /v "MUIVerb" /d "Open with Visual Studio (Admin)" /f
 reg add "%REG_PATH%" /v "Icon" /d "%~dp0vs.ico" /f
 reg add "%REG_PATH%\command" /f
-reg add "%REG_PATH%\command" /ve /d "powershell -Command \"Start-Process '%ProgramFiles%\Microsoft Visual Studio\2022\Community\Common7\IDE\devenv.exe' -ArgumentList '%%V' -Verb RunAs\"" /f
+reg add "%REG_PATH%\command" /ve /d "powershell -Command \"Start-Process '%ProgramFiles%\Microsoft Visual Studio\18\Insiders\Common7\IDE\devenv.exe' -ArgumentList '%%V' -Verb RunAs\"" /f
 
 
 powershell -Command "Write-Host 'Context menu untilities created successfully!' -ForegroundColor Green"

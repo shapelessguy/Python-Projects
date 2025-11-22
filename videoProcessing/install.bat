@@ -8,7 +8,7 @@ if %errorlevel% neq 0 (
 )
 
 set "PLEX_DIR=C:\Program Files\Plex\Plex"
-set "MVP64_DLL=C:\Program Files (x86)\SVP 4\mpv64\libmpv-2.dll"
+set "MVP64_DLL=C:\Program Files\SVP 4\mpv64\libmpv-2.dll"
 set "VLC_PATH=C:\Program Files\VideoLAN\VLC\vlc.exe"
 
 where python >nul 2>&1
@@ -53,7 +53,7 @@ if not exist "%VLC_PATH%" (
 
 
 echo Installing contextMenuUtilities...
-call %~dp0iconApplier\install_contextMenuUtilities.bat
+call %~dp0contextMenuUtilities\install_contextMenuUtilities.bat
 if %ERRORLEVEL% neq 0 (
     powershell -Command "Write-Host 'ERROR: install_contextMenuUtilities failed!' -ForegroundColor Red"
     pause

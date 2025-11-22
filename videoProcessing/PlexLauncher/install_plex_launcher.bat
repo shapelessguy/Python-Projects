@@ -14,7 +14,7 @@ REM -------------------------------
 REM Get absolute paths
 set "PLEX_DIR=C:\Program Files\Plex\Plex"
 set "PLEX_CONFIG_PATH=C:\Users\%USERNAME%\AppData\Local\Plex\mpv.conf"
-set "MVP64_DLL=C:\Program Files (x86)\SVP 4\mpv64\libmpv-2.dll"
+set "MVP64_DLL=C:\Program Files\SVP 4\mpv64\libmpv-2.dll"
 set "LINK_DIR=C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Plex"
 set "PLEX_SVP_LAUNCHER_DIR=C:\Program Files\Plex\Plex\SVP_compatible_launcher"
 set "BASE_DIR=%~dp0"
