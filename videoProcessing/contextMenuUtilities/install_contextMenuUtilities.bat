@@ -46,14 +46,14 @@ reg add "%REG_PATH%" /f
 reg add "%REG_PATH%" /v "MUIVerb" /d "Open with Powershell" /f
 reg add "%REG_PATH%" /v "Icon" /d "%~dp0PowerShell.ico" /f
 reg add "%REG_PATH%\command" /f
-reg add "%REG_PATH%\command" /ve /d "powershell -NoProfile -Command \"Start-Process powershell -ArgumentList '-NoExit','-Command Set-Location -LiteralPath \"%%V\"'\"" /f
+reg add "%REG_PATH%\command" /ve /d "powershell -NoProfile -Command \"Start-Process powershell -ArgumentList '-NoExit','-Command \"\"Set-Location -LiteralPath ''%%V''\"\"'\"" /f
 
 set "REG_PATH=HKCR\Folder\shell\launchPowerShell"
 reg add "%REG_PATH%" /f
 reg add "%REG_PATH%" /v "MUIVerb" /d "Open with Powershell" /f
 reg add "%REG_PATH%" /v "Icon" /d "%~dp0PowerShell.ico" /f
 reg add "%REG_PATH%\command" /f
-reg add "%REG_PATH%\command" /ve /d "powershell -NoProfile -Command \"Start-Process powershell -ArgumentList '-NoExit','-Command Set-Location -LiteralPath \"%%V\"'\"" /f
+reg add "%REG_PATH%\command" /ve /d "powershell -NoProfile -Command \"Start-Process powershell -ArgumentList '-NoExit','-Command \"\"Set-Location -LiteralPath ''%%V''\"\"'\"" /f
 
 REM -------------- Admin PowerShell
 
@@ -62,14 +62,14 @@ reg add "%REG_PATH%" /f
 reg add "%REG_PATH%" /v "MUIVerb" /d "Open with Powershell (Admin)" /f
 reg add "%REG_PATH%" /v "Icon" /d "%~dp0PowerShell.ico" /f
 reg add "%REG_PATH%\command" /f
-reg add "%REG_PATH%\command" /ve /d "powershell -NoProfile -Command \"Start-Process powershell -Verb RunAs -ArgumentList '-NoExit','-Command Set-Location -LiteralPath \"%%V\"'\"" /f
+reg add "%REG_PATH%\command" /ve /d "powershell -NoProfile -Command \"Start-Process powershell -Verb RunAs -ArgumentList '-NoExit','-Command \"\"Set-Location -LiteralPath ''%%V''\"\"'\"" /f
 
 set "REG_PATH=HKCR\Folder\shell\launchPowerShellAsAdmin"
 reg add "%REG_PATH%" /f
 reg add "%REG_PATH%" /v "MUIVerb" /d "Open with Powershell (Admin)" /f
 reg add "%REG_PATH%" /v "Icon" /d "%~dp0PowerShell.ico" /f
 reg add "%REG_PATH%\command" /f
-reg add "%REG_PATH%\command" /ve /d "powershell -NoProfile -Command \"Start-Process powershell -Verb RunAs -ArgumentList '-NoExit','-Command Set-Location -LiteralPath \"%%V\"'\"" /f
+reg add "%REG_PATH%\command" /ve /d "powershell -NoProfile -Command \"Start-Process powershell -Verb RunAs -ArgumentList '-NoExit','-Command \"\"Set-Location -LiteralPath ''%%V''\"\"'\"" /f
 
 REM -------------- Normal Git
 
