@@ -206,6 +206,33 @@
             "year": 2025,
             "month": 11,
             "day": 13
+        },
+        {
+            "index": 23,
+            "name": "Lea",
+            "price": 1.5,
+            "reason": "Toilet cleaner + cling film",
+            "year": 2025,
+            "month": 11,
+            "day": 19
+        },
+        {
+            "index": 24,
+            "name": "Lea",
+            "price": 0.45,
+            "reason": "Rest of the cling film (it read 1,5\u20ac as 1\u20ac and 5ct)",
+            "year": 2025,
+            "month": 11,
+            "day": 19
+        },
+        {
+            "index": 25,
+            "name": "Claudio",
+            "price": 19.0,
+            "reason": "Idroponische herben",
+            "year": 2025,
+            "month": 11,
+            "day": 22
         }
     ]
 }
