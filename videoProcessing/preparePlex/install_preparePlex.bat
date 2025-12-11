@@ -11,22 +11,18 @@ pip install colorama
 pip install requests
 pip install dotenv
 
-REM Registry path for the right-click background menu
-set "REG_PATH=HKCR\Directory\Background\shell\preparePlex"
-
-REM Create the key
+set "REG_PATH=HKCR\Folder\shell\preparePlex"
 reg add "%REG_PATH%" /f
-
-REM Set the MUIVerb (the text that appears in the menu)
 reg add "%REG_PATH%" /v "MUIVerb" /d "Prepare Plex" /f
-
-REM Set the icon (full path to your .ico or .exe with icon)
 reg add "%REG_PATH%" /v "Icon" /d "%~dp0film.ico" /f
-
-REM Create the command subkey
 reg add "%REG_PATH%\command" /f
+reg add "%REG_PATH%\command" /ve /d "\"%~dp0launch_prepareForPlex.bat\" %%V" /f
 
-REM Set the command to run your EXE
+set "REG_PATH=HKCR\Directory\Background\shell\preparePlex"
+reg add "%REG_PATH%" /f
+reg add "%REG_PATH%" /v "MUIVerb" /d "Prepare Plex" /f
+reg add "%REG_PATH%" /v "Icon" /d "%~dp0film.ico" /f
+reg add "%REG_PATH%\command" /f
 reg add "%REG_PATH%\command" /ve /d "\"%~dp0launch_prepareForPlex.bat\" %%V" /f
 
 powershell -Command "Write-Host 'Context menu preparePlex created successfully!' -ForegroundColor Green"

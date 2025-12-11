@@ -7,7 +7,7 @@ pd.set_option('display.max_rows', None)
 pd.set_option('display.width', None)
 
 
-def digit_round(x, significance=3):
+def digit_round(x, significance=4):
     x = float(x)
     if abs(x) < 10**-32:
         return 0.00
@@ -61,7 +61,7 @@ class Blend:
 
 
 class Mixture:
-    def __init__(self, name='?', elements=None, d_price=None, trace=None):
+    def __init__(self, name='?', elements=None, d_price=None, trace=None, liquid=None):
         """
         Returns a Mixture used to create Liquids.
 
@@ -85,6 +85,7 @@ class Mixture:
             self.d_price = d_price
         self.fluidity = sum([k.fluidity * v for k, v in self.elements.items()])
         self.trace = trace
+        self.liquid = liquid
 
     @staticmethod
     def get_sub_mixtures(trace=None, root=True, verbose=True):
@@ -130,7 +131,7 @@ class Mixture:
 
 
 class Liquid:
-    def __init__(self, p_pg, p_vg, p_w, nico, base_nico, mixtures):
+    def __init__(self, p_pg, p_vg, p_w, nico, base_nico, mixtures={}):
         """
         Returns a new Mixture used to create Liquids.
 
@@ -180,31 +181,51 @@ class Liquid:
     def to_df(to_add, mult):
         array = []
         index = ['Volume(ml)', 'Mass(g)', '~drops', 'Price(€)']
-        columns = list(to_add.keys()) + ['Tot']
-        rounding = [4, 4, 0, 2]
-        for k in to_add:
-            array.append([digit_round(x * mult, i) for x, i in zip(to_add[k], rounding)])
+        columns = [k for k in to_add] + ['Tot']
+        rounding = [4, 4, -99, 2]
+        for blend in to_add:
+            array.append([digit_round(x * mult, i) if i != -99 else int(x * mult) for x, i in zip(to_add[blend], rounding)])
         array.append([digit_round(x, 2) for x in np.array([[x * mult for x in to_add[k]] for k in to_add]).sum(axis=0)])
         array = np.array(array).T
         df = pd.DataFrame(array, index=index, columns=columns)
         return df
 
-    def get_composition(self, print_=False):
-        if print_:
-            name = f' -> {self.name}' if self.name is not None else ''
-            string = f'\nCOMPOSITION{name}:\n'
-            lines = self.composition.to_string().split('\n')
-            for i in range(len(lines)):
-                if 'Volume(ml)' in lines[i]:
-                    lines[i] = bcolors.OKCYAN + lines[i] + bcolors.ENDC
-                elif 'Mass(g)' in lines[i]:
-                    lines[i] = bcolors.WARNING + lines[i] + bcolors.ENDC
-                elif '~drops' in lines[i]:
-                    lines[i] = bcolors.OKBLUE + lines[i] + bcolors.ENDC
-                elif 'Price(€)' in lines[i]:
-                    lines[i] = lines[i]
-            string += '\t' + '\n\t'.join(lines) + '\n'
-            print(string)
+    def get_composition(self, tot_ingredients, to_add):
+        name = f' -> {self.name}' if self.name is not None else ''
+        string = f'\nCOMPOSITION{name}:\n\n'
+        comp = self.composition.to_dict()
+        tot_quantity = comp["Tot"][list(comp["Tot"])[0]]
+        
+        tot_ = {k.name: v for k, v in tot_ingredients.items()}
+        first_row = []
+        for blend in to_add:
+            plus = ""
+            blend_ = blend.replace(" (to add)", "")
+            if tot_.get(blend_, False):
+                t = tot_[blend_] * tot_quantity
+                incr = to_add[blend].iloc[0] / t * 100
+                incr = int(incr * 10) / 10
+                plus = f"+{incr}%"
+            first_row.append(plus)
+        first_row = pd.DataFrame([first_row + [""] * (self.composition.shape[1] - len(first_row))], columns=self.composition.columns, index=["Increase"])
+
+        cmp = self.composition.copy()
+        cmp = pd.concat([first_row, cmp])
+
+        lines = cmp.to_string(col_space=15).split('\n')
+        for i in range(len(lines)):
+            if 'Increase' in lines[i]:
+                lines[i] = bcolors.BOLD + lines[i] + bcolors.ENDC
+            elif 'Volume(ml)' in lines[i]:
+                lines[i] = bcolors.OKCYAN + lines[i] + bcolors.ENDC
+            elif 'Mass(g)' in lines[i]:
+                lines[i] = bcolors.WARNING + lines[i] + bcolors.ENDC
+            elif '~drops' in lines[i]:
+                lines[i] = bcolors.OKBLUE + lines[i] + bcolors.ENDC
+            elif 'Price(€)' in lines[i]:
+                lines[i] = lines[i]
+        string += '\t' + '\n\t'.join(lines) + '\n'
+        print(string)
         return self.composition
 
     def is_composable(self):
@@ -267,7 +288,7 @@ class Liquid:
         return min_p_pg, min_p_vg, min_p_water, gap_nico_percentage, ingredients, mixtures_to_add
 
     # noinspection PyUnresolvedReferences
-    def compose(self, name, ref=None):
+    def compose(self, name, ref=None, show=False):
         self.name = name
         min_p_pg, min_p_vg, min_p_water, gap_nico_percentage, ingredients, mixtures_to_add = self.is_composable()
 
@@ -321,7 +342,9 @@ class Liquid:
                 ml[blend] = ml.get(blend, 0) + v * v_n
 
         d_price = to_add['Tot'].array[-1] / to_add['Tot'].array[0]
-        return Mixture(name, tot_ingredients, d_price, trace=mixtures_to_add)
+        if show:
+            self.get_composition(tot_ingredients, to_add)
+        return Mixture(name, tot_ingredients, d_price, trace=mixtures_to_add, liquid=self)
 
 
 # -------------- Definition of raw materials and basic blends ---------------------------------------------
@@ -331,3 +354,5 @@ prime_water = Fluid('WATER', 1)
 base_pg = Blend('PG', fluids={prime_pg: 1}, nico_concentration=0, fluidity=46.4, d_price=0.010)
 base_vg = Blend('VG', fluids={prime_vg: 1}, nico_concentration=0, fluidity=28.4, d_price=0.010)
 base_water = Blend('WATER', fluids={prime_water: 1}, nico_concentration=0, fluidity=50)
+default_base_nico = Blend('NICO', fluids={prime_vg: 0.3, prime_pg: 0.7}, nico_concentration=0.1, fluidity=34.2, d_price=0.29)
+default_base = Liquid(p_pg=0.444, p_vg=0.556, p_w=0, nico=4, base_nico=default_base_nico).compose(name=f"Std. base")

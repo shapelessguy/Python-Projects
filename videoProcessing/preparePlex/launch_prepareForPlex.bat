@@ -10,4 +10,4 @@ if %errorLevel% NEQ 0 (
 
 cd /d "%~dp0"
 echo %~dp0
-"C:\Users\shape\AppData\Local\Programs\Python\Python311\python.exe" "prepareForPlex.py" %arg%
+python "prepareForPlex.py" %arg%

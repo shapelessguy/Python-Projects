@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useState } from "react";
 import "./App.css"
 
 
@@ -14,9 +14,9 @@ const categories: Array<Record<string, any>> = [
       { name: "Pasta arrabbiata", url: "", vote: 8 },
       { name: "Pasta with peas", url: "", vote: 8 },
       { name: "Ravioli", url: "", vote: 8 },
+      { name: "Spaghetti aglio e olio", url: "", vote: 8 },
       { name: "Spaghetti e vongole", url: "", vote: 9 },
       { name: "Spaghetti e cozze", url: "", vote: 9 },
-      { name: "Spaghetti aglio e olio", url: "", vote: 9 },
       { name: "Cacio e pepe", url: "", vote: 9 },
       { name: "Amatriciana", url: "", vote: 9 },
       { name: "Lasagna", url: "", vote: 9 },
