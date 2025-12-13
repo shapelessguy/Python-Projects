@@ -6,9 +6,11 @@ import stat
 import ctypes
 import json
 import shutil
+import time
 from dotenv import dotenv_values
-from colorama import init, Style
+from colorama import init, Fore, Style
 from pathlib import Path
+import paramiko
 from shift_srt import shift_srt_subs
 init(autoreset=True)
 
@@ -31,6 +33,7 @@ VLC_PATH = r"C:\Program Files\VideoLAN\VLC\vlc.exe"
 TRASH_FOLDER_NAME = ".trash"
 WORKING_FOLDER_NAME = ".working"
 READY_FOLDER_NAME = ".ready"
+sftp = None
 
 
 supported_video_ext = [
@@ -60,7 +63,6 @@ full_language_codes = {
     "Chinese": ["zh", "chi", "zho"],
     "Japanese": ["ja", "jpn"],
     "Arabic": ["ar", "ara"],
-    "Hindi": ["hi", "hin"],
     "Dutch": ["nl", "dut", "nld"],
     "Swedish": ["sv", "swe"],
     "Norwegian": ["no", "nor"],
@@ -81,6 +83,34 @@ full_language_codes = {
 supported_lang_codes = [e for x in full_language_codes.values() for e in x]
 
 
+def get_extended(language_code: str):
+    for v in full_language_codes.values():
+        if language_code in v:
+            return v[-1]
+    return language_code
+
+
+def initialize_sftp():
+    global sftp
+    if "@" in FINAL_MOVIE_HOLDER_PATH:
+        client = paramiko.SSHClient()
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+        try:
+            client.connect(
+                hostname=FINAL_MOVIE_HOLDER_PATH.split("@")[1].split(":")[0],
+                username=FINAL_MOVIE_HOLDER_PATH.split("@")[0],
+                look_for_keys=True,
+                allow_agent=True,
+                timeout=1
+            )
+            sftp = client.open_sftp()
+        except Exception:
+            print(f"{Fore.RED}Address {FINAL_MOVIE_HOLDER_PATH} unavailable{Style.RESET_ALL}\n")
+    else:
+        sftp = None
+
+
 def print_console(msg, color: str = None):
     if color:
         print(f"{color}{msg}{Style.RESET_ALL}", end="")
@@ -91,6 +121,8 @@ def print_console(msg, color: str = None):
 
 def tryMagnet(language_str: str):
     return_value = None
+    if not language_str:
+        return None
     for k, v_ in full_language_codes.items():
         pattern = re.compile(rf"(?<![A-Za-z ])(?:{'|'.join(v_ + [k])})(?![A-Za-z ])",re.IGNORECASE)
         match = pattern.search(language_str)
@@ -98,10 +130,7 @@ def tryMagnet(language_str: str):
             if return_value is not None:
                 print(match.group(0).lower(), return_value)
                 return None
-            if match.group(0).lower() == k.lower():
-                return_value = v_[0]
-            else:
-                return_value = match.group(0)
+            return_value = v_[0]
     return return_value
 
 
@@ -111,6 +140,7 @@ class VideoInfo:
         self.data = data
         self.external_subs = []
         self.remux_audio = False
+        self.to_trash = False
         self.standardize()
     
     def standardize(self):
@@ -183,9 +213,23 @@ def open_or_test(usr_input: str, video_path: Path):
         return True
     return False
 
+
 def open_video(path):
     print(f"Opening video: {path}")
     subprocess.Popen([VLC_PATH, path])
+
+
+def move(src, dst):
+    exception = True
+    while exception:
+        exception = False
+        try:
+            shutil.move(src, dst)
+        except PermissionError:
+            print_console(f"Access denied on {src}. Release it and try again", Fore.RED)
+            exception = True
+        except Exception:
+            time.sleep(0.5)
 
 
 def safe_remove_file(path):
@@ -197,6 +241,8 @@ def safe_remove_file(path):
         except PermissionError:
             os.chmod(path, stat.S_IWRITE)
             os.remove(path)
+        except Exception:
+            time.sleep(0.5)
 
 
 def convert_hms_to_seconds(time_string: str) -> float:
@@ -218,19 +264,42 @@ def convert_hms_to_seconds(time_string: str) -> float:
 
 
 def offset_interface(tracks, type_, shift_now=False):
-    print(f"\nInsert a delay (i.e. +100, -1400) in MS for the following {type_} TRACKS:")
+    if len(tracks) > 0:
+        print(f"\nInsert a delay (and extension in s) - i.e. -1400 +10 - in MS for the following {type_} TRACKS:")
     for t in tracks:
         t["offset"] = 0
         delay = None
+        extension = None
         while delay is None:
             delay = input(f'   {t["tags"]["title"]} - {t["tags"]["language"]}: ').lower().strip()
+            if delay == "":
+                delay = None
+                break
+            numbers = delay.split(" ")
             try:
-                delay = int(delay)
+                delay = int(numbers[0])
+                if len(numbers) > 1 and shift_now:
+                    extension = int(numbers[1])
             except:
                 delay = None
-        if delay is not None and delay != 0:
+                extension = None
+        if (delay is not None and delay != 0) or (extension is not None and extension != 0):
+            delay = 0 if delay is None else delay
+            extension = 0 if extension is None else extension
             if shift_now:
-                shift_srt_subs(t["path"], t["path"], delay)
+                exception = True
+                while exception:
+                    exception = False
+                    try:
+                        src = t["path"]
+                        os.chmod(src, stat.S_IWRITE)
+                        shift_srt_subs(src, src, delay, extend_s=extension)
+                    except PermissionError:
+                        print_console(f"Access denied on {src}. Release it and try again", Fore.RED)
+                        exception = True
+                    except Exception as e:
+                        print(f"{Fore.RED}{e}{Style.RESET_ALL}")
+                        time.sleep(0.5)
             else:
                 t["offset"] = delay
 
@@ -251,46 +320,119 @@ def execute(cmd, errorMsg):
         return False
 
 
-def copy_folder_with_progress(src, dst, already_copied=0, callback=None, chunk_size=1024*1024):
-    """
-    Copy a folder recursively with progress.
-    - src, dst: folders (Path or str)
-    - already_copied: cumulative bytes of previous folders/files
-    - callback(bytes_copied, total_bytes)
-    """
-    src = Path(src)
-    dst = Path(dst)
-    copied_in_folder = 0
-
-    # Walk folder
-    for root, dirs, files in os.walk(src):
-        rel_path = Path(root).relative_to(src)
-        target_root = dst / rel_path
-        target_root.mkdir(parents=True, exist_ok=True)
-
-        for file in files:
-            src_file = Path(root) / file
-            dst_file = target_root / file
-            file_size = src_file.stat().st_size
-            copied = 0
-
-            with open(src_file, 'rb') as fsrc, open(dst_file, 'wb') as fdst:
-                while True:
-                    buf = fsrc.read(chunk_size)
-                    if not buf:
-                        break
-                    fdst.write(buf)
-                    copied += len(buf)
-                    copied_in_folder += len(buf)
-                    if callback:
-                        callback(copied_in_folder, file_size)
-
-            shutil.copystat(src_file, dst_file)
-
-    # Optionally, remove original folder after copy
-    shutil.rmtree(src)
-
 def seconds_to_mmss(seconds):
     minutes = seconds // 60
     remaining_seconds = seconds % 60
     return f"{minutes:02}:{remaining_seconds:02}"
+
+
+def sftp_mkdir_p(sftp, remote_directory):
+    """
+    Recursively create remote directories like mkdir -p.
+    """
+    dirs = []
+    path = remote_directory
+
+    while len(path) > 1:
+        dirs.append(path)
+        path = os.path.dirname(path)
+    dirs.reverse()
+
+    for d in dirs:
+        try:
+            sftp.stat(d)
+        except IOError:
+            sftp.mkdir(d)
+
+
+def list_ready_dirs(files):
+    ready_dir_path = Path(PURGATORY_FOLDER).joinpath(READY_FOLDER_NAME)
+    files += os.listdir(ready_dir_path)
+
+
+def list_holder_dirs(files):
+    global sftp
+    if "@" in FINAL_MOVIE_HOLDER_PATH:
+        if sftp:
+            files += sftp.listdir(FINAL_MOVIE_HOLDER_PATH.split(":")[1])
+    else:
+        files += os.listdir(FINAL_MOVIE_HOLDER_PATH)
+
+
+def copy_via_hhd(root, files, src, dst, callback, copied_in_folder=0, chunk_size=10*1024*1024):
+    rel_path = Path(root).relative_to(src)
+    target_root = dst / rel_path
+    target_root.mkdir(parents=True, exist_ok=True)
+    for file in files:
+        src_file = Path(root) / file
+        dst_file = target_root / file
+        file_size = src_file.stat().st_size
+        copied = 0
+        with open(src_file, 'rb') as fsrc, open(dst_file, 'wb') as fdst:
+            while True:
+                buf = fsrc.read(chunk_size)
+                if not buf:
+                    break
+                fdst.write(buf)
+                copied += len(buf)
+                copied_in_folder += len(buf)
+                if callback:
+                    callback(copied_in_folder, file_size)
+        shutil.copystat(src_file, dst_file)
+    return copied_in_folder
+
+
+def copy_via_paramiko(root, files, src, dst, callback, copied_in_folder=0, chunk_size=1024*1024):
+    global sftp
+
+    if sftp is None:
+        print(f"{Fore.RED}Upload to {FINAL_MOVIE_HOLDER_PATH} not possible{Style.RESET_ALL}", end="")
+        return
+    rel_path = Path(root).relative_to(src)
+    remote_root = dst / rel_path
+    sftp_mkdir_p(sftp, str(remote_root))
+
+    for file in files:
+        local_file = Path(root) / file
+        remote_file = remote_root / file
+        file_size = local_file.stat().st_size
+
+        with open(local_file, "rb") as fsrc, sftp.open(str(remote_file), "wb") as fdst:
+
+            while True:
+                buf = fsrc.read(chunk_size)
+                if not buf:
+                    break
+                fdst.write(buf)
+                copied_in_folder += len(buf)
+
+                if callback:
+                    callback(copied_in_folder, file_size)
+
+        st = local_file.stat()
+        sftp.utime(str(remote_file), (st.st_atime, st.st_mtime))
+    return copied_in_folder
+
+
+def copy_folder_with_progress(src, dst, callback=None):
+    """
+    Copy a folder recursively with progress.
+    - src, dst: folders (Path or str)
+    - callback(bytes_copied, total_bytes)
+    """
+    global sftp
+
+    src = Path(src)
+    dst = Path(dst)
+
+    copied_in_folder = 0
+    for root, _, files in os.walk(src):
+        if "@" in FINAL_MOVIE_HOLDER_PATH:
+            copied_in_folder = copy_via_paramiko(root, files, src, dst, callback, copied_in_folder)
+        else:
+            copied_in_folder = copy_via_hhd(root, files, src, dst, callback, copied_in_folder)
+
+    if sftp:
+        sftp.close()
+    if copied_in_folder > 0:
+        shutil.rmtree(src, onexc=remove_readonly)

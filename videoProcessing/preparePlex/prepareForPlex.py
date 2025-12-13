@@ -96,13 +96,13 @@ class Folder:
     def to_working_dir(self, working_dir_path: Path, trash_path: Path):
         new_folder_path = working_dir_path.joinpath(self.path.stem)
         os.mkdir(new_folder_path)
-        shutil.move(self.video_path, new_folder_path.joinpath(self.video_path.stem + self.video_path.suffix))
+        move(self.video_path, new_folder_path.joinpath(self.video_path.stem + self.video_path.suffix))
         for sub in self.subs_paths:
-            shutil.move(sub, new_folder_path.joinpath(sub.stem + sub.suffix))
+            move(sub, new_folder_path.joinpath(sub.stem + sub.suffix))
         if not len(os.listdir(self.path)):
             os.rmdir(self.path)
         else:
-            shutil.move(self.path, trash_path.joinpath(self.path.stem))
+            move(self.path, trash_path.joinpath(self.path.stem))
     
     def process(self, move_to: Path, trash_path: Path):
         if self.is_valid():
@@ -111,12 +111,16 @@ class Folder:
 
             continue_working = True
             skip_muxing = False
+            fullname = get_movie_name(info)
             while continue_working:
                 continue_working = False
                 while True:
-                    info = process_movie(info)
+                    info = process_movie(info, fullname)
                     self.path = info.video_path.parent
                     self.video_path = info.video_path
+                    if info.to_trash:
+                        move(self.video_path.parent, trash_path.joinpath(self.path.stem))
+                        return
                     
                     feedback = None
                     repeat = True
@@ -143,7 +147,7 @@ class Folder:
                             offset_interface([x for x in (info.get_sub_tracks()) if x["tags"]["language"] is not None], "SUBTITLE")
                             offset_interface([x for x in (info.get_external_subs()) if x["tags"]["language"] is not None], "EXT SUBTITLE", True)
                         elif feedback == "trash":
-                            shutil.move(self.video_path.parent, trash_path.joinpath(self.path.stem))
+                            move(self.video_path.parent, trash_path.joinpath(self.path.stem))
                             return
                     if not repeat:
                         break
@@ -153,7 +157,7 @@ class Folder:
                     if not result:
                         feedback = print_console("Press 'y' if you want to move the working folder into the trash ", Fore.LIGHTCYAN_EX).replace("\n", "").strip().lower()
                         if feedback == "y":
-                            shutil.move(self.path, trash_path.joinpath(self.path.stem))
+                            move(self.path, trash_path.joinpath(self.path.stem))
                         return
                 for sub in info.get_external_subs():
                     if not sub["tags"]["language"]:
@@ -174,7 +178,7 @@ class Folder:
                         if to_path.exists():
                             print(f"{Fore.LIGHTYELLOW_EX}   Folder {to_path} already exists. Overwriting now.{Style.RESET_ALL}")
                             shutil.rmtree(to_path, onexc=remove_readonly)
-                        shutil.move(info.video_path.parent, to_path)
+                        move(info.video_path.parent, to_path)
                         return
                 except:
                     print(f"Error while moving folder from working dir to ready dir:\n{traceback.format_exc()}")
@@ -196,6 +200,7 @@ def clean_dirs(path):
 file_uploaded = 0
 def prepare_plex(purgatory_path):
     global file_uploaded
+    initialize_sftp()
 
     while purgatory_path != Path(PURGATORY_FOLDER):
         if purgatory_path == purgatory_path.parent:
@@ -229,7 +234,7 @@ def prepare_plex(purgatory_path):
         for file in main_folder.video_paths:
             new_folder_path = working_dir_path.joinpath(file.stem)
             os.mkdir(new_folder_path)
-            shutil.move(file, new_folder_path.joinpath(file.stem + file.suffix))
+            move(file, new_folder_path.joinpath(file.stem + file.suffix))
 
         # Sharing info about skipped folders/files
         if len(invalid_folders):
@@ -285,17 +290,14 @@ def prepare_plex(purgatory_path):
                 progress_msg = f"{i+1}/{total_n} - {cur_percentage:.2f}% Moving {folder.path} into {FINAL_MOVIE_HOLDER_PATH}... "
                 line = f"{progress_msg} STATUS {tot_percentage:.2f}%  ETA {eta}"
                 print(f"\r{line:<180}", end="", flush=True)
-            
-            if "@" in FINAL_MOVIE_HOLDER_PATH:
-                cur_uploaded = os.path.getsize(folder.video_path)
-                cmd = ["scp", "-r", str(folder.path), f"{FINAL_MOVIE_HOLDER_PATH}/{folder.path.stem + folder.path.suffix}"]
-                res = execute(cmd, errorMsg=f"Error during scp execution to upload movie")
-                if res:
-                    shutil.rmtree(folder.path, onexc=remove_readonly)
-            else:
-                copy_folder_with_progress(folder.path, f"{FINAL_MOVIE_HOLDER_PATH}/{folder.path.stem + folder.path.suffix}", cur_uploaded, progress)
 
-            cur_uploaded += file_uploaded
+            if str(folder.path).split(":")[0] == FINAL_MOVIE_HOLDER_PATH.split(":")[0]:
+                move(folder.path, f"{FINAL_MOVIE_HOLDER_PATH}/{folder.path.stem + folder.path.suffix}")
+            else:
+                copy_folder_with_progress(folder.path, f"{FINAL_MOVIE_HOLDER_PATH}/{folder.path.stem + folder.path.suffix}", progress)
+                cur_uploaded += file_uploaded
+                if file_uploaded == 0:
+                    break
     
     clean_dirs(ready_dir_path)
     print(f"\n{Fore.GREEN}Preparation to Plex completed.{Style.RESET_ALL}")

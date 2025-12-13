@@ -7,6 +7,10 @@ class Number:
         self.m = int(self.m)
         self.s = int(self.s)
         self.ms = int(ms_str)
+        self.timestamp = self.get_timestamp()
+    
+    def get_timestamp(self):
+        return self.ms + self.s * 1000 + self.m * 60 * 1000 + self.h * 60 * 60 * 1000
 
     def add_zeros(self, value):
         if len(str(value)) < 2:
@@ -30,7 +34,16 @@ class Number:
         self.h += rest
 
 
-def shift_srt_subs(input_file, output_file, ms_to_add):
+class Segment:
+    def __init__(self, n1: Number, n2: Number):
+        self.n1 = n1
+        self.n2 = n2
+
+    def __str__(self):
+        return f"{self.n1} --> {self.n2}\n"
+
+
+def shift_srt_subs(input_file, output_file, ms_to_add, extend=100, extend_s=0):
     """
     File template:
     ...\n
@@ -39,27 +52,40 @@ def shift_srt_subs(input_file, output_file, ms_to_add):
     ...\n
     """
 
-    with open(input_file, 'r') as file:
+    if extend <= 1:
+        raise Exception("Extension only works for percentage values.")
+
+    with open(input_file, 'r', encoding="utf-8", errors="ignore") as file:
         lines = file.readlines()
 
     new_lines = []
-    i = 0
+    segments = []
     for line in lines:
-        i += 1
         if '-->' in line:
+            print("as")
             value_a, value_b = line.replace('\n', '').split(" --> ")
             n1, n2 = Number(value_a), Number(value_b)
-            n1.add_ms(ms_to_add)
-            n2.add_ms(ms_to_add)
-            new_lines.append(f"{n1} --> {n2}\n")
+            segment = Segment(n1, n2)
+
+            segments.append(segment)
+            new_lines.append(segment)
         else:
             new_lines.append(line)
 
+    total_ms = segments[-1].n2.timestamp - segments[0].n1.timestamp
+    if extend_s != 0:
+        extend = (total_ms + extend_s * 1000) / total_ms * 100
+    for s in segments:
+        to_add_from_extend = - (100 - extend) / 100 * (s.n1.timestamp - segments[0].n1.timestamp)
+        to_add = int(to_add_from_extend + ms_to_add)
+        s.n1.add_ms(to_add)
+        s.n2.add_ms(to_add)
+
     with open(output_file, 'w') as file:
-        file.writelines(new_lines)
+        file.writelines([str(x) for x in new_lines])
 
 
 if __name__ == "__main__":
-    input_file = r"D:\Purgatory\.working\Deadpool (2016)\Deadpool (2016).ita.srt"
+    input_file = r"C:\Users\shape\Desktop\test.srt"
     output_file = input_file
-    shift_srt_subs(input_file, output_file, 1800)
+    shift_srt_subs(input_file, output_file, 0, extend_s=-5)

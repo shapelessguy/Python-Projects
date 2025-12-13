@@ -7,6 +7,7 @@ import requests
 import subprocess
 import json
 import requests
+import threading
 from colorama import Fore, Style
 from utils import *
 
@@ -33,6 +34,7 @@ def handle_audio_conflicts(info: VideoInfo, target_file: Path):
                 if perform:
                     continue
             if code in supported_lang_codes:
+                code = get_extended(code)
                 v["tags"]["language"] = code
                 info.remux_audio = True
             elif code == "d":
@@ -93,6 +95,7 @@ def handle_subs_conflicts(info: VideoInfo, target_file: Path):
                 if perform:
                     continue
             if code in supported_lang_codes:
+                code = get_extended(code)
                 v["tags"]["language"] = code
             elif code == "d":
                 v["tags"]["language"] = None
@@ -100,7 +103,7 @@ def handle_subs_conflicts(info: VideoInfo, target_file: Path):
         all_codes_srt.append(v["tags"]["language"])
 
     all_codes_srt += [x["tags"]["language"] for x in info.get_external_subs() if x["extension"] == "srt"]
-    all_codes_srt = set([x for x in all_codes_srt if x in supported_lang_codes])
+    all_codes_srt = set([get_extended(x) for x in all_codes_srt if x in supported_lang_codes])
     for c in all_codes_srt:
         candidates = []
         for e in info.get_sub_tracks():
@@ -208,30 +211,62 @@ def prompt_imdb(name, year):
         if index is not None:
             name, year = candidates[index]
         return prompt_imdb(name, year)
-    return name, year
+    return name, year, details
 
 
-def process_movie(info: VideoInfo):
+def get_movie_name(info: VideoInfo):
     pattern = re.compile(r"^(?P<name>.+?)(?:\s*\((?P<year>\d{4})\))?$")
-    file_path = info.video_path
-    match = pattern.match(file_path.stem)
-    name = sanitize_filename(match.group("name").strip()) if match else sanitize_filename(file_path.stem)
+    match = pattern.match(info.video_path.stem)
+    name = sanitize_filename(match.group("name").strip()) if match else sanitize_filename(info.video_path.stem)
     year = sanitize_filename(match.group("year")) or "" if match else ""
 
-    name, year = prompt_imdb(name, year)
-    fullname = f"{name} ({year})" if year else name
+    while True:
+        ready_files = []
+        list_ready_dirs(ready_files)
+        holder_files = []
+        holder_files_thread = threading.Thread(target=list_holder_dirs, args=(holder_files, ))
+        holder_files_thread.start()
+        name, year, details = prompt_imdb(name, year)
+        fullname = f"{name} ({year})" if year else name
+        holder_files_thread.join()
+        if fullname in holder_files + ready_files:
+            recipient = READY_FOLDER_NAME if fullname in ready_files else FINAL_MOVIE_HOLDER_PATH
+            key = print_console(f"   Name already present in {recipient}\n   Press enter if you want to continue the name selection or 'trash' to move it to the trash: ", Fore.RED)
+            key = key.replace("\n", "").strip().lower()
+            if key == "trash":
+                info.to_trash = True
+                return None
+        else:
+            while True:
+                key = print_console("Press enter if you want to continue, view more details (d), test it (t), open folder (o) or any other key to repeat the name selection: ")
+                key = key.replace("\n", "").strip().lower()
+                if open_or_test(key, info.video_path):
+                    continue
+                elif key == "d":
+                    if details:
+                        print(json.dumps(details, indent=4))
+                    else:
+                        print("No details available...")
+                    continue
+                else:
+                    break
+            if key == "":
+                break
+        name, year = '', ''
+    return fullname
 
-    print()
-    target_folder_path = file_path.parent.parent.joinpath(fullname)
+
+def process_movie(info: VideoInfo, fullname: str):
+    if not fullname:
+        return info
+    print(" ")
+    target_folder_path = info.video_path.parent.parent.joinpath(fullname)
     target_file = target_folder_path.joinpath(f"{fullname}.mkv")
     
-    if target_file != file_path:
-        shutil.move(file_path, file_path.parent.joinpath(f"{target_file.stem}.mkv"))
-        shutil.move(file_path.parent, target_folder_path)
-
-    folder_path = target_file.parent
-    if not folder_path.exists():
-        os.mkdir(folder_path)
+    if target_file != info.video_path:
+        move(info.video_path, info.video_path.parent.joinpath(f"{target_file.stem}.mkv"))
+        move(info.video_path.parent, target_folder_path)
+    info.video_path = target_file
 
     recompute = True
     while recompute:
@@ -255,7 +290,8 @@ def process_movie(info: VideoInfo):
                             break
                 if recompute:
                     break
-                if code:
+                if code in supported_lang_codes:
+                    code = get_extended(code)
                     info.add_external_sub(path=target_file.parent.joinpath(x), extension=x.split(".")[-1], title=x, language=code)
 
     handle_audio_conflicts(info, target_file)
@@ -266,11 +302,10 @@ def process_movie(info: VideoInfo):
             new_path = sub["path"].parent.joinpath(target_file.stem + '.' + sub["tags"]["language"] + f'.{sub["extension"]}')
             subprocess.run(["attrib", "-H", sub["path"]])
             if new_path != sub["path"]:
-                shutil.move(sub["path"], new_path)
+                move(sub["path"], new_path)
                 sub["path"] = new_path
                 if sub["tags"]["language"] == "multi":
                     sub["tags"]["title"] = target_file.stem
-    info.video_path = target_file
     return info
 
 
@@ -324,6 +359,6 @@ def remux(info: VideoInfo):
         return False
     else:
         safe_remove_file(target_file)
-        shutil.move(temp_file, target_file)
+        move(temp_file, target_file)
     
     return True
