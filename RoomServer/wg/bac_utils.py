@@ -8,7 +8,7 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from wg.variables import members, nominal_activities
 
 
-DATA_PATH = os.path.join(os.path.dirname(__file__), 'dataNew')
+DATA_PATH = os.path.join(os.path.dirname(__file__), 'data')
 
 PLAN_FILEPATH = os.path.join(DATA_PATH, 'cleaning_plan_leo6.xlsx')
 HISTORY_FILEPATH = os.path.join(DATA_PATH, 'history.csv')
