@@ -98,11 +98,12 @@ def set_announcement(updated=False):
                     if len(blames) >= 2:
                         string += f'\n☠️ Unfortunately you will have to compensate in the next weeks with more tasks.'
             if telegram_id is not None:
-                print('Msg sent:', string)
+                print(name, debug_flag)
                 if name == 'Claudio' or not debug_flag:
                     try:
                         bh.bot.send_document(telegram_id, document_, caption=text)
                         bh.send_msg(telegram_id, string, parse_mode="HTML")
+                        print('Msg sent:', string)
                     except Exception as e:
                         print(e)
                         print(traceback.format_exc())
