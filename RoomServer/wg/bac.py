@@ -5,70 +5,15 @@ import pandas
 from pandas import DataFrame
 sys.path.append(os.path.dirname(__file__))
 from bac_utils import *
-from variables import members, nominal_activities
 import datetime
 
 
-class Activity:
-    def __init__(self, name, emoticons, description=[]):
-        self.name = name
-        self.emoticons = emoticons
-        self.description = description
-
-
-class Activities:
-    def __init__(self):
-        for idx, activity_data in enumerate(nominal_activities, start=1):
-            name = activity_data["name"]
-            emoji = activity_data["emoji"]
-            description = activity_data.get("description", [])
-            setattr(self, f"area{idx}", Activity(name, emoji, description))
-        self.vacation = Activity("Vacation", "💸🧺🍾")
-        self.blame = Activity("Blame", "bleah")
-        self.anarchy = Activity("Anarchy", "😈😈")
-
-    def get_regular(self):
-        return [
-            value for k, value in self.__dict__.items() if isinstance(value, Activity) and 'area' in k
-        ]
-
-    def get_regular_with_vacation(self):
-        return self.get_regular() + [self.vacation]
-
-    def get_vacation(self):
-        return self.vacation
-
-    def get_blame(self):
-        return self.blame
-
-    def get_anarchy(self):
-        return self.anarchy
-
-    def get_all(self):
-        return self.get_regular() + [self.vacation, self.blame, self.anarchy]
-    
-    def get_roles_df(self):
-        dict_ = {a.name: [x for x in a.description] + [''] * (50 - len(a.description)) for a in self.get_regular() if a.description}
-        max_len = max([sum([(1 if line != '' else 0) for line in dict_[area]]) for area in dict_])
-        dict_ = {a: dict_[a][:max_len] for a in dict_}
-        return pandas.DataFrame.from_dict(dict_)
-    
-    def get_activity_by_name(self, name):
-        for a in self.get_all():
-            if a.name == name:
-                return a
-        print(f"Error: Name {name} not found in activities names.")
-        return None
-
-
-activities = Activities()
-
-
 class WgMember:
-    def __init__(self, name: str, telegram_id: int, role: str):
+    def __init__(self, name: str, telegram_id: int, role: str, activities: Activities):
         self.name = name
         self.telegram_id = telegram_id
         self.role = role
+        self.activities = activities
         self.activity_history = []
     
     def assign(self, activity: Activity):
@@ -91,7 +36,7 @@ class WgMember:
         if activity is not None:
             repeat_idx = 0
             for a in self.activity_history[::-1]:
-                if a in activities.get_regular_with_vacation():
+                if a in self.activities.get_regular_with_vacation():
                     repeat_idx += 1
                 if activity == a:
                     break
@@ -126,7 +71,7 @@ class WgMember:
 
             Note: This index should be maintained as low as possible to maintain tasks diversified.
         """
-        reg_activities = activities.get_regular()
+        reg_activities = self.activities.get_regular()
         executed_activities = {a: 0 for a in reg_activities}
         for a in self.activity_history:
             if a in executed_activities:
@@ -137,7 +82,7 @@ class WgMember:
 
     def get_vacation_idx(self, activity: Activity=None):
         """Get the total number of vacations after assigning <activity> to the current member."""
-        vacation = activities.get_vacation()
+        vacation = self.activities.get_vacation()
         return len([x for x in self.activity_history if x == vacation]) + (1 if activity == vacation else 0)
     
     def calculate_fitness(self, activity: Activity, verbose=False):
@@ -161,12 +106,13 @@ class WgMember:
 
 
 class WgMembers:
-    def __init__(self):
+    def __init__(self, activities: Activities):
         for member in members:
+            self.activities = activities
             name = member["name"]
             member_telegram_id = member["telegram_id"]
             member_role = member["role"]
-            setattr(self, name, WgMember(name, member_telegram_id, member_role))
+            setattr(self, name, WgMember(name, member_telegram_id, member_role, activities))
         self.initial_date = None
 
     def get_members(self):
@@ -220,7 +166,7 @@ class WgMembers:
 
 def load_history():
     hist_df = get_history()
-    blame = activities.get_blame().name
+    blame = Activities().get_blame().name
     if len(hist_df) > 0:
         hist_df["Week"] = pandas.to_datetime(hist_df["Week"]).dt.date
         # Rewrite history df due to possible blames
@@ -230,17 +176,17 @@ def load_history():
     return hist_df
 
 
-def update_history(hist_df: pandas.DataFrame, wg_members: WgMembers, current_date: datetime.date):
+def update_history(hist_df: pandas.DataFrame, wg_members: WgMembers, current_date: Date):
     df = wg_members.to_df()
     df = pandas.concat([hist_df, df])
     df = df.drop_duplicates(subset=['Week'], keep='first')
     df = df.sort_values(by='Week')
-    df = df[df["Week"] <= current_date]
+    df = df[df["Week"] <= current_date.get_monday()]
     save_history(df)
     print("History updated")
 
 
-def print_df(df, current_date):
+def print_df(df, current_date: Date):
     col = bcolors.CYAN
     df_str = str(df).split("\n")
     print()
@@ -249,7 +195,7 @@ def print_df(df, current_date):
         if len(line.split()) < 2:
             continue
         date_str = line.split()[1]
-        if date_str == str(current_date):
+        if date_str == str(current_date.get_monday()):
             col = bcolors.ORANGE
             print(f"{col}{line}{bcolors.ENDC}")
             col = bcolors.RED
@@ -258,8 +204,8 @@ def print_df(df, current_date):
     print()
 
 
-def save_plan(wg_members: WgMembers, current_date: datetime.date, start_end_dates: list[datetime.date], previous_weeks=16):
-    start_date = current_date - datetime.timedelta(days=current_date.weekday()) - datetime.timedelta(days=7 * previous_weeks)
+def save_plan(wg_members: WgMembers, current_date: Date, start_end_dates: list[datetime.date], previous_weeks=16):
+    start_date = current_date.get_monday(add_weeks=-previous_weeks)
     start_date = start_end_dates[0] if start_date < start_end_dates[0] else start_date
     end_date = start_end_dates[1]
     df = wg_members.to_df()
@@ -281,7 +227,7 @@ def save_plan(wg_members: WgMembers, current_date: datetime.date, start_end_date
         Activities().get_blame().name: writer.book.add_format({'bg_color': '#fc0303', 'font_color': '#FFFFFF'}),
     }
     cf = [['A1:G1000', {'type': 'text', 'criteria': 'containing', 'value': k, 'format': v}] for k, v in highlightning.items()]
-    writer.sheets['Calendar'].conditional_format('A1:A1000', {'type': 'date', 'criteria': 'equal', 'value': current_date,
+    writer.sheets['Calendar'].conditional_format('A1:A1000', {'type': 'date', 'criteria': 'equal', 'value': current_date.get_monday(),
                                                               'format': writer.book.add_format({'bg_color': '#03fc17'})})
     writer.sheets['Calendar'].conditional_format('A1:G1000', {'type': 'no_blanks', 'format': writer.book.add_format({'border': 1})})
 
@@ -314,11 +260,12 @@ def save_plan(wg_members: WgMembers, current_date: datetime.date, start_end_date
 
 
 
-def initialize(current_date, hist_df, future_weeks=5):
-    initial_date = current_date - datetime.timedelta(days=current_date.weekday())
-    final_date = initial_date + datetime.timedelta(days=7 * future_weeks)
+def initialize(current_date: Date, hist_df, future_weeks=5):
+    initial_date = current_date.get_monday()
+    final_date = current_date.get_monday(add_weeks=future_weeks)
 
-    wg_members = WgMembers()
+    activities = Activities()
+    wg_members = WgMembers(activities)
     last_hist_week = None
 
     hist_df["Week"] = pandas.to_datetime(hist_df["Week"]).dt.date
@@ -334,7 +281,7 @@ def initialize(current_date, hist_df, future_weeks=5):
     dates_to_compute = []
     date = initial_date
     for i in range(n_weeks):
-        date = initial_date + datetime.timedelta(days=7 * i)
+        date = current_date.get_monday(add_weeks=i)
         assigned = False
         if history_length > 0:
             fetched_data = hist_df[hist_df["Week"] == date].to_dict(orient="records")
@@ -371,6 +318,7 @@ def get_avail_members(wg_members: WgMembers, date):
 
 
 def assign_tasks(wg_members: WgMembers, avail_members: list[WgMember]):
+    activities = wg_members.activities
     if len(avail_members) < len(activities.get_regular()):
         return {m: activities.get_anarchy() for m in wg_members.get_members()}
     
@@ -434,9 +382,9 @@ def get_string_by_activities(names_dict, warning=False):
     return string
 
 
-def get_weekly_text(df: DataFrame, dt, n_weeks=4):
+def get_weekly_text(df: DataFrame, current_date: Date, n_weeks=4):
     names = {x: [] for x in df.columns.to_list()[1:]}
-    monday_datetime = datetime.datetime.combine(dt - datetime.timedelta(days=dt.weekday()), datetime.datetime.min.time())
+    monday_datetime = current_date.get_monday(to_timestamp=True)
     prev_row = None
     for row in df.to_numpy():
         date = datetime.datetime.combine(row[0], datetime.datetime.min.time())
@@ -450,9 +398,13 @@ def get_weekly_text(df: DataFrame, dt, n_weeks=4):
     return string, future_activities_dict
 
 
-def generate_plan(current_date, future_weeks=10):
-    current_date = current_date - datetime.timedelta(days=current_date.weekday())
+def generate_plan(future_weeks=10):
+    if not os.path.exists(DATA_PATH):
+        os.mkdir(DATA_PATH)
+    get_expenses()
+    get_blames()
 
+    current_date = Date()
     hist_df = load_history()
     wg_members, dates_to_compute, start_end_dates = initialize(current_date, hist_df, future_weeks)
     for date in dates_to_compute:
@@ -461,14 +413,10 @@ def generate_plan(current_date, future_weeks=10):
         swap_members(wg_members, date)
     update_history(hist_df, wg_members, current_date)
     save_plan(wg_members, current_date, start_end_dates)
-    for m in wg_members.get_members():
-        print(m.name, m.get_diversity_idx(), m.get_repeat_idx(activities.get_activity_by_name(name="Vacation")))
-
     text, future_activities = get_weekly_text(wg_members.to_df(), current_date)
     return text, future_activities
 
 
 if __name__ == "__main__":
-    current_date = datetime.datetime.now().date()
     future_weeks = 10  # Unless history contains more recent data, the bac will compute <future_weeks>+1 weeks starting from current_date
-    text, future_activities = generate_plan(current_date, future_weeks)
+    text, future_activities = generate_plan(future_weeks)

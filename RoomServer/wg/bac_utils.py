@@ -2,11 +2,11 @@ import os
 import pandas
 import json
 import io
-from variables import members
+import datetime
+from variables import members, nominal_activities
 
 
-WG_PATH = os.path.dirname(__file__)
-DATA_PATH = os.path.join(WG_PATH, 'data')
+DATA_PATH = os.path.join(os.path.dirname(__file__), 'dataNew')
 
 PLAN_FILEPATH = os.path.join(DATA_PATH, 'cleaning_plan_leo6.xlsx')
 HISTORY_FILEPATH = os.path.join(DATA_PATH, 'history.csv')
@@ -66,7 +66,6 @@ def get_swaps():
 
 def get_expenses():
     expenses = {'entries': []}
-    print(EXPENSES_FILEPATH)
     if os.path.exists(EXPENSES_FILEPATH):
         with open(EXPENSES_FILEPATH, 'r') as file:
             expenses = json.load(file)
@@ -128,3 +127,72 @@ class bcolors:
     ENDC = "\033[0m"
     BOLD = "\033[1m"
     UNDERLINE = "\033[4m"
+
+
+class Date:
+    def __init__(self):
+        self.timestamp = datetime.datetime.now()
+    
+    def get_ts(self):
+        return self.timestamp
+    
+    def get_date(self):
+        return self.timestamp.date()
+    
+    def get_monday(self, add_weeks: int=0, to_timestamp: bool=False):
+        monday = self.timestamp.date() - datetime.timedelta(days=self.timestamp.date().weekday()) + datetime.timedelta(days=7 * add_weeks)
+        if to_timestamp:
+            monday = datetime.datetime.combine(monday, datetime.datetime.min.time())
+        return monday
+
+
+class Activity:
+    def __init__(self, name, emoticons, description=[]):
+        self.name = name
+        self.emoticons = emoticons
+        self.description = description
+
+
+class Activities:
+    def __init__(self):
+        for idx, activity_data in enumerate(nominal_activities, start=1):
+            name = activity_data["name"]
+            emoji = activity_data["emoji"]
+            description = activity_data.get("description", [])
+            setattr(self, f"area{idx}", Activity(name, emoji, description))
+        self.vacation = Activity("Vacation", "🗽🗼🏜️🏝️")
+        self.blame = Activity("Blame", "😑😲😠🤬")
+        self.anarchy = Activity("Anarchy", "😈😈😈😈")
+
+    def get_regular(self):
+        return [
+            value for k, value in self.__dict__.items() if isinstance(value, Activity) and 'area' in k
+        ]
+
+    def get_regular_with_vacation(self):
+        return self.get_regular() + [self.vacation]
+
+    def get_vacation(self):
+        return self.vacation
+
+    def get_blame(self):
+        return self.blame
+
+    def get_anarchy(self):
+        return self.anarchy
+
+    def get_all(self):
+        return self.get_regular() + [self.vacation, self.blame, self.anarchy]
+    
+    def get_roles_df(self):
+        dict_ = {a.name: [x for x in a.description] + [''] * (50 - len(a.description)) for a in self.get_regular() if a.description}
+        max_len = max([sum([(1 if line != '' else 0) for line in dict_[area]]) for area in dict_])
+        dict_ = {a: dict_[a][:max_len] for a in dict_}
+        return pandas.DataFrame.from_dict(dict_)
+    
+    def get_activity_by_name(self, name):
+        for a in self.get_all():
+            if a.name == name:
+                return a
+        print(f"Error: Name {name} not found in activities names.")
+        return None

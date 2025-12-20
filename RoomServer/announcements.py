@@ -16,13 +16,13 @@ from utils import LEO_TOKEN, LEO_GROUP_ID, BLAME_LOGS_FILEPATH, WARN_LOGS_FILEPA
 from utils import MAIN_FOLDER_PATH, MSG_HISTORY_PATH, LAST_IDX_FILEPATH, FINANCE_EXCEL_FILEPATH
 from utils import pull, push
 from wg import bac, bac_utils
-from bot_ai import reasoner
+# from bot_ai import reasoner
 
 
 temp_data = {}
 error_msg = "❌ Let's try again shall we?"
 signal = None
-debug_flag = False
+debug_flag = True
 BREAK_TOKEN = '↩️'
 hb = None
 bot_history = {}
@@ -82,11 +82,11 @@ def handle_feedback(req_dt, sender_name, target_activity, feedback_type, save):
     return req_dt, True
 
 
-def find_target_chat_id(message, req_dt, target_activity, md, feedback_type, sender_name="", continue_chain=True, current_week=False):
+def find_target_chat_id(message, req_dt, target_activity, md, feedback_type, sender_name="", continue_chain=True):
     get_history = md['functions']['get_history']
     hist_df = get_history()
     current_week = (req_dt - timedelta(days=req_dt.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
-    previous_week = (current_week - timedelta(7 if not current_week else 0)).strftime("%Y-%m-%d")
+    previous_week = (current_week - timedelta(7 if not feedback_type in ["tap"] else 0)).strftime("%Y-%m-%d")
     filtered_row = hist_df[hist_df['Week'] == previous_week]
     target_name = [k for k, v in filtered_row.to_dict().items() if (len(v.values()) > 0 and list(v.values())[0] == target_activity)]
     if len(target_name) == 0:
@@ -110,7 +110,7 @@ def blame_handler1(message, continue_chain=True):
         return
     try:
         md = get_general_metadata()
-        activities = md['activities']
+        activities = [x for x in md['activities'] if x not in ["Vacation", "Blame", "Anarchy"]]
         sender_activity, sender_name, req_dt = get_message_md(message, md)
         if req_dt.weekday() < 2 and message.data['action'].id == 'blame':
             new_request(message, "❌ Calm down Rocky.. wait until end of Tuesday at least! ✋ And if you didn't do it yet, warn them first!", continue_chain)
@@ -118,7 +118,7 @@ def blame_handler1(message, continue_chain=True):
         temp_data[message.chat.id] = {**temp_data.get(message.chat.id, {}), 'data': message.data, 'md': md}
         if continue_chain:
             markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
-            for i in range(int((len(activities) + 0.99) / 2)):
+            for i in range(int((len(activities) + 1.99) / 2)):
                 if len(activities) > 2*i + 1:
                     markup.row(activities[2*i], activities[2*i + 1])
                 else:
@@ -127,8 +127,8 @@ def blame_handler1(message, continue_chain=True):
             bh.send_msg(message.chat.id, "Responsible of which activity?", reply_markup=markup)
             if message.data['action'].id == 'blame':
                 bh.bot.register_next_step_handler(message, blame_handler2)
-            elif message.data['action'].id == 'warn':
-                bh.bot.register_next_step_handler(message, warn_handler1)
+            # elif message.data['action'].id == 'warn':
+            #     bh.bot.register_next_step_handler(message, warn_handler1)
             elif message.data['action'].id == 'tap':
                 bh.bot.register_next_step_handler(message, tap_handler1)
     except:
@@ -148,20 +148,20 @@ def blame_handler2(message, continue_chain=True):
             new_request(message, error_msg, continue_chain)
             return
 
-        relevant_date, not_yet_submitted = handle_feedback(req_dt, sender_name, target_activity, 'warn', save=False)
-        if not_yet_submitted:
-            msg = f"You have to submit a warning at least 1 day before blaming them!"
-            new_request(message, msg, continue_chain)
-            return
-        else:
-            hold_on_time = timedelta(hours=24)
-            difference = relevant_date + hold_on_time - req_dt
-            if difference.total_seconds() > 0:
-                hours, remainder = divmod(difference.total_seconds(), 3600)
-                minutes = int(remainder // 60)
-                msg = f"Wait at least 1 day after the first warning! - {int(hours)}:{'0' if len(str(minutes)) < 2 else ''}{minutes} hours remaining."
-                new_request(message, msg, continue_chain)
-                return
+        # relevant_date, not_yet_submitted = handle_feedback(req_dt, sender_name, target_activity, 'warn', save=False)
+        # if False and not_yet_submitted:
+        #     msg = f"You have to submit a warning at least 1 day before blaming them!"
+        #     new_request(message, msg, continue_chain)
+        #     return
+        # else:
+        #     hold_on_time = timedelta(hours=24)
+        #     difference = relevant_date + hold_on_time - req_dt
+        #     if difference.total_seconds() > 0:
+        #         hours, remainder = divmod(difference.total_seconds(), 3600)
+        #         minutes = int(remainder // 60)
+        #         msg = f"Wait at least 1 day after the first warning! - {int(hours)}:{'0' if len(str(minutes)) < 2 else ''}{minutes} hours remaining."
+        #         new_request(message, msg, continue_chain)
+        #         return
         relevant_date, saved = handle_feedback(req_dt, sender_name, target_activity, 'blame', save=True)
         if saved:
             # One could also blame themselves
@@ -191,7 +191,7 @@ def warn_handler1(message, continue_chain=True):
         if target_activity is None:
             new_request(message, error_msg, continue_chain)
             return
-        feedback_type = temp_data[message.chat.id]['data']['action'].id  # blame, warn, praise, tap
+        feedback_type = temp_data[message.chat.id]['data']['action'].id  # blame, praise, tap
         target_chat_id, target_name = find_target_chat_id(message, req_dt, target_activity, temp_data[message.chat.id]['md'], feedback_type, sender_name, continue_chain)
         if target_chat_id is None:
             return False
@@ -226,7 +226,7 @@ def tap_handler1(message, continue_chain=True):
             new_request(message, error_msg, continue_chain)
             return
         feedback_type = temp_data[message.chat.id]['data']['action'].id  # blame, warn, praise, tap
-        target_chat_id, target_name = find_target_chat_id(message, req_dt, target_activity, temp_data[message.chat.id]['md'], feedback_type, sender_name, continue_chain, True)
+        target_chat_id, target_name = find_target_chat_id(message, req_dt, target_activity, temp_data[message.chat.id]['md'], feedback_type, sender_name, continue_chain)
         if target_chat_id is None:
             return False
 
@@ -278,10 +278,10 @@ def swap_handler1(message, continue_chain=True):
             return
         temp_data[message.chat.id]['sender_name'] = sender_name
         temp_data[message.chat.id]['req_dt'] = req_dt
-        activities = md['activities']
+        activities = [x for x in md['activities'] if x not in ["Vacation", "Blame", "Anarchy"]]
         if continue_chain:
             markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
-            for i in range(int((len(activities) + 0.99) / 2)):
+            for i in range(int((len(activities) + 1.99) / 2)):
                 if len(activities) > 2*i + 1:
                     markup.row(activities[2*i], activities[2*i + 1])
                 else:
@@ -749,7 +749,7 @@ def break_handler(message):
 
 actions = {
     'blame': Action('blame', '💢 BLAME', blame_handler1),
-    'warn': Action('warn', '⚠️ WARN', blame_handler1),
+    # 'warn': Action('warn', '⚠️ WARN', blame_handler1),
     'praise': Action('praise', '👏 PRAISE', blame_handler1),
     'tap': Action('tap', '👆 TAP', blame_handler1),
     'swap': Action('swap', '🔄 SWAP', swap_handler1),
@@ -764,8 +764,8 @@ actions = {
 def get_welcome_markup(target_id):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
     rows = []
-    rows.append(['blame', 'warn', 'praise'])
-    rows.append(['tap', 'expense', 'swap'])
+    rows.append(['blame', 'praise', 'tap'])
+    rows.append(['expense', 'swap'])
     rows.append(['book', 'vacations'])
     rows.append(['ping', 'finance', 'break'])
     rows = [[actions[x].get_label(target_id) for x in row if x is not None] for row in rows]
@@ -893,32 +893,32 @@ class SendPing(Function):
 wg_activities = [x.name for x in bac.Activities().get_regular()]
 
 
-class SendWarning(Function):
-    description = """
-        Send a warning (a telegram message) to the member of the WG which was assigned to the mentioned activity.
-        A comment related to the motivation of the warning will accompany the message as well.
-    """
-    arguments = {
-        "activity": f"One of the following {len(wg_activities)} activities ({', '.join(wg_activities)})",
-        "comment": "A required comment regarding the warning",
-    }
-    examples = [
-        ['Kitchen is very dirty', 'Do you wanna send a warning to Kitchen?'],
-        ['send a warning to Kitchen because it is very dirty', {'activity': 'Kitchen', 'comment': 'Kitchen still dirty.'}],
-        ['can you warn management? Nobody disposed the bottles!', {'activity': 'Management', 'comment': 'Bottles not disposed.'}],
-        ['execute warning for bathrooms because toilets are shit', {'activity': 'Bathrooms', 'comment': 'Toilets not clean.'}],
-        ['execute warning for floor', 'Please provide a comment for this warning.'],
-        ['tell bathrooms that they have done an aweful job', {'activity': 'Bathrooms', 'comment': 'Overall bad job.'}],
-    ]
+# class SendWarning(Function):
+#     description = """
+#         Send a warning (a telegram message) to the member of the WG which was assigned to the mentioned activity.
+#         A comment related to the motivation of the warning will accompany the message as well.
+#     """
+#     arguments = {
+#         "activity": f"One of the following {len(wg_activities)} activities ({', '.join(wg_activities)})",
+#         "comment": "A required comment regarding the warning",
+#     }
+#     examples = [
+#         ['Kitchen is very dirty', 'Do you wanna send a warning to Kitchen?'],
+#         ['send a warning to Kitchen because it is very dirty', {'activity': 'Kitchen', 'comment': 'Kitchen still dirty.'}],
+#         ['can you warn management? Nobody disposed the bottles!', {'activity': 'Management', 'comment': 'Bottles not disposed.'}],
+#         ['execute warning for bathrooms because toilets are shit', {'activity': 'Bathrooms', 'comment': 'Toilets not clean.'}],
+#         ['execute warning for floor', 'Please provide a comment for this warning.'],
+#         ['tell bathrooms that they have done an aweful job', {'activity': 'Bathrooms', 'comment': 'Overall bad job.'}],
+#     ]
 
-    def action(self, message, **kwargs):
-        message.data = {'action': actions['warn']}
-        blame_handler1(message, continue_chain=False)
-        message.text = kwargs['activity']
-        if warn_handler1(message, continue_chain=False) is False:
-            return
-        message.text = kwargs['comment']
-        message_handler(message, continue_chain=False)
+#     def action(self, message, **kwargs):
+#         message.data = {'action': actions['warn']}
+#         blame_handler1(message, continue_chain=False)
+#         message.text = kwargs['activity']
+#         if warn_handler1(message, continue_chain=False) is False:
+#             return
+#         message.text = kwargs['comment']
+#         message_handler(message, continue_chain=False)
     
 
 
@@ -1101,7 +1101,8 @@ def execute_request(message):
     try:
         md = get_general_metadata()
         functions = [f() for f in Function.__subclasses__()]
-        reasoner.reason(message, bh, functions, bot_history, md)
+        raise
+        # reasoner.reason(message, bh, functions, bot_history, md)
         handled = True
     except Exception:
         print(traceback.format_exc())
@@ -1159,8 +1160,8 @@ def set_announcement(updated=False):
         text = intro + text
         if not updated:
             text += "\n\nNote: If you want to swap your task with someone else's task, use the SWAP command."
-            # text += "\nYou can submit an anonymous complaint for one or more tasks of the previous week by sending a BLAME."
-            text += "\nBefore blaming someone, please warn them first ⚠️ and then wait until Tuesday evening so that the person has time to recover their delayed duty."
+            text += "\nYou can submit an anonymous complaint for one or more tasks of the previous week by sending a BLAME."
+            # text += "\nBefore blaming someone, please warn them first ⚠️ and then wait until Tuesday evening so that the person has time to recover their delayed duty."
             text += "\nIf a person receives at least 2 blames, they will need to recover the task in the future ☠️."
             # text += "\nYou can also send a message of appreciation 🌟 by sending a PRAISE as well."
             # #text += "\nIf you need vacation for a week, you can send book it though BOOK VACATION."
@@ -1168,13 +1169,6 @@ def set_announcement(updated=False):
 
         if not debug_flag:
             document_ = bac_utils.get_plan_document()
-            bh.bot.send_document(LEO_GROUP_ID, document_, caption=text)
-        print('Msg sent to LEO6:', text)
-
-        with open(ANNOUNCEMENT_FILEPATH, 'a+') as file:
-            file.write(get_current_time().strftime("%Y-%m-%d-%H-%M-%S") + '\n')
-        if not push(MAIN_FOLDER_PATH, signal):
-            return
         
         for e in md['wg_props']:
             name = e['name']
@@ -1206,10 +1200,17 @@ def set_announcement(updated=False):
                 print('Msg sent:', string)
                 if name == 'Claudio' or not debug_flag:
                     try:
+                        bh.bot.send_document(telegram_id, document_, caption=text)
                         bh.send_msg(telegram_id, string, parse_mode="HTML")
                     except Exception as e:
                         print(e)
                         print(traceback.format_exc())
+
+        with open(ANNOUNCEMENT_FILEPATH, 'a+') as file:
+            file.write(get_current_time().strftime("%Y-%m-%d-%H-%M-%S") + '\n')
+        print('Msg sent to LEO6:', text)
+
+        push(MAIN_FOLDER_PATH, signal)
     except Exception as e:
         print(e)
         print(traceback.format_exc())
