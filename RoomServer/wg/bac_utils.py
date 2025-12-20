@@ -1,9 +1,11 @@
 import os
+import sys
 import pandas
 import json
 import io
 import datetime
-from variables import members, nominal_activities
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+from wg.variables import members, nominal_activities
 
 
 DATA_PATH = os.path.join(os.path.dirname(__file__), 'dataNew')

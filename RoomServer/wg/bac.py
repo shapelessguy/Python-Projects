@@ -398,12 +398,16 @@ def get_weekly_text(df: DataFrame, current_date: Date, n_weeks=4):
     return string, future_activities_dict
 
 
-def generate_plan(future_weeks=10):
+def initialize_repo():
     if not os.path.exists(DATA_PATH):
         os.mkdir(DATA_PATH)
     get_expenses()
-    get_blames()
+    get_swaps()
+    get_vacations()
 
+
+def generate_plan(future_weeks=10):
+    initialize_repo()
     current_date = Date()
     hist_df = load_history()
     wg_members, dates_to_compute, start_end_dates = initialize(current_date, hist_df, future_weeks)
