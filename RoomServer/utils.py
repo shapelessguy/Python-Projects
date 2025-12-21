@@ -4,6 +4,7 @@ import socket
 import json
 import subprocess
 from wg.bac_utils import DATA_PATH
+import dotenv
 
 
 hostnames = {
@@ -30,11 +31,10 @@ if HOSTNAME not in hostnames:
     raise Exception('Hostname unkwnown')
 HOSTNAME = hostnames[HOSTNAME]
 
-LEO_TOKEN = '6599624331:AAETjn6YXAXVkg4-IV1I_1ip6zchZdmNbUI'
+LEO_TOKEN = dotenv.get_key(os.path.join(os.path.dirname(__file__), ".env"), "BOT_TOKEN")
 CLAUDIO_ID = 807946519
 LEO_GROUP_ID = -4225824414
 DUMMY_CHANNEL_ID = -1002037672769
-
 
 MAIN_FOLDER_PATH = os.path.dirname(__file__)
 

@@ -4,6 +4,7 @@ venv/
 .handler-saves
 logs
 ip-manager42.json
+.env
 downloaded_file.xlsx
 output.log
 ip_server.txt
