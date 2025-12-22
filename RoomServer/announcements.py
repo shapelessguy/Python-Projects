@@ -101,7 +101,7 @@ def set_announcement(updated=False):
                     try:
                         bh.bot.send_document(telegram_id, bac_utils.get_plan_document(), caption=text, parse_mode="HTML")
                         # bh.send_msg(telegram_id, string, parse_mode="HTML")
-                        print('Msg sent:', text)
+                        print(f'Msg sent to {name}')
                     except Exception as e:
                         print(e)
                         print(traceback.format_exc())
