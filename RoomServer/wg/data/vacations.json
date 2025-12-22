@@ -44,6 +44,15 @@
             "month": 12,
             "year": 2025,
             "n_weeks": 1
+        },
+        {
+            "names": [
+                "Mara"
+            ],
+            "day": 22,
+            "month": 12,
+            "year": 2025,
+            "n_weeks": 1
         }
     ]
 }
