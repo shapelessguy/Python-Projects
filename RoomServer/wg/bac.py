@@ -366,7 +366,7 @@ def get_string_by_activities(names_dict, warning=False):
     all_vacation = True
     for name, activity in names_dict.items():
         if activity == activities.get_activity_by_name("Management").name and warning:
-            string += f'❗⚠ Manager: {name} ⚠❗\n'
+            string += f'❗⚠ {name}: <b>Manager</b> ⚠❗\n'
     for name, activity in names_dict.items():
         if activity == activities.get_vacation().name or activity == activities.get_activity_by_name("Management").name:
             continue
@@ -374,7 +374,7 @@ def get_string_by_activities(names_dict, warning=False):
             for a in activities.get_regular():
                 if a.name == activity:
                     all_vacation = False
-                    string += f'{name}: {activity} {a.emoticons}\n'
+                    string += f'{name}: <b>{activity}</b> {a.emoticons}\n'
     if all_vacation:
         string += f'Total anarchy {activities.get_anarchy().emoticons}'
     # else:
