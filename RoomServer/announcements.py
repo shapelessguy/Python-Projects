@@ -69,12 +69,14 @@ def set_announcement(updated=False):
             text += "\nIf you need vacation for a week, you can send book it though BOOK VACATION."
             text += "\nWhenever you have a WG expense 💰, use EXPENSE and specify price/reason for it."
 
+        common_text = text
         
         for e in md['wg_props']:
             name = e['name']
             blames, blamed_activity = get_blame(name, str(blame_first_date), hist_df, logs)
             telegram_id = e['telegram_id']
-            text += f'\nHey {name}, this is the schedule for the next weeks, waiting for you! 🤩\n'
+            text = common_text
+            text += f'\n\nHey {name}, this is the schedule for the next weeks, waiting for you! 🤩\n'
             text += 'Keep in mind that this is just a preview on your next activities.. things may change!\n\n'
             for week_n, week_tasks in enumerate(week_schedule):
                 week_now = (now + timedelta(days=(week_n * 7))).date().strftime("%d/%m")
