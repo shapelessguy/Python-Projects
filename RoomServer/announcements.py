@@ -87,7 +87,7 @@ def set_announcement(updated=False):
                 #     pre = 'Next week (RANGE): ACT\n'
                 activity = week_tasks[name]
                 marker = "🟨" if week_n == 0 else "📅"
-                string += pre.replace('RANGE', f'{marker} {week_now} - {week_plus_1}').replace('ACT', f' <b>{activity}</b> {emoticons[activity]}')
+                string += pre.replace('RANGE', f'{marker} {week_now} - {week_plus_1}').replace('ACT', f' <b>{activity}</b> {emoticons[activity][:2]}')
             if blamed_activity != 'Vacation' and not updated:
                 if len(blames) == 0:
                     string += f'\n👍 Congratulations, you have no complaints for the week ' +\

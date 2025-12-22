@@ -36,7 +36,7 @@ members = [
 nominal_activities = [
   {
     "name": "Kitchen",
-    "emoji": "🪑🚰🧴🔪",
+    "emoji": "🪑🧴🚰🔪",
     "description": [
         "Surfaces + table",
         "Dish space + sink",
@@ -47,7 +47,7 @@ nominal_activities = [
   },
   {
     "name": "Bathrooms",
-    "emoji": "🛁🚽🧻🚾",
+    "emoji": "🛁🧻🚽🚾",
     "description": [
       "Run robot",
       "Big bathroom's steps",
@@ -60,7 +60,7 @@ nominal_activities = [
   },
   {
     "name": "Management",
-    "emoji": "💸🧺🍾🗑️",
+    "emoji": "💸🗑️🧺🍾",
     "description": [
       "All trash + bins",
       "TO BUY list",
