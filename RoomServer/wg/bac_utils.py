@@ -17,6 +17,9 @@ SWAPS_FILEPATH = os.path.join(DATA_PATH, 'swaps.json')
 EXPENSES_FILEPATH = os.path.join(DATA_PATH, 'expenses.json')
 BLAMES_FILEPATH = os.path.join(DATA_PATH, 'blames.json')
 
+PREVIOUS_WEEKS_TO_VISUALIZE = 9
+FUTURE_WEEKS_TO_GENERATE = 4
+
 
 def get_history():
     if os.path.exists(HISTORY_FILEPATH):
@@ -132,8 +135,16 @@ class bcolors:
 
 
 class Date:
-    def __init__(self):
-        self.timestamp = datetime.datetime.now()
+    def __init__(self, date=None):
+        if date is not None:
+            if type(date) == datetime.date:
+                self.timestamp = datetime.datetime.combine(date, datetime.datetime.min.time())
+            elif type(date) == datetime.datetime:
+                self.timestamp = date
+            else:
+                raise("Unexpected type for Date")
+        else:
+            self.timestamp = datetime.datetime.now()
     
     def get_ts(self):
         return self.timestamp

@@ -106,10 +106,10 @@ class WgMember:
 
 
 class WgMembers:
-    def __init__(self, activities: Activities, current_date: Date):
+    def __init__(self, activities: Activities, init_gen_date: Date = None):
         for member in members:
             self.activities = activities
-            self.current_date = current_date
+            self.init_gen_date = init_gen_date if init_gen_date else Date()
             name = member["name"]
             member_telegram_id = member["telegram_id"]
             member_role = member["role"]
@@ -152,7 +152,7 @@ class WgMembers:
         m2.assign(a1)
     
     def to_df(self):
-        cur_monday = self.current_date.get_monday()
+        cur_monday = self.init_gen_date.get_monday()
         n_weeks = len(self.get_members()[0].activity_history)
         dict_ = {"Week": [cur_monday + datetime.timedelta(days=7 * i) for i in range(n_weeks)],
                  **{m.name: [a.name for a in m.activity_history] for m in self.get_members()}}
@@ -206,8 +206,8 @@ def print_df(df, current_date: Date):
     print()
 
 
-def save_plan(wg_members: WgMembers, current_date: Date, start_end_dates: list[datetime.date], previous_weeks=16):
-    start_date = current_date.get_monday(add_weeks=-previous_weeks)
+def save_plan(wg_members: WgMembers, current_date: Date, start_end_dates: list[datetime.date]):
+    start_date = current_date.get_monday(add_weeks=-PREVIOUS_WEEKS_TO_VISUALIZE)
     start_date = start_end_dates[0] if start_date < start_end_dates[0] else start_date
     end_date = start_end_dates[1]
     df = wg_members.to_df()
@@ -262,14 +262,9 @@ def save_plan(wg_members: WgMembers, current_date: Date, start_end_dates: list[d
 
 
 
-def initialize(current_date: Date, hist_df, future_weeks=5):
+def initialize(current_date: Date, hist_df, future_weeks):
+    assert future_weeks >= 0
     initial_date = current_date.get_monday()
-    final_date = current_date.get_monday(add_weeks=future_weeks)
-
-    activities = Activities()
-    wg_members = WgMembers(activities, current_date)
-    last_hist_week = None
-
     hist_df["Week"] = pandas.to_datetime(hist_df["Week"]).dt.date
     history_length = len(hist_df)
     if history_length > 0:
@@ -277,11 +272,17 @@ def initialize(current_date: Date, hist_df, future_weeks=5):
         last_hist_week = hist_df.iloc[-1]["Week"]
         if initial_date_ < initial_date:
             initial_date = initial_date_
+    initial_date = Date(initial_date)
+    
 
-    n_weeks = (final_date - initial_date).days // 7 + 1
+    activities = Activities()
+    wg_members = WgMembers(activities, initial_date)
+    last_hist_week = None
+
+    n_weeks = (current_date.get_monday(add_weeks=future_weeks) - initial_date.get_monday()).days // 7 + 1
     dates_to_compute = []
     for i in range(n_weeks):
-        date = current_date.get_monday(add_weeks=i - (future_weeks - n_weeks))
+        date = initial_date.get_monday(add_weeks=i)
         assigned = False
         if history_length > 0:
             fetched_data = hist_df[hist_df["Week"] == date].to_dict(orient="records")
@@ -298,7 +299,7 @@ def initialize(current_date: Date, hist_df, future_weeks=5):
                     assigned = True
         if not assigned:
             dates_to_compute.append(date)
-    start_end_dates = [initial_date, date]
+    start_end_dates = [initial_date.get_monday(), date]
     return wg_members, dates_to_compute, start_end_dates
 
 
@@ -405,7 +406,7 @@ def initialize_repo():
     get_vacations()
 
 
-def generate_plan(future_weeks=10):
+def generate_plan(future_weeks=FUTURE_WEEKS_TO_GENERATE):
     initialize_repo()
     current_date = Date()
     hist_df = load_history()

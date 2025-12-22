@@ -156,7 +156,7 @@ def set_current_id(message, remove_welcome_state=True, continue_chain=True, verb
 def get_general_metadata():
     emoticons = {a.name: a.emoticons for a in bac.Activities().get_all()}
     activities = [name for name in emoticons]
-    wg_props = [{"name": m.name, "telegram_id": m.telegram_id} for m in bac.WgMembers(bac.Activities(), bac.Date()).get_members()]
+    wg_props = [{"name": m.name, "telegram_id": m.telegram_id} for m in bac.WgMembers(bac.Activities()).get_members()]
     functions = {'get_history': bac_utils.get_history, 'get_plan': bac_utils.get_plan,
                  'get_swaps': bac_utils.get_swaps, 'save_swaps': bac_utils.save_swaps,
                  'get_vacations': bac_utils.get_vacations, 'save_vacations': bac_utils.save_vacations,
@@ -842,7 +842,7 @@ actions = {
     'vacations': Action('vacations', '🌴 VACATIONS', vacations_handler1),
     'book': Action('book', '🏖 BOOK VACATION', vacation_handler1),
     'expense': Action('expense', '💰 EXPENSE', expense_handler1),
-    'ping': Action('ping', '🛎 PING', ping_handler1, only_to=[x.telegram_id for x in bac.WgMembers(bac.Activities(), bac.Date()).get_members() if x.role == "developer"]),
+    'ping': Action('ping', '🛎 PING', ping_handler1, only_to=[x.telegram_id for x in bac.WgMembers(bac.Activities()).get_members() if x.role == "developer"]),
     'finance': Action('finance', '📊 Finance', expenses_handler1),
     'break': Action('break', BREAK_TOKEN, break_handler),
 }
