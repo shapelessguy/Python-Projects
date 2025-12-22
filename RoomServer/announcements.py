@@ -69,7 +69,6 @@ def set_announcement(updated=False):
             text += "\nIf you need vacation for a week, you can send book it though BOOK VACATION."
             text += "\nWhenever you have a WG expense 💰, use EXPENSE and specify price/reason for it."
 
-        document_ = bac_utils.get_plan_document()
         
         for e in md['wg_props']:
             name = e['name']
@@ -100,7 +99,7 @@ def set_announcement(updated=False):
             if telegram_id is not None:
                 if name == 'Claudio' or not debug_flag:
                     try:
-                        bh.bot.send_document(telegram_id, document_, caption=text, parse_mode="HTML")
+                        bh.bot.send_document(telegram_id, bac_utils.get_plan_document(), caption=text, parse_mode="HTML")
                         # bh.send_msg(telegram_id, string, parse_mode="HTML")
                         print('Msg sent:', text)
                     except Exception as e:
