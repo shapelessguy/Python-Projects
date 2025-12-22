@@ -281,7 +281,7 @@ def initialize(current_date: Date, hist_df, future_weeks=5):
     n_weeks = (final_date - initial_date).days // 7 + 1
     dates_to_compute = []
     for i in range(n_weeks):
-        date = current_date.get_monday(add_weeks=i)
+        date = current_date.get_monday(add_weeks=i - (future_weeks - n_weeks))
         assigned = False
         if history_length > 0:
             fetched_data = hist_df[hist_df["Week"] == date].to_dict(orient="records")
