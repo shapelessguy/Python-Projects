@@ -16,13 +16,13 @@ BREAK_TOKEN = '↩️'
 ERROR_MSG = "❌ Let's try again shall we?"
 temp_data = {}
 bot_history = {}
-signal = None
 
 
 class MyBot:
 
     def __init__(self):
         self.bot = telebot.TeleBot(LEO_TOKEN)
+        self.signal = {}
         self.setup_handlers()
     
     def send_msg(self, *args, **kwargs):
@@ -481,7 +481,7 @@ def swap_handler3(message, continue_chain=True):
         updated_text = '\n🔄 A new plan is now getting generated.. just a moment ah' if this_week else ''
         new_request(message, f"✅ Activity {sender_activity} swapped with {target_activity} for the week {date_to_check} - {next_week}!{updated_text} 🎉", continue_chain)
         if this_week:
-            signal['set_announcement'] = {'updated': True}
+            bh.signal['set_announcement'] = {'updated': True}
     except Exception:
         print(traceback.format_exc())
         new_request(message, ERROR_MSG, continue_chain)
@@ -594,7 +594,7 @@ def vacation_handler2(message, continue_chain=True, unbook_only=False):
         updated_text = '\n🔄 A new plan is now getting generated.. just a moment please..' if this_week else ''
         new_request(message, f"✅ You booked a vacation for the week {date_to_check} - {next_week}!{updated_text}", continue_chain)
         if this_week:
-            signal['set_announcement'] = {'updated': True}
+            bh.signal['set_announcement'] = {'updated': True}
         return
     except Exception:
         print(traceback.format_exc())
@@ -634,7 +634,7 @@ def vacation_handler3(message, continue_chain=True):
         updated_text = '\n🔄 A new plan is now getting generated.. just a moment bitte.' if this_week else ''
         new_request(message, f"✅ You unbooked your vacation for the week {date_to_check} - {next_week}.{updated_text}", continue_chain)
         if this_week:
-            signal['set_announcement'] = {'updated': True}
+            bh.signal['set_announcement'] = {'updated': True}
         return True
     except Exception:
         print(traceback.format_exc())

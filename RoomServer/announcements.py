@@ -35,8 +35,9 @@ def get_blame(name, now, hist_df, logs):
 
 
 def set_announcement(updated=False):
+    global bh
     try:
-        if not pull(MAIN_FOLDER_PATH, signal):
+        if not pull(MAIN_FOLDER_PATH, bh.signal):
             return
         with open(BLAME_LOGS_FILEPATH, 'r') as file:
             logs = json.load(file)
@@ -111,7 +112,7 @@ def set_announcement(updated=False):
             file.write(get_current_time().strftime("%Y-%m-%d-%H-%M-%S") + '\n')
         # print('Msg sent to LEO6:', text)
 
-        push(MAIN_FOLDER_PATH, signal)
+        push(MAIN_FOLDER_PATH, bh.signal)
     except Exception as e:
         print(e)
         print(traceback.format_exc())
@@ -127,7 +128,8 @@ def get_date_from_week_id(week_id_):
 
 
 def get_last_announcement():
-    pull(MAIN_FOLDER_PATH, signal)
+    global bh
+    pull(MAIN_FOLDER_PATH, bh.signal)
     last_announcement = None
     try:
         with open(ANNOUNCEMENT_FILEPATH, 'r') as file:
@@ -140,7 +142,7 @@ def get_last_announcement():
 
 
 def spawn_monitoring(signal_):
-    global bh, signal, bot_history
+    global bh, bot_history
     bac.initialize_repo()
     print('Bot is ready.')
     if os.path.exists(MSG_HISTORY_PATH):
@@ -148,8 +150,8 @@ def spawn_monitoring(signal_):
             bot_history = json.load(file)
     else:
         bot_history = {}
-    signal = signal_
-    monitor_thread = threading.Thread(target=monitor, args=(bh, signal))
+    bh.signal = signal_
+    monitor_thread = threading.Thread(target=monitor, args=(bh, ))
     monitor_thread.start()
     bh.bot.enable_save_next_step_handlers(delay=2)
     bh.bot.load_next_step_handlers()
@@ -157,13 +159,13 @@ def spawn_monitoring(signal_):
     print('Bot killed.')
 
 
-def monitor(bh, signal):
+def monitor(bh):
     last_announcement, id_last_announcement = get_last_announcement()
     index = 0
-    while not signal['kill']:
-        if 'set_announcement' in signal:
-            set_announcement(**signal['set_announcement'])
-            del signal['set_announcement']
+    while not bh.signal['kill']:
+        if 'set_announcement' in bh.signal:
+            set_announcement(**bh.signal['set_announcement'])
+            del bh.signal['set_announcement']
         index += 1
         if index == 60:
             save_history()
@@ -181,14 +183,14 @@ def monitor(bh, signal):
 
 
 def update(last_announcement=None, id_last_announcement=None, forced=False, updated=False):
-    global signal
+    global bh
     now = get_current_time()
     announce_at = 8  # hour of update
     masked_now = now - timedelta(hours=(announce_at))
     if forced or get_week_number(masked_now) != id_last_announcement:
         if forced or masked_now > last_announcement:
             print('ANNOUNCEMENTS', now)
-            signal['set_announcement'] = {'updated': updated}
+            bh.signal['set_announcement'] = {'updated': updated}
             last_announcement = now
             id_last_announcement = get_week_number(now)
     return last_announcement, id_last_announcement
