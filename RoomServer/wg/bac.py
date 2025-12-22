@@ -314,7 +314,7 @@ def get_avail_members(wg_members: WgMembers, date):
                         if available_members[i].name == n:
                             del available_members[i]
                             break
-    print(date, available_members)
+    print(date, [x.name for x in available_members])
     return available_members
 
 
