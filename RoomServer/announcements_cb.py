@@ -44,13 +44,25 @@ class MyBot:
         print(f'Serving {message.chat.id}: msg {message.id}')
 
         temp_data[message.chat.id]['welcome'] = True
-        self.send_msg(message.chat.id, "How can I be your hero today? 😇", reply_markup=get_welcome_markup(message.chat.id))
+        for action in actions.values():
+            if message.text == action.label and action.label != BREAK_TOKEN:
+                execute_request(message)
+                return
+
+        self.send_msg(message.chat.id, "What's next? 😎", reply_markup=get_welcome_markup(message.chat.id))
         self.bot.register_next_step_handler(message, execute_request)
 
     def setup_handlers(self):
         @self.bot.message_handler(func=lambda m: True)
         def _(message):
             self.send_welcome(message)
+        
+        def customize_date(n):
+            year, month, day = n["callback_data"].split("_")[-3:]
+            date = date_(year=int(year), month=int(month), day=int(day))
+            next_monday = date + timedelta(days=7)
+            n["text"] = f'{date.strftime("%b ")}{date.day} - {next_monday.strftime("%b ")}{next_monday.day}'
+            return n
 
         @self.bot.callback_query_handler(func=DetailedTelegramCalendar.func())
         def cal(c):
@@ -60,11 +72,16 @@ class MyBot:
                 return
             result, key, step = DetailedTelegramCalendar().process(c.data)
             if not result and key:
+                if step == "d":
+                    key = json.loads(key)
+                    key["inline_keyboard"] = [([customize_date(x[0])] if len(x) > 3 else x) for x in key["inline_keyboard"][1:] if (len(x) == 0 or x[0]["text"] != " ")]
+                    key = json.dumps(key)
                 self.bot.edit_message_text(f"{temp_data[c.message.chat.id]['calendar_title']} Select {LSTEP[step]}",
                                     c.message.chat.id,
                                     c.message.message_id,
                                     reply_markup=key)
             elif result:
+                self.bot.edit_message_text(f"{temp_data[c.message.chat.id]['calendar_title']}", c.message.chat.id, c.message.message_id, reply_markup=None)
                 temp_data[c.message.chat.id]['calendar_result'] = result
                 temp_data[c.message.chat.id]['calendar_on_result'](c.message)
 

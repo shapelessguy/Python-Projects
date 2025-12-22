@@ -22,6 +22,15 @@
             "names": [
                 "Claudio"
             ],
+            "day": 22,
+            "month": 12,
+            "year": 2025,
+            "n_weeks": 1
+        },
+        {
+            "names": [
+                "Claudio"
+            ],
             "day": 29,
             "month": 12,
             "year": 2025,

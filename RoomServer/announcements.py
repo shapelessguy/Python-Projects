@@ -75,8 +75,8 @@ def set_announcement(updated=False):
             name = e['name']
             blames, blamed_activity = get_blame(name, str(blame_first_date), hist_df, logs)
             telegram_id = e['telegram_id']
-            string = f'Hey {name}, this is the schedule for the next weeks, waiting for you! 🤩\n'
-            string += 'Keep in mind that this is just a preview on your next activities.. things may change!\n\n'
+            text += f'\nHey {name}, this is the schedule for the next weeks, waiting for you! 🤩\n'
+            text += 'Keep in mind that this is just a preview on your next activities.. things may change!\n\n'
             for week_n, week_tasks in enumerate(week_schedule):
                 week_now = (now + timedelta(days=(week_n * 7))).date().strftime("%d/%m")
                 week_plus_1 = (now + timedelta(days=((week_n + 1) * 7))).date().strftime("%d/%m")
@@ -87,22 +87,22 @@ def set_announcement(updated=False):
                 #     pre = 'Next week (RANGE): ACT\n'
                 activity = week_tasks[name]
                 marker = "🟨" if week_n == 0 else "📅"
-                string += pre.replace('RANGE', f'{marker} {week_now} - {week_plus_1}').replace('ACT', f' <b>{activity}</b> {emoticons[activity][:2]}')
+                text += pre.replace('RANGE', f'{marker} {week_now} - {week_plus_1}').replace('ACT', f' <b>{activity}</b> {emoticons[activity][:2]}')
             if blamed_activity != 'Vacation' and not updated:
                 if len(blames) == 0:
-                    string += f'\n👍 Congratulations, you have no complaints for the week ' +\
+                    text += f'\n👍 Congratulations, you have no complaints for the week ' +\
                               f'{blame_first_date.strftime("%d/%m")} - {blame_last_date.strftime("%d/%m")}!'
                 else:
                     blamed_activity = f' ({blamed_activity})' if blamed_activity is not None else ''
-                    string += f'\n⚠️ You got {len(blames)} complaint{"s" if len(blames) > 1 else ""} in the week {blame_first_date}-{blame_last_date}{blamed_activity}.'
+                    text += f'\n⚠️ You got {len(blames)} complaint{"s" if len(blames) > 1 else ""} in the week {blame_first_date}-{blame_last_date}{blamed_activity}.'
                     if len(blames) >= 2:
-                        string += f'\n☠️ Unfortunately you will have to compensate in the next weeks with more tasks.'
+                        text += f'\n☠️ Unfortunately you will have to compensate in the next weeks with more tasks.'
             if telegram_id is not None:
                 if name == 'Claudio' or not debug_flag:
                     try:
-                        bh.bot.send_document(telegram_id, document_, caption=text + "\n\n" + string, parse_mode="HTML")
+                        bh.bot.send_document(telegram_id, document_, caption=text, parse_mode="HTML")
                         # bh.send_msg(telegram_id, string, parse_mode="HTML")
-                        print('Msg sent:', string)
+                        print('Msg sent:', text)
                     except Exception as e:
                         print(e)
                         print(traceback.format_exc())
@@ -110,8 +110,8 @@ def set_announcement(updated=False):
         with open(ANNOUNCEMENT_FILEPATH, 'a+') as file:
             file.write(get_current_time().strftime("%Y-%m-%d-%H-%M-%S") + '\n')
         # print('Msg sent to LEO6:', text)
-
-        push(MAIN_FOLDER_PATH, bh.signal)
+        if not debug_flag:
+            push(MAIN_FOLDER_PATH, bh.signal)
     except Exception as e:
         print(e)
         print(traceback.format_exc())
