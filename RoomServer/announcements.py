@@ -99,8 +99,8 @@ def set_announcement(updated=False):
             if telegram_id is not None:
                 if name == 'Claudio' or not debug_flag:
                     try:
-                        bh.bot.send_document(telegram_id, document_, caption=text)
-                        bh.send_msg(telegram_id, string, parse_mode="HTML")
+                        bh.bot.send_document(telegram_id, document_, caption=text + "\n\n" + string, parse_mode="HTML")
+                        # bh.send_msg(telegram_id, string, parse_mode="HTML")
                         print('Msg sent:', string)
                     except Exception as e:
                         print(e)
@@ -108,7 +108,7 @@ def set_announcement(updated=False):
 
         with open(ANNOUNCEMENT_FILEPATH, 'a+') as file:
             file.write(get_current_time().strftime("%Y-%m-%d-%H-%M-%S") + '\n')
-        print('Msg sent to LEO6:', text)
+        # print('Msg sent to LEO6:', text)
 
         push(MAIN_FOLDER_PATH, signal)
     except Exception as e:
