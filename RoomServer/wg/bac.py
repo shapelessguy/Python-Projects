@@ -377,8 +377,8 @@ def get_string_by_activities(names_dict, warning=False):
                     string += f'{name}: {activity} {a.emoticons}\n'
     if all_vacation:
         string += f'Total anarchy {activities.get_anarchy().emoticons}'
-    else:
-        string += f'For the others, {activities.get_vacation().emoticons} !'
+    # else:
+    #     string += f'For the others, {activities.get_vacation().emoticons} !'
     return string
 
 
@@ -393,7 +393,7 @@ def get_weekly_text(df: DataFrame, current_date: Date, n_weeks=4):
                 names[name].append(prev_row[i])
         prev_row = row
     future_activities_dict = [{k: v[i] for k, v in names.items()} for i in range(min(n_weeks, len(list(names.values())[0])))]
-    string = f'This week ({monday_datetime.date().strftime("%d-%m-%y")}):\n'
+    string = f'This week ({monday_datetime.date().strftime("%d-%m-%y")}):\n\n'
     string += get_string_by_activities({k: v[0] for k, v in names.items()}, warning=True)
     return string, future_activities_dict
 
