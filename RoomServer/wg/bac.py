@@ -106,9 +106,10 @@ class WgMember:
 
 
 class WgMembers:
-    def __init__(self, activities: Activities):
+    def __init__(self, activities: Activities, current_date: Date):
         for member in members:
             self.activities = activities
+            self.current_date = current_date
             name = member["name"]
             member_telegram_id = member["telegram_id"]
             member_role = member["role"]
@@ -151,8 +152,9 @@ class WgMembers:
         m2.assign(a1)
     
     def to_df(self):
+        cur_monday = self.current_date.get_monday()
         n_weeks = len(self.get_members()[0].activity_history)
-        dict_ = {"Week": [self.initial_date + datetime.timedelta(days=7 * i) for i in range(n_weeks)],
+        dict_ = {"Week": [cur_monday + datetime.timedelta(days=7 * i) for i in range(n_weeks)],
                  **{m.name: [a.name for a in m.activity_history] for m in self.get_members()}}
         df = pandas.DataFrame(dict_)
         column_order = ["Week"] + sorted([col for col in df.columns if col != "Week"])
@@ -265,7 +267,7 @@ def initialize(current_date: Date, hist_df, future_weeks=5):
     final_date = current_date.get_monday(add_weeks=future_weeks)
 
     activities = Activities()
-    wg_members = WgMembers(activities)
+    wg_members = WgMembers(activities, current_date)
     last_hist_week = None
 
     hist_df["Week"] = pandas.to_datetime(hist_df["Week"]).dt.date
@@ -276,10 +278,8 @@ def initialize(current_date: Date, hist_df, future_weeks=5):
         if initial_date_ < initial_date:
             initial_date = initial_date_
 
-    wg_members.initial_date = initial_date
     n_weeks = (final_date - initial_date).days // 7 + 1
     dates_to_compute = []
-    date = initial_date
     for i in range(n_weeks):
         date = current_date.get_monday(add_weeks=i)
         assigned = False
@@ -314,7 +314,6 @@ def get_avail_members(wg_members: WgMembers, date):
                         if available_members[i].name == n:
                             del available_members[i]
                             break
-    print(date, [x.name for x in available_members])
     return available_members
 
 
@@ -336,7 +335,6 @@ def assign_tasks(wg_members: WgMembers, avail_members: list[WgMember]):
             if m not in state_option:
                 state_option[m] = activities.get_vacation()
         all_state_options.append((state_option, wg_members.calculate_total_fitness(state_option)))
-    
 
     best = min(all_state_options, key=lambda x: x[1])[0]
 
