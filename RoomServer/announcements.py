@@ -12,7 +12,7 @@ from announcements_functions import *
 from utils import BLAME_LOGS_FILEPATH, ANNOUNCEMENT_FILEPATH, MAIN_FOLDER_PATH, MSG_HISTORY_PATH
 
 
-debug_flag = False
+debug_flag = True
 
 
 def reload_module(module_name):
