@@ -75,8 +75,7 @@ def set_announcement(updated=False):
             name = e['name']
             blames, blamed_activity = get_blame(name, str(blame_first_date), hist_df, logs)
             telegram_id = e['telegram_id']
-            string = '<b>🔄 PLAN UPDATED DURING THIS WEEK</b>\n' if updated else ''
-            string += f'Hey {name}, this is the schedule for the next weeks, waiting for you! 🤩\n'
+            string = f'Hey {name}, this is the schedule for the next weeks, waiting for you! 🤩\n'
             string += 'Keep in mind that this is just a preview on your next activities.. things may change!\n\n'
             for week_n, week_tasks in enumerate(week_schedule):
                 week_now = (now + timedelta(days=(week_n * 7))).date().strftime("%d/%m")

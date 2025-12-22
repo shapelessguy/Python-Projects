@@ -283,6 +283,7 @@ def initialize(current_date: Date, hist_df, future_weeks):
     dates_to_compute = []
     for i in range(n_weeks):
         date = initial_date.get_monday(add_weeks=i)
+
         assigned = False
         if history_length > 0:
             fetched_data = hist_df[hist_df["Week"] == date].to_dict(orient="records")
@@ -410,6 +411,7 @@ def generate_plan(future_weeks=FUTURE_WEEKS_TO_GENERATE):
     initialize_repo()
     current_date = Date()
     hist_df = load_history()
+    hist_df = hist_df[hist_df["Week"] < current_date.get_monday()]
     wg_members, dates_to_compute, start_end_dates = initialize(current_date, hist_df, future_weeks)
     for date in dates_to_compute:
         available_members = get_avail_members(wg_members, date)
