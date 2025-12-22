@@ -86,7 +86,7 @@ def set_announcement(updated=False):
                 # elif week_n == 1:
                 #     pre = 'Next week (RANGE): ACT\n'
                 activity = week_tasks[name]
-                string += pre.replace('RANGE', f'<span style="background-color: yellow;">{week_now} - {week_plus_1}</span>').replace('ACT', f' <b>{activity}</b> {emoticons[activity]}')
+                string += pre.replace('RANGE', f'<tg-spoiler>{week_now} - {week_plus_1}</tg-spoiler>').replace('ACT', f' <b>{activity}</b> {emoticons[activity]}')
             if blamed_activity != 'Vacation' and not updated:
                 if len(blames) == 0:
                     string += f'\n👍 Congratulations, you have no complaints for the week ' +\
