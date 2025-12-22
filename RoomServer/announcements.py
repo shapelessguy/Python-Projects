@@ -80,11 +80,11 @@ def set_announcement(updated=False):
             for week_n, week_tasks in enumerate(week_schedule):
                 week_now = (now + timedelta(days=(week_n * 7))).date().strftime("%d/%m")
                 week_plus_1 = (now + timedelta(days=((week_n + 1) * 7))).date().strftime("%d/%m")
-                pre = 'Week RANGE: ACT\n'
-                if week_n == 0:
-                    pre = 'This week (RANGE): ACT\n'
-                elif week_n == 1:
-                    pre = 'Next week (RANGE): ACT\n'
+                pre = 'RANGE: ACT\n'
+                # if week_n == 0:
+                #     pre = 'This week (RANGE): ACT\n'
+                # elif week_n == 1:
+                #     pre = 'Next week (RANGE): ACT\n'
                 activity = week_tasks[name]
                 string += pre.replace('RANGE', f'{week_now} - {week_plus_1}').replace('ACT', f' <b>{activity}</b> {emoticons[activity]}')
             if blamed_activity != 'Vacation' and not updated:
