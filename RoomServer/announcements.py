@@ -12,7 +12,7 @@ from announcements_functions import *
 from utils import BLAME_LOGS_FILEPATH, ANNOUNCEMENT_FILEPATH, MAIN_FOLDER_PATH, MSG_HISTORY_PATH
 
 
-debug_flag = True
+debug_flag = False
 
 
 def reload_module(module_name):
@@ -94,7 +94,7 @@ def set_announcement(updated=False):
                               f'{blame_first_date.strftime("%d/%m")} - {blame_last_date.strftime("%d/%m")}!'
                 else:
                     blamed_activity = f' ({blamed_activity})' if blamed_activity is not None else ''
-                    string += f'\n⚠️ You got {len(blames)} complaints in the week {blame_first_date}-{blame_last_date}{blamed_activity}.'
+                    string += f'\n⚠️ You got {len(blames)} complaint{"s" if len(blames) > 1 else ""} in the week {blame_first_date}-{blame_last_date}{blamed_activity}.'
                     if len(blames) >= 2:
                         string += f'\n☠️ Unfortunately you will have to compensate in the next weeks with more tasks.'
             if telegram_id is not None:
