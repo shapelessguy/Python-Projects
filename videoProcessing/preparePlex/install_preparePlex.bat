@@ -7,6 +7,38 @@ if %errorlevel% neq 0 (
     exit /b
 )
 
+set "VLC_PATH=C:\Program Files\VideoLAN\VLC\vlc.exe"
+
+where python >nul 2>&1
+if %errorlevel% neq 0 (
+    powershell -Command "Write-Host 'ERROR: python not found in PATH!' -ForegroundColor Red"
+    pause
+    exit /b 1
+)
+where ffmpeg >nul 2>&1
+if %errorlevel% neq 0 (
+    powershell -Command "Write-Host 'ERROR: ffmpeg not found in PATH!' -ForegroundColor Red"
+    pause
+    exit /b 1
+)
+where mkvmerge >nul 2>&1
+if %errorlevel% neq 0 (
+    powershell -Command "Write-Host 'ERROR: mkvmerge not found in PATH!' -ForegroundColor Red"
+    pause
+    exit /b 1
+)
+where mkvextract >nul 2>&1
+if %errorlevel% neq 0 (
+    powershell -Command "Write-Host 'ERROR: mkvextract not found in PATH!' -ForegroundColor Red"
+    pause
+    exit /b 1
+)
+if not exist "%VLC_PATH%" (
+    powershell -Command "Write-Host 'ERROR: VLCx64 not found! Make sure VLC64 is installed.' -ForegroundColor Red"
+    pause
+    exit /b 1
+)
+
 pip install colorama
 pip install requests
 pip install dotenv

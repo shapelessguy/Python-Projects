@@ -6,3 +6,4 @@ telebot
 openpyxl
 XlsxWriter
 jinja2
+colorama
