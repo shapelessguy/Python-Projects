@@ -7,3 +7,4 @@ openpyxl
 XlsxWriter
 jinja2
 colorama
+pyqt5

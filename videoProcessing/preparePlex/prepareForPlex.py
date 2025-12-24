@@ -210,6 +210,8 @@ def prepare_plex(purgatory_path):
     if purgatory_path != Path(PURGATORY_FOLDER):
         print_console(f"You must be on the predefined location: {str(PURGATORY_FOLDER)}\n\nPress Enter to exit", Fore.RED)
         return
+    
+    os.makedirs(FINAL_MOVIE_HOLDER_PATH, exist_ok=True)
 
     # Setting up the environment
     main_folder = Folder(purgatory_path)

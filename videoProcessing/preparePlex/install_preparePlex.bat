@@ -42,6 +42,7 @@ if not exist "%VLC_PATH%" (
 pip install colorama
 pip install requests
 pip install dotenv
+pip install paramiko
 
 set "REG_PATH=HKCR\Folder\shell\preparePlex"
 reg add "%REG_PATH%" /f
