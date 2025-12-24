@@ -187,16 +187,18 @@ class Folder:
                 size = st.st_size
                 mtime = datetime.fromtimestamp(st.st_mtime)
                 mtime = mtime.replace(second=0, microsecond=0)
-                local_folder = ANDROID_BACKUP_FOLDER if self.master_local == "" else os.path.dirname(self.master_local)
 
-                full_filename = os.path.relpath(full_path, local_folder).replace("\\", "/")
                 if self.master_local != "":
-                    parts = full_filename.split("/")
-                    remote_fullname = "/".join(parts[1:])
-                    remote_path = f"/{REMOTE_ROOT}/{self.relative_path}/{remote_fullname}"
+                    file_id = os.path.relpath(full_path, os.path.dirname(self.master_local)).replace("\\", "/")
+                    file_id = "/".join(file_id.split("/")[1:])
+                    local_path = self.master_local.replace("\\", "/") + "/" + file_id
+                    remote_path = f"/{REMOTE_ROOT}/{self.relative_path}/{file_id}"
+                    full_filename = f"{self.relative_path}/{file_id}"
                 else:
+                    full_filename = os.path.relpath(full_path, ANDROID_BACKUP_FOLDER).replace("\\", "/")
+                    local_path = os.path.join(ANDROID_BACKUP_FOLDER, full_filename.replace("/", "\\"))
                     remote_path = f"/{REMOTE_ROOT}/{full_filename}"
-                local_path = os.path.join(local_folder, full_filename.replace("/", "\\"))
+                
                 self.files[full_filename] = self.files.get(full_filename, {"local": None, "remote": None})
                 self.files[full_filename]["local"] = File(self, full_filename, remote_path, local_path, mtime, size, self.signal)
     
@@ -384,8 +386,7 @@ def init_loop(folder_map, signal):
         f.get_categories()
         init_info[f.relative_path] = f.get_statistics()
     global_stats, el_to_move = print_statistics(signal, init_info)
-
-
+    
     if el_to_move > 0:
         post_info = {}
         set_operation(signal, "Fetching info...", "blue")
@@ -423,12 +424,12 @@ def main(signal):
     try:
         folder_map = [
             Folder("Documents", master_local=r"C:\Users\Claudio\Documents\Documenti", signal=signal),
-            Folder("Download", prune=True, signal=signal),
-            Folder("DCIM", signal=signal),
-            Folder("Pictures", signal=signal),
-            Folder("Movies", signal=signal),
-            Folder("Music", signal=signal),
-            Folder("Audiobooks", signal=signal),
+            # Folder("Download", prune=True, signal=signal),
+            # Folder("DCIM", signal=signal),
+            # Folder("Pictures", signal=signal),
+            # Folder("Movies", signal=signal),
+            # Folder("Music", signal=signal),
+            # Folder("Audiobooks", signal=signal),
         ]
 
         model_text = parse_model()
