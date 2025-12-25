@@ -12,6 +12,26 @@ from colorama import Fore, Style
 from utils import *
 
 
+def kill_vlc():
+    output = subprocess.check_output(
+        ['tasklist', '/FI', 'IMAGENAME eq vlc.exe', '/FO', 'CSV'],
+        text=True
+    )
+
+    pids = []
+    for line in output.splitlines()[1:]:  # skip header
+        cols = [c.strip('"') for c in line.split('","')]
+        if len(cols) > 1:
+            pids.append(int(cols[1]))
+    for pid in pids:
+        subprocess.run(
+            ['taskkill', '/PID', str(pid), '/F'],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+    return len(pids) > 0
+
+
 def get_stream_info(input_path: Path):
     cmd_probe = ["ffprobe", "-v", "quiet", "-print_format", "json", "-show_format", "-show_streams", str(input_path)]
     result = subprocess.run(cmd_probe, capture_output=True, text=True)
@@ -253,6 +273,7 @@ def get_movie_name(info: VideoInfo):
             if key == "":
                 break
         name, year = '', ''
+    fullname = re.sub(r'[\/\\<>:"\*\?]', '', fullname)
     return fullname
 
 
@@ -264,6 +285,8 @@ def process_movie(info: VideoInfo, fullname: str):
     target_file = target_folder_path.joinpath(f"{fullname}.mkv")
     
     if target_file != info.video_path:
+        if kill_vlc():
+            time.sleep(2)
         move(info.video_path, info.video_path.parent.joinpath(f"{target_file.stem}.mkv"))
         move(info.video_path.parent, target_folder_path)
     info.video_path = target_file
@@ -290,7 +313,7 @@ def process_movie(info: VideoInfo, fullname: str):
                             break
                 if recompute:
                     break
-                if code in supported_lang_codes:
+                if code in supported_lang_codes + ["multi"]:
                     code = get_extended(code)
                     info.add_external_sub(path=target_file.parent.joinpath(x), extension=x.split(".")[-1], title=x, language=code)
 
@@ -358,6 +381,8 @@ def remux(info: VideoInfo):
         print(f"{Fore.RED}{msg}{Style.RESET_ALL}")
         return False
     else:
+        if kill_vlc():
+            time.sleep(2)
         safe_remove_file(target_file)
         move(temp_file, target_file)
     

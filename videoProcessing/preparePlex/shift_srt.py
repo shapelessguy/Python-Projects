@@ -62,7 +62,6 @@ def shift_srt_subs(input_file, output_file, ms_to_add, extend=100, extend_s=0):
     segments = []
     for line in lines:
         if '-->' in line:
-            print("as")
             value_a, value_b = line.replace('\n', '').split(" --> ")
             n1, n2 = Number(value_a), Number(value_b)
             segment = Segment(n1, n2)
@@ -81,11 +80,11 @@ def shift_srt_subs(input_file, output_file, ms_to_add, extend=100, extend_s=0):
         s.n1.add_ms(to_add)
         s.n2.add_ms(to_add)
 
-    with open(output_file, 'w') as file:
+    with open(output_file, 'w', encoding="utf-8") as file:
         file.writelines([str(x) for x in new_lines])
 
 
 if __name__ == "__main__":
-    input_file = r"C:\Users\shape\Desktop\test.srt"
+    input_file = r"D:\Purgatory\.working\The Pianist (2002)\The Pianist (2002).eng.srt"
     output_file = input_file
-    shift_srt_subs(input_file, output_file, 0, extend_s=-5)
+    shift_srt_subs(input_file, output_file, -20000)
