@@ -201,7 +201,7 @@ class Folder:
                         to_path = move_to.joinpath(info.video_path.parent.stem)
                         if to_path.exists():
                             print(f"{Fore.LIGHTYELLOW_EX}   Folder {to_path} already exists. Overwriting now.{Style.RESET_ALL}")
-                            shutil.rmtree(to_path, onexc=remove_readonly)
+                            shutil.rmtree(to_path, onerror=remove_readonly)
                         move(info.video_path.parent, to_path)
                         return
                 except:
@@ -316,14 +316,17 @@ def prepare_plex(purgatory_path):
                 progress_msg = f"{i+1}/{total_n} - {cur_percentage:.2f}% Moving {folder.path} into {FINAL_MOVIE_HOLDER_PATH}... "
                 line = f"{progress_msg} STATUS {tot_percentage:.2f}%  ETA {eta}"
                 print(f"\r{line:<180}", end="", flush=True)
-
-            if str(folder.path).split(":")[0] == FINAL_MOVIE_HOLDER_PATH.split(":")[0]:
-                move(folder.path, f"{FINAL_MOVIE_HOLDER_PATH}/{folder.path.stem + folder.path.suffix}")
-            else:
-                copy_folder_with_progress(folder.path, f"{FINAL_MOVIE_HOLDER_PATH}/{folder.path.stem + folder.path.suffix}", progress)
-                cur_uploaded += file_uploaded
-                if file_uploaded == 0:
-                    break
+            
+            try:
+                if str(folder.path).split(":")[0] == FINAL_MOVIE_HOLDER_PATH.split(":")[0]:
+                    move(folder.path, f"{FINAL_MOVIE_HOLDER_PATH}/{folder.path.stem}")
+                else:
+                    copy_folder_with_progress(folder.path, f"{FINAL_MOVIE_HOLDER_PATH}/{folder.path.stem}", progress)
+                    cur_uploaded += file_uploaded
+                    if file_uploaded == 0:
+                        break
+            except:
+                print_console(f"Error:\n{traceback.format_exc()}", Fore.RED)
     
     clean_dirs(ready_dir_path)
     print(f"\n{Fore.GREEN}Preparation to Plex completed.{Style.RESET_ALL}")

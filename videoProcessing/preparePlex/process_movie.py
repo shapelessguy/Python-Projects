@@ -307,7 +307,6 @@ def process_movie(info: VideoInfo, fullname: str):
         for x in os.listdir(target_file.parent):
             if x.split(".")[-1] in supported_external_subs_ext:
                 code = tryMagnet(x)
-                print(code, x)
                 if not code:
                     while True:
                         code = print_console(f"   Insert a language code for External SUB: {x};\nRecompute (r), drop it (d), test it (t), open folder (o) or mark it as multi-lang (multi): ", Fore.YELLOW).strip()

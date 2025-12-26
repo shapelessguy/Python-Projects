@@ -224,13 +224,14 @@ def move(src, dst):
     while exception:
         exception = False
         try:
-            os.makedirs(dst.parent, exist_ok=True)
+            os.makedirs(Path(dst).parent, exist_ok=True)
             shutil.move(src, dst)
         except PermissionError:
             print_console(f"Access denied on {src}. Release it and try again", Fore.RED)
             exception = True
         except Exception:
-            time.sleep(0.5)
+            print_console(f"Error while moving: retrying every second", Fore.RED)
+            time.sleep(1)
 
 
 def safe_remove_file(path):
@@ -436,4 +437,4 @@ def copy_folder_with_progress(src, dst, callback=None):
     if sftp:
         sftp.close()
     if copied_in_folder > 0:
-        shutil.rmtree(src, onexc=remove_readonly)
+        shutil.rmtree(src, onerror=remove_readonly)
