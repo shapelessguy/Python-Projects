@@ -119,6 +119,8 @@ def handle_subs_conflicts(info: VideoInfo, target_file: Path):
                 v["tags"]["language"] = code
             elif code == "d":
                 v["tags"]["language"] = None
+        else:
+            v["tags"]["language"] = get_extended(language)
         sub_idx += 1
         all_codes_srt.append(v["tags"]["language"])
 
