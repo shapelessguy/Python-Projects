@@ -8,3 +8,4 @@ XlsxWriter
 jinja2
 colorama
 pyqt5
+wmi

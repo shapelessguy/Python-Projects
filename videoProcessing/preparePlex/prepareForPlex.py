@@ -17,14 +17,17 @@ def generate_recap(info):
     msg += f"|----------------------------------------\n"
     msg += f"|  Title: {info.video_path.stem}\n"
     msg += f"|----------------------------------------\n"
+    max_idx = 0
 
     for vs in info.get_video_tracks():
+        max_idx = vs['index']
         video_attr = {"codec": vs["codec_name"], "pixel_dim": f'{vs["width"]}x{vs["height"]}'}
         msg += f"|  Video track {vs['index']}:\n"
         for k, v in video_attr.items():
             msg += f"|     {k}: {v}\n"
     msg += f"|----------------------------------------\n"
     for aus in info.get_audio_tracks():
+        max_idx = aus['index']
         if aus["tags"]["language"]:
             offsym = f"+{aus['offset']}" if aus["offset"] > 0 else (f"-{aus['offset']}" if aus["offset"] < 0 else "NO")
             sub_attr = {"codec": aus["codec_name"], "language": aus["tags"]["language"], "title": aus["tags"]["title"], "offset": offsym}
@@ -34,6 +37,7 @@ def generate_recap(info):
     msg += f"|----------------------------------------\n"
     if (len(info.get_sub_tracks())):
         for ss in info.get_sub_tracks():
+            max_idx = ss['index']
             if ss["tags"].get("language", ""):
                 offsym = f"+{ss['offset']}" if ss["offset"] > 0 else (f"-{ss['offset']}" if ss["offset"] < 0 else "NO")
                 sub_attr = {"codec": ss["codec_name"], "language": ss["tags"]["language"], "title": ss["tags"]["title"], "offset": offsym}
@@ -43,11 +47,14 @@ def generate_recap(info):
     else:
         msg += f"|  {Fore.LIGHTRED_EX}NO SUBTITLES{Fore.LIGHTCYAN_EX}\n"
     msg += f"|----------------------------------------\n"
+    max_idx = int(max_idx)
     if len([x for x in info.get_external_subs() if x["tags"]["language"] is not None]):
         for ss in info.get_external_subs():
+            max_idx += 1
+            ss['index'] = max_idx
             if ss["tags"].get("language", ""):
                 sub_attr = {"language": ss["tags"]["language"], "title": ss["tags"]["title"]}
-                msg += f"|  Subtitle {ss.get('index', 'extra')}:\n"
+                msg += f"|  Subtitle {ss['index']}:\n"
                 for k, v in sub_attr.items():
                     msg += f"|     {k}: {v}\n"
     else:
@@ -63,6 +70,7 @@ def generate_recap(info):
         msg += f"\t- 'suboffset' to sync internal subtitles\n"
     msg += f"\t- 'o' to open the video folder via explorer\n"
     msg += f"\t- 't' to test the final movie\n"
+    msg += f"\t- 'drop IDX' to drop an audio/sub by its index\n"
     msg += f"\t- 'trash' to move the movie into trash\n"
     msg += f"\t- ENTER to repeat sub-scanning\n"
     return msg
@@ -146,6 +154,22 @@ class Folder:
                         elif feedback == "suboffset" and len([x for x in (info.get_sub_tracks() + info.get_external_subs()) if x["tags"]["language"] is not None]):
                             offset_interface([x for x in (info.get_sub_tracks()) if x["tags"]["language"] is not None], "SUBTITLE")
                             offset_interface([x for x in (info.get_external_subs()) if x["tags"]["language"] is not None], "EXT SUBTITLE", True)
+                        elif "drop" in feedback:
+                            try:
+                                cmd, idx = feedback.split()
+                                idx = int(idx)
+                                if cmd == "drop":
+                                    for aus in info.get_sub_tracks():
+                                        if aus['index'] == idx:
+                                            aus["tags"]["language"] = None
+                                    for ss in info.get_sub_tracks():
+                                        if ss['index'] == idx:
+                                            ss["tags"]["language"] = None
+                                    for ss in info.get_external_subs():
+                                        if ss['index'] == idx:
+                                            ss["tags"]["language"] = None
+                            except:
+                                pass
                         elif feedback == "trash":
                             move(self.video_path.parent, trash_path.joinpath(self.path.stem))
                             return
@@ -161,7 +185,7 @@ class Folder:
                         return
                 for sub in info.get_external_subs():
                     if not sub["tags"]["language"]:
-                        safe_remove_file(sub["path"])
+                        move(sub["path"], trash_path.joinpath(sub["path"].relative_to(self.video_path.parent.parent)))
                 try:
                     msg = "Press 't' to test the new file or 'w' to continue working on it: "
                     while not skip_muxing:

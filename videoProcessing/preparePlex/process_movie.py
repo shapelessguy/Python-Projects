@@ -160,6 +160,7 @@ def handle_subs_conflicts(info: VideoInfo, target_file: Path):
 def check_on_imdb(name, year):
     page = 1
     simple_results = []
+    perfect_matches = []
     while True:
         url = f"https://api.themoviedb.org/3/search/movie"
         params = {
@@ -172,13 +173,17 @@ def check_on_imdb(name, year):
         for r in data["results"]:
             sr = (r["title"].replace(":", " -"), r["release_date"][:4])
             simple_results.append(sr)
-            if name == sr[0] and (not year or year == sr[1]):
-                url = f"https://api.themoviedb.org/3/movie/{r['id']}"
-                r = requests.get(url, params=params).json()
-                return [sr], r
+            if re.sub(r'[\/\\<>:"\*\?]', '', name.lower()) == re.sub(r'[\/\\<>:"\*\?]', '', sr[0].lower()) and (not year or year == sr[1]):
+                perfect_matches.append(r)
             if len(simple_results) > 10:
                 break
 
+        if len(perfect_matches) == 1:
+            r = perfect_matches[0]
+            sr = (r["title"].replace(":", " -"), r["release_date"][:4])
+            url = f"https://api.themoviedb.org/3/movie/{r['id']}"
+            r = requests.get(url, params=params).json()
+            return [sr], r
         results = data.get("results", [])
         if not results or page > 2 or page >= data.get("total_pages", 0):
             break
@@ -216,7 +221,7 @@ def get_name_year(name, year, up_to_index: None):
     return name, year, None
 
 
-def prompt_imdb(name, year):
+def prompt_imdb(name, year, first_shot=True):
     candidates, details = check_on_imdb(name, year)
     if details:
         print(f"{Fore.GREEN}   Movie found on IMDB: {candidates[0][0]} ({candidates[0][1]}){Style.RESET_ALL}")
@@ -232,8 +237,8 @@ def prompt_imdb(name, year):
         name, year, index = get_name_year(name, year, len(candidates))
         if index is not None:
             name, year = candidates[index]
-        return prompt_imdb(name, year)
-    return name, year, details
+        return prompt_imdb(name, year, False)
+    return name, year, details, first_shot
 
 
 def get_movie_name(info: VideoInfo):
@@ -248,9 +253,10 @@ def get_movie_name(info: VideoInfo):
         holder_files = []
         holder_files_thread = threading.Thread(target=list_holder_dirs, args=(holder_files, ))
         holder_files_thread.start()
-        name, year, details = prompt_imdb(name, year)
+        name, year, details, first_shot = prompt_imdb(name, year)
         fullname = f"{name} ({year})" if year else name
         holder_files_thread.join()
+        key = ""
         if fullname in holder_files + ready_files:
             recipient = READY_FOLDER_NAME if fullname in ready_files else FINAL_MOVIE_HOLDER_PATH
             key = print_console(f"   Name already present in {recipient}\n   Press enter if you want to continue the name selection or 'trash' to move it to the trash: ", Fore.RED)
@@ -259,7 +265,7 @@ def get_movie_name(info: VideoInfo):
                 info.to_trash = True
                 return None
         else:
-            while True:
+            while not first_shot:
                 key = print_console("Press enter if you want to continue, view more details (d), test it (t), open folder (o) or any other key to repeat the name selection: ")
                 key = key.replace("\n", "").strip().lower()
                 if open_or_test(key, info.video_path):
@@ -297,9 +303,11 @@ def process_movie(info: VideoInfo, fullname: str):
     while recompute:
         recompute = False
         info.external_subs = []
+        info.external_subs_to_remove = []
         for x in os.listdir(target_file.parent):
             if x.split(".")[-1] in supported_external_subs_ext:
                 code = tryMagnet(x)
+                print(code, x)
                 if not code:
                     while True:
                         code = print_console(f"   Insert a language code for External SUB: {x};\nRecompute (r), drop it (d), test it (t), open folder (o) or mark it as multi-lang (multi): ", Fore.YELLOW).strip()
@@ -317,7 +325,9 @@ def process_movie(info: VideoInfo, fullname: str):
                     break
                 if code in supported_lang_codes + ["multi"]:
                     code = get_extended(code)
-                    info.add_external_sub(path=target_file.parent.joinpath(x), extension=x.split(".")[-1], title=x, language=code)
+                else:
+                    code = None
+                info.add_external_sub(path=target_file.parent.joinpath(x), extension=x.split(".")[-1], title=x, language=code)
 
     handle_audio_conflicts(info, target_file)
     handle_subs_conflicts(info, target_file)
@@ -359,6 +369,7 @@ def remux(info: VideoInfo):
                     '--track-name', f'{e["index"]}:{e["tags"]["language"]}',
                     '--default-track', f'{e["index"]}:{"yes" if default else "no"}',
                     '--forced-track', f'{e["index"]}:no',
+                    '--compression', f'{e["index"]}:none ',
                     '--sync', f'{e["index"]}:{e["offset"]}'
                     ]
                 

@@ -123,7 +123,7 @@ def tryMagnet(language_str: str):
     return_value = None
     if not language_str:
         return None
-    for k, v_ in full_language_codes.items():
+    for k, v_ in {**full_language_codes, "multi": ["multi"]}.items():
         pattern = re.compile(rf"(?<![A-Za-z ])(?:{'|'.join(v_ + [k])})(?![A-Za-z ])",re.IGNORECASE)
         match = pattern.search(language_str)
         if match:
@@ -224,6 +224,7 @@ def move(src, dst):
     while exception:
         exception = False
         try:
+            os.makedirs(dst.parent, exist_ok=True)
             shutil.move(src, dst)
         except PermissionError:
             print_console(f"Access denied on {src}. Release it and try again", Fore.RED)
