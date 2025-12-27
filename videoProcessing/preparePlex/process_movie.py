@@ -199,11 +199,13 @@ def check_on_imdb(name, year, movie_id=None):
 
 def get_name_year(name, year, up_to_index: None):
     index_option = f" or insert a number of one of the alternatives" if up_to_index > 0 else ""
-    name_ = sanitize_filename(print_console(f"   Rename movie (default '{name}'){index_option}: ", Fore.YELLOW).strip())
+    name_ = sanitize_filename(print_console(f"   Rename movie (default '{name}') - Skip this folder (s){index_option}: ", Fore.YELLOW).strip())
     try:
+        if name_.strip() == "s":
+            return None, None, None, True
         index = int(name_)
         if index >= 0 and index < up_to_index:
-            return None, None, index
+            return None, None, None, False
     except:
         pass
     year_ = year
@@ -211,7 +213,9 @@ def get_name_year(name, year, up_to_index: None):
     while not first_ask or year_ is None:
         first_ask = True
         try:
-            year_ = sanitize_filename(print_console(f"   Insert the year (default '{year}'): ", Fore.YELLOW).strip())
+            year_ = sanitize_filename(print_console(f"   Insert the year (default '{year}') or skip folder (s): ", Fore.YELLOW).strip())
+            if year_.strip() == "s":
+                return None, None, None, True
             if year_.strip() == "":
                 break
             int_year = int(year_)
@@ -223,11 +227,12 @@ def get_name_year(name, year, up_to_index: None):
             year_ = None
     name = name_ if name_ else name
     year = year_ if year_ else year
-    return name, year, None
+    return name, year, None, False
 
 
 def prompt_imdb(name, year, first_shot=True, movie_id=None):
     candidates, details = check_on_imdb(name, year, movie_id)
+    skip = False
     if details:
         print(f"{Fore.GREEN}   Movie found on IMDB: {candidates[0][0]} ({candidates[0][1]}){Style.RESET_ALL}")
         print(f"{Fore.GREEN}   Genres: " + ", ".join([x["name"] for x in details["genres"]]) + Style.RESET_ALL)
@@ -239,11 +244,13 @@ def prompt_imdb(name, year, first_shot=True, movie_id=None):
         print(f"{Fore.RED}   Movie not found on IMDB. Alternatives:\n{Style.RESET_ALL}")
         for i, c in enumerate(candidates):
             print(f"{Fore.RED}\t- ({i}) {c[0]} ({c[1]}){Style.RESET_ALL}")
-        name, year, index = get_name_year(name, year, len(candidates))
+        name, year, index, skip = get_name_year(name, year, len(candidates))
+        if skip:
+            return None, None, None, False, True
         if index is not None:
             name, year, movie_id = candidates[index]
         return prompt_imdb(name, year, first_shot=False, movie_id=movie_id)
-    return name, year, details, first_shot
+    return name, year, details, first_shot, skip
 
 
 def get_movie_name(info: VideoInfo):
@@ -251,6 +258,7 @@ def get_movie_name(info: VideoInfo):
     match = pattern.match(info.video_path.stem)
     name = sanitize_filename(match.group("name").strip()) if match else sanitize_filename(info.video_path.stem)
     year = sanitize_filename(match.group("year")) or "" if match else ""
+    first_shot = False
 
     while True:
         ready_files = []
@@ -258,7 +266,9 @@ def get_movie_name(info: VideoInfo):
         holder_files = []
         holder_files_thread = threading.Thread(target=list_holder_dirs, args=(holder_files, ))
         holder_files_thread.start()
-        name, year, details, first_shot = prompt_imdb(name, year)
+        name, year, details, first_shot, skip = prompt_imdb(name, year)
+        if skip:
+            return "", False, False
         fullname = f"{name} ({year})" if year else name
         holder_files_thread.join()
         key = ""
@@ -268,13 +278,15 @@ def get_movie_name(info: VideoInfo):
             key = key.replace("\n", "").strip().lower()
             if key == "trash":
                 info.to_trash = True
-                return None
+                return None, False, True
         else:
             while not first_shot:
-                key = print_console("Press enter if you want to continue, view more details (d), test it (t), open folder (o) or any other key to repeat the name selection: ")
+                key = print_console("Press enter if you want to continue, view more details (d), skip it (s), test it (t), open folder (o) or any other key to repeat the name selection: ")
                 key = key.replace("\n", "").strip().lower()
                 if open_or_test(key, info.video_path):
                     continue
+                elif key == "s":
+                    return "", False, False
                 elif key == "d":
                     if details:
                         print(json.dumps(details, indent=4))
@@ -287,7 +299,7 @@ def get_movie_name(info: VideoInfo):
                 break
         name, year = '', ''
     fullname = re.sub(r'[\/\\<>:"\*\?]', '', fullname)
-    return fullname
+    return fullname, first_shot, True
 
 
 def process_movie(info: VideoInfo, fullname: str):
