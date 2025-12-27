@@ -229,6 +229,11 @@ file_uploaded = 0
 def prepare_plex(purgatory_path):
     global file_uploaded
     initialize_sftp()
+    
+    if "@" in FINAL_MOVIE_HOLDER_PATH:
+        sftp_mkdir_p(FINAL_MOVIE_HOLDER_PATH.split(":")[1])
+    else:
+        os.makedirs(FINAL_MOVIE_HOLDER_PATH, exist_ok=True)
 
     while purgatory_path != Path(PURGATORY_FOLDER):
         if purgatory_path == purgatory_path.parent:
@@ -238,8 +243,6 @@ def prepare_plex(purgatory_path):
     if purgatory_path != Path(PURGATORY_FOLDER):
         print_console(f"You must be on the predefined location: {str(PURGATORY_FOLDER)}\n\nPress Enter to exit", Fore.RED)
         return
-    
-    os.makedirs(FINAL_MOVIE_HOLDER_PATH, exist_ok=True)
 
     # Setting up the environment
     main_folder = Folder(purgatory_path)
@@ -292,6 +295,7 @@ def prepare_plex(purgatory_path):
     clean_dirs(trash_path)
     
     ready_folder = Folder(ready_dir_path)
+    final_movie_holder = FINAL_MOVIE_HOLDER_PATH if "@" not in FINAL_MOVIE_HOLDER_PATH else FINAL_MOVIE_HOLDER_PATH.split(":")[1]
     if len(ready_folder.sub_folders):
         print_console(f"Press Enter to send files to {FINAL_MOVIE_HOLDER_PATH}...", Fore.YELLOW)
 
@@ -317,7 +321,7 @@ def prepare_plex(purgatory_path):
                 eta = et * 100 / tot_percentage - et
                 eta = 0 if eta < 0 else seconds_to_mmss(int(eta))
                 
-                progress_msg = f"{i+1}/{total_n} - {cur_percentage:.2f}% Moving {folder.path} into {FINAL_MOVIE_HOLDER_PATH}... "
+                progress_msg = f"{i+1}/{total_n} - {cur_percentage:.2f}% Moving {folder.path} into {final_movie_holder}... "
                 line = f"{progress_msg} STATUS {tot_percentage:.2f}%  ETA {eta}"
                 print(f"\r{line:<180}", end="", flush=True)
             
@@ -325,7 +329,7 @@ def prepare_plex(purgatory_path):
                 if str(folder.path).split(":")[0] == FINAL_MOVIE_HOLDER_PATH.split(":")[0]:
                     move(folder.path, f"{FINAL_MOVIE_HOLDER_PATH}/{folder.path.stem}")
                 else:
-                    copy_folder_with_progress(folder.path, f"{FINAL_MOVIE_HOLDER_PATH}/{folder.path.stem}", progress)
+                    copy_folder_with_progress(folder.path, f"{final_movie_holder}/{folder.path.stem}", progress)
                     cur_uploaded += file_uploaded
                     if file_uploaded == 0:
                         break

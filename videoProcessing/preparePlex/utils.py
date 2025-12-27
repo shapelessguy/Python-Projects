@@ -9,7 +9,7 @@ import shutil
 import time
 from dotenv import dotenv_values
 from colorama import init, Fore, Style
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import paramiko
 from shift_srt import shift_srt_subs
 init(autoreset=True)
@@ -104,7 +104,7 @@ def initialize_sftp():
                 username=FINAL_MOVIE_HOLDER_PATH.split("@")[0],
                 look_for_keys=True,
                 allow_agent=True,
-                timeout=1
+                timeout=9999999999
             )
             sftp = client.open_sftp()
         except Exception:
@@ -329,12 +329,13 @@ def seconds_to_mmss(seconds):
     return f"{minutes:02}:{remaining_seconds:02}"
 
 
-def sftp_mkdir_p(sftp, remote_directory):
+def sftp_mkdir_p(remote_directory):
     """
     Recursively create remote directories like mkdir -p.
     """
+    global sftp
     dirs = []
-    path = remote_directory
+    path = remote_directory.replace("\\", "/")
 
     while len(path) > 1:
         dirs.append(path)
@@ -343,9 +344,9 @@ def sftp_mkdir_p(sftp, remote_directory):
 
     for d in dirs:
         try:
-            sftp.stat(d)
-        except IOError:
             sftp.mkdir(d)
+        except Exception:
+            pass
 
 
 def list_ready_dirs(files):
@@ -393,15 +394,14 @@ def copy_via_paramiko(root, files, src, dst, callback, copied_in_folder=0, chunk
         return
     rel_path = Path(root).relative_to(src)
     remote_root = dst / rel_path
-    sftp_mkdir_p(sftp, str(remote_root))
+    sftp_mkdir_p(str(remote_root))
 
     for file in files:
         local_file = Path(root) / file
-        remote_file = remote_root / file
+        remote_file_path = str(remote_root / file).replace("\\", "/")
         file_size = local_file.stat().st_size
 
-        with open(local_file, "rb") as fsrc, sftp.open(str(remote_file), "wb") as fdst:
-
+        with open(local_file, "rb") as fsrc, sftp.open(remote_file_path, "wb") as fdst:
             while True:
                 buf = fsrc.read(chunk_size)
                 if not buf:
@@ -413,7 +413,7 @@ def copy_via_paramiko(root, files, src, dst, callback, copied_in_folder=0, chunk
                     callback(copied_in_folder, file_size)
 
         st = local_file.stat()
-        sftp.utime(str(remote_file), (st.st_atime, st.st_mtime))
+        sftp.utime(remote_file_path, (st.st_atime, st.st_mtime))
     return copied_in_folder
 
 
@@ -436,6 +436,15 @@ def copy_folder_with_progress(src, dst, callback=None):
             copied_in_folder = copy_via_hhd(root, files, src, dst, callback, copied_in_folder)
 
     if sftp:
-        sftp.close()
+        try:
+            sftp.stat(str(dst).replace("\\", "/"))
+            exists = True
+        except FileNotFoundError:
+            exists = False
+        # sftp.close()
+
     if copied_in_folder > 0:
-        shutil.rmtree(src, onerror=remove_readonly)
+        if exists:
+            shutil.rmtree(src, onerror=remove_readonly)
+        else:
+            raise Exception(f"File {dst} not correctly uploaded!")
