@@ -76,7 +76,9 @@ full_language_codes = {
     "Hebrew": ["he", "heb"],
     "Romanian": ["ro", "rum", "ron"],
     "Ukrainian": ["uk", "ukr"],
-    "Thai": ["th", "tha"]
+    "Thai": ["th", "tha"],
+    "Persian": ["fa", "per", "fas"],
+    "Kurdish": ["ku", "kur"],
 }
 
 
@@ -128,7 +130,6 @@ def tryMagnet(language_str: str):
         match = pattern.search(language_str)
         if match:
             if return_value is not None:
-                print(match.group(0).lower(), return_value)
                 return None
             return_value = v_[0]
     return return_value

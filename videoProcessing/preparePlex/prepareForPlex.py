@@ -29,7 +29,7 @@ def generate_recap(info):
     for aus in info.get_audio_tracks():
         max_idx = aus['index']
         if aus["tags"]["language"]:
-            offsym = f"+{aus['offset']}" if aus["offset"] > 0 else (f"-{aus['offset']}" if aus["offset"] < 0 else "NO")
+            offsym = f"+{aus['offset']}" if aus["offset"] > 0 else (f"{aus['offset']}" if aus["offset"] < 0 else "NO")
             sub_attr = {"codec": aus["codec_name"], "language": aus["tags"]["language"], "title": aus["tags"]["title"], "offset": offsym}
             msg += f"|  Audio track {aus['index']}:\n"
             for k, v in sub_attr.items():
@@ -39,7 +39,7 @@ def generate_recap(info):
         for ss in info.get_sub_tracks():
             max_idx = ss['index']
             if ss["tags"].get("language", ""):
-                offsym = f"+{ss['offset']}" if ss["offset"] > 0 else (f"-{ss['offset']}" if ss["offset"] < 0 else "NO")
+                offsym = f"+{ss['offset']}" if ss["offset"] > 0 else (f"{ss['offset']}" if ss["offset"] < 0 else "NO")
                 sub_attr = {"codec": ss["codec_name"], "language": ss["tags"]["language"], "title": ss["tags"]["title"], "offset": offsym}
                 msg += f"|  Subtitle {ss['index']}:\n"
                 for k, v in sub_attr.items():
@@ -142,6 +142,8 @@ class Folder:
                             repeat = False
                             break
                         elif feedback == "r":
+                            if kill_vlc():
+                                time.sleep(2)
                             repeat = False
                             skip_muxing = True
                             break
@@ -171,6 +173,8 @@ class Folder:
                             except:
                                 pass
                         elif feedback == "trash":
+                            if kill_vlc():
+                                time.sleep(2)
                             move(self.video_path.parent, trash_path.joinpath(self.path.stem))
                             return
                     if not repeat:

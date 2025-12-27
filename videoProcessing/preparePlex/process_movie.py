@@ -157,37 +157,42 @@ def handle_subs_conflicts(info: VideoInfo, target_file: Path):
                     candidate["tags"]["language"] = None
 
 
-def check_on_imdb(name, year):
+def check_on_imdb(name, year, movie_id=None):
     page = 1
     simple_results = []
     perfect_matches = []
-    while True:
+    params = {
+        "api_key": API_KEY,
+        "query": name
+    }
+
+    while not movie_id:
         url = f"https://api.themoviedb.org/3/search/movie"
-        params = {
-            "api_key": API_KEY,
-            "query": name,
-            "page": page
-        }
+        params['page'] = page
         response = requests.get(url, params=params)
         data = response.json()
         for r in data["results"]:
-            sr = (r["title"].replace(":", " -"), r["release_date"][:4])
+            sr = (r["title"].replace(":", " -"), r["release_date"][:4], r['id'])
             simple_results.append(sr)
             if re.sub(r'[\/\\<>:"\*\?]', '', name.lower()) == re.sub(r'[\/\\<>:"\*\?]', '', sr[0].lower()) and (not year or year == sr[1]):
                 perfect_matches.append(r)
             if len(simple_results) > 10:
                 break
 
-        if len(perfect_matches) == 1:
-            r = perfect_matches[0]
-            sr = (r["title"].replace(":", " -"), r["release_date"][:4])
-            url = f"https://api.themoviedb.org/3/movie/{r['id']}"
-            r = requests.get(url, params=params).json()
-            return [sr], r
         results = data.get("results", [])
-        if not results or page > 2 or page >= data.get("total_pages", 0):
+        if not results or page > 4 or page >= data.get("total_pages", 0):
             break
         page += 1
+
+    if len(perfect_matches) == 1:
+        movie_id = perfect_matches[0]['id']
+        name, year = perfect_matches[0]['title'].replace(":", " -"), perfect_matches[0]['release_date'][:4]
+
+    if movie_id:
+        sr = (name, year)
+        url = f"https://api.themoviedb.org/3/movie/{movie_id}"
+        r = requests.get(url, params=params).json()
+        return [sr], r
     
     return simple_results, None
 
@@ -221,8 +226,8 @@ def get_name_year(name, year, up_to_index: None):
     return name, year, None
 
 
-def prompt_imdb(name, year, first_shot=True):
-    candidates, details = check_on_imdb(name, year)
+def prompt_imdb(name, year, first_shot=True, movie_id=None):
+    candidates, details = check_on_imdb(name, year, movie_id)
     if details:
         print(f"{Fore.GREEN}   Movie found on IMDB: {candidates[0][0]} ({candidates[0][1]}){Style.RESET_ALL}")
         print(f"{Fore.GREEN}   Genres: " + ", ".join([x["name"] for x in details["genres"]]) + Style.RESET_ALL)
@@ -236,8 +241,8 @@ def prompt_imdb(name, year, first_shot=True):
             print(f"{Fore.RED}\t- ({i}) {c[0]} ({c[1]}){Style.RESET_ALL}")
         name, year, index = get_name_year(name, year, len(candidates))
         if index is not None:
-            name, year = candidates[index]
-        return prompt_imdb(name, year, False)
+            name, year, movie_id = candidates[index]
+        return prompt_imdb(name, year, first_shot=False, movie_id=movie_id)
     return name, year, details, first_shot
 
 
@@ -289,7 +294,7 @@ def process_movie(info: VideoInfo, fullname: str):
     if not fullname:
         return info
     print(" ")
-    target_folder_path = info.video_path.parent.parent.joinpath(fullname)
+    target_folder_path = info.video_path.parent.parent.joinpath(re.sub(r'[.]', '', fullname))
     target_file = target_folder_path.joinpath(f"{fullname}.mkv")
     
     if target_file != info.video_path:
