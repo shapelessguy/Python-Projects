@@ -1,4 +1,3 @@
-import subprocess
 import sys
 import os
 import time
@@ -9,8 +8,10 @@ from PyQt5 import QtWidgets
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import QObject, Qt
 from PyQt5.QtWidgets import QApplication
-from datetime import datetime
 from colorama import init, Fore, Style
+from datetime import datetime
+from utils import *
+from interfaces import androidInterface, hhdInterface
 try:
     import frontend
 except:
@@ -20,58 +21,15 @@ ui = None
 size_to_reduce, bar_width = 0, 0
 
 
-config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".config")
-ANDROID_BACKUP_FOLDER = ""
-ANDROID_SERIAL = ""
-ADB_PATH = os.path.join(os.path.dirname(__file__), "platform-tools", "adb.exe")
-REMOTE_ROOT = "sdcard"
-
-
-def scale_bytes(bytes, decimal=1):
-    if bytes > 1024**3:
-        return f"{round(bytes / (1024**3), decimal)}GB"
-    elif bytes > 1024**2:
-        return f"{round(bytes / (1024**2), decimal)}MB"
-    elif bytes > 1024:
-        return f"{round(bytes / 1024, decimal)}KB"
-    else:
-        return f"{round(bytes, 0)}B"
-
-
-def parse_model():
-    cmd = [ADB_PATH, '-s', ANDROID_SERIAL, "shell", "getprop ro.product.brand; getprop ro.product.model"]
-    result = subprocess.run(cmd, capture_output=True, text=True)
-
-    if result.returncode != 0:
-        raise Exception(result.stderr)
-    return "Model: " + result.stdout.strip().replace("\n", " - ")
-
-
-def parse_sdcard_usage():
-    cmd = [ADB_PATH, '-s', ANDROID_SERIAL, "shell", "df", "/sdcard"]
-    result = subprocess.run(cmd, capture_output=True, text=True)
-
-    if result.returncode != 0:
-        raise Exception(result.stderr)
-
-    lines = result.stdout.strip().splitlines()
-    if len(lines) < 2:
-        raise Exception("Unexpected df output")
-
-    # second line contains the data
-    parts = lines[1].split()
-    filesystem, total_kb, used_kb, available_kb, use_percent, mountpoint = parts
-
-    # convert to integers and bytes
-    total = int(total_kb) * 1024
-    used = int(used_kb) * 1024
-    free = int(available_kb) * 1024
-
-    return total, used, use_percent
-
-
 class File:
-    def __init__(self, folder, relative_path, remote_path, local_path, last_modified, size, signal):
+    folder = None
+    relative_path: CPath = None
+    remote_path: CPath = None
+    local_path: CPath = None
+    last_modified: datetime = None
+    size: int = 0
+    
+    def __init__(self, folder, relative_path: CPath, remote_path: CPath, local_path: CPath, last_modified, size, signal):
         self.folder = folder
         self.relative_path = relative_path
         self.remote_path = remote_path
@@ -89,123 +47,71 @@ class File:
         return diff
     
     def copy_to_local(self, global_stats, from_):
-        cmd = [ADB_PATH, '-s', ANDROID_SERIAL, 'pull', '-a', self.remote_path, self.local_path]
-        os.makedirs(os.path.dirname(self.local_path), exist_ok=True)
-        result = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8')
-        self.signal['ui'].details_lbl.setText(f"Copying from Android: {self.remote_path}")
-
-        if result.returncode != 0:
-            raise Exception(f"Error: {result.stderr}")
-        else:
-            global_stats[from_]["n"] -= 1
-            global_stats[from_]["size"] -= self.size
-            global_stats["in_sync"]["n"] += 1
-            global_stats["in_sync"]["size"] += self.size
-            set_statistics(self.signal, global_stats)
-            print(f"Copied {self.remote_path} from Android")
+        os.makedirs(os.path.dirname(self.local_path.get_unix_path()), exist_ok=True)
+        self.signal['ui'].details_lbl.setText(f"Copying from remote: {self.remote_path.get_unix_path()}")
+        self.signal['interface'].copy_file_to_local(self.local_path, self.remote_path)
+        global_stats[from_]["n"] -= 1
+        global_stats[from_]["size"] -= self.size
+        global_stats["in_sync"]["n"] += 1
+        global_stats["in_sync"]["size"] += self.size
+        set_statistics(self.signal, global_stats)
+        print(f"Copied {self.remote_path.get_unix_path()} from remote")
     
     def copy_to_remote(self, global_stats, from_):
-        cmd = [ADB_PATH, '-s', ANDROID_SERIAL, 'push', '-a', self.local_path, self.remote_path]
-        result = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8')
-        self.signal['ui'].details_lbl.setText(f"Copying to Android: {self.local_path}")
-
-        if result.returncode != 0:
-            raise Exception(f"Error: {result.stderr}")
-        else:
-            global_stats[from_]["n"] -= 1
-            global_stats[from_]["size"] -= self.size
-            global_stats["in_sync"]["n"] += 1
-            global_stats["in_sync"]["size"] += self.size
-            set_statistics(self.signal, global_stats)
-            print(f"Copied {self.local_path} to Android")
+        self.signal['ui'].details_lbl.setText(f"Copying to remote: {self.local_path.get_unix_path()}")
+        self.signal['interface'].copy_file_to_remote(self.local_path, self.remote_path)
+        global_stats[from_]["n"] -= 1
+        global_stats[from_]["size"] -= self.size
+        global_stats["in_sync"]["n"] += 1
+        global_stats["in_sync"]["size"] += self.size
+        set_statistics(self.signal, global_stats)
+        print(f"Copied {self.local_path.get_unix_path()} to remote")
     
-    def move_to_unhandled(self, unhandled_path, global_stats, from_):
-        dest_dir = os.path.dirname(unhandled_path)
-        cmd = [ADB_PATH, '-s', ANDROID_SERIAL, 'shell', f'mkdir -p "{dest_dir}" && mv "{self.remote_path}" "{unhandled_path}"']
-        result = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8')
-
-        if result.returncode != 0:
-            raise Exception(f"Error: {result.stderr}")
-        else:
-            global_stats[from_]["n"] -= 1
-            global_stats[from_]["size"] -= self.size
-            set_statistics(self.signal, global_stats)
-            print(f"Moved {self.remote_path} to UNHANDLED")
+    def move_to_unhandled(self, unhandled_path: CPath, global_stats, from_):
+        self.signal['interface'].move_file_from_remote_to_remote(self.remote_path, unhandled_path)
+        global_stats[from_]["n"] -= 1
+        global_stats[from_]["size"] -= self.size
+        set_statistics(self.signal, global_stats)
+        print(f"Moved {self.remote_path.get_unix_path()} to UNHANDLED")
     
     def __str__(self):
         return f"{self.relative_path}, last_modified: {self.last_modified}, size: {self.size}"
 
 
 class Folder:
-    def __init__(self, relative_path, master_local="", prune=False, signal={}):
-        self.relative_path = relative_path.replace("\\", "/")
-        self.remote_path = f"/{REMOTE_ROOT}/{self.relative_path}"
-        self.local_path = os.path.join(ANDROID_BACKUP_FOLDER, self.relative_path.replace("/", "\\"))
-        if master_local != "":
-            if not os.path.exists(master_local):
-                raise Exception(f"Path {master_local} does not exist")
-            self.local_path = master_local.replace("/", "\\")
-        self.master_local = master_local
+    root: CPath = None
+    relative_path: CPath = None
+
+    def __init__(self, relative_path: str, master_local="", prune=False, signal={}):
+        self.relative_path = CPath(relative_path)
+        self.remote_path = self.relative_path.prepend(signal['interface'].root)
+        self.local_path = self.relative_path.prepend(signal['interface'].local_root)
+        self.master_local = CPath(master_local)
+        if self.master_local.origin != "":
+            if not os.path.exists(self.master_local.get_unix_path()):
+                raise Exception(f"Path {self.master_local.get_unix_path()} does not exist")
+            self.local_path = self.master_local
         self.prune = prune
         self.signal = signal
         self.files = {}
         self.categories = {}
     
-    def get_remote_files(self):
-        cmd = [ADB_PATH, '-s', ANDROID_SERIAL, 'shell', 'ls', '-lR', self.remote_path]
-        result = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8')
-
-        if result.returncode != 0:
-            raise Exception(f"Error: {result.stderr}")
-        else:
-            folder = ""
-            for line in result.stdout.splitlines():
-                if signal["kill"]:
-                    return
-                parts = line.split()
-                if len(parts) < 6:
-                    if len(parts) > 0 and parts[0][0] == "/":
-                        folder = " ".join(parts).replace(f"/{REMOTE_ROOT}/", "").replace(":", "")
-                    continue
-                perms, links, owner, group, size, date, time, *filename = parts
-                filename = " ".join(filename)
-                if "." in filename:
-                    full_filename = f"{folder}/{filename}"
-                    self.files[full_filename] = self.files.get(full_filename, {"local": None, "remote": None})
-                    remote_path = f"/{REMOTE_ROOT}/{full_filename}"
-                    local_path = os.path.join(ANDROID_BACKUP_FOLDER, full_filename.replace("/", "\\"))
-                    self.files[full_filename]["remote"] = File(self, full_filename, remote_path, local_path,
-                                                               datetime.strptime(f"{date} {time}", "%Y-%m-%d %H:%M"), int(size), self.signal)
+    def get_remote_path_files(self):
+        files_to_add = self.signal['interface'].get_remote_files(self.signal, self.remote_path, self.files, remote_root=self.signal['interface'].root)
+        for full_filename, local_path, remote_path, date, size in files_to_add:
+            self.files[full_filename.origin] = self.files.get(full_filename.origin, {"local": None, "remote": None})
+            self.files[full_filename.origin]["remote"] = File(self, full_filename, remote_path, local_path, date, size, self.signal)
     
-    def get_local_files(self):
-        for root, _, files in os.walk(self.local_path):
-            for name in files:
-                if signal["kill"]:
-                    return
-                full_path = os.path.join(root, name)
-                st = os.stat(full_path)
-                size = st.st_size
-                mtime = datetime.fromtimestamp(st.st_mtime)
-                mtime = mtime.replace(second=0, microsecond=0)
-
-                if self.master_local != "":
-                    file_id = os.path.relpath(full_path, os.path.dirname(self.master_local)).replace("\\", "/")
-                    file_id = "/".join(file_id.split("/")[1:])
-                    local_path = self.master_local.replace("\\", "/") + "/" + file_id
-                    remote_path = f"/{REMOTE_ROOT}/{self.relative_path}/{file_id}"
-                    full_filename = f"{self.relative_path}/{file_id}"
-                else:
-                    full_filename = os.path.relpath(full_path, ANDROID_BACKUP_FOLDER).replace("\\", "/")
-                    local_path = os.path.join(ANDROID_BACKUP_FOLDER, full_filename.replace("/", "\\"))
-                    remote_path = f"/{REMOTE_ROOT}/{full_filename}"
-                
-                self.files[full_filename] = self.files.get(full_filename, {"local": None, "remote": None})
-                self.files[full_filename]["local"] = File(self, full_filename, remote_path, local_path, mtime, size, self.signal)
+    def get_local_path_files(self):
+        files_to_add = get_local_files(self.signal, self.local_path, self.relative_path, self.master_local)
+        for full_filename, local_path, remote_path, date, size in files_to_add:
+            self.files[full_filename.origin] = self.files.get(full_filename.origin, {"local": None, "remote": None})
+            self.files[full_filename.origin]["local"] = File(self, full_filename, remote_path, local_path, date, size, self.signal)
     
     def get_categories(self):
         self.files = {}
-        self.get_local_files()
-        self.get_remote_files()
+        self.get_local_path_files()
+        self.get_remote_path_files()
         self.categories = {
             "in_sync": [],
             "partial": [],
@@ -271,53 +177,48 @@ class Folder:
     def migrate_data(self, global_stats):
         if not len(self.categories):
             raise Exception("You must get self.categories first!")
-        set_operation(signal, f"Migrating data for {self.relative_path}...", "black")
-        if self.master_local != "":
-            get_memory_consumption(self.signal)
+        set_operation(signal, f"Migrating data for {self.relative_path.get_unix_path()}...", "black")
+        if self.master_local.origin != "":
+            set_memory_consumption(self.signal)
             for f in self.categories["only_remote"]:
                 if signal["kill"]:
                     return
-                unhandled_path = "/" + os.path.join(REMOTE_ROOT, self.relative_path + "_unhandled", os.path.relpath(f, self.relative_path)).replace("\\", "/")
+                unhandled_path = CPath(f).relative_to(self.relative_path).prepend(self.relative_path.origin + "_unhandled").prepend(signal['interface'].root)
                 self.files[f]['remote'].move_to_unhandled(unhandled_path, global_stats, from_="only_remote")
-            get_memory_consumption(self.signal)
+            set_memory_consumption(self.signal)
             for f in self.categories["partial"]:
                 if signal["kill"]:
                     return
-                unhandled_path = "/" + os.path.join(REMOTE_ROOT, self.relative_path + "_unhandled", os.path.relpath(f, self.relative_path)).replace("\\", "/")
+                unhandled_path = CPath(f).relative_to(self.relative_path).prepend(self.relative_path.origin + "_unhandled").prepend(signal['interface'].root)
                 self.files[f]['remote'].move_to_unhandled(unhandled_path, global_stats, from_="partial")
-            
-            # dest_dir = "/" + os.path.join(REMOTE_ROOT, self.relative_path).replace("\\", "/") + "/*"
-            # cmd = [ADB_PATH, '-s', ANDROID_SERIAL, 'shell', f'rm -r {dest_dir}']
-            # subprocess.run(cmd, shell=True, capture_output=True, text=True, encoding='utf-8')
-
-            get_memory_consumption(self.signal)
+            set_memory_consumption(self.signal)
             for f in self.categories["only_local"]:
                 if signal["kill"]:
                     return
                 self.files[f]['local'].copy_to_remote(global_stats, from_="only_local")
-            get_memory_consumption(self.signal)
+            set_memory_consumption(self.signal)
             for f in self.categories["partial"]:
                 if signal["kill"]:
                     return
                 self.files[f]['local'].copy_to_remote(global_stats, from_="partial")
             
         else:
-            get_memory_consumption(self.signal)
+            set_memory_consumption(self.signal)
             for f in self.categories["only_remote"]:
                 if signal["kill"]:
                     return
                 self.files[f]['remote'].copy_to_local(global_stats, from_="only_remote")
-            get_memory_consumption(self.signal)
+            set_memory_consumption(self.signal)
             for f in self.categories["partial"]:
                 if signal["kill"]:
                     return
                 self.files[f]['remote'].copy_to_local(global_stats, from_="partial")
-            get_memory_consumption(self.signal)
+            set_memory_consumption(self.signal)
             for f in self.categories["only_local"]:
                 if signal["kill"]:
                     return
                 self.files[f]['local'].copy_to_remote(global_stats, from_="only_local")
-        get_memory_consumption(self.signal)
+        set_memory_consumption(self.signal)
 
 
 def set_statistics(signal, global_stats: dict):
@@ -381,6 +282,7 @@ def init_loop(folder_map, signal):
     init_info = {}
     set_operation(signal, "Fetching info...", "blue")
     for f in folder_map:
+        f: Folder
         if signal["kill"]:
             return
         f.get_categories()
@@ -390,7 +292,6 @@ def init_loop(folder_map, signal):
     if el_to_move > 0:
         post_info = {}
         set_operation(signal, "Fetching info...", "blue")
-        # files_to_prune = []
         for f in folder_map:
             if signal["kill"]:
                 return
@@ -411,30 +312,29 @@ def init_loop(folder_map, signal):
         set_operation(signal, "Everything is already synchronized", "green")
 
 
-def get_memory_consumption(signal):
-    total, used, percent = parse_sdcard_usage()
+def set_memory_consumption(signal):
+    used, total, percent = signal['interface'].get_memory_consumption()
     signal['ui'].used_lbl.setText(scale_bytes(used, 2))
     signal['ui'].total_lbl.setText(scale_bytes(total, 2))
     signal['ui'].percent_lbl.setText(percent)
-    # print(f"Memory in use: {scale_bytes(used, 3)}/{scale_bytes(total, 3)}  ->  {percent}")
 
+
+def get_interface(interface_str):
+    if interface_str == "HHD":
+        return hhdInterface.HHDInterface()
+    elif interface_str == "Android":
+        return androidInterface.AndroidInterface()
+    else:
+        return None
 
 
 def main(signal):
     try:
-        folder_map = [
-            Folder("Documents", master_local=r"C:\Users\Claudio\Documents\Documenti", signal=signal),
-            # Folder("Download", prune=True, signal=signal),
-            # Folder("DCIM", signal=signal),
-            # Folder("Pictures", signal=signal),
-            # Folder("Movies", signal=signal),
-            # Folder("Music", signal=signal),
-            # Folder("Audiobooks", signal=signal),
-        ]
-
-        model_text = parse_model()
+        signal['interface'] = get_interface(sys.argv[1])
+        folder_map = [Folder(n, signal=signal, **m) for n, m in signal['interface'].folder_map.items()]
+        model_text = signal['interface'].parse_device_info()
         ui.model_text.setText(model_text)
-        get_memory_consumption(signal)
+        set_memory_consumption(signal)
 
         init_loop(folder_map, signal)
     except Exception:
@@ -485,9 +385,6 @@ class WindowDragFilter(QObject):
 
 
 if __name__ == "__main__":
-    ANDROID_BACKUP_FOLDER = sys.argv[1] if len(sys.argv) > 1 else r"C:\Users\Claudio\Videos\Xiaomi"
-    ANDROID_SERIAL = sys.argv[2] if len(sys.argv) > 2 else "eykfq8vwcq9ham9d"
-
     ui_files = ['frontend']
     ui_paths = [os.path.join(os.path.dirname(os.path.realpath(__file__)), x + '.ui') for x in ui_files]
     py_paths = [os.path.join(os.path.dirname(os.path.realpath(__file__)), x + '.py') for x in ui_files]
@@ -518,8 +415,7 @@ if __name__ == "__main__":
         ui.exit.clicked.connect(lambda _=False: exit_sync(signal))
         
         for p, p_text in {"sync": "Objects in sync", "partial": "Objects with conflicting metadata",
-                  "local": "Objects available only on the current system", "remote": "Objects available only on the Android"}.items():
-            tooltip_text = "Ciao"
+                  "local": "Objects available only on the current system", "remote": "Objects available only on the remote device"}.items():
             for el_name, el_text in {"icon": "", "n_lbl": ": absolute number", "size_lbl": ": total size"}.items():
                 tooltip_text = f"{p_text}{el_text}"
                 object_id = f"{p}_{el_name}"
