@@ -9,7 +9,7 @@ import shutil
 import time
 from dotenv import dotenv_values
 from colorama import init, Fore, Style
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 import paramiko
 from shift_srt import shift_srt_subs
 init(autoreset=True)
@@ -200,7 +200,7 @@ def sanitize_filename(name: str) -> str:
         return name
     cleaned = re.sub(r'[<>:"/\\|?*\x00-\x1F]', '', name)
     cleaned = re.sub(r'\s+', ' ', cleaned)
-    cleaned = cleaned.strip().rstrip(' .')
+    cleaned = cleaned.strip().rstrip()
     return cleaned or name
 
 

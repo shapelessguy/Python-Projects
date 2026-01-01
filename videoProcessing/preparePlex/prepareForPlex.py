@@ -11,6 +11,9 @@ from utils import *
 from process_movie import *
 
 
+autoready = False
+
+
 def generate_recap(info):
     msg = f"\n ----------------------------------------\n"
     msg += f"|                RECAP                   |\n"
@@ -119,7 +122,7 @@ class Folder:
 
             continue_working = True
             skip_muxing = False
-            fullname = get_movie_name(info)
+            fullname, first_shot, continue_working = get_movie_name(info)
             while continue_working:
                 continue_working = False
                 while True:
@@ -134,7 +137,10 @@ class Folder:
                     repeat = True
                     while feedback != "":
                         skip_prompt = ["t"]
-                        feedback = print_console(generate_recap(info), Fore.LIGHTCYAN_EX).replace("\n", "").strip().lower() if feedback not in skip_prompt else input()
+                        if not autoready or not first_shot:
+                            feedback = print_console(generate_recap(info), Fore.LIGHTCYAN_EX).replace("\n", "").strip().lower() if feedback not in skip_prompt else input()
+                        else:
+                            feedback = "r"
                         if feedback == "":
                             self.get_paths()
                             break
@@ -347,6 +353,8 @@ if __name__ == "__main__":
         if not os.path.exists(VLC_PATH):
             print_console("VLC not found!\n\nPress Enter to exit", Fore.RED)
         else:
+            if len(sys.argv) > 2:
+                autoready = bool(sys.argv[2])
             prepare_plex(target_path)
     else:
         print_console("No path target\n\nPress Enter to exit", Fore.RED)
