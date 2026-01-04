@@ -217,7 +217,7 @@ def open_or_test(usr_input: str, video_path: Path):
 
 def open_video(path):
     print(f"Opening video: {path}")
-    subprocess.Popen([VLC_PATH, path])
+    subprocess.Popen([VLC_PATH, path], encoding="utf-8")
 
 
 def move(src, dst):
@@ -309,7 +309,7 @@ def offset_interface(tracks, type_, shift_now=False):
 
 def execute(cmd, errorMsg):
     try:
-        result = subprocess.Popen(cmd, text=True, shell=True)
+        result = subprocess.Popen(cmd, text=True, encoding="utf-8", shell=True)
         result.wait()
         if result.returncode != 0:
             print(f"{errorMsg}")

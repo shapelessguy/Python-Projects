@@ -34,7 +34,7 @@ def kill_vlc():
 
 def get_stream_info(input_path: Path):
     cmd_probe = ["ffprobe", "-v", "quiet", "-print_format", "json", "-show_format", "-show_streams", str(input_path)]
-    result = subprocess.run(cmd_probe, capture_output=True, text=True)
+    result = subprocess.run(cmd_probe, capture_output=True, encoding="utf-8", text=True)
     info = VideoInfo(json.loads(result.stdout + result.stderr), input_path)
     return info
 
@@ -197,7 +197,7 @@ def check_on_imdb(name, year, movie_id=None):
     return simple_results, None
 
 
-def get_name_year(name, year, up_to_index: None):
+def get_name_year(name, year, up_to_index=0):
     index_option = f" or insert a number of one of the alternatives" if up_to_index > 0 else ""
     name_ = sanitize_filename(print_console(f"   Rename movie (default '{name}') - Skip this folder (s){index_option}: ", Fore.YELLOW).strip())
     try:
@@ -205,7 +205,7 @@ def get_name_year(name, year, up_to_index: None):
             return None, None, None, True
         index = int(name_)
         if index >= 0 and index < up_to_index:
-            return None, None, None, False
+            return None, None, index, False
     except:
         pass
     year_ = year
@@ -351,7 +351,7 @@ def process_movie(info: VideoInfo, fullname: str):
     for sub in info.get_external_subs():
         if sub["tags"]["language"]:
             new_path = sub["path"].parent.joinpath(target_file.stem + '.' + sub["tags"]["language"] + f'.{sub["extension"]}')
-            subprocess.run(["attrib", "-H", sub["path"]])
+            subprocess.run(["attrib", "-H", sub["path"]], encoding="utf-8")
             if new_path != sub["path"]:
                 move(sub["path"], new_path)
                 sub["path"] = new_path
