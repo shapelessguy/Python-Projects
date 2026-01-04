@@ -14,6 +14,7 @@ class WgMember:
         self.telegram_id = telegram_id
         self.role = role
         self.activities = activities
+        self.preferences = {}
         self.activity_history = []
     
     def assign(self, activity: Activity):
@@ -58,18 +59,19 @@ class WgMember:
                             spread[x] += 1
             return list(spread.values())
 
-    def get_diversity_idx(self, activity: Activity=None):
-        """Get the total diversity after assigning <activity> to the current member.
-        The diversity index is the max #tasks of discrepancy between all types of tasks.
+    def get_divergency_idx(self, activity: Activity=None):
+        """Get the total divergency after assigning <activity> to the current member.
+
+        The total divergency is computed as follows.
         Example:
             member has completed:
-            - task1: 5 times
-            - task2: 4 times
-            - task3: 2 times
+            - task1: 6 times -> by preference: 4.4 -> divergency=1.6
+            - task2: 3 times -> by preference: 4.4 -> divergency=1.4
+            - task3: 2 times -> by preference: 2.2 -> divergency=0.2
 
-            -> Diversity index: 5 - 2 = 3
+            -> divergency = 3.2
 
-            Note: This index should be maintained as low as possible to maintain tasks diversified.
+            Note: The divergency should be maintained as low as possible to maintain tasks aligned with preferences.
         """
         reg_activities = self.activities.get_regular()
         executed_activities = {a: 0 for a in reg_activities}
@@ -78,7 +80,9 @@ class WgMember:
                 executed_activities[a] += 1
         if activity is not None and activity in reg_activities:
             executed_activities[activity] += 1
-        return max(executed_activities.values()) - min(executed_activities.values())
+        tot_activities = sum(executed_activities.values())
+        divergency = sum([abs(self.preferences[a] * tot_activities - executed_activities[a]) for a in executed_activities])
+        return divergency
 
     def get_vacation_idx(self, activity: Activity=None):
         """Get the total number of vacations after assigning <activity> to the current member."""
@@ -86,35 +90,46 @@ class WgMember:
         return len([x for x in self.activity_history if x == vacation]) + (1 if activity == vacation else 0)
     
     def calculate_fitness(self, activity: Activity, verbose=False):
-        """Calculates the fitness of a solution that implies assigning the <activity> to this member.
-        
-        The repeat_idx should be observed first as we try to avoid as much as possible subsequent repetitions.
-        Repeat_idx of 0 and 1 should be greater than an average diversity_idx of 4, to be then comparable to it for values greater than 1.
-        """
-        repeat = 0
-        repeat_idx = self.get_repeat_idx(activity)
-        if repeat_idx <= 1:
-            repeat = 1000
-        elif repeat_idx == 2:
-            repeat = 100
-        elif repeat_idx > 2:
-            repeat = 100 / repeat_idx
-        diversity = self.get_diversity_idx(activity)
+        """Calculates the fitness of a solution that implies assigning the <activity> to this member."""
+        divergency_idx = self.get_divergency_idx(activity)
+
         if verbose:
-            print(f"Fitness for member {self.name} on task {activity.name}: repeat={repeat} diversity={diversity}")
-        return repeat + diversity
+            print(f"Fitness for member {self.name} on task {activity.name}: divergency_idx={divergency_idx}")
+        return divergency_idx
 
 
 class WgMembers:
     def __init__(self, activities: Activities, init_gen_date: Date = None):
+        m_preferences = {k: {} for k in [a.name for a in activities.get_regular()]}
         for member in members:
             self.activities = activities
             self.init_gen_date = init_gen_date if init_gen_date else Date()
             name = member["name"]
             member_telegram_id = member["telegram_id"]
             member_role = member["role"]
+            for k in m_preferences:
+                m_preferences[k][name] = member["preferences"].get(k, 0)
             setattr(self, name, WgMember(name, member_telegram_id, member_role, activities))
         self.initial_date = None
+        self.normalize_preferences(m_preferences)
+    
+    def normalize_preferences(self, m_preferences):
+        member_names = list(m_preferences[list(m_preferences.keys())[0]].keys())
+
+        for k in m_preferences:
+            total_pref = sum(m_preferences[k].values())
+            if total_pref == 0:
+                m_preferences[k] = {n: 1/len(member_names) for n in m_preferences[k]}
+            else:
+                m_preferences[k] = {n: v/total_pref for n, v in m_preferences[k].items()}
+        
+        for n in member_names:
+            member = getattr(self, n)
+            member_pref = {}
+            for k in m_preferences:
+                member_pref[k] = m_preferences[k][n]
+            member_pref = {[a for a in self.activities.get_regular() if a.name == k][0]: v/sum(member_pref.values()) for k, v in member_pref.items()}
+            member.preferences = member_pref
 
     def get_members(self):
         """Return all WgMember instances as a list."""

@@ -1,38 +1,4 @@
 
-members = [
-  {
-    "name": "Claudio",
-    "telegram_id": 807946519,
-    "role": "developer"
-  },
-  {
-    "name": "Jay",
-    "telegram_id": 1113618025,
-    "role": "paesant"
-  },
-  {
-    "name": "Natchaya",
-    "telegram_id": 6448393940,
-    "role": "paesant"
-  },
-  {
-    "name": "Lea",
-    "telegram_id": 7129379343,
-    "role": "paesant"
-  },
-  {
-    "name": "Vianny",
-    "telegram_id": 5215669115,
-    "role": "paesant"
-  },
-  {
-    "name": "Mara",
-    "telegram_id": 133279076,
-    "role": "boss"
-  }
-]
-
-
 nominal_activities = [
   {
     "name": "Kitchen",
@@ -68,5 +34,69 @@ nominal_activities = [
       "Wash laundry",
       "Toilet paper"
     ]
+  }
+]
+
+
+members = [
+  {
+    "name": "Claudio",
+    "telegram_id": 807946519,
+    "role": "developer",
+    "preferences": {
+        "Kitchen": 5,
+        "Bathrooms": 8,
+        "Management": 3,
+    }
+  },
+  {
+    "name": "Jay",
+    "telegram_id": 1113618025,
+    "role": "paesant",
+    "preferences": {
+        "Kitchen": 4,
+        "Bathrooms": 7,
+        "Management": 10,
+    }
+  },
+  {
+    "name": "Natchaya",
+    "telegram_id": 6448393940,
+    "role": "paesant",
+    "preferences": {
+        "Kitchen": 6,
+        "Bathrooms": 9,
+        "Management": 3,
+    }
+  },
+  {
+    "name": "Lea",
+    "telegram_id": 7129379343,
+    "role": "paesant",
+    "preferences": {
+        "Kitchen": 3,
+        "Bathrooms": 9,
+        "Management": 4,
+    }
+  },
+  {
+    "name": "Vianny",
+    "telegram_id": 5215669115,
+    "role": "paesant",
+    "preferences": {
+        "Kitchen": 10,
+        "Bathrooms": 4,
+        "Management": 3,
+    }
+  },
+  {
+    "name": "Mara",
+    "telegram_id": 133279076,
+    "role": "boss",
+    "preferences": {
+        "Kitchen": 4,
+        "Bathrooms": 9,
+        "Management": 4,
+    }
   }
 ]
