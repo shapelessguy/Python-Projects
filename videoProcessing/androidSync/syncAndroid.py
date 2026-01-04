@@ -331,6 +331,7 @@ def get_interface(interface_str):
 def main(signal):
     try:
         signal['interface'] = get_interface(sys.argv[1])
+        signal['interface'] = get_interface("Android") if not signal['interface'] else signal['interface']
         folder_map = [Folder(n, signal=signal, **m) for n, m in signal['interface'].folder_map.items()]
         model_text = signal['interface'].parse_device_info()
         ui.model_text.setText(model_text)

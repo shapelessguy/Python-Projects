@@ -9,11 +9,11 @@ from utils import *
 class AndroidInterface(Interface):
     adb_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "platform-tools", "adb.exe")
     root = "/sdcard"
-    local_root = r"C:\Users\Claudio\Videos\Xiaomi"
-    android_serial = "eykfq8vwcq9ham9d"
+    local_root = r"E:\Video\PhoneMultimedia\SamsungSync"
+    android_serial = "RFCY21D9PCK"
     folder_map = {
-        "Documents": {"master_local": r"C:\Users\Claudio\Documents\Documenti"},
-        "Download": {"prune": True},
+        "Documents": {"master_local": r"C:\Users\shape\Documents\bureaucracy\Documenti"},
+        "Download": {},
         "DCIM": {},
         "Pictures": {},
         "Movies": {},
