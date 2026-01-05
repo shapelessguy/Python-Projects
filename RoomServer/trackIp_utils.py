@@ -24,7 +24,7 @@ def update_duckdns(signal, ip):
         updated_ip = output[1]
         msg = "\n".join(output[2:])
         if status == "OK":
-            print(f"Upload IP successful: {msg}")
+            print(f"Upload IP successful: {msg}. New IP: {ip}")
         else:
             print(f"Error while uploading the ip: {msg}")
             return None
@@ -68,4 +68,4 @@ def trackIp_task(signal):
 
 
 if __name__ == '__main__':
-    pass
+    trackIp_task({'kill': False})
