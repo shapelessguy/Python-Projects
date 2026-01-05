@@ -18,7 +18,7 @@ hostnames = {
         'websocket_port': 10002,
         'server_port': 10001,
         'arduino_device': None,
-        'domain': 'cyanroomserver'
+        'domain': 'cyanshape'
     },
     'claudio-X200MA': {
         'websocket_port': 10003,
