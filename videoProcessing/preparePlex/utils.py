@@ -106,7 +106,10 @@ def initialize_sftp():
                 allow_agent=True,
                 timeout=9999999999
             )
+            transport = client.get_transport()
+            transport.set_keepalive(30)
             sftp = client.open_sftp()
+            sftp.get_channel().settimeout(99999)
         except Exception:
             print(f"{Fore.RED}Address {FINAL_MOVIE_HOLDER_PATH} unavailable{Style.RESET_ALL}\n")
     else:
@@ -401,16 +404,14 @@ def copy_via_paramiko(root, files, src, dst, callback, copied_in_folder=0, chunk
         remote_file_path = str(remote_root / file).replace("\\", "/")
         file_size = local_file.stat().st_size
 
-        with open(local_file, "rb") as fsrc, sftp.open(remote_file_path, "wb") as fdst:
-            while True:
-                buf = fsrc.read(chunk_size)
-                if not buf:
-                    break
-                fdst.write(buf)
-                copied_in_folder += len(buf)
-
-                if callback:
-                    callback(copied_in_folder, file_size)
+        with open(local_file, "rb") as fsrc:
+            sftp.putfo(
+                fsrc,
+                remote_file_path,
+                file_size=file_size,
+                callback=(lambda sent, total=file_size: callback(copied_in_folder + sent, total)) if callback else None
+            )
+        copied_in_folder += file_size
 
         st = local_file.stat()
         sftp.utime(remote_file_path, (st.st_atime, st.st_mtime))
