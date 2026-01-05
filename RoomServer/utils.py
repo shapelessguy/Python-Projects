@@ -11,17 +11,20 @@ hostnames = {
     'DESKTOP-1FOC71M':{
         'websocket_port': 9999,
         'server_port': 10000,
-        'arduino_device': 'COM6'
+        'arduino_device': 'COM6',
+        'domain': 'cyanroomserver'
     },
-    'EVA': {
+    'shape': {
         'websocket_port': 10002,
         'server_port': 10001,
-        'arduino_device': None
+        'arduino_device': None,
+        'domain': 'cyanroomserver'
     },
     'claudio-X200MA': {
         'websocket_port': 10003,
         'server_port': 10004,
-        'arduino_device': '/dev/ttyUSB0'
+        'arduino_device': '/dev/ttyUSB0',
+        'domain': 'cyanroomserver'
     }
 }
 
@@ -32,6 +35,7 @@ if HOSTNAME not in hostnames:
 HOSTNAME = hostnames[HOSTNAME]
 
 LEO_TOKEN = dotenv.get_key(os.path.join(os.path.dirname(__file__), ".env"), "BOT_TOKEN")
+DUCKDNS_TOKEN = dotenv.get_key(os.path.join(os.path.dirname(__file__), ".env"), "DUCKDNS_TOKEN")
 CLAUDIO_ID = 807946519
 LEO_GROUP_ID = -4225824414
 DUMMY_CHANNEL_ID = -1002037672769

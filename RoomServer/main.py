@@ -1,7 +1,7 @@
 from server import server_control
 from websocket_server import websocket_control
 from actuators import launch_actuator
-from firebase_utils import firebase_task
+from trackIp_utils import trackIp_task
 from announcements import *
 from utils import TeeOutput, HOSTNAME
 from datetime import datetime
@@ -72,7 +72,7 @@ def main():
         signal['kill'] = False
         threads = []
         threads.append(threading.Thread(target=background, args=(signal, )))
-        threads.append(threading.Thread(target=firebase_task, args=(signal, )))
+        threads.append(threading.Thread(target=trackIp_task, args=(signal, )))
         threads.append(threading.Thread(target=spawn_monitoring, args=(signal, )))
         threads.append(threading.Thread(target=launch_actuator, args=(signal, )))
         threads.append(threading.Thread(target=server_control, args=(signal, )))

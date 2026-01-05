@@ -9,3 +9,6 @@ jinja2
 colorama
 pyqt5
 wmi
+flask
+flask-socketio
+pyserial
