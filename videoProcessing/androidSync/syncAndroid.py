@@ -17,7 +17,7 @@ init(autoreset=True)
 # interface_id = Samsung / Test / BackupHHD
 
 CONFIGURATION = {
-    "headless": False,
+    "headless": True,
     "one_check": False,
     "local_id": "EVA",
     "interfaces": [
@@ -469,10 +469,12 @@ def init_loop(sync_folders, signal):
 
 
 def set_memory_consumption(signal):
-    used, total, percent = signal['interface'].get_memory_consumption()
-    signal["ui"].execute("set_text", "used_lbl", scale_bytes(used, 2))
-    signal["ui"].execute("set_text", "total_lbl", scale_bytes(total, 2))
-    signal["ui"].execute("set_text", "percent_lbl", percent)
+    consumption = signal['interface'].get_memory_consumption()
+    if consumption:
+        used, total, percent = consumption
+        signal["ui"].execute("set_text", "used_lbl", scale_bytes(used, 2))
+        signal["ui"].execute("set_text", "total_lbl", scale_bytes(total, 2))
+        signal["ui"].execute("set_text", "percent_lbl", percent)
 
 
 def get_interface(interface_str, local_id, interface_id, ws_manager, args):
@@ -508,6 +510,11 @@ def main(signal):
                 signal["kill_server"] = asyncio.Event()
                 ws_thread = threading.Thread(target=start_ws_server_thread, args=(signal,), daemon=True)
                 ws_thread.start()
+                while "loop" not in signal:
+                    if signal["kill"]:
+                        break
+                    time.sleep(0.1)
+                time.sleep(1)
             interface = get_interface(
                 interface["interface_type"],
                 CONFIGURATION["local_id"],

@@ -38,7 +38,7 @@ class Interface:
         self.local_id = local_id
         self.interface_id = interface_id
         self.signal = signal
-        self.connected = True
+        self.connected = False
 
     def device_connected(self):
         raise Exception("Unhandled function!")

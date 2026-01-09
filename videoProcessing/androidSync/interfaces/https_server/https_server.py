@@ -4,7 +4,7 @@ import websockets
 import os
 import json
 
-PORT = 10001
+PORT = 443
 
 ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
 ssl_context.load_cert_chain(certfile=os.path.join(os.path.dirname(__file__), "cert.pem"), keyfile=os.path.join(os.path.dirname(__file__), "key.pem"))

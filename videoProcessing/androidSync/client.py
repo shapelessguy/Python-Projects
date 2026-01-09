@@ -10,10 +10,10 @@ import socket
 from datetime import datetime
 
 SYNC_MD_FILE = ".syncmd.json"
-SERVER_PORT = 10001
+SERVER_PORT = 443
 DEVICE_ID = "DLR"
 HOSTNAME = socket.gethostbyname("cyanroomserver.duckdns.org")
-HOSTNAME = "localhost"
+# HOSTNAME = "localhost"
 url = f"{HOSTNAME}:{SERVER_PORT}"
 
 ssl_context = ssl.SSLContext()
