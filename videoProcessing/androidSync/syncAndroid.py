@@ -19,7 +19,7 @@ init(autoreset=True)
 CONFIGURATION = {
     "headless": True,
     "one_check": False,
-    "local_id": "EVA",
+    "local_id": "RoomServer",
     "interfaces": [
         {
             "interface_type": "HTTPS",
