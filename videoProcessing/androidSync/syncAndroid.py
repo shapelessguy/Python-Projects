@@ -3,23 +3,67 @@ import os
 import time
 import traceback
 import threading
-import importlib
-from PyQt5 import QtWidgets
-from PyQt5 import QtWidgets
-from PyQt5.QtCore import QObject, Qt
-from PyQt5.QtWidgets import QApplication
 from colorama import init, Fore, Style
 from datetime import datetime
 from utils import *
 from interfaces import androidInterface, hhdInterface
-try:
-    import frontend
-except:
-    pass
 init(autoreset=True)
-ui = None
-size_to_reduce, bar_width = 0, 0
 
+# DEFAULT_LOCAL_ID = "EVA"
+# DEFAULT_INTERFACE = "Android" / "HHD"
+# DEFAULT_INTERFACE_ID = Samsung / Test / BackupHHD
+
+CONFIGURATION = {
+    "headless": False,
+    "one_check": False,
+    "interfaces": [
+        # {
+        #     "DEFAULT_LOCAL_ID": "EVA",
+        #     "DEFAULT_INTERFACE": "HHD",
+        #     "DEFAULT_INTERFACE_ID": "Test",
+        #     "INTERFACE_ARGS": {
+        #         "root": r"S:\Documents",
+        #         "local_root": r"C:\Users\shape\Documents",
+        #         "folder_map": {
+        #             "notes": {}
+        #         }
+        #     }
+        # },
+        # {
+        #     "DEFAULT_LOCAL_ID": "EVA",
+        #     "DEFAULT_INTERFACE": "HHD",
+        #     "DEFAULT_INTERFACE_ID": "Test2",
+        #     "INTERFACE_ARGS": {
+        #         "root": r"S:\Documents2",
+        #         "local_root": r"C:\Users\shape\Documents",
+        #         "folder_map": {
+        #             "notes": {}
+        #         }
+        #     }
+        # },
+        # {
+        #     "DEFAULT_LOCAL_ID": "EVA",
+        #     "DEFAULT_INTERFACE": "Android",
+        #     "DEFAULT_INTERFACE_ID": "Samsung",
+        #     "INTERFACE_ARGS": {
+        #         "local_root": r"E:\Video\PhoneMultimedia\SamsungSync",
+        #         "android_serial": "RFCY21D9PCK",
+        #         "folder_map": {
+        #             "Documents": {"master_local": r"C:\Users\shape\Documents\bureaucracy\Documenti"},
+        #             "Download": {},
+        #             "DCIM": {},
+        #             "Pictures": {},
+        #             "Movies": {},
+        #             "Music": {},
+        #         }
+        #     }
+        # }
+    ]
+    
+}
+
+
+DEFAULT_SYNC_MD = {"last_sync": 0, "files": {}}
 
 class File:
     folder = None
@@ -27,51 +71,77 @@ class File:
     remote_path: CPath = None
     local_path: CPath = None
     last_modified: datetime = None
+    high_precision: bool = False
     size: int = 0
     
-    def __init__(self, folder, relative_path: CPath, remote_path: CPath, local_path: CPath, last_modified, size, signal):
+    def __init__(self, folder, relative_path: CPath, remote_path: CPath, local_path: CPath, last_modified, high_precision, size, signal):
         self.folder = folder
         self.relative_path = relative_path
         self.remote_path = remote_path
         self.local_path = local_path
         self.last_modified = last_modified
+        self.high_precision = high_precision
         self.size = size
         self.signal = signal
     
     def get_diff(self, file):
         diff = []
-        properties = ["last_modified", "size"]
-        for p in properties:
-            if getattr(self, p) != getattr(file, p):
-                diff.append(p)
+        
+        hp = self.high_precision and file.high_precision
+        lm1 = self.last_modified.replace(second=0, microsecond=0) if not hp else self.last_modified
+        lm2 = file.last_modified.replace(second=0, microsecond=0) if not hp else file.last_modified
+        this_more_recent = lm1 > lm2
+        this_less_recent = lm1 < lm2
+
+        if this_more_recent or this_less_recent:
+            diff.append("last_modified")
+        if self.size != file.size:
+            diff.append("size")
         return diff
     
     def copy_to_local(self, global_stats, from_):
         os.makedirs(os.path.dirname(self.local_path.get_unix_path()), exist_ok=True)
-        self.signal['ui'].details_lbl.setText(f"Copying from remote: {self.remote_path.get_unix_path()}")
+        signal["ui"].bridge.set_text.emit("details_lbl", f"Copying from remote: {self.remote_path.get_unix_path()}")
         self.signal['interface'].copy_file_to_local(self.local_path, self.remote_path)
         global_stats[from_]["n"] -= 1
         global_stats[from_]["size"] -= self.size
         global_stats["in_sync"]["n"] += 1
         global_stats["in_sync"]["size"] += self.size
-        set_statistics(self.signal, global_stats)
+        self.signal["ui"].bridge.set_statistics.emit(global_stats, None)
         print(f"Copied {self.remote_path.get_unix_path()} from remote")
     
     def copy_to_remote(self, global_stats, from_):
-        self.signal['ui'].details_lbl.setText(f"Copying to remote: {self.local_path.get_unix_path()}")
+        signal["ui"].bridge.set_text.emit("details_lbl", f"Copying from remote: {self.local_path.get_unix_path()}")
         self.signal['interface'].copy_file_to_remote(self.local_path, self.remote_path)
         global_stats[from_]["n"] -= 1
         global_stats[from_]["size"] -= self.size
         global_stats["in_sync"]["n"] += 1
         global_stats["in_sync"]["size"] += self.size
-        set_statistics(self.signal, global_stats)
+        self.signal["ui"].bridge.set_statistics.emit(global_stats, None)
         print(f"Copied {self.local_path.get_unix_path()} to remote")
+    
+    def remove_from_local(self, global_stats, from_):
+        os.makedirs(os.path.dirname(self.local_path.get_unix_path()), exist_ok=True)
+        signal["ui"].bridge.set_text.emit("details_lbl", f"Deleting from local: {self.local_path.get_unix_path()}")
+        remove_local_file(self.local_path)
+        global_stats[from_]["n"] -= 1
+        global_stats[from_]["size"] -= self.size
+        self.signal["ui"].bridge.set_statistics.emit(global_stats, None)
+        print(f"Removed {self.local_path.get_unix_path()} from local")
+    
+    def remove_from_remote(self, global_stats, from_):
+        signal["ui"].bridge.set_text.emit("details_lbl", f"Deleting from remote: {self.remote_path.get_unix_path()}")
+        self.signal['interface'].delete_file_from_remote(self.remote_path)
+        global_stats[from_]["n"] -= 1
+        global_stats[from_]["size"] -= self.size
+        self.signal["ui"].bridge.set_statistics.emit(global_stats, None)
+        print(f"Removed {self.remote_path.get_unix_path()} from remote")
     
     def move_to_unhandled(self, unhandled_path: CPath, global_stats, from_):
         self.signal['interface'].move_file_from_remote_to_remote(self.remote_path, unhandled_path)
         global_stats[from_]["n"] -= 1
         global_stats[from_]["size"] -= self.size
-        set_statistics(self.signal, global_stats)
+        self.signal["ui"].bridge.set_statistics.emit(global_stats, None)
         print(f"Moved {self.remote_path.get_unix_path()} to UNHANDLED")
     
     def __str__(self):
@@ -86,6 +156,7 @@ class Folder:
         self.relative_path = CPath(relative_path)
         self.remote_path = self.relative_path.prepend(signal['interface'].root)
         self.local_path = self.relative_path.prepend(signal['interface'].local_root)
+        self.sync_md = {}
         self.master_local = CPath(master_local)
         if self.master_local.origin != "":
             if not os.path.exists(self.master_local.get_unix_path()):
@@ -98,26 +169,29 @@ class Folder:
     
     def get_remote_path_files(self):
         files_to_add = self.signal['interface'].get_remote_files(self.signal, self.remote_path, self.files, remote_root=self.signal['interface'].root)
-        for full_filename, local_path, remote_path, date, size in files_to_add:
-            self.files[full_filename.origin] = self.files.get(full_filename.origin, {"local": None, "remote": None})
-            self.files[full_filename.origin]["remote"] = File(self, full_filename, remote_path, local_path, date, size, self.signal)
+        for full_filename, local_path, remote_path, date, high_precision, size in files_to_add:
+            if full_filename.origin != CPath(self.relative_path.origin).append(SYNC_MD_FILE).origin:
+                self.files[full_filename.origin] = self.files.get(full_filename.origin, {"local": None, "remote": None})
+                self.files[full_filename.origin]["remote"] = File(self, full_filename, remote_path, local_path, date, high_precision, size, self.signal)
     
     def get_local_path_files(self):
         files_to_add = get_local_files(self.signal, self.local_path, self.relative_path, self.master_local)
-        for full_filename, local_path, remote_path, date, size in files_to_add:
-            self.files[full_filename.origin] = self.files.get(full_filename.origin, {"local": None, "remote": None})
-            self.files[full_filename.origin]["local"] = File(self, full_filename, remote_path, local_path, date, size, self.signal)
+        for full_filename, local_path, remote_path, date, high_precision, size in files_to_add:
+            if full_filename.origin != CPath(self.relative_path.origin).append(SYNC_MD_FILE).origin:
+                self.files[full_filename.origin] = self.files.get(full_filename.origin, {"local": None, "remote": None})
+                self.files[full_filename.origin]["local"] = File(self, full_filename, remote_path, local_path, date, high_precision, size, self.signal)
     
     def get_categories(self):
         self.files = {}
-        self.get_local_path_files()
-        self.get_remote_path_files()
         self.categories = {
             "in_sync": [],
             "partial": [],
             "only_local": [],
             "only_remote": []
         }
+        self.get_local_path_files()
+        self.get_remote_path_files()
+
         for k, v in self.files.items():
             if v['local'] and v['remote']:
                 diff = v['local'].get_diff(v['remote'])
@@ -129,6 +203,21 @@ class Folder:
                 self.categories["only_local"].append(k)
             elif v['remote']:
                 self.categories["only_remote"].append(k)
+        
+        local_sync_md = get_local_sync_md(self.local_path, self.signal['interface'])
+        remote_sync_md = self.signal['interface'].get_remote_sync_md(self.remote_path)
+        self.sync_md = local_sync_md
+        initialize_md = len(local_sync_md) == 0 or len(remote_sync_md) == 0 or json.dumps(local_sync_md) != json.dumps(remote_sync_md)
+        if initialize_md:
+            self.sync_md = DEFAULT_SYNC_MD
+            self.set_sync()
+            local_sync_md = get_local_sync_md(self.local_path, self.signal['interface'])
+            remote_sync_md = self.signal['interface'].get_remote_sync_md(self.remote_path)
+            if json.dumps(local_sync_md) != json.dumps(remote_sync_md):
+                raise Exception("Impossible to synchronize folders...")
+            self.sync_md = local_sync_md
+        else:
+            self.set_sync()
     
     def get_statistics(self):
         info = {k: {"n": 0, "size": 0} for k in self.categories}
@@ -145,6 +234,22 @@ class Folder:
             info["only_remote"]["n"] += 1
             info["only_remote"]["size"] += self.files[f]['remote'].size
         return info
+    
+    def set_sync(self):
+        data = DEFAULT_SYNC_MD
+        now = datetime.now().timestamp()
+        data["last_sync"] = now
+        data["files"] = {f: now for f in self.categories["in_sync"]}
+        prev_local_sync_md = self.sync_md
+
+        set_local_sync_md(data, self.local_path, self.signal['interface'])
+        try:
+            local_file = CPath(os.path.join(self.local_path.get_unix_path(), SYNC_MD_FILE))
+            remote_file = CPath(os.path.join(self.remote_path.get_unix_path(), SYNC_MD_FILE))
+            self.signal['interface'].copy_file_to_remote(local_file, remote_file)
+        except:
+            print("Error while updating metadata in local folder")
+            set_local_sync_md(prev_local_sync_md, self.local_path, self.signal['interface'])
 
     def print_files(self, statistics=False):
         if not len(self.categories):
@@ -177,87 +282,111 @@ class Folder:
     def migrate_data(self, global_stats):
         if not len(self.categories):
             raise Exception("You must get self.categories first!")
-        set_operation(signal, f"Migrating data for {self.relative_path.get_unix_path()}...", "black")
-        if self.master_local.origin != "":
+        try:
+            self.signal["ui"].bridge.set_operation.emit(f"Migrating data for {self.relative_path.get_unix_path()}...", "black")
+            if self.master_local.origin != "":
+                print(f"Migrating data from MASTER {self.master_local.origin}")
+
+                for f in self.categories["only_remote"]:
+                    print("- ", f)
+
+                set_memory_consumption(self.signal)
+                if len(self.categories["only_remote"]):
+                    print(f"\tMoving {len(self.categories["only_remote"])} files to UNHANDLED...")
+                for f in self.categories["only_remote"]:
+                    if signal["kill"]:
+                        return
+                    unhandled_path = CPath(f).relative_to(self.relative_path).prepend(self.relative_path.origin + "_unhandled").prepend(signal['interface'].root)
+                    self.files[f]['remote'].move_to_unhandled(unhandled_path, global_stats, from_="only_remote")
+                set_memory_consumption(self.signal)
+
+                if len(self.categories["partial"]):
+                    print(f"\tMoving {len(self.categories["partial"])} files to UNHANDLED...")
+                for f in self.categories["partial"]:
+                    if signal["kill"]:
+                        return
+                    unhandled_path = CPath(f).relative_to(self.relative_path).prepend(self.relative_path.origin + "_unhandled").prepend(signal['interface'].root)
+                    self.files[f]['remote'].move_to_unhandled(unhandled_path, global_stats, from_="partial")
+                set_memory_consumption(self.signal)
+
+                if len(self.categories["only_local"]):
+                    print(f"\tTransferring {len(self.categories["only_local"])} files from master to remote device...")
+                for f in self.categories["only_local"]:
+                    if signal["kill"]:
+                        return
+                    self.files[f]['local'].copy_to_remote(global_stats, from_="only_local")
+
+                set_memory_consumption(self.signal)
+                if len(self.categories["partial"]):
+                    print(f"\tTransferring {len(self.categories["partial"])} files from master to remote device...")
+                for f in self.categories["partial"]:
+                    if signal["kill"]:
+                        return
+                    self.files[f]['local'].copy_to_remote(global_stats, from_="partial")
+                
+            else:
+                print(f"Migrating data within {self.relative_path.origin}")
+
+                set_memory_consumption(self.signal)
+                if len(self.categories["only_remote"]):
+                    print(f"\tTransferring {len(self.categories["only_remote"])} files from remote to local device...")
+                for f in self.categories["only_remote"]:
+                    if signal["kill"]:
+                        return
+                    if self.files[f]['remote'].relative_path.origin in self.sync_md["files"]:
+                        self.files[f]['remote'].remove_from_remote(global_stats, from_="only_remote")
+                        del self.sync_md["files"][self.files[f]['remote'].relative_path.origin]
+                    else:
+                        self.files[f]['remote'].copy_to_local(global_stats, from_="only_remote")
+
+                set_memory_consumption(self.signal)
+                if len(self.categories["partial"]):
+                    print(f"\tTransferring {len(self.categories["partial"])} files from remote to local device...")
+                for f in self.categories["partial"]:
+                    if signal["kill"]:
+                        return
+                    hp = self.files[f]['local'].high_precision and self.files[f]['remote'].high_precision
+                    local_lm = self.files[f]['local'].last_modified
+                    remote_lm = self.files[f]['remote'].last_modified
+                    local_lm = local_lm.replace(second=0, microsecond=0) if not hp else local_lm
+                    remote_lm = remote_lm.replace(second=0, microsecond=0) if not hp else remote_lm
+                    local_more_recent = local_lm > remote_lm
+                    remote_more_recent = local_lm < remote_lm
+                    if local_more_recent:
+                        self.files[f]['local'].copy_to_remote(global_stats, from_="partial")
+                    elif remote_more_recent:
+                        self.files[f]['remote'].copy_to_local(global_stats, from_="partial")
+
+                set_memory_consumption(self.signal)
+                if len(self.categories["only_local"]):
+                    print(f"\tTransferring {len(self.categories["only_local"])} files from local to remote device...")
+                for f in self.categories["only_local"]:
+                    if signal["kill"]:
+                        return
+                    if self.files[f]['local'].relative_path.origin in self.sync_md["files"]:
+                        self.files[f]['local'].remove_from_local(global_stats, from_="only_local")
+                        del self.sync_md["files"][self.files[f]['local'].relative_path.origin]
+                    else:
+                        self.files[f]['local'].copy_to_remote(global_stats, from_="only_local")
+
             set_memory_consumption(self.signal)
-            for f in self.categories["only_remote"]:
-                if signal["kill"]:
-                    return
-                unhandled_path = CPath(f).relative_to(self.relative_path).prepend(self.relative_path.origin + "_unhandled").prepend(signal['interface'].root)
-                self.files[f]['remote'].move_to_unhandled(unhandled_path, global_stats, from_="only_remote")
-            set_memory_consumption(self.signal)
-            for f in self.categories["partial"]:
-                if signal["kill"]:
-                    return
-                unhandled_path = CPath(f).relative_to(self.relative_path).prepend(self.relative_path.origin + "_unhandled").prepend(signal['interface'].root)
-                self.files[f]['remote'].move_to_unhandled(unhandled_path, global_stats, from_="partial")
-            set_memory_consumption(self.signal)
-            for f in self.categories["only_local"]:
-                if signal["kill"]:
-                    return
-                self.files[f]['local'].copy_to_remote(global_stats, from_="only_local")
-            set_memory_consumption(self.signal)
-            for f in self.categories["partial"]:
-                if signal["kill"]:
-                    return
-                self.files[f]['local'].copy_to_remote(global_stats, from_="partial")
-            
-        else:
-            set_memory_consumption(self.signal)
-            for f in self.categories["only_remote"]:
-                if signal["kill"]:
-                    return
-                self.files[f]['remote'].copy_to_local(global_stats, from_="only_remote")
-            set_memory_consumption(self.signal)
-            for f in self.categories["partial"]:
-                if signal["kill"]:
-                    return
-                self.files[f]['remote'].copy_to_local(global_stats, from_="partial")
-            set_memory_consumption(self.signal)
-            for f in self.categories["only_local"]:
-                if signal["kill"]:
-                    return
-                self.files[f]['local'].copy_to_remote(global_stats, from_="only_local")
-        set_memory_consumption(self.signal)
+        except:
+            return 1
 
 
-def set_statistics(signal, global_stats: dict):
-    global size_to_reduce
-    signal['ui'].sync_n_lbl.setText("#" + str(global_stats["in_sync"]["n"]))
-    signal['ui'].sync_size_lbl.setText(scale_bytes(global_stats["in_sync"]["size"]))
-    signal['ui'].partial_n_lbl.setText("#" + str(global_stats["partial"]["n"]))
-    signal['ui'].partial_size_lbl.setText(scale_bytes(global_stats["partial"]["size"]))
-    signal['ui'].local_n_lbl.setText("#" + str(global_stats["only_local"]["n"]))
-    signal['ui'].local_size_lbl.setText(scale_bytes(global_stats["only_local"]["size"]))
-    signal['ui'].remote_n_lbl.setText("#" + str(global_stats["only_remote"]["n"]))
-    signal['ui'].remote_size_lbl.setText(scale_bytes(global_stats["only_remote"]["size"]))
-
-    remaining_width = bar_width
-    for element, key in {"partial_bar": "partial", "local_bar": "only_local", "remote_bar": "only_remote"}.items():
-        width = int(global_stats[key]["size"] / size_to_reduce * bar_width) if size_to_reduce > 0 else 0
-        remaining_width -= width
-        for prop in ["setMinimumWidth", "setMaximumWidth"]:
-            getattr(getattr(signal['ui'], element), prop)(width)
-    signal['ui'].filler_bar.setMinimumWidth(remaining_width)
-    signal['ui'].filler_bar.setMaximumWidth(remaining_width)
-
-
-def set_operation(signal, text, color="black"):
-    signal['ui'].operation_lbl.setText(text)
-    signal['ui'].operation_lbl.setStyleSheet(f"color: {color}")
-
-
+prev_stats = ""
 def print_statistics(signal, info: dict):
-    global size_to_reduce
+    global prev_stats
     parts = [
         ("in_sync", Fore.GREEN),
         ("partial", Fore.LIGHTYELLOW_EX),
         ("only_local", Fore.RED),
         ("only_remote", Fore.RED),
     ]
-    print()
+
     el_to_move = 0
     global_stats = {}
+    output = "\n"
     for i, p in enumerate(parts):
         attr = p[0]
         name = attr.upper().replace("_", " ")
@@ -266,187 +395,159 @@ def print_statistics(signal, info: dict):
         el_to_move += total_n if i > 0 else 0
         total_size = sum([x[attr]['size'] for x in info.values()])
         global_stats[p[0]] = {"n": total_n, "size": total_size}
-        print(f"{color}{name}:\t{total_n}\t{scale_bytes(total_size)}{Style.RESET_ALL}")
+        output += f"{color}{name}:\t{total_n}\t{scale_bytes(total_size)}{Style.RESET_ALL}\n"
+    if prev_stats != output:
+        prev_stats = output
+        print(output + "\n")
 
     size_to_reduce = 0
     for i, k in enumerate(global_stats):
         if i > 0:
             size_to_reduce += global_stats[k]["size"]
-    set_statistics(signal, global_stats)
-
-    print()
+    signal["ui"].bridge.set_statistics.emit(global_stats, size_to_reduce)
     return global_stats, el_to_move
 
 
-def init_loop(folder_map, signal):
-    init_info = {}
-    set_operation(signal, "Fetching info...", "blue")
-    for f in folder_map:
-        f: Folder
-        if signal["kill"]:
-            return
-        f.get_categories()
-        init_info[f.relative_path] = f.get_statistics()
-    global_stats, el_to_move = print_statistics(signal, init_info)
-    
-    if el_to_move > 0:
-        post_info = {}
-        set_operation(signal, "Fetching info...", "blue")
-        for f in folder_map:
+def init_loop(sync_folders, signal):
+    while not signal["kill"]:
+        init_info = {}
+        signal["ui"].bridge.set_operation.emit("Fetching info...", "blue")
+        for f in sync_folders:
+            f: Folder
             if signal["kill"]:
                 return
-            if len(f.categories["partial"]) + len(f.categories["only_local"]) + len(f.categories["only_remote"]) == 0:
-                post_info[f.relative_path] = init_info[f.relative_path]
-            else:
-                f.migrate_data(global_stats)
-                signal['ui'].details_lbl.setText("")
-                f.get_categories()
-                post_info[f.relative_path] = f.get_statistics()
-        signal['ui'].details_lbl.setText("")
-        set_operation(signal, "Synchronization complete", "green")
-        global_stats, el_to_move = print_statistics(signal, post_info)
+            f.get_categories()
+            init_info[f.relative_path] = f.get_statistics()
+        global_stats, el_to_move = print_statistics(signal, init_info)
 
-        if el_to_move == 0:
-            print(f"{Fore.GREEN}Synchronization complete!{Style.RESET_ALL}")
-    else:
-        set_operation(signal, "Everything is already synchronized", "green")
+        if el_to_move > 0:
+            post_info = {}
+            signal["ui"].bridge.set_operation.emit("Fetching info...", "blue")
+            for f in sync_folders:
+                if signal["kill"]:
+                    return
+                if len(f.categories["partial"]) + len(f.categories["only_local"]) + len(f.categories["only_remote"]) == 0:
+                    post_info[f.relative_path] = init_info[f.relative_path]
+                else:
+                    _ = f.migrate_data(global_stats)
+                    signal["ui"].bridge.set_text.emit("details_lbl", "")
+                    if CONFIGURATION["one_check"]:
+                        f.get_categories()
+                        post_info[f.relative_path] = f.get_statistics()
+            if CONFIGURATION["one_check"]:
+                signal["ui"].bridge.set_text.emit("details_lbl", "")
+                signal["ui"].bridge.set_operation.emit("Synchronization complete", "green")
+                global_stats, el_to_move = print_statistics(signal, post_info)
+
+                if el_to_move == 0:
+                    print(f"{Fore.GREEN}Synchronization complete!{Style.RESET_ALL}")
+        else:
+            if CONFIGURATION["one_check"]:
+                signal["ui"].bridge.set_operation.emit("Everything is already synchronized", "green")
+            else:
+                signal["ui"].bridge.set_operation.emit("Fetching info...", "blue")
+        if CONFIGURATION["one_check"] or len(CONFIGURATION["interfaces"]) > 1:
+            break
+        time.sleep(1)
 
 
 def set_memory_consumption(signal):
     used, total, percent = signal['interface'].get_memory_consumption()
-    signal['ui'].used_lbl.setText(scale_bytes(used, 2))
-    signal['ui'].total_lbl.setText(scale_bytes(total, 2))
-    signal['ui'].percent_lbl.setText(percent)
+    signal["ui"].bridge.set_text.emit("used_lbl", scale_bytes(used, 2))
+    signal["ui"].bridge.set_text.emit("total_lbl", scale_bytes(total, 2))
+    signal["ui"].bridge.set_text.emit("percent_lbl", percent)
 
 
-def get_interface(interface_str):
+def get_interface(interface_str, local_id, interface_id, args):
     if interface_str == "HHD":
-        return hhdInterface.HHDInterface()
+        return hhdInterface.HHDInterface(local_id, interface_id, args)
     elif interface_str == "Android":
-        return androidInterface.AndroidInterface()
+        return androidInterface.AndroidInterface(local_id, interface_id, args)
     else:
         return None
 
 
 def main(signal):
+    MIN_DELAY = 0.5
     try:
-        signal['interface'] = get_interface(sys.argv[1])
-        signal['interface'] = get_interface("Android") if not signal['interface'] else signal['interface']
-        folder_map = [Folder(n, signal=signal, **m) for n, m in signal['interface'].folder_map.items()]
-        model_text = signal['interface'].parse_device_info()
-        ui.model_text.setText(model_text)
-        set_memory_consumption(signal)
+        interfaces = []
+        for interface in CONFIGURATION["interfaces"]:
+            interface = get_interface(
+                interface["DEFAULT_INTERFACE"],
+                interface["DEFAULT_LOCAL_ID"],
+                interface["DEFAULT_INTERFACE_ID"],
+                interface["INTERFACE_ARGS"]
+            )
+            interfaces.append(interface)
+        while not signal["kill"]:
+            for interface in interfaces:
+                if not interface.connected:
+                    if interface.device_connected():
+                        interface.connected = True
+                    else:
+                        continue
+                try:
+                    signal['interface'] = interface
+                    init_ = time.time()
+                    sync_folders = [Folder(n, signal=signal, **m) for n, m in signal['interface'].folder_map.items()]
+                    model_text = signal['interface'].parse_device_info()
+                    signal["ui"].bridge.set_text.emit("model_text", model_text)
+                    set_memory_consumption(signal)
 
-        init_loop(folder_map, signal)
+                    init_loop(sync_folders, signal)
+                    time_elapsed = time.time() - init_
+                    delay_ticks = int((MIN_DELAY - time_elapsed) * 10) if (MIN_DELAY - time_elapsed) > 0 else 0
+                    for _ in range(delay_ticks):
+                        if signal["kill"]:
+                            break
+                        time.sleep(0.1)
+                except Exception as e:
+                    signal['interface'].connected = False
+            if CONFIGURATION["one_check"]:
+                break
+            time.sleep(0.1)
     except Exception:
-        set_operation(signal, "ERROR: check logs for info", "red")
+        signal["ui"].bridge.set_operation.emit("ERROR: check logs for info", "red")
         print(f"{Fore.RED}{traceback.format_exc()}{Style.RESET_ALL}")
     
-    signal['ui'].exit.setText("Exit")
+    signal["ui"].bridge.set_text.emit("exit", "Exit")
     for _ in range(100):
         if signal["kill"]:
             break
         time.sleep(0.1)
     signal["kill"] = True
-    signal['ui'].app.quit()
+    signal["ui"].bridge.quit_app.emit()
 
 
-def exit_sync(signal):
-    exit_lbl = signal['ui'].exit
-    signal["kill"] = True
-    print(f"Clicked -> {exit_lbl.text()}")
-    for _ in range(50):
-        if exit_lbl.text() != "Stop sync":
-            break
-        time.sleep(0.1)
-    app.quit()
-
-
-class WindowDragFilter(QObject):
-    def __init__(self, window):
-        super().__init__(window)
-        self.window = window
-        self._drag_pos = None
-
-    def eventFilter(self, obj, event):
-        if obj is self.window:
-            if event.type() == event.MouseButtonPress and event.button() == Qt.LeftButton:
-                self._drag_pos = event.globalPos() - self.window.frameGeometry().topLeft()
-                return True
-
-            elif event.type() == event.MouseMove and event.buttons() & Qt.LeftButton and self._drag_pos:
-                self.window.move(event.globalPos() - self._drag_pos)
-                return True
-
-            elif event.type() == event.MouseButtonRelease:
-                self._drag_pos = None
-                return True
-
-        return False
+try:
+    if CONFIGURATION["headless"]:
+        from utils import EmptyUI as UI
+    else:
+        from ui_handle import UI
+except:
+    from utils import EmptyUI as UI
 
 
 if __name__ == "__main__":
-    ui_files = ['frontend']
-    ui_paths = [os.path.join(os.path.dirname(os.path.realpath(__file__)), x + '.ui') for x in ui_files]
-    py_paths = [os.path.join(os.path.dirname(os.path.realpath(__file__)), x + '.py') for x in ui_files]
-    for i in range(len(ui_paths)):
-        ui_path = ui_paths[i]
-        py_path = py_paths[i]
-        if os.path.exists(ui_path):
-            os.system(f'pyuic5 -x {ui_path} -o {py_path}')
-            print(f'pyuic5 -x {ui_path} -o {py_path}')
-    importlib.reload(frontend)
-
-    sys.argv.append('--no-sandbox')
-    app = QApplication(sys.argv)
-    MainWindow = QtWidgets.QMainWindow()
-    
     form_closed = 1
+    sys.argv.append('--no-sandbox')
     try:
-        ui = frontend.Ui_MainWindow()
-        ui.main_window = MainWindow
-        ui.main_window.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
-        
-        drag_filter = WindowDragFilter(MainWindow)
-        MainWindow.installEventFilter(drag_filter)
-
-        signal = {'kill': False, 'ui': ui}
-        ui.setupUi(MainWindow)
-        ui.app = app
-        ui.exit.clicked.connect(lambda _=False: exit_sync(signal))
-        
-        for p, p_text in {"sync": "Objects in sync", "partial": "Objects with conflicting metadata",
-                  "local": "Objects available only on the current system", "remote": "Objects available only on the remote device"}.items():
-            for el_name, el_text in {"icon": "", "n_lbl": ": absolute number", "size_lbl": ": total size"}.items():
-                tooltip_text = f"{p_text}{el_text}"
-                object_id = f"{p}_{el_name}"
-                getattr(ui, object_id).setToolTip(tooltip_text)
+        signal = {'kill': False, 'ui': None}
+        signal["ui"] = UI()
+        signal["ui"].setup_ui(signal)
 
         global_stats = {
             k: {"n": 0, "size": 0}
             for k in ["in_sync", "partial", "only_local", "only_remote"]
         }
-        set_statistics(signal, global_stats)
-        set_operation(signal, "")
-        
-        ui.model_text.setText("")
-        ui.details_lbl.setText("")
-
-        width = 468
-        height = 210
-        bar_width = ui.bar.width()
-        
-        MainWindow.resize(width, height)
-        screen_geometry = app.primaryScreen().availableGeometry()
-        x = screen_geometry.width() - width - 4
-        y = screen_geometry.height() - height - 1
-        MainWindow.move(x, y)
-        MainWindow.show()
+        signal["ui"].bridge.set_statistics.emit(global_stats, None)
+        signal["ui"].bridge.set_operation.emit("", "black")
+        signal["ui"].show_window()
 
         main_thread = threading.Thread(target=main, args=(signal, ))
         main_thread.start()
     
-        form_closed = app.exec_()
+        form_closed = signal["ui"].wait_for_close(main_thread)
         signal['kill'] = True
     except Exception:
         signal['kill'] = True

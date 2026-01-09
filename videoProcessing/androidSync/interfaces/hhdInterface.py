@@ -2,20 +2,27 @@ import sys
 import os
 import platform
 import shutil
+import json
+import stat
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from utils import *
 
 
 class HHDInterface(Interface):
-    root = r"C:\Users\Claudio\Videos\folder_remote"
-    local_root = r"C:\Users\Claudio\Videos\folder_local"
-    folder_map = {
-        "Sync": {"master_local": r"C:\Users\Claudio\Videos\folder_local\Sync"}
-    }
+    root = ""
+    local_root = ""
+    folder_map = {}
+
+    def __init__(self, local_id, interface_id, args):
+        super().__init__(local_id, interface_id)
+        for k, v in args.items():
+            if hasattr(self, k):
+                setattr(self, k, v)
+
+    def device_connected(self):
+        return os.path.exists(self.root)
 
     def parse_device_info(self):
-        system = platform.system()
-        release = platform.release()
         machine = platform.machine()
         processor = platform.processor()
 
@@ -35,6 +42,23 @@ class HHDInterface(Interface):
 
     def get_remote_files(self, signal, remote_path, files, remote_root):
         return get_local_files(signal, remote_path, remote=True)
+
+    def get_remote_sync_md(self, remote_path):
+        md_path = os.path.join(remote_path.get_unix_path(), SYNC_MD_FILE)
+        result = {}
+        if os.path.exists(md_path):
+            with open(md_path, "r", encoding="utf-8") as file:
+                self.full_remote_md = json.load(file)
+                result = self.full_remote_md.get(self.share_id(), {})
+        return result
+
+    def delete_file_from_remote(self, remote_path):
+        target_path = remote_path.get_unix_path()
+        try:
+            if os.path.exists(target_path):
+                os.remove(target_path)
+        except OSError as e:
+            raise Exception(f"Error: {e}")
 
     def copy_file_to_local(self, local_path, remote_path):
         src = remote_path.get_unix_path()
