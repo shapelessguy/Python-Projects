@@ -305,7 +305,7 @@ class Folder:
 
                 set_memory_consumption(self.signal)
                 if len(self.categories["only_remote"]):
-                    print(f"\tMoving {len(self.categories["only_remote"])} files to UNHANDLED...")
+                    print(f"\tMoving {len(self.categories['only_remote'])} files to UNHANDLED...")
                 for f in self.categories["only_remote"]:
                     if signal["kill"]:
                         return
@@ -314,7 +314,7 @@ class Folder:
                 set_memory_consumption(self.signal)
 
                 if len(self.categories["partial"]):
-                    print(f"\tMoving {len(self.categories["partial"])} files to UNHANDLED...")
+                    print(f"\tMoving {len(self.categories['partial'])} files to UNHANDLED...")
                 for f in self.categories["partial"]:
                     if signal["kill"]:
                         return
@@ -323,7 +323,7 @@ class Folder:
                 set_memory_consumption(self.signal)
 
                 if len(self.categories["only_local"]):
-                    print(f"\tTransferring {len(self.categories["only_local"])} files from master to remote device...")
+                    print(f"\tTransferring {len(self.categories['only_local'])} files from master to remote device...")
                 for f in self.categories["only_local"]:
                     if signal["kill"]:
                         return
@@ -331,7 +331,7 @@ class Folder:
 
                 set_memory_consumption(self.signal)
                 if len(self.categories["partial"]):
-                    print(f"\tTransferring {len(self.categories["partial"])} files from master to remote device...")
+                    print(f"\tTransferring {len(self.categories['partial'])} files from master to remote device...")
                 for f in self.categories["partial"]:
                     if signal["kill"]:
                         return
@@ -342,7 +342,7 @@ class Folder:
 
                 set_memory_consumption(self.signal)
                 if len(self.categories["only_remote"]):
-                    print(f"\tTransferring {len(self.categories["only_remote"])} files from remote to local device...")
+                    print(f"\tTransferring {len(self.categories['only_remote'])} files from remote to local device...")
                 for f in self.categories["only_remote"]:
                     if signal["kill"]:
                         return
@@ -354,7 +354,7 @@ class Folder:
 
                 set_memory_consumption(self.signal)
                 if len(self.categories["partial"]):
-                    print(f"\tTransferring {len(self.categories["partial"])} files from remote to local device...")
+                    print(f"\tTransferring {len(self.categories['partial'])} files from remote to local device...")
                 for f in self.categories["partial"]:
                     if signal["kill"]:
                         return
@@ -373,7 +373,7 @@ class Folder:
 
                 set_memory_consumption(self.signal)
                 if len(self.categories["only_local"]):
-                    print(f"\tTransferring {len(self.categories["only_local"])} files from local to remote device...")
+                    print(f"\tTransferring {len(self.categories['only_local'])} files from local to remote device...")
                 for f in self.categories["only_local"]:
                     if signal["kill"]:
                         return
