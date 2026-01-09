@@ -92,33 +92,25 @@ def move_file_from_remote_to_remote(src_path, dest_path):
         return 1
     return 0
 
-def manage_data(data):
-    global pending_op
-    if not pending_op:
-        return
-
-    if pending_op["op"] == "copy_file_to_remote":
-        filepath = pending_op["to_path"]
-        last_modified = pending_op["last_modified"]
-        os.makedirs(os.path.dirname(filepath), exist_ok=True)
-        print("Writing on:", filepath)
-        
+def save_file(data, filepath, last_modified):
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+    print("Writing on:", filepath)
+    
+    try:
+        with open(filepath, "wb") as f:
+            f.write(data)
+    except:
         try:
+            if os.name == "nt" and os.path.exists(filepath):
+                os.chmod(filepath, stat.S_IWRITE)
+                os.system(f'attrib -H -S "{filepath}"')
             with open(filepath, "wb") as f:
                 f.write(data)
         except:
-            try:
-                if os.name == "nt" and os.path.exists(filepath):
-                    os.chmod(filepath, stat.S_IWRITE)
-                    os.system(f'attrib -H -S "{filepath}"')
-                with open(filepath, "wb") as f:
-                    f.write(data)
-            except:
-                pass
+            pass
 
-        timestamp = datetime.fromisoformat(last_modified).timestamp()
-        os.utime(filepath, (timestamp, timestamp))
-        pending_op = None
+    timestamp = datetime.fromisoformat(last_modified).timestamp()
+    os.utime(filepath, (timestamp, timestamp))
 
 async def send_file(ws, filepath):
     print("Sending from:", filepath)
@@ -131,9 +123,11 @@ async def send_file(ws, filepath):
 
 async def receive_messages(ws):
     """Continuously receive server messages."""
+    global pending_op
     try:
         async for data in ws:
             reply = None
+            resolved = True
             try:
                 data_json = json.loads(data)
                 if data_json.get("request") == "parse_device_info":
@@ -153,16 +147,25 @@ async def receive_messages(ws):
                 elif data_json.get("request") == "move_file_from_remote_to_remote":
                     reply = move_file_from_remote_to_remote(data_json.get("from_path"), data_json.get("to_path"))
                 else:
-                    manage_data(data)
+                    resolved = False
             except:
-                manage_data(data)
+                resolved = False
+            
+            if not resolved and pending_op and pending_op["op"] == "copy_file_to_remote":
+                filepath = pending_op["to_path"]
+                last_modified = pending_op["last_modified"]
+                pending_op = None
+                save_file(data, filepath, last_modified)
             
             if reply is not None:
                 print(f"replied to {data_json.get('request')}")
-                await ws.send(json.dumps({"request_id": data_json["request_id"], "reply": reply}))
+                struct_data = json.dumps({"request_id": data_json["request_id"], "reply": reply})
+                await ws.send(struct_data)
             
             if pending_op and pending_op["op"] == "copy_file_to_local":
-                await send_file(ws, pending_op["from_path"])
+                from_path = pending_op["from_path"]
+                pending_op = None
+                await send_file(ws, from_path)
     except websockets.ConnectionClosed:
         print("Connection closed by server")
 
@@ -170,7 +173,12 @@ async def receive_messages(ws):
 async def connect_and_run(url, ssl_context):
     while True:
         try:
-            async with websockets.connect(f"wss://{url}", ssl=ssl_context, additional_headers={"X-Client-Name": DEVICE_ID}) as ws:
+            async with websockets.connect(
+                f"wss://{url}",
+                ssl=ssl_context,
+                additional_headers={"X-Client-Name": DEVICE_ID},
+                max_size=None,
+                max_queue=None) as ws:
                 print("Connected to server")
                 await asyncio.gather(receive_messages(ws))
 
