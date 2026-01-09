@@ -38,9 +38,7 @@ async def run_server(signal_):
         PORT,
         ssl=ssl_context,
         max_size=None,
-        max_queue=None,
-        read_limit=2**20,
-        write_limit=2**20
+        max_queue=None
     ):
         print(f"WSS server listening on port {PORT}")
         await stop_event.wait()
