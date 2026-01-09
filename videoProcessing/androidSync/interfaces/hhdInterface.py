@@ -3,7 +3,6 @@ import os
 import platform
 import shutil
 import json
-import stat
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from utils import *
 
@@ -13,8 +12,8 @@ class HHDInterface(Interface):
     local_root = ""
     folder_map = {}
 
-    def __init__(self, local_id, interface_id, args):
-        super().__init__(local_id, interface_id)
+    def __init__(self, local_id, interface_id, signal, args):
+        super().__init__(local_id, interface_id, signal)
         for k, v in args.items():
             if hasattr(self, k):
                 setattr(self, k, v)

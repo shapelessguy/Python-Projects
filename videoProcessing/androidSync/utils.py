@@ -34,9 +34,10 @@ class Interface:
     def share_id(self):
         return f"{self.local_id} -> {self.interface_id}"
 
-    def __init__(self, local_id, interface_id):
+    def __init__(self, local_id, interface_id, signal):
         self.local_id = local_id
         self.interface_id = interface_id
+        self.signal = signal
         self.connected = True
 
     def device_connected(self):
@@ -163,6 +164,9 @@ class CPath:
 class EmptyUI:
     def __init__(self):
         self.ui = None
+    
+    def execute(self, function_, *args, **kwargs):
+        return
 
     def exit_sync(self, signal):
         signal["kill"] = True

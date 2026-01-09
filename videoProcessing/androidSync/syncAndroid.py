@@ -6,46 +6,58 @@ import threading
 from colorama import init, Fore, Style
 from datetime import datetime
 from utils import *
-from interfaces import androidInterface, hhdInterface
+import asyncio
+from interfaces import androidInterface, hhdInterface, httpsInterface
+from interfaces.https_server.ws_manager import WebSocketManager
+from interfaces.https_server.https_server import run_server
 init(autoreset=True)
 
 # DEFAULT_LOCAL_ID = "EVA"
-# DEFAULT_INTERFACE = "Android" / "HHD"
-# DEFAULT_INTERFACE_ID = Samsung / Test / BackupHHD
+# interface_type = "Android" / "HHD"
+# interface_id = Samsung / Test / BackupHHD
 
 CONFIGURATION = {
     "headless": False,
     "one_check": False,
+    "local_id": "EVA",
     "interfaces": [
+        {
+            "interface_type": "HTTPS",
+            "interface_id": "DLR",
+            "interface_args": {
+                "local_root": r"C:\Users\shape\Documents",
+                "root": r"S:\Documents",
+                "folder_map": {
+                    "notes": {}
+                }
+            }
+        },
         # {
-        #     "DEFAULT_LOCAL_ID": "EVA",
-        #     "DEFAULT_INTERFACE": "HHD",
-        #     "DEFAULT_INTERFACE_ID": "Test",
-        #     "INTERFACE_ARGS": {
+        #     "interface_type": "HHD",
+        #     "interface_id": "Test",
+        #     "interface_args": {
+        #         "local_root": r"C:\Users\shape\Documents",
         #         "root": r"S:\Documents",
-        #         "local_root": r"C:\Users\shape\Documents",
         #         "folder_map": {
         #             "notes": {}
         #         }
         #     }
         # },
         # {
-        #     "DEFAULT_LOCAL_ID": "EVA",
-        #     "DEFAULT_INTERFACE": "HHD",
-        #     "DEFAULT_INTERFACE_ID": "Test2",
-        #     "INTERFACE_ARGS": {
+        #     "interface_type": "HHD",
+        #     "interface_id": "Test2",
+        #     "interface_args": {
+        #         "local_root": r"C:\Users\shape\Documents",
         #         "root": r"S:\Documents2",
-        #         "local_root": r"C:\Users\shape\Documents",
         #         "folder_map": {
         #             "notes": {}
         #         }
         #     }
         # },
         # {
-        #     "DEFAULT_LOCAL_ID": "EVA",
-        #     "DEFAULT_INTERFACE": "Android",
-        #     "DEFAULT_INTERFACE_ID": "Samsung",
-        #     "INTERFACE_ARGS": {
+        #     "interface_type": "Android",
+        #     "interface_id": "Samsung",
+        #     "interface_args": {
         #         "local_root": r"E:\Video\PhoneMultimedia\SamsungSync",
         #         "android_serial": "RFCY21D9PCK",
         #         "folder_map": {
@@ -101,47 +113,47 @@ class File:
     
     def copy_to_local(self, global_stats, from_):
         os.makedirs(os.path.dirname(self.local_path.get_unix_path()), exist_ok=True)
-        signal["ui"].bridge.set_text.emit("details_lbl", f"Copying from remote: {self.remote_path.get_unix_path()}")
+        signal["ui"].execute("set_text", "details_lbl", f"Copying from remote: {self.remote_path.get_unix_path()}")
         self.signal['interface'].copy_file_to_local(self.local_path, self.remote_path)
         global_stats[from_]["n"] -= 1
         global_stats[from_]["size"] -= self.size
         global_stats["in_sync"]["n"] += 1
         global_stats["in_sync"]["size"] += self.size
-        self.signal["ui"].bridge.set_statistics.emit(global_stats, None)
+        self.signal["ui"].execute("set_statistics", global_stats, None)
         print(f"Copied {self.remote_path.get_unix_path()} from remote")
     
     def copy_to_remote(self, global_stats, from_):
-        signal["ui"].bridge.set_text.emit("details_lbl", f"Copying from remote: {self.local_path.get_unix_path()}")
+        signal["ui"].execute("set_text", "details_lbl", f"Copying from remote: {self.local_path.get_unix_path()}")
         self.signal['interface'].copy_file_to_remote(self.local_path, self.remote_path)
         global_stats[from_]["n"] -= 1
         global_stats[from_]["size"] -= self.size
         global_stats["in_sync"]["n"] += 1
         global_stats["in_sync"]["size"] += self.size
-        self.signal["ui"].bridge.set_statistics.emit(global_stats, None)
+        self.signal["ui"].execute("set_statistics", global_stats, None)
         print(f"Copied {self.local_path.get_unix_path()} to remote")
     
     def remove_from_local(self, global_stats, from_):
         os.makedirs(os.path.dirname(self.local_path.get_unix_path()), exist_ok=True)
-        signal["ui"].bridge.set_text.emit("details_lbl", f"Deleting from local: {self.local_path.get_unix_path()}")
+        signal["ui"].execute("set_text", "details_lbl", f"Deleting from local: {self.local_path.get_unix_path()}")
         remove_local_file(self.local_path)
         global_stats[from_]["n"] -= 1
         global_stats[from_]["size"] -= self.size
-        self.signal["ui"].bridge.set_statistics.emit(global_stats, None)
+        self.signal["ui"].execute("set_statistics", global_stats, None)
         print(f"Removed {self.local_path.get_unix_path()} from local")
     
     def remove_from_remote(self, global_stats, from_):
-        signal["ui"].bridge.set_text.emit("details_lbl", f"Deleting from remote: {self.remote_path.get_unix_path()}")
+        signal["ui"].execute("set_text", "details_lbl", f"Deleting from remote: {self.remote_path.get_unix_path()}")
         self.signal['interface'].delete_file_from_remote(self.remote_path)
         global_stats[from_]["n"] -= 1
         global_stats[from_]["size"] -= self.size
-        self.signal["ui"].bridge.set_statistics.emit(global_stats, None)
+        self.signal["ui"].execute("set_statistics", global_stats, None)
         print(f"Removed {self.remote_path.get_unix_path()} from remote")
     
     def move_to_unhandled(self, unhandled_path: CPath, global_stats, from_):
         self.signal['interface'].move_file_from_remote_to_remote(self.remote_path, unhandled_path)
         global_stats[from_]["n"] -= 1
         global_stats[from_]["size"] -= self.size
-        self.signal["ui"].bridge.set_statistics.emit(global_stats, None)
+        self.signal["ui"].execute("set_statistics", global_stats, None)
         print(f"Moved {self.remote_path.get_unix_path()} to UNHANDLED")
     
     def __str__(self):
@@ -214,6 +226,7 @@ class Folder:
             local_sync_md = get_local_sync_md(self.local_path, self.signal['interface'])
             remote_sync_md = self.signal['interface'].get_remote_sync_md(self.remote_path)
             if json.dumps(local_sync_md) != json.dumps(remote_sync_md):
+                print(len(local_sync_md), len(remote_sync_md))
                 raise Exception("Impossible to synchronize folders...")
             self.sync_md = local_sync_md
         else:
@@ -283,7 +296,7 @@ class Folder:
         if not len(self.categories):
             raise Exception("You must get self.categories first!")
         try:
-            self.signal["ui"].bridge.set_operation.emit(f"Migrating data for {self.relative_path.get_unix_path()}...", "black")
+            self.signal["ui"].execute("set_operation", f"Migrating data for {self.relative_path.get_unix_path()}...", "black")
             if self.master_local.origin != "":
                 print(f"Migrating data from MASTER {self.master_local.origin}")
 
@@ -352,6 +365,7 @@ class Folder:
                     remote_lm = remote_lm.replace(second=0, microsecond=0) if not hp else remote_lm
                     local_more_recent = local_lm > remote_lm
                     remote_more_recent = local_lm < remote_lm
+                    print(f, local_lm, remote_lm)
                     if local_more_recent:
                         self.files[f]['local'].copy_to_remote(global_stats, from_="partial")
                     elif remote_more_recent:
@@ -404,14 +418,14 @@ def print_statistics(signal, info: dict):
     for i, k in enumerate(global_stats):
         if i > 0:
             size_to_reduce += global_stats[k]["size"]
-    signal["ui"].bridge.set_statistics.emit(global_stats, size_to_reduce)
+    signal["ui"].execute("set_statistics", global_stats, size_to_reduce)
     return global_stats, el_to_move
 
 
 def init_loop(sync_folders, signal):
     while not signal["kill"]:
         init_info = {}
-        signal["ui"].bridge.set_operation.emit("Fetching info...", "blue")
+        signal["ui"].execute("set_operation", "Fetching info...", "blue")
         for f in sync_folders:
             f: Folder
             if signal["kill"]:
@@ -422,7 +436,7 @@ def init_loop(sync_folders, signal):
 
         if el_to_move > 0:
             post_info = {}
-            signal["ui"].bridge.set_operation.emit("Fetching info...", "blue")
+            signal["ui"].execute("set_operation", "Fetching info...", "blue")
             for f in sync_folders:
                 if signal["kill"]:
                     return
@@ -430,41 +444,57 @@ def init_loop(sync_folders, signal):
                     post_info[f.relative_path] = init_info[f.relative_path]
                 else:
                     _ = f.migrate_data(global_stats)
-                    signal["ui"].bridge.set_text.emit("details_lbl", "")
+                    signal["ui"].execute("set_text", "details_lbl", "")
                     if CONFIGURATION["one_check"]:
                         f.get_categories()
                         post_info[f.relative_path] = f.get_statistics()
             if CONFIGURATION["one_check"]:
-                signal["ui"].bridge.set_text.emit("details_lbl", "")
-                signal["ui"].bridge.set_operation.emit("Synchronization complete", "green")
+                signal["ui"].execute("set_text", "details_lbl", "")
+                signal["ui"].execute("set_operation", "Synchronization complete", "green")
                 global_stats, el_to_move = print_statistics(signal, post_info)
 
                 if el_to_move == 0:
                     print(f"{Fore.GREEN}Synchronization complete!{Style.RESET_ALL}")
         else:
             if CONFIGURATION["one_check"]:
-                signal["ui"].bridge.set_operation.emit("Everything is already synchronized", "green")
+                signal["ui"].execute("set_operation", "Everything is already synchronized", "green")
             else:
-                signal["ui"].bridge.set_operation.emit("Fetching info...", "blue")
+                signal["ui"].execute("set_operation", "Fetching info...", "blue")
         if CONFIGURATION["one_check"] or len(CONFIGURATION["interfaces"]) > 1:
             break
-        time.sleep(1)
+        for _ in range(10):
+            if signal["kill"]:
+                break
+            time.sleep(0.1)
 
 
 def set_memory_consumption(signal):
     used, total, percent = signal['interface'].get_memory_consumption()
-    signal["ui"].bridge.set_text.emit("used_lbl", scale_bytes(used, 2))
-    signal["ui"].bridge.set_text.emit("total_lbl", scale_bytes(total, 2))
-    signal["ui"].bridge.set_text.emit("percent_lbl", percent)
+    signal["ui"].execute("set_text", "used_lbl", scale_bytes(used, 2))
+    signal["ui"].execute("set_text", "total_lbl", scale_bytes(total, 2))
+    signal["ui"].execute("set_text", "percent_lbl", percent)
 
 
-def get_interface(interface_str, local_id, interface_id, args):
+def get_interface(interface_str, local_id, interface_id, ws_manager, args):
     if interface_str == "HHD":
-        return hhdInterface.HHDInterface(local_id, interface_id, args)
+        return hhdInterface.HHDInterface(local_id, interface_id, None, args)
     elif interface_str == "Android":
-        return androidInterface.AndroidInterface(local_id, interface_id, args)
+        return androidInterface.AndroidInterface(local_id, interface_id, None, args)
+    elif interface_str == "HTTPS":
+        return httpsInterface.HTTPSInterface(local_id, interface_id, ws_manager, args)
     else:
         return None
+
+
+def start_ws_server_thread(signal):
+    loop = asyncio.new_event_loop()
+    signal["loop"] = loop
+    asyncio.set_event_loop(loop)
+
+    try:
+        loop.run_until_complete(run_server(signal))
+    finally:
+        loop.close()
 
 
 def main(signal):
@@ -472,11 +502,18 @@ def main(signal):
     try:
         interfaces = []
         for interface in CONFIGURATION["interfaces"]:
+            if interface["interface_type"] == "HTTPS" and "ws_manager" not in signal:
+                ws_manager = WebSocketManager()
+                signal["ws_manager"] = ws_manager
+                signal["kill_server"] = asyncio.Event()
+                ws_thread = threading.Thread(target=start_ws_server_thread, args=(signal,), daemon=True)
+                ws_thread.start()
             interface = get_interface(
-                interface["DEFAULT_INTERFACE"],
-                interface["DEFAULT_LOCAL_ID"],
-                interface["DEFAULT_INTERFACE_ID"],
-                interface["INTERFACE_ARGS"]
+                interface["interface_type"],
+                CONFIGURATION["local_id"],
+                interface["interface_id"],
+                signal,
+                interface["interface_args"],
             )
             interfaces.append(interface)
         while not signal["kill"]:
@@ -491,10 +528,10 @@ def main(signal):
                     init_ = time.time()
                     sync_folders = [Folder(n, signal=signal, **m) for n, m in signal['interface'].folder_map.items()]
                     model_text = signal['interface'].parse_device_info()
-                    signal["ui"].bridge.set_text.emit("model_text", model_text)
+                    signal["ui"].execute("set_text", "model_text", model_text)
                     set_memory_consumption(signal)
-
                     init_loop(sync_folders, signal)
+
                     time_elapsed = time.time() - init_
                     delay_ticks = int((MIN_DELAY - time_elapsed) * 10) if (MIN_DELAY - time_elapsed) > 0 else 0
                     for _ in range(delay_ticks):
@@ -503,20 +540,25 @@ def main(signal):
                         time.sleep(0.1)
                 except Exception as e:
                     signal['interface'].connected = False
+                    print(traceback.format_exc())
             if CONFIGURATION["one_check"]:
                 break
-            time.sleep(0.1)
+            for _ in range(20):
+                if signal["kill"]:
+                    break
+                time.sleep(0.1)
     except Exception:
-        signal["ui"].bridge.set_operation.emit("ERROR: check logs for info", "red")
+        signal["ui"].execute("set_operation", "ERROR: check logs for info", "red")
         print(f"{Fore.RED}{traceback.format_exc()}{Style.RESET_ALL}")
     
-    signal["ui"].bridge.set_text.emit("exit", "Exit")
+    signal["kill_server"].set()
+    signal["ui"].execute("set_text", "exit", "Exit")
     for _ in range(100):
         if signal["kill"]:
             break
         time.sleep(0.1)
     signal["kill"] = True
-    signal["ui"].bridge.quit_app.emit()
+    signal["ui"].execute("quit_app")
 
 
 try:
@@ -540,8 +582,8 @@ if __name__ == "__main__":
             k: {"n": 0, "size": 0}
             for k in ["in_sync", "partial", "only_local", "only_remote"]
         }
-        signal["ui"].bridge.set_statistics.emit(global_stats, None)
-        signal["ui"].bridge.set_operation.emit("", "black")
+        signal["ui"].execute("set_statistics", global_stats, None)
+        signal["ui"].execute("set_operation", "", "black")
         signal["ui"].show_window()
 
         main_thread = threading.Thread(target=main, args=(signal, ))

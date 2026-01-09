@@ -148,6 +148,10 @@ class UI(EmptyUI):
     def _set_operation(self, text, color="black"):
         self.ui.operation_lbl.setText(text)
         self.ui.operation_lbl.setStyleSheet(f"color: {color}")
+    
+    def execute(self, function_, *args, **kwargs):
+        f = getattr(self.bridge, function_)
+        return f.emit(*args, **kwargs)
 
 
 if __name__ == "__main__":
