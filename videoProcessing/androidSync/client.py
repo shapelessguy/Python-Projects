@@ -9,13 +9,14 @@ import shutil
 import socket
 from datetime import datetime
 
-SYNC_MD_FILE = ".syncmd.json"
-SERVER_PORT = 443
-DEVICE_ID = "DLR"
-HOSTNAME = socket.gethostbyname("cyanroomserver.duckdns.org")
-# HOSTNAME = "localhost"
-url = f"{HOSTNAME}:{SERVER_PORT}"
 
+DEVICE_ID = "EVA"
+SERVER_PORT = 443
+HOSTNAME = socket.gethostbyname("cyanroomserver.duckdns.org")
+
+
+url = f"{HOSTNAME}:{SERVER_PORT}"
+SYNC_MD_FILE = ".syncmd.json"
 ssl_context = ssl.SSLContext()
 ssl_context.check_hostname = False
 ssl_context.verify_mode = ssl.CERT_NONE

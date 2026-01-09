@@ -23,10 +23,21 @@ CONFIGURATION = {
     "interfaces": [
         {
             "interface_type": "HTTPS",
+            "interface_id": "EVA",
+            "interface_args": {
+                "local_root": "/home/claudio/Documents",
+                "root": r"C:\Users\shape\Documents",
+                "folder_map": {
+                    "notes": {}
+                }
+            }
+        },
+        {
+            "interface_type": "HTTPS",
             "interface_id": "DLR",
             "interface_args": {
-                "local_root": r"C:\Users\shape\Documents",
-                "root": r"S:\Documents",
+                "local_root": "/home/claudio/Documents",
+                "root": r"C:\Users\cian_cl\Documents",
                 "folder_map": {
                     "notes": {}
                 }
