@@ -28,7 +28,8 @@ class HTTPSInterface(Interface):
         future = asyncio.run_coroutine_threadsafe(self.signal["ws_manager"].send_to_client(self.interface_id, data, 1), self.signal["loop"])
         try:
             return future.result(timeout=1.0)["reply"]
-        except Exception:
+        except Exception as e:
+            print(f"HTTPS request failed: {e}")
             return None
     
     def get_memory_consumption(self):
@@ -37,7 +38,8 @@ class HTTPSInterface(Interface):
         try:
             reply = future.result(timeout=1.0)["reply"]
             return reply
-        except Exception:
+        except Exception as e:
+            print(f"HTTPS request failed: {e}")
             return None
 
     def get_remote_files(self, signal, remote_path, files, remote_root):
@@ -54,7 +56,8 @@ class HTTPSInterface(Interface):
                 remote_path = full_filename.prepend(signal['interface'].root)
                 files_to_add.append((full_filename, local_path, remote_path, date, True, int(size)))
             return files_to_add
-        except Exception:
+        except Exception as e:
+            print(f"HTTPS request failed: {e}")
             return None
 
     def get_remote_sync_md(self, remote_path):
@@ -64,7 +67,8 @@ class HTTPSInterface(Interface):
             self.full_remote_md = future.result(timeout=1.0)["reply"]
             result = self.full_remote_md.get(self.share_id(), {})
             return result
-        except Exception:
+        except Exception as e:
+            print(f"HTTPS request failed: {e}")
             return None
 
     def delete_file_from_remote(self, remote_path):
@@ -72,7 +76,8 @@ class HTTPSInterface(Interface):
             data = {"request": "delete_file_from_remote", "path": remote_path.get_unix_path()}
             future = asyncio.run_coroutine_threadsafe(self.signal["ws_manager"].send_to_client(self.interface_id, data, 1), self.signal["loop"])
             return future.result(timeout=1.0)["reply"]
-        except Exception:
+        except Exception as e:
+            print(f"HTTPS request failed: {e}")
             return None
 
     def copy_file_to_local(self, local_path, remote_path):
@@ -85,11 +90,12 @@ class HTTPSInterface(Interface):
             last_modified_iso = future.result(timeout=1.0)["reply"]
             date = datetime.fromisoformat(last_modified_iso)
             self.signal["ws_manager"].save_to = {"path": src, "last_modified": date}
-            for _ in range(100):
+            for _ in range(300):
                 if self.signal["kill"] or self.signal["ws_manager"].save_to is None:
                     break
                 time.sleep(0.1)
-        except Exception:
+        except Exception as e:
+            print(f"HTTPS request failed: {e}")
             return None
         
 
@@ -104,7 +110,8 @@ class HTTPSInterface(Interface):
             data = {"request": "copy_file_to_remote", "to_path": dst, "last_modified": last_modified}
             future = asyncio.run_coroutine_threadsafe(self.signal["ws_manager"].send_to_client(self.interface_id, data, 1), self.signal["loop"])
             future.result(timeout=1.0)["reply"]
-        except Exception:
+        except Exception as e:
+            print(f"HTTPS request failed: {e}")
             return None
 
         try:
@@ -112,7 +119,8 @@ class HTTPSInterface(Interface):
                 data = f.read()
             future = asyncio.run_coroutine_threadsafe(self.signal["ws_manager"].send_to_client(self.interface_id, data, 1), self.signal["loop"])
             return 0
-        except Exception:
+        except Exception as e:
+            print(f"HTTPS request failed: {e}")
             return None
 
     def move_file_from_remote_to_remote(self, remote_path, dest_path):
@@ -123,5 +131,6 @@ class HTTPSInterface(Interface):
             data = {"request": "move_file_from_remote_to_remote", "from_path": src, "to_path": dst}
             future = asyncio.run_coroutine_threadsafe(self.signal["ws_manager"].send_to_client(self.interface_id, data, 1), self.signal["loop"])
             return future.result(timeout=1.0)["reply"]
-        except Exception:
+        except Exception as e:
+            print(f"HTTPS request failed: {e}")
             return None
