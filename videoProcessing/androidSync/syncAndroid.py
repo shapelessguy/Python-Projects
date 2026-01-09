@@ -107,8 +107,8 @@ class File:
 
         if this_more_recent or this_less_recent:
             diff.append("last_modified")
-        if self.size != file.size:
-            diff.append("size")
+        # if self.size != file.size:
+        #     diff.append("size")
         return diff
     
     def copy_to_local(self, global_stats, from_):
@@ -367,7 +367,6 @@ class Folder:
                     remote_lm = remote_lm.replace(second=0, microsecond=0) if not hp else remote_lm
                     local_more_recent = local_lm > remote_lm
                     remote_more_recent = local_lm < remote_lm
-                    print(f, local_lm, remote_lm, local_size, remote_size)
                     if local_more_recent:
                         self.files[f]['local'].copy_to_remote(global_stats, from_="partial")
                     elif remote_more_recent:
