@@ -53,6 +53,7 @@ def list_remote_files(path):
 
 def get_full_remote_sync_md(remote_path):
     md_path = os.path.join(remote_path, SYNC_MD_FILE)
+    os.makedirs(os.path.dirname(md_path), exist_ok=True)
     result = {}
     if os.path.exists(md_path):
         try:

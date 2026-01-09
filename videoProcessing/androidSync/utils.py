@@ -103,6 +103,7 @@ def remove_local_file(local_path):
 
 def get_local_sync_md(local_path, interface):
     md_path = os.path.join(local_path.get_unix_path(), SYNC_MD_FILE)
+    os.makedirs(os.path.dirname(md_path), exist_ok=True)
     
     result = {}
     if os.path.exists(md_path):

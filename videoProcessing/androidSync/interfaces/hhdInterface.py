@@ -44,6 +44,7 @@ class HHDInterface(Interface):
 
     def get_remote_sync_md(self, remote_path):
         md_path = os.path.join(remote_path.get_unix_path(), SYNC_MD_FILE)
+        os.makedirs(os.path.dirname(md_path), exist_ok=True)
         result = {}
         if os.path.exists(md_path):
             with open(md_path, "r", encoding="utf-8") as file:

@@ -361,11 +361,13 @@ class Folder:
                     hp = self.files[f]['local'].high_precision and self.files[f]['remote'].high_precision
                     local_lm = self.files[f]['local'].last_modified
                     remote_lm = self.files[f]['remote'].last_modified
+                    local_size = self.files[f]['local'].size
+                    remote_size = self.files[f]['remote'].size
                     local_lm = local_lm.replace(second=0, microsecond=0) if not hp else local_lm
                     remote_lm = remote_lm.replace(second=0, microsecond=0) if not hp else remote_lm
                     local_more_recent = local_lm > remote_lm
                     remote_more_recent = local_lm < remote_lm
-                    print(f, local_lm, remote_lm)
+                    print(f, local_lm, remote_lm, local_size, remote_size)
                     if local_more_recent:
                         self.files[f]['local'].copy_to_remote(global_stats, from_="partial")
                     elif remote_more_recent:
