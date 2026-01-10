@@ -155,9 +155,13 @@ async def receive_messages(ws):
     try:
         async for data in ws:
             reply = None
+            arg_lst = []
             try:
                 data_json = json.loads(data)
-                print(f"Working on {data_json.get('request')}")
+                for arg in ["path", "from_path", "to_path"]:
+                    value = data_json.get(arg, None)
+                    if value is not None:
+                        arg_lst.append(f"{arg}: {value}")
                 if data_json.get("request") == "parse_device_info":
                     reply = parse_device_info()
                 elif data_json.get("request") == "get_memory_consumption":
@@ -181,7 +185,8 @@ async def receive_messages(ws):
                 pass
             
             if reply is not None:
-                print(f"replied to {data_json.get('request')}")
+                arg_str = " -> " + ", ".join(arg_lst) if len(arg_lst) else ""
+                print(f"{data_json.get('request')!r:<{30}}{arg_str}")
                 struct_data = json.dumps({"request_id": data_json["request_id"], "reply": reply})
                 await ws.send(struct_data)
     except websockets.ConnectionClosed:
