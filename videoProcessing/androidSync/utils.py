@@ -186,14 +186,20 @@ def get_local_sync_md(local_path, interface):
 
 def set_local_sync_md(data, local_path, interface):
     md_path = os.path.join(local_path.get_unix_path(), SYNC_MD_FILE)
-    if os.name == "nt" and os.path.exists(md_path):
-        os.chmod(md_path, stat.S_IWRITE)
-        os.system(f'attrib -H -S "{md_path}"')
-    with open(md_path, "w", encoding="utf-8") as file:
-        json.dump({**interface.full_local_md, interface.share_id(): data}, file, indent=2)
-    if os.name == "nt":
-        os.chmod(md_path, stat.S_IWRITE)
-        os.system(f'attrib +H -S "{md_path}"')
+    data = {**interface.full_local_md, interface.share_id(): data}
+    prev_data = None
+    if os.path.exists(md_path):
+        with open(md_path, "r", encoding="utf-8") as file:
+            prev_data = json.load(file)
+    if not prev_data or json.dumps(data) != json.dumps(prev_data):
+        if os.name == "nt":
+            os.chmod(md_path, stat.S_IWRITE)
+            os.system(f'attrib -H -S "{md_path}"')
+        with open(md_path, "w", encoding="utf-8") as file:
+            json.dump(data, file, indent=2)
+        if os.name == "nt":
+            os.chmod(md_path, stat.S_IWRITE)
+            os.system(f'attrib +H -S "{md_path}"')
 
 
 class CPath:
