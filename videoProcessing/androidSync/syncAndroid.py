@@ -13,7 +13,7 @@ from interfaces.https_server.https_server import run_server
 init(autoreset=True)
 
 
-config_name = sys.argv[1]
+config_name = sys.argv[1].replace('"', '')
 configurations_folder = os.path.join(os.path.dirname(__file__), "configurations")
 configurations = {x.replace(".json", ""): os.path.join(configurations_folder, x) for x in os.listdir(configurations_folder)}
 if config_name not in configurations:

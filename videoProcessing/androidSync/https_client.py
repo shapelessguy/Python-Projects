@@ -1,6 +1,5 @@
 import asyncio
 import ssl
-import websockets
 import json
 import os
 import time
@@ -10,6 +9,7 @@ import platform
 import shutil
 import socket
 import sys
+import websockets
 from datetime import datetime
 
 
@@ -216,7 +216,7 @@ async def main():
     global DEVICE_ID, URL
     DEVICE_ID = sys.argv[1]
     url = f"{socket.gethostbyname("cyanroomserver.duckdns.org")}:443"
-    ssl_context = ssl.SSLContext()
+    ssl_context = ssl.create_default_context()
     ssl_context.check_hostname = False
     ssl_context.verify_mode = ssl.CERT_NONE
     await connect_and_run(url, ssl_context)

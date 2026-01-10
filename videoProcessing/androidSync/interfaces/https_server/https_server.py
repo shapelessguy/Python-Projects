@@ -1,8 +1,6 @@
-import asyncio
 import ssl
 import websockets
 import os
-import json
 
 PORT = 443
 
@@ -25,7 +23,7 @@ async def handle(ws):
         pass
     finally:
         await signal['ws_manager'].unregister(ws)
-        print("Client disconnected")
+        print(f"Client {client_name} disconnected")
 
 
 async def run_server(signal_):
