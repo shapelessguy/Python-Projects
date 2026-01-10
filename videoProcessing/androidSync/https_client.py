@@ -13,18 +13,10 @@ import sys
 from datetime import datetime
 
 
-DEVICE_ID = ""
-SERVER_PORT = 443
-HOSTNAME = ""
-
-
-url = f"{HOSTNAME}:{SERVER_PORT}"
 SYNC_MD_FILE = ".syncmd.json"
 TEMP_EXT = ".synctmp"
-ssl_context = ssl.SSLContext()
-ssl_context.check_hostname = False
-ssl_context.verify_mode = ssl.CERT_NONE
-pending_op = None
+DEVICE_ID = ""
+URL = ""
 current_fb = None
 
 
@@ -160,7 +152,6 @@ def move_file_from_remote_to_remote(src_path, dest_path):
 
 async def receive_messages(ws):
     """Continuously receive server messages."""
-    global pending_op
     try:
         async for data in ws:
             reply = None
@@ -215,12 +206,16 @@ async def connect_and_run(url, ssl_context):
             print("Connection error:", e)
             await asyncio.sleep(5)
 
+
 async def main():
-    global DEVICE_ID, SERVER_PORT, HOSTNAME
+    global DEVICE_ID, URL
     DEVICE_ID = sys.argv[1]
-    SERVER_PORT = 443
-    HOSTNAME = socket.gethostbyname("cyanroomserver.duckdns.org")
+    url = f"{socket.gethostbyname("cyanroomserver.duckdns.org")}:443"
+    ssl_context = ssl.SSLContext()
+    ssl_context.check_hostname = False
+    ssl_context.verify_mode = ssl.CERT_NONE
     await connect_and_run(url, ssl_context)
+
 
 if __name__ == "__main__":
     asyncio.run(main())
