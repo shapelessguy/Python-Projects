@@ -15,7 +15,7 @@ If Not fso.FolderExists(logDir) Then
     fso.CreateFolder logDir
 End If
 
-dt = Date()
+dt = Now()
 curYear = Year(dt)
 curMonth = Right("0" & Month(dt), 2)
 curDay = Right("0" & Day(dt), 2)

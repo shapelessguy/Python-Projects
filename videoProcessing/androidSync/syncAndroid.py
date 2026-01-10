@@ -6,14 +6,18 @@ import threading
 import asyncio
 from colorama import init, Fore, Style
 from datetime import datetime
+from pathlib import Path
 from utils import *
 from interfaces import androidInterface, hhdInterface, httpsInterface
 from interfaces.https_server.ws_manager import WebSocketManager
 from interfaces.https_server.https_server import run_server
+from https_client import check_if_process_already_running
 init(autoreset=True)
 
 
 config_name = sys.argv[1].replace('"', '')
+if check_if_process_already_running(Path(__file__).stem + ".py", config_name):
+    sys.exit(1)
 configurations_folder = os.path.join(os.path.dirname(__file__), "configurations")
 configurations = {x.replace(".json", ""): os.path.join(configurations_folder, x) for x in os.listdir(configurations_folder)}
 if config_name not in configurations:

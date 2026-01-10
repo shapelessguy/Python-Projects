@@ -10,6 +10,8 @@ import shutil
 import socket
 import sys
 import websockets
+import psutil
+from pathlib import Path
 from datetime import datetime
 
 
@@ -18,6 +20,28 @@ TEMP_EXT = ".synctmp"
 DEVICE_ID = ""
 URL = ""
 current_fb = None
+
+
+def check_if_process_already_running(script_name, last_arg):
+    processes = []
+    for proc in psutil.process_iter(["pid", "name", "cmdline"]):
+        try:
+            proc_name = proc.info["name"].lower()
+            if not proc_name.startswith("python"):
+                continue
+            cmdline = proc.info.get("cmdline") or []
+            if not cmdline:
+                continue
+            if any(script_name in part for part in cmdline) and cmdline[-1] == last_arg:
+                processes.append(proc)
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            continue
+    if len(processes) > 2:
+        print(f"SyncAndroid already running on the same configuration:")
+        for proc in processes:
+            print(" ".join(proc.info["cmdline"]) + f" -> {proc.pid}")
+        return True
+    return False
 
 
 class FileBuilder:
@@ -215,6 +239,8 @@ async def connect_and_run(url, ssl_context):
 async def main():
     global DEVICE_ID, URL
     DEVICE_ID = sys.argv[1]
+    if check_if_process_already_running(Path(__file__).stem + ".py", DEVICE_ID):
+        sys.exit(1)
     url = f"{socket.gethostbyname("cyanroomserver.duckdns.org")}:443"
     ssl_context = ssl.create_default_context()
     ssl_context.check_hostname = False

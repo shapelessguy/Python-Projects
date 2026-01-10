@@ -1,6 +1,7 @@
 import os
 import json
 import stat
+import psutil
 from datetime import datetime
 config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".config")
 SYNC_MD_FILE = ".syncmd.json"
