@@ -7,6 +7,75 @@ SYNC_MD_FILE = ".syncmd.json"
 TEMP_EXT = ".synctmp"
 
 
+# EXAMPLE_CONFIGURATION = {
+#     "headless": True,
+#     "one_check": False,
+#     "local_id": "RoomServer",
+#     "interfaces": [
+#         {
+#             "interface_type": "HTTPS",
+#             "interface_id": "EVA",
+#             "interface_args": {
+#                 "local_root": "/home/claudio/Documents",
+#                 "root": r"C:\Users\shape\Documents",
+#                 "folder_map": {
+#                     "notes": {}
+#                 }
+#             }
+#         },
+#         {
+#             "interface_type": "HTTPS",
+#             "interface_id": "DLR",
+#             "interface_args": {
+#                 "local_root": "/home/claudio/Documents",
+#                 "root": r"C:\Users\cian_cl\Documents",
+#                 "folder_map": {
+#                     "notes": {}
+#                 }
+#             }
+#         },
+#         {
+#             "interface_type": "HHD",
+#             "interface_id": "Test",
+#             "interface_args": {
+#                 "local_root": r"C:\Users\shape\Documents",
+#                 "root": r"S:\Documents",
+#                 "folder_map": {
+#                     "notes": {}
+#                 }
+#             }
+#         },
+#         {
+#             "interface_type": "HHD",
+#             "interface_id": "Test2",
+#             "interface_args": {
+#                 "local_root": r"C:\Users\shape\Documents",
+#                 "root": r"S:\Documents2",
+#                 "folder_map": {
+#                     "notes": {}
+#                 }
+#             }
+#         },
+#         {
+#             "interface_type": "Android",
+#             "interface_id": "Samsung",
+#             "interface_args": {
+#                 "local_root": r"E:\Video\PhoneMultimedia\SamsungSync",
+#                 "android_serial": "RFCY21D9PCK",
+#                 "folder_map": {
+#                     "Documents": {"master_local": r"C:\Users\shape\Documents\bureaucracy\Documenti"},
+#                     "Download": {},
+#                     "DCIM": {},
+#                     "Pictures": {},
+#                     "Movies": {},
+#                     "Music": {},
+#                 }
+#             }
+#         }
+#     ]
+# }
+
+
 def scale_bytes(bytes, decimal=1):
     if bytes > 1024**3:
         return f"{round(bytes / (1024**3), decimal)}GB"
@@ -74,7 +143,7 @@ def get_local_files(signal, target_path, relative_path=None, master_local=None, 
     for root, _, files in os.walk(target_path.get_unix_path()):
         for name in files:
             if signal["kill"]:
-                return
+                return []
             full_path = os.path.join(root, name)
             st = os.stat(full_path)
             size = st.st_size
@@ -177,21 +246,9 @@ class EmptyUI:
     def setup_ui(self, signal):
         return
 
-    def show_window(self):
+    def resize_window(self):
         return
 
     def wait_for_close(self, main_thread):
         main_thread.join()
         return 0
-
-    def quit_app(self):
-        return
-
-    def set_text(self, element_name: str, text: str):
-        return
-
-    def set_statistics(self, global_stats: dict, size_to_reduce: int=None):
-        return
-
-    def set_operation(self, text, color="black"):
-        return

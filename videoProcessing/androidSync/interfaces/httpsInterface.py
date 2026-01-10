@@ -1,53 +1,16 @@
 import sys
 import os
 import asyncio
-import time
+import base64
+import uuid
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from utils import *
 from interfaces.https_server.ws_manager import WebSocketManager
-import base64
-import uuid
-import shutil
-
-SHORT_TIMEOUT = 5.0
-LONG_TIMEOUT = 20.0
+from https_client import FileBuilder
 
 
-
-class FileBuilder:
-    def __init__(self, to_path, last_modified, file_id, tot_chunks, file_size=0):
-        self.to_path = to_path
-        os.makedirs(os.path.dirname(to_path), exist_ok=True)
-        self.last_modified = datetime.fromisoformat(last_modified).timestamp()
-        self.file_id = file_id
-        self.file_size = file_size
-        self.tot_chunks = tot_chunks
-    
-    def add_part(self, encoded):
-        chunk = base64.b64decode(encoded)
-        with open(self.to_path + TEMP_EXT, "ab") as f:
-            f.write(chunk)
-    
-    def get_chunk(self, index):
-        CHUNK_SIZE = 256 * 1024
-        offset = index * CHUNK_SIZE
-        if offset >= self.file_size:
-            raise ValueError("Chunk index out of range")
-
-        retries = 5
-        for _ in range(retries):
-            try:
-                with open(self.to_path, "rb") as f:
-                    f.seek(offset)
-                    chunk = f.read(CHUNK_SIZE)
-                return base64.b64encode(chunk).decode("ascii")
-            except:
-                time.sleep(0.05)
-        return 1
-    
-    def close(self):
-        shutil.move(self.to_path + TEMP_EXT, self.to_path)
-        os.utime(self.to_path, (self.last_modified, self.last_modified))
+SHORT_TIMEOUT = 3.0
+LONG_TIMEOUT = 10.0
 
 
 class HTTPSInterface(Interface):
@@ -92,6 +55,8 @@ class HTTPSInterface(Interface):
             files_ = future.result(timeout=SHORT_TIMEOUT)["reply"]
             files_to_add = []
             for f in files_:
+                if signal["kill"]:
+                    return []
                 full_path, date, size = f
                 date = datetime.fromisoformat(date)
                 full_filename = CPath(full_path).relative_to(CPath(signal['interface'].root))
@@ -101,7 +66,7 @@ class HTTPSInterface(Interface):
             return files_to_add
         except Exception as e:
             print(f"HTTPS request failed on 'get_remote_files': {e}")
-            return None
+            return []
 
     def get_remote_sync_md(self, remote_path):
         data = {"request": "get_full_remote_sync_md", "path": remote_path.get_unix_path()}

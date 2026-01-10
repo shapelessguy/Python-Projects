@@ -3,89 +3,27 @@ import os
 import time
 import traceback
 import threading
+import asyncio
 from colorama import init, Fore, Style
 from datetime import datetime
 from utils import *
-import asyncio
 from interfaces import androidInterface, hhdInterface, httpsInterface
 from interfaces.https_server.ws_manager import WebSocketManager
 from interfaces.https_server.https_server import run_server
 init(autoreset=True)
 
-# local_id = "EVA", "RoomServer"
-# interface_type = "Android" / "HHD"
-# interface_id = Samsung / BackupHHD / DLR
 
-CONFIGURATION = {
-    "headless": True,
-    "one_check": False,
-    "local_id": "RoomServer",
-    "interfaces": [
-        {
-            "interface_type": "HTTPS",
-            "interface_id": "EVA",
-            "interface_args": {
-                "local_root": "/home/claudio/Documents",
-                "root": r"C:\Users\shape\Documents",
-                "folder_map": {
-                    "notes": {}
-                }
-            }
-        },
-        {
-            "interface_type": "HTTPS",
-            "interface_id": "DLR",
-            "interface_args": {
-                "local_root": "/home/claudio/Documents",
-                "root": r"C:\Users\cian_cl\Documents",
-                "folder_map": {
-                    "notes": {}
-                }
-            }
-        },
-
-
-        # {
-        #     "interface_type": "HHD",
-        #     "interface_id": "Test",
-        #     "interface_args": {
-        #         "local_root": r"C:\Users\shape\Documents",
-        #         "root": r"S:\Documents",
-        #         "folder_map": {
-        #             "notes": {}
-        #         }
-        #     }
-        # },
-        # {
-        #     "interface_type": "HHD",
-        #     "interface_id": "Test2",
-        #     "interface_args": {
-        #         "local_root": r"C:\Users\shape\Documents",
-        #         "root": r"S:\Documents2",
-        #         "folder_map": {
-        #             "notes": {}
-        #         }
-        #     }
-        # },
-        # {
-        #     "interface_type": "Android",
-        #     "interface_id": "Samsung",
-        #     "interface_args": {
-        #         "local_root": r"E:\Video\PhoneMultimedia\SamsungSync",
-        #         "android_serial": "RFCY21D9PCK",
-        #         "folder_map": {
-        #             "Documents": {"master_local": r"C:\Users\shape\Documents\bureaucracy\Documenti"},
-        #             "Download": {},
-        #             "DCIM": {},
-        #             "Pictures": {},
-        #             "Movies": {},
-        #             "Music": {},
-        #         }
-        #     }
-        # }
-    ]
-    
-}
+config_name = sys.argv[1]
+configurations_folder = os.path.join(os.path.dirname(__file__), "configurations")
+configurations = {x.replace(".json", ""): os.path.join(configurations_folder, x) for x in os.listdir(configurations_folder)}
+if config_name not in configurations:
+    raise Exception("Configuration not found")
+with open(configurations[config_name], "r") as file:
+    CONFIGURATION = json.load(file)
+for interface in CONFIGURATION["interfaces"]:
+    if interface["interface_id"] == CONFIGURATION["local_id"]:
+        raise Exception("Interface ID cannot match this local ID.")
+print(f"CONFIGURATION: {config_name}")
 
 
 DEFAULT_SYNC_MD = {"last_sync": 0, "files": {}}
@@ -228,6 +166,8 @@ class Folder:
         }
         self.get_local_path_files()
         self.get_remote_path_files()
+        if self.signal["kill"]:
+            return
 
         for k, v in self.files.items():
             if v['local'] and v['remote']:
@@ -451,6 +391,7 @@ def print_statistics(signal, info: dict):
 
 
 def init_loop(sync_folders, signal):
+    exit_loop_condition = CONFIGURATION["one_check"] or CONFIGURATION["wait_for_connection"] or len(CONFIGURATION["interfaces"]) > 1
     while not signal["kill"]:
         init_info = {}
         signal["ui"].execute("set_operation", "Fetching info...", "blue")
@@ -484,11 +425,11 @@ def init_loop(sync_folders, signal):
                 if el_to_move == 0:
                     print(f"{Fore.GREEN}Synchronization complete!{Style.RESET_ALL}")
         else:
-            if CONFIGURATION["one_check"]:
+            if exit_loop_condition:
                 signal["ui"].execute("set_operation", "Everything is already synchronized", "green")
             else:
                 signal["ui"].execute("set_operation", "Fetching info...", "blue")
-        if CONFIGURATION["one_check"] or len(CONFIGURATION["interfaces"]) > 1:
+        if exit_loop_condition:
             break
         for _ in range(10):
             if signal["kill"]:
@@ -551,14 +492,30 @@ def main(signal):
                 interface["interface_args"],
             )
             interfaces.append(interface)
+        pause = False
+        prev_all_interfaces_connected = False
         while not signal["kill"]:
             for interface in interfaces:
+                interface.connected = interface.device_connected()
+
+            all_interfaces_connected = all([x.connected for x in interfaces])
+            if CONFIGURATION["wait_for_connection"]:
+                if (all_interfaces_connected and pause) or not all_interfaces_connected:
+                    if not prev_all_interfaces_connected and all_interfaces_connected:
+                        pause = False
+                    signal["ui"].execute("hide_window")
+                    time.sleep(1)
+                    prev_all_interfaces_connected = all_interfaces_connected
+                    continue
+                prev_all_interfaces_connected = all_interfaces_connected
+                pause = True
+
+            for interface in interfaces:
                 if not interface.connected:
-                    if interface.device_connected():
-                        interface.connected = True
-                    else:
-                        continue
+                    signal["ui"].execute("hide_window")
+                    continue
                 try:
+                    signal["ui"].execute("show_window")
                     signal['interface'] = interface
                     init_ = time.time()
                     sync_folders = [Folder(n, signal=signal, **m) for n, m in signal['interface'].folder_map.items()]
@@ -576,6 +533,7 @@ def main(signal):
                 except Exception as e:
                     signal['interface'].connected = False
                     print(traceback.format_exc())
+                
             if CONFIGURATION["one_check"]:
                 break
             for _ in range(20):
@@ -586,7 +544,8 @@ def main(signal):
         signal["ui"].execute("set_operation", "ERROR: check logs for info", "red")
         print(f"{Fore.RED}{traceback.format_exc()}{Style.RESET_ALL}")
     
-    signal["kill_server"].set()
+    if "kill_server" in signal:
+        signal["kill_server"].set()
     signal["ui"].execute("set_text", "exit", "Exit")
     for _ in range(100):
         if signal["kill"]:
@@ -619,7 +578,7 @@ if __name__ == "__main__":
         }
         signal["ui"].execute("set_statistics", global_stats, None)
         signal["ui"].execute("set_operation", "", "black")
-        signal["ui"].show_window()
+        signal["ui"].resize_window()
 
         main_thread = threading.Thread(target=main, args=(signal, ))
         main_thread.start()

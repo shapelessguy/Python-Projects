@@ -9,22 +9,24 @@ import base64
 import platform
 import shutil
 import socket
+import sys
 from datetime import datetime
 
 
-DEVICE_ID = "EVA"
+DEVICE_ID = ""
 SERVER_PORT = 443
-HOSTNAME = socket.gethostbyname("cyanroomserver.duckdns.org")
+HOSTNAME = ""
 
 
 url = f"{HOSTNAME}:{SERVER_PORT}"
 SYNC_MD_FILE = ".syncmd.json"
+TEMP_EXT = ".synctmp"
 ssl_context = ssl.SSLContext()
 ssl_context.check_hostname = False
 ssl_context.verify_mode = ssl.CERT_NONE
 pending_op = None
 current_fb = None
-TEMP_EXT = ".synctmp"
+
 
 class FileBuilder:
     def __init__(self, to_path, last_modified, file_id, tot_chunks, file_size=0):
@@ -214,6 +216,10 @@ async def connect_and_run(url, ssl_context):
             await asyncio.sleep(5)
 
 async def main():
+    global DEVICE_ID, SERVER_PORT, HOSTNAME
+    DEVICE_ID = sys.argv[1]
+    SERVER_PORT = 443
+    HOSTNAME = socket.gethostbyname("cyanroomserver.duckdns.org")
     await connect_and_run(url, ssl_context)
 
 if __name__ == "__main__":

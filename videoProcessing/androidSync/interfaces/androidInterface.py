@@ -65,7 +65,7 @@ class AndroidInterface(Interface):
         else:
             for line in result.stdout.splitlines():
                 if signal["kill"]:
-                    return
+                    return []
                 directories.append(CPath(line.strip()).origin)
         
         # Get all files
@@ -79,7 +79,7 @@ class AndroidInterface(Interface):
             directory = ""
             for line in result.stdout.splitlines():
                 if signal["kill"]:
-                    return
+                    return []
                 parts = line.split()
                 if len(parts) < 6:
                     if len(parts) > 0 and parts[0][0] == "/":

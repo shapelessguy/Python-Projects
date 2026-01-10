@@ -18,6 +18,8 @@ bar_width = 0
 
 
 class UIThreadBridge(QObject):
+    show_window = pyqtSignal()
+    hide_window = pyqtSignal()
     quit_app = pyqtSignal()
     set_text = pyqtSignal(str, str)
     set_statistics = pyqtSignal(dict, object)
@@ -57,7 +59,6 @@ class UI(EmptyUI):
             py_path = py_paths[i]
             if os.path.exists(ui_path):
                 os.system(f'pyuic5 -x {ui_path} -o {py_path}')
-                print(f'pyuic5 -x {ui_path} -o {py_path}')
         importlib.reload(frontend)
 
         app = QApplication(sys.argv)
@@ -72,11 +73,17 @@ class UI(EmptyUI):
         MainWindow.installEventFilter(drag_filter)
 
         self.bridge = UIThreadBridge()
+        self.bridge.show_window.connect(self._show_window)
+        self.bridge.hide_window.connect(self._hide_window)
         self.bridge.quit_app.connect(self._quit_app)
         self.bridge.set_text.connect(self._set_text)
         self.bridge.set_statistics.connect(self._set_statistics)
         self.bridge.set_operation.connect(self._set_operation)
         self.ui = ui
+    
+    def execute(self, function_, *args, **kwargs):
+        f = getattr(self.bridge, function_)
+        return f.emit(*args, **kwargs)
 
     def exit_sync(self, signal):
         signal["kill"] = True
@@ -93,7 +100,7 @@ class UI(EmptyUI):
                 object_id = f"{p}_{el_name}"
                 getattr(self.ui, object_id).setToolTip(tooltip_text)
 
-    def show_window(self):
+    def resize_window(self):
         global bar_width
         self.ui.model_text.setText("")
         self.ui.details_lbl.setText("")
@@ -107,12 +114,18 @@ class UI(EmptyUI):
         x = screen_geometry.width() - width - 4
         y = screen_geometry.height() - height - 1
         self.ui.main_window.move(x, y)
-        self.ui.main_window.show()
+        self.ui.main_window.hide()
 
     def wait_for_close(self, _):
         app = self.ui.app
         form_closed = app.exec_()
         return form_closed
+
+    def _show_window(self):
+        self.ui.main_window.show()
+
+    def _hide_window(self):
+        self.ui.main_window.hide()
 
     def _quit_app(self):
         app = self.ui.app
@@ -148,10 +161,6 @@ class UI(EmptyUI):
     def _set_operation(self, text, color="black"):
         self.ui.operation_lbl.setText(text)
         self.ui.operation_lbl.setStyleSheet(f"color: {color}")
-    
-    def execute(self, function_, *args, **kwargs):
-        f = getattr(self.bridge, function_)
-        return f.emit(*args, **kwargs)
 
 
 if __name__ == "__main__":
