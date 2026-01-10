@@ -89,8 +89,6 @@ class FileBuilder:
             if json.dumps(data) != json.dumps(prev_sync):
                 with open(self.to_path, "wb") as f:
                     f.write(self._buffer)
-            else:
-                print("file not changed")
         else:
             shutil.move(self.to_path + TEMP_EXT, self.to_path)
         os.utime(self.to_path, (self.last_modified, self.last_modified))
