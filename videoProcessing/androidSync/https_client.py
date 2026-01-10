@@ -241,7 +241,7 @@ async def main():
     DEVICE_ID = sys.argv[1]
     if check_if_process_already_running(Path(__file__).stem + ".py", DEVICE_ID):
         sys.exit(1)
-    url = f"{socket.gethostbyname("cyanroomserver.duckdns.org")}:443"
+    url = f"{socket.gethostbyname('cyanroomserver.duckdns.org')}:443"
     ssl_context = ssl.create_default_context()
     ssl_context.check_hostname = False
     ssl_context.verify_mode = ssl.CERT_NONE
