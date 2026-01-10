@@ -3,16 +3,19 @@ import ssl
 import websockets
 import json
 import os
-import stat
+import time
+import uuid
+import base64
 import platform
 import shutil
 import socket
 from datetime import datetime
 
 
-DEVICE_ID = "EVA"
+DEVICE_ID = "DLR"
 SERVER_PORT = 443
 HOSTNAME = socket.gethostbyname("cyanroomserver.duckdns.org")
+HOSTNAME = "localhost"
 
 
 url = f"{HOSTNAME}:{SERVER_PORT}"
@@ -21,6 +24,43 @@ ssl_context = ssl.SSLContext()
 ssl_context.check_hostname = False
 ssl_context.verify_mode = ssl.CERT_NONE
 pending_op = None
+current_fb = None
+TEMP_EXT = ".synctmp"
+
+class FileBuilder:
+    def __init__(self, to_path, last_modified, file_id, tot_chunks, file_size=0):
+        self.to_path = to_path
+        os.makedirs(os.path.dirname(to_path), exist_ok=True)
+        self.last_modified = datetime.fromisoformat(last_modified).timestamp()
+        self.file_id = file_id
+        self.file_size = file_size
+        self.tot_chunks = tot_chunks
+    
+    def add_part(self, encoded):
+        chunk = base64.b64decode(encoded)
+        with open(self.to_path + TEMP_EXT, "ab") as f:
+            f.write(chunk)
+    
+    def get_chunk(self, index):
+        CHUNK_SIZE = 256 * 1024
+        offset = index * CHUNK_SIZE
+        if offset >= self.file_size:
+            raise ValueError("Chunk index out of range")
+
+        retries = 5
+        for _ in range(retries):
+            try:
+                with open(self.to_path, "rb") as f:
+                    f.seek(offset)
+                    chunk = f.read(CHUNK_SIZE)
+                return base64.b64encode(chunk).decode("ascii")
+            except:
+                time.sleep(0.05)
+        return 1
+    
+    def close(self):
+        shutil.move(self.to_path + TEMP_EXT, self.to_path)
+        os.utime(self.to_path, (self.last_modified, self.last_modified))
 
 
 def parse_device_info():
@@ -32,6 +72,7 @@ def parse_device_info():
         f"Processor: {processor}"
     )
 
+
 def get_memory_consumption(root):
     usage = shutil.disk_usage(root)
 
@@ -40,6 +81,7 @@ def get_memory_consumption(root):
     percent = f"{int((used / total) * 100)}%"
 
     return used, total, percent
+
 
 def list_remote_files(path):
     files_to_add = []
@@ -51,6 +93,7 @@ def list_remote_files(path):
             date = datetime.fromtimestamp(st.st_mtime).isoformat()
             files_to_add.append([full_path, date, size])
     return files_to_add
+
 
 def get_full_remote_sync_md(remote_path):
     md_path = os.path.join(remote_path, SYNC_MD_FILE)
@@ -64,6 +107,7 @@ def get_full_remote_sync_md(remote_path):
             result = {}
     return result
 
+
 def delete_file_from_remote(remote_path):
     if os.path.exists(remote_path):
         try:
@@ -72,17 +116,37 @@ def delete_file_from_remote(remote_path):
             return 1
     return 0
 
+
 def copy_file_to_local(remote_path):
-    global pending_op
+    global current_fb
     st = os.stat(remote_path)
     last_modified = datetime.fromtimestamp(st.st_mtime).isoformat()
-    pending_op = {"op": "copy_file_to_local", "from_path": remote_path}
-    return last_modified
+    CHUNK_SIZE = 256 * 1024
+    file_size = os.path.getsize(remote_path)
+    total_chunks = (file_size + CHUNK_SIZE - 1) // CHUNK_SIZE
+    file_id = uuid.uuid4().hex
+    data = {"last_modified": last_modified, "file_id": file_id, "tot_chunks": total_chunks}
+    current_fb = FileBuilder(remote_path, last_modified, file_id, total_chunks, file_size=file_size)
+    return data
 
-def copy_file_to_remote(remote_path, last_modified):
-    global pending_op
-    pending_op = {"op": "copy_file_to_remote", "to_path": remote_path, "last_modified": last_modified}
+
+def get_file_chunk(remote_path, index):
+    global current_fb
+    if not current_fb or current_fb.to_path != remote_path:
+        return
+    return current_fb.get_chunk(index)
+
+
+def copy_file_to_remote(to_path, last_modified, file_id, index, tot_chunks, encoded):
+    global current_fb
+    if index == 0:
+        current_fb = FileBuilder(to_path, last_modified, file_id, tot_chunks)
+    current_fb.add_part(encoded)
+    if index == tot_chunks - 1:
+        current_fb.close()
+        current_fb = None
     return 0
+
 
 def move_file_from_remote_to_remote(src_path, dest_path):
     os.makedirs(os.path.dirname(dest_path), exist_ok=True)
@@ -92,34 +156,6 @@ def move_file_from_remote_to_remote(src_path, dest_path):
         return 1
     return 0
 
-def save_file(data, filepath, last_modified):
-    os.makedirs(os.path.dirname(filepath), exist_ok=True)
-    print("Writing on:", filepath)
-    
-    try:
-        with open(filepath, "wb") as f:
-            f.write(data)
-    except:
-        try:
-            if os.name == "nt" and os.path.exists(filepath):
-                os.chmod(filepath, stat.S_IWRITE)
-                os.system(f'attrib -H -S "{filepath}"')
-            with open(filepath, "wb") as f:
-                f.write(data)
-        except:
-            pass
-
-    timestamp = datetime.fromisoformat(last_modified).timestamp()
-    os.utime(filepath, (timestamp, timestamp))
-
-async def send_file(ws, filepath):
-    print("Sending from:", filepath)
-    try:
-        with open(filepath, "rb") as f:
-            data = f.read()
-            await ws.send(data)
-    except:
-        pass
 
 async def receive_messages(ws):
     """Continuously receive server messages."""
@@ -127,9 +163,9 @@ async def receive_messages(ws):
     try:
         async for data in ws:
             reply = None
-            resolved = True
             try:
                 data_json = json.loads(data)
+                print(f"Working on {data_json.get('request')}")
                 if data_json.get("request") == "parse_device_info":
                     reply = parse_device_info()
                 elif data_json.get("request") == "get_memory_consumption":
@@ -142,30 +178,20 @@ async def receive_messages(ws):
                     reply = delete_file_from_remote(data_json.get("path"))
                 elif data_json.get("request") == "copy_file_to_local":
                     reply = copy_file_to_local(data_json.get("from_path"))
+                elif data_json.get("request") == "get_file_chunk":
+                    reply = get_file_chunk(data_json.get("from_path"), data_json.get("index"))
                 elif data_json.get("request") == "copy_file_to_remote":
-                    reply = copy_file_to_remote(data_json.get("to_path"), data_json.get("last_modified"))
+                    args = ("to_path", "last_modified", "file_id", "index", "tot_chunks", "encoded")
+                    reply = copy_file_to_remote(**{k: data_json.get(k) for k in args})
                 elif data_json.get("request") == "move_file_from_remote_to_remote":
                     reply = move_file_from_remote_to_remote(data_json.get("from_path"), data_json.get("to_path"))
-                else:
-                    resolved = False
             except:
-                resolved = False
-            
-            if not resolved and pending_op and pending_op["op"] == "copy_file_to_remote":
-                filepath = pending_op["to_path"]
-                last_modified = pending_op["last_modified"]
-                pending_op = None
-                save_file(data, filepath, last_modified)
+                pass
             
             if reply is not None:
                 print(f"replied to {data_json.get('request')}")
                 struct_data = json.dumps({"request_id": data_json["request_id"], "reply": reply})
                 await ws.send(struct_data)
-            
-            if pending_op and pending_op["op"] == "copy_file_to_local":
-                from_path = pending_op["from_path"]
-                pending_op = None
-                await send_file(ws, from_path)
     except websockets.ConnectionClosed:
         print("Connection closed by server")
 
@@ -193,29 +219,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-
-# async def send_file(file_path: str):
-#     """Send a file over WSS with its filename first."""
-#     filename = os.path.basename(file_path)
-
-#     for _ in range(100):
-#         try:
-#             async with websockets.connect(f"wss://{url}", ssl=ssl_context) as ws:
-#                 # Send filename first as JSON
-#                 await ws.send(json.dumps({"filename": filename}))
-                
-#                 # Send file content as binary
-#                 with open(file_path, "rb") as f:
-#                     data = f.read()
-#                 await ws.send(data)
-                
-#                 # Receive server confirmation
-#                 reply = await ws.recv()
-#                 print(f"Server reply: {reply}")
-#         except Exception as e:
-#             print("Miss:", e)
-#         time.sleep(5)
-
-# if __name__ == "__main__":
-#     file_path = r"C:\Users\cian_cl\Documents\DLR documents\cv.pdf"
-#     asyncio.run(send_file(file_path))

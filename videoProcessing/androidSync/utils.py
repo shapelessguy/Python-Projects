@@ -4,6 +4,7 @@ import stat
 from datetime import datetime
 config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".config")
 SYNC_MD_FILE = ".syncmd.json"
+TEMP_EXT = ".synctmp"
 
 
 def scale_bytes(bytes, decimal=1):

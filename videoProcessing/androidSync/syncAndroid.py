@@ -12,9 +12,9 @@ from interfaces.https_server.ws_manager import WebSocketManager
 from interfaces.https_server.https_server import run_server
 init(autoreset=True)
 
-# DEFAULT_LOCAL_ID = "EVA"
+# local_id = "EVA", "RoomServer"
 # interface_type = "Android" / "HHD"
-# interface_id = Samsung / Test / BackupHHD
+# interface_id = Samsung / BackupHHD / DLR
 
 CONFIGURATION = {
     "headless": True,
@@ -43,6 +43,8 @@ CONFIGURATION = {
                 }
             }
         },
+
+
         # {
         #     "interface_type": "HHD",
         #     "interface_id": "Test",
@@ -125,7 +127,9 @@ class File:
     def copy_to_local(self, global_stats, from_):
         os.makedirs(os.path.dirname(self.local_path.get_unix_path()), exist_ok=True)
         signal["ui"].execute("set_text", "details_lbl", f"Copying from remote: {self.remote_path.get_unix_path()}")
-        self.signal['interface'].copy_file_to_local(self.local_path, self.remote_path)
+        r = self.signal['interface'].copy_file_to_local(self.local_path, self.remote_path)
+        if r == 1:
+            return 1
         global_stats[from_]["n"] -= 1
         global_stats[from_]["size"] -= self.size
         global_stats["in_sync"]["n"] += 1
@@ -135,7 +139,9 @@ class File:
     
     def copy_to_remote(self, global_stats, from_):
         signal["ui"].execute("set_text", "details_lbl", f"Copying from remote: {self.local_path.get_unix_path()}")
-        self.signal['interface'].copy_file_to_remote(self.local_path, self.remote_path)
+        r = self.signal['interface'].copy_file_to_remote(self.local_path, self.remote_path)
+        if r == 1:
+            return 1
         global_stats[from_]["n"] -= 1
         global_stats[from_]["size"] -= self.size
         global_stats["in_sync"]["n"] += 1
@@ -154,14 +160,18 @@ class File:
     
     def remove_from_remote(self, global_stats, from_):
         signal["ui"].execute("set_text", "details_lbl", f"Deleting from remote: {self.remote_path.get_unix_path()}")
-        self.signal['interface'].delete_file_from_remote(self.remote_path)
+        r = self.signal['interface'].delete_file_from_remote(self.remote_path)
+        if r == 1:
+            return 1
         global_stats[from_]["n"] -= 1
         global_stats[from_]["size"] -= self.size
         self.signal["ui"].execute("set_statistics", global_stats, None)
         print(f"Removed {self.remote_path.get_unix_path()} from remote")
     
     def move_to_unhandled(self, unhandled_path: CPath, global_stats, from_):
-        self.signal['interface'].move_file_from_remote_to_remote(self.remote_path, unhandled_path)
+        r = self.signal['interface'].move_file_from_remote_to_remote(self.remote_path, unhandled_path)
+        if r == 1:
+            return 1
         global_stats[from_]["n"] -= 1
         global_stats[from_]["size"] -= self.size
         self.signal["ui"].execute("set_statistics", global_stats, None)
@@ -193,14 +203,18 @@ class Folder:
     def get_remote_path_files(self):
         files_to_add = self.signal['interface'].get_remote_files(self.signal, self.remote_path, self.files, remote_root=self.signal['interface'].root)
         for full_filename, local_path, remote_path, date, high_precision, size in files_to_add:
-            if full_filename.origin != CPath(self.relative_path.origin).append(SYNC_MD_FILE).origin:
+            if full_filename.origin.endswith(SYNC_MD_FILE) or full_filename.origin.endswith(TEMP_EXT):
+                continue
+            else:
                 self.files[full_filename.origin] = self.files.get(full_filename.origin, {"local": None, "remote": None})
                 self.files[full_filename.origin]["remote"] = File(self, full_filename, remote_path, local_path, date, high_precision, size, self.signal)
     
     def get_local_path_files(self):
         files_to_add = get_local_files(self.signal, self.local_path, self.relative_path, self.master_local)
         for full_filename, local_path, remote_path, date, high_precision, size in files_to_add:
-            if full_filename.origin != CPath(self.relative_path.origin).append(SYNC_MD_FILE).origin:
+            if full_filename.origin.endswith(SYNC_MD_FILE) or full_filename.origin.endswith(TEMP_EXT):
+                continue
+            else:
                 self.files[full_filename.origin] = self.files.get(full_filename.origin, {"local": None, "remote": None})
                 self.files[full_filename.origin]["local"] = File(self, full_filename, remote_path, local_path, date, high_precision, size, self.signal)
     
@@ -358,7 +372,9 @@ class Folder:
                     if signal["kill"]:
                         return
                     if self.files[f]['remote'].relative_path.origin in self.sync_md["files"]:
-                        self.files[f]['remote'].remove_from_remote(global_stats, from_="only_remote")
+                        r = self.files[f]['remote'].remove_from_remote(global_stats, from_="only_remote")
+                        if r == 1:
+                            continue
                         del self.sync_md["files"][self.files[f]['remote'].relative_path.origin]
                     else:
                         self.files[f]['remote'].copy_to_local(global_stats, from_="only_remote")
