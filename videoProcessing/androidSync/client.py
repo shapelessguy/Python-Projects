@@ -12,10 +12,9 @@ import socket
 from datetime import datetime
 
 
-DEVICE_ID = "DLR"
+DEVICE_ID = "EVA"
 SERVER_PORT = 443
 HOSTNAME = socket.gethostbyname("cyanroomserver.duckdns.org")
-HOSTNAME = "localhost"
 
 
 url = f"{HOSTNAME}:{SERVER_PORT}"
