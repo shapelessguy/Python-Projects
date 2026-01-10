@@ -52,11 +52,15 @@ class FileBuilder:
         self.file_id = file_id
         self.file_size = file_size
         self.tot_chunks = tot_chunks
+        self._buffer = bytearray()
     
     def add_part(self, encoded):
         chunk = base64.b64decode(encoded)
-        with open(self.to_path + TEMP_EXT, "ab") as f:
-            f.write(chunk)
+        if self.to_path.endswith(SYNC_MD_FILE) and os.path.exists(self.to_path):
+            self._buffer.extend(chunk)
+        else:
+            with open(self.to_path + TEMP_EXT, "ab") as f:
+                f.write(chunk)
     
     def get_chunk(self, index):
         CHUNK_SIZE = 256 * 1024
@@ -76,7 +80,19 @@ class FileBuilder:
         return 1
     
     def close(self):
-        shutil.move(self.to_path + TEMP_EXT, self.to_path)
+        if self.to_path.endswith(SYNC_MD_FILE) and os.path.exists(self.to_path):
+            with open(self.to_path, "r") as file:
+                prev_sync = json.load(file)
+            raw_bytes = bytes(self._buffer)
+            text = raw_bytes.decode("utf-8")
+            data = json.loads(text)
+            if json.dumps(data) != json.dumps(prev_sync):
+                with open(self.to_path, "wb") as f:
+                    f.write(self._buffer)
+            else:
+                print("file not changed")
+        else:
+            shutil.move(self.to_path + TEMP_EXT, self.to_path)
         os.utime(self.to_path, (self.last_modified, self.last_modified))
 
 

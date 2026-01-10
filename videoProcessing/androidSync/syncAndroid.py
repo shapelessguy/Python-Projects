@@ -30,7 +30,7 @@ for interface in CONFIGURATION["interfaces"]:
 print(f"CONFIGURATION: {config_name}")
 
 
-DEFAULT_SYNC_MD = {"last_sync": 0, "files": {}}
+DEFAULT_SYNC_MD = {"files": {}}
 
 class File:
     folder = None
@@ -219,9 +219,8 @@ class Folder:
     
     def set_sync(self):
         data = DEFAULT_SYNC_MD
-        now = datetime.now().timestamp()
-        data["last_sync"] = now
-        data["files"] = {f: now for f in self.categories["in_sync"]}
+        # now = datetime.now().timestamp()
+        data["files"] = [f for f in self.categories["in_sync"]]
         prev_local_sync_md = self.sync_md
 
         set_local_sync_md(data, self.local_path, self.signal['interface'])

@@ -23,7 +23,7 @@ curHour   = Right("0" & Hour(dt), 2)
 curMinute = Right("0" & Minute(dt), 2)
 
 ' Build log filename
-logFile = logDir & "\syncAndroid_" & curYear & "-" & curMonth & "-" & curDay & "_" & curHour & "-" & curMinute & ".log"
+logFile = logDir & "\syncAndroid_" & arg1 & curYear & "-" & curMonth & "-" & curDay & "_" & curHour & "-" & curMinute & ".log"
 
 cmd = "cmd /c python """ & scriptDir & "\syncAndroid.py"" """ & arg1 & """ """ & logFile & """ 2>&1"
 objShell.Run cmd, 0, True
