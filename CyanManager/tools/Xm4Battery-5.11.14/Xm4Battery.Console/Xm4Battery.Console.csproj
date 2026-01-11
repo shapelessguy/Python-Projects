@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\WmiPnp.Xm4\WmiPnp.Xm4.csproj" />
+    <ProjectReference Include="..\WmiPnp\WmiPnp.csproj" />
+  </ItemGroup>
+
+</Project>

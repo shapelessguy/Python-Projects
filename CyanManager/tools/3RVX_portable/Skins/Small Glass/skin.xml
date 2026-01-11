@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<skin>
+  <info>
+    <author>Jake Lauer</author>
+    <website>http://jakelauer.com</website>
+  </info>
+
+  <osds>
+    <volume background="OSD\back.png" defaultUnits="21">
+      <meter type="HorizontalBar" image="OSD\meter.png"
+             x="43" y="8" units="21"/>
+      <iconset location="Icons\Volume"/>
+    </volume>
+
+    <mute background="OSD\mute.png"/>
+    <eject background="OSD\eject.png"/>
+  </osds>
+
+  <sliders>
+    <volume background="Slider\back.png">
+      <slider type="vertical" image="Slider\knob.png"
+              x="17" y="13" width="6" height="173"/>
+    </volume>
+  </sliders>
+</skin>

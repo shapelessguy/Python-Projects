@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="publish.cmd" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\WmiPnp.Xm4\WmiPnp.Xm4.csproj" />
+    <ProjectReference Include="..\WmiPnp\WmiPnp.csproj" />
+  </ItemGroup>
+
+</Project>

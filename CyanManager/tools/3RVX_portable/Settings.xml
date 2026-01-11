@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<settings>
+    <showOnStartup>false</showOnStartup>
+    <soundEffects>false</soundEffects>
+    <automaticUpdates>false</automaticUpdates>
+    <skin>ClassicCyan</skin>
+    <onTop>true</onTop>
+    <hideFullscreen>false</hideFullscreen>
+    <hideDirectX>false</hideDirectX>
+    <osdPosition>Bottom</osdPosition>
+    <osdEdgeOffset>140</osdEdgeOffset>
+    <monitor>*</monitor>
+    <hideAnimation>Fade</hideAnimation>
+    <hideDelay>800</hideDelay>
+    <hideSpeed>465</hideSpeed>
+    <volumeOSDEnabled>true</volumeOSDEnabled>
+    <brightnessOSDEnabled>true</brightnessOSDEnabled>
+    <ejectOSDEnabled>true</ejectOSDEnabled>
+    <keyboardOSDEnabled>true</keyboardOSDEnabled>
+    <notifyIcon>true</notifyIcon>
+    <subscribeVolumeEvents>true</subscribeVolumeEvents>
+    <audioDeviceID/>
+    <curveAdjust>0</curveAdjust>
+    <volumeLimiter>1</volumeLimiter>
+    <muteDuringLock>false</muteDuringLock>
+    <ejectIcon>false</ejectIcon>
+    <subscribeEjectEvents>true</subscribeEjectEvents>
+    <hotkeys/>
+</settings>

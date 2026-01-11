@@ -1,0 +1,24 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<skin>
+  <info>
+    <author>Aphaits</author>
+    <website>http://aphaits.deviantart.com</website>
+  </info>
+
+  <osds>
+    <volume background="OSD\back.png" defaultUnits="14">
+      <meter type="bitstrip" image="OSD\meter.png" units="14" x="18" y="18"/>
+      <iconset location="Notification Icons\Volume"/>
+      <sound file="sound.wav"/>
+    </volume>
+    <mute background="OSD\mute.png"/>
+    <eject background="OSD\eject.png"/>
+  </osds>
+
+  <sliders>
+    <volume background="Slider\back.png">
+      <slider type="vertical" image="Slider\knob.png"
+              x="29" y="16" width="5" height="98"/>
+    </volume>
+  </sliders>
+</skin>
