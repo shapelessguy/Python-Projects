@@ -1,9 +1,52 @@
 import os
 import subprocess
 import pythoncom
-from utils import SV_EXE_PATH, ICONS_FOLDER_PATH
+from utils import SV_EXE_PATH, ICONS_FOLDER_PATH, pprint
 from pycaw.pycaw import AudioUtilities
 from plyer import notification
+
+
+volume_ticks = []
+for i in range(11):
+    volume_ticks.append(i)
+for i in range(12, 21, 2):
+    volume_ticks.append(i)
+for i in range(22, 35, 3):
+    volume_ticks.append(i)
+for i in range(38, 51, 4):
+    volume_ticks.append(i)
+for i in range(55, 101, 5):
+    volume_ticks.append(i)
+
+
+def un_mute_volume(volume, new_vol):
+    is_muted = volume.GetMute()
+    if new_vol < 0.004 and not is_muted:
+        volume.SetMute(1, None)
+    elif new_vol > 0.004 and is_muted:
+        volume.SetMute(0, None)
+
+
+def get_step(cur_vol, direction):
+    global volume_ticks
+    cur_vol_int = round(cur_vol * 100, 0)
+    next_vol = 0
+    for j in range(len(volume_ticks)):
+        if direction > 0:
+            if j == len(volume_ticks) - 2:
+                next_vol = volume_ticks[-1]
+                break
+            elif volume_ticks[j] <= cur_vol_int < volume_ticks[j+1]:
+                next_vol = volume_ticks[j+1]
+                break
+        elif direction < 0:
+            if cur_vol_int == volume_ticks[0]:
+                next_vol = volume_ticks[0]
+                break
+            elif volume_ticks[j] < cur_vol_int <= volume_ticks[j+1]:
+                next_vol = volume_ticks[j]
+                break
+    return (next_vol - cur_vol_int) / 100
 
 
 def volume_up(signal, verbose=False):
@@ -11,13 +54,11 @@ def volume_up(signal, verbose=False):
     device = AudioUtilities.GetSpeakers()
     volume = device.EndpointVolume
     current = volume.GetMasterVolumeLevelScalar()
-    new_vol = round(min(current + 0.01, 1.0), 2)
+    new_vol = round(min(current + get_step(current, +1), 1.0), 2)
     volume.SetMasterVolumeLevelScalar(new_vol, None)
-    # print("Current volume:", new_vol)
-    if new_vol > 0.004:
-        is_muted = volume.GetMute()
-        if is_muted:
-            volume.SetMute(0, None)
+    if verbose:
+        pprint("Current volume:", new_vol)
+    un_mute_volume(volume, new_vol)
 
 
 def volume_down(signal, verbose=False):
@@ -25,13 +66,11 @@ def volume_down(signal, verbose=False):
     device = AudioUtilities.GetSpeakers()
     volume = device.EndpointVolume
     current = volume.GetMasterVolumeLevelScalar()
-    new_vol = round(max(current - 0.01, 0.0), 2)
+    new_vol = round(max(current + get_step(current, -1), 0.0), 2)
     volume.SetMasterVolumeLevelScalar(new_vol, None)
-    # print("Current volume:", new_vol)
-    if new_vol < 0.004:
-        is_muted = volume.GetMute()
-        if not is_muted:
-            volume.SetMute(1, None)
+    if verbose:
+        pprint("Current volume:", new_vol)
+    un_mute_volume(volume, new_vol)
 
 
 def switch_to_headphones(signal, verbose=False):
@@ -42,7 +81,7 @@ def switch_to_headphones(signal, verbose=False):
     device = AudioUtilities.GetSpeakers()
     after = device.FriendlyName
     if after != before:
-        print(f"Switch to {after}")
+        pprint(f"Switch to {after}")
         notification.notify(
             title="Default Audio Device",
             app_name="CyanSystemManager",
@@ -60,7 +99,7 @@ def switch_to_speakers(signal, verbose=False):
     device = AudioUtilities.GetSpeakers()
     after = device.FriendlyName
     if after != before:
-        print(f"Switch to {after}")
+        pprint(f"Switch to {after}")
         notification.notify(
             title="Default Audio Device",
             app_name="CyanSystemManager",

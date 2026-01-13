@@ -4,8 +4,8 @@ import psutil
 import win32process
 import pywinctl as pwc
 import shutil
-import time
-from utils import Monitor_, MULTIMONITOR_EXE_PATH, TEMP_MONITOR_CONF_PATH, MONITOR_CONF_PATH
+import ctypes
+from utils import Monitor_, MULTIMONITOR_EXE_PATH, TEMP_MONITOR_CONF_PATH, MONITOR_CONF_PATH, wait, pprint
 from collections import defaultdict
 from operator import attrgetter
 from screeninfo import get_monitors
@@ -17,7 +17,7 @@ def find_windows(signal, verbose=False):
         _, pid = win32process.GetWindowThreadProcessId(win.getHandle())
         win.proc_name = psutil.Process(pid).name().replace(".exe", "")
     matches = {}
-    for a in signal.applications:
+    for a in signal.get_applications():
         match = None 
         if len(a.window_kw):
             for win in windows:
@@ -31,10 +31,10 @@ def find_windows(signal, verbose=False):
                     break
         matches[a] = match
     if verbose:
-        print("\nFind Windows")
+        pprint("\nFind Windows")
         for k, m in matches.items():
-            print(k, m)
-        print()
+            pprint(k, m)
+        pprint()
     return matches
 
 
@@ -42,7 +42,7 @@ def get_screens(signal, verbose=False):
     try:
         if os.path.exists(TEMP_MONITOR_CONF_PATH):
             os.remove(TEMP_MONITOR_CONF_PATH)
-            time.sleep(0.1)
+            wait(signal, 100)
     except Exception:
         pass
 
@@ -51,7 +51,7 @@ def get_screens(signal, verbose=False):
     for _ in range(20):
         if os.path.exists(TEMP_MONITOR_CONF_PATH):
             break
-        time.sleep(0.1)
+        wait(signal, 100)
 
     while signal.is_alive():
         try:
@@ -59,7 +59,7 @@ def get_screens(signal, verbose=False):
             break
         except:
             monitor_matches = []
-        time.sleep(1)
+        wait(signal, 1000)
 
     if os.path.exists(TEMP_MONITOR_CONF_PATH):
         try:
@@ -68,10 +68,10 @@ def get_screens(signal, verbose=False):
             raise Exception(f"Error while moving {TEMP_MONITOR_CONF_PATH} into {MONITOR_CONF_PATH}")
 
     if verbose:
-        print("\nFind Monitors")
+        pprint("\nFind Monitors")
         for m in monitor_matches:
-            print(f"- _id: {m._id} device_name: {m.device_name} x:{m.x} y:{m.y} width:{m.width} height:{m.height} is_primary:{m.is_primary} name:{m.name}")
-        print()
+            pprint(f"- _id: {m._id} device_name: {m.device_name} x:{m.x} y:{m.y} width:{m.width} height:{m.height} is_primary:{m.is_primary} name:{m.name}")
+        pprint()
     return monitor_matches
 
 
@@ -133,16 +133,50 @@ def parse_screen_info(info_path):
     return en_screens
 
 
-def order(signal, verbose=False):
-    cur_profile = signal.preferences["current_profile"]
-    profile = signal.preferences["all_profiles"][cur_profile]
-    windows = find_windows(signal)
+class POINT(ctypes.Structure):
+    _fields_ = [("x", ctypes.c_long), ("y", ctypes.c_long)]
+
+
+pt = POINT()
+def get_mouse_position(signal, verbose=False):
+    ctypes.windll.user32.GetCursorPos(ctypes.byref(pt))
+    return pt
+
+
+def shutdown_monitors(signal, verbose=False):
     screens = get_screens(signal)
-    for app_name, config in profile.items():
-        for k, win in windows.items():
-            if win is not None and k.name == app_name:
-                monitor_id = config["monitor_id"]
+    monitor_names = []
+    for s in screens:
+        if s.device_name != "HECB350":
+            monitor_names.append(s.name)
+    subprocess.run([MULTIMONITOR_EXE_PATH, "/TurnOff"] + monitor_names)
+
+
+def turn_on_monitors(signal, verbose=False):
+    screens = get_screens(signal)
+    monitor_names = []
+    for s in screens:
+        if s.device_name != "HECB350":
+            monitor_names.append(s.name)
+    subprocess.run([MULTIMONITOR_EXE_PATH, "/TurnOn"] + monitor_names)
+
+
+def order(signal, verbose=False, specific_apps=()):
+    os_windows = find_windows(signal)
+    screens = get_screens(signal)
+
+    windows_moved = []
+    for app in signal.get_applications():
+        if len(specific_apps) > 0 and app.name not in specific_apps:
+            continue
+        app_name = app.name
+        win_props = app.window_props
+        for k, win in os_windows.items():
+            if win is not None and k.name == app_name and win_props["order"]:
+                monitor_id = win_props["monitor_id"]
                 for screen in screens:
                     if screen._id == monitor_id:
-                        win.resizeTo(config["width"], config["height"])
-                        win.moveTo(screen.x + config["x"], screen.y + config["y"])
+                        win.resizeTo(win_props["width"], win_props["height"])
+                        win.moveTo(screen.x + win_props["x"], screen.y + win_props["y"])
+                        windows_moved.append(app_name)
+    return windows_moved

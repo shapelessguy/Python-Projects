@@ -1,0 +1,203 @@
+{
+    "current_profile": "default",
+    "all_profiles": {
+        "default": {
+            "roomserver_settings": {
+                "port": 10004
+            },
+            "restart": {
+                "from": "2:00",
+                "to": "7:00",
+                "inactive_delay": "2:00",
+                "active": true
+            },
+            "services": {},
+            "applications": {
+                "Mattermost": {
+                    "window_kw": [
+                        "Mattermost Desktop App"
+                    ],
+                    "window_props": {
+                        "monitor_id": "HKC2413(2)",
+                        "x": 982,
+                        "y": 523,
+                        "width": 938,
+                        "height": 510,
+                        "order": true
+                    },
+                    "proc_name": "Mattermost",
+                    "path": "app:Mattermost",
+                    "arguments": "",
+                    "startup": true
+                },
+                "Mozilla Firefox": {
+                    "window_kw": [
+                        "Mozilla Firefox"
+                    ],
+                    "window_props": {
+                        "monitor_id": "HKC2413(2)",
+                        "x": 982,
+                        "y": 523,
+                        "width": 938,
+                        "height": 510,
+                        "order": false
+                    },
+                    "proc_name": "firefox",
+                    "path": "app:Firefox",
+                    "arguments": "",
+                    "startup": false
+                },
+                "Thunderbird": {
+                    "window_kw": [],
+                    "window_props": {
+                        "monitor_id": "HKC2413",
+                        "x": 453,
+                        "y": 417,
+                        "width": 1474,
+                        "height": 623,
+                        "order": true
+                    },
+                    "proc_name": "thunderbird",
+                    "path": "app:Thunderbird",
+                    "arguments": "",
+                    "startup": true
+                },
+                "Youtube Music": {
+                    "window_kw": [
+                        "YouTube Music Desktop App"
+                    ],
+                    "window_props": {
+                        "monitor_id": "HKC2413(2)",
+                        "x": 0,
+                        "y": 591,
+                        "width": 983,
+                        "height": 442,
+                        "order": true
+                    },
+                    "proc_name": "youtube-music-desktop-app",
+                    "path": "app:YouTube Music Desktop App",
+                    "arguments": "",
+                    "startup": true
+                },
+                "WhatsApp": {
+                    "window_kw": [
+                        "WhatsApp"
+                    ],
+                    "window_props": {
+                        "monitor_id": "HKC2413(2)",
+                        "x": -7,
+                        "y": 0,
+                        "width": 998,
+                        "height": 600,
+                        "order": true
+                    },
+                    "proc_name": "WhatsApp.Root",
+                    "path": "app:WhatsApp",
+                    "arguments": "",
+                    "startup": true
+                },
+                "Telegram": {
+                    "window_kw": [],
+                    "window_props": {
+                        "monitor_id": "HKC2413(2)",
+                        "x": 975,
+                        "y": 2,
+                        "width": 952,
+                        "height": 530,
+                        "order": true
+                    },
+                    "proc_name": "Telegram",
+                    "path": "app:Telegram Desktop",
+                    "arguments": "",
+                    "startup": true
+                },
+                "NordVPN": {
+                    "window_kw": [
+                        "NordVPN"
+                    ],
+                    "window_props": {
+                        "monitor_id": "HKC2413(2)",
+                        "x": 982,
+                        "y": 523,
+                        "width": 938,
+                        "height": 510,
+                        "order": true
+                    },
+                    "proc_name": "NordVPN",
+                    "path": "C:/Program Files/NordVPN/NordVPN.exe",
+                    "arguments": "",
+                    "startup": true
+                },
+                "QBitTorrent": {
+                    "window_kw": [
+                        "qBittorrent"
+                    ],
+                    "window_props": {
+                        "monitor_id": "HKC2413",
+                        "x": 454,
+                        "y": 0,
+                        "width": 1473,
+                        "height": 425,
+                        "order": true
+                    },
+                    "proc_name": "qbittorrent",
+                    "path": "C:/Program Files/qBittorrent/qbittorrent.exe",
+                    "arguments": "",
+                    "startup": true
+                },
+                "MSI Afterburner": {
+                    "window_kw": [
+                        "MSI Afterburner",
+                        "hardware monitor"
+                    ],
+                    "window_props": {
+                        "monitor_id": "HKC2413",
+                        "x": -7,
+                        "y": 0,
+                        "width": 476,
+                        "height": 870,
+                        "order": true
+                    },
+                    "proc_name": "MSIAfterburner",
+                    "path": "C:/Program Files (x86)/MSI Afterburner/MSIAfterburner.exe",
+                    "arguments": "",
+                    "startup": true
+                },
+                "Discord": {
+                    "window_kw": [
+                        "Discord"
+                    ],
+                    "window_props": {
+                        "monitor_id": "HKC2413(2)",
+                        "x": 982,
+                        "y": 523,
+                        "width": 938,
+                        "height": 510,
+                        "order": false
+                    },
+                    "proc_name": "discord",
+                    "path": "app:Discord",
+                    "arguments": "",
+                    "startup": false
+                },
+                "NetMeter Evo": {
+                    "window_kw": [
+                        "NetMeter Evo"
+                    ],
+                    "window_props": {
+                        "monitor_id": "HKC2413",
+                        "x": 0,
+                        "y": 862,
+                        "width": 461,
+                        "height": 170,
+                        "order": true
+                    },
+                    "proc_name": "NetMeterEvo",
+                    "path": "E:/Software/Network/NetMeterEvo.exe",
+                    "arguments": "",
+                    "startup": true
+                }
+            }
+        }
+    }
+}
