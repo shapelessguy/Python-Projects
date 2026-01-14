@@ -1,3 +1,5 @@
 <Solution>
-  <Project Path="KeyboardHotkeys/KeyboardHotkeys.csproj" />
+  <Project Path="KeyboardHotkeys/KeyboardHotkeys.csproj">
+    <BuildType Project="Release" />
+  </Project>
 </Solution>

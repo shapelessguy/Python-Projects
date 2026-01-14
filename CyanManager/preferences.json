@@ -7,7 +7,9 @@
                 "headphones": "Headphones"
             },
             "roomserver_settings": {
-                "port": 10004
+                "port": 10004,
+                "auto_from": "9:00",
+                "auto_to": "20:00"
             },
             "restart": {
                 "from": "2:00",
@@ -27,6 +29,7 @@
                         "y": 523,
                         "width": 938,
                         "height": 510,
+                        "win_state": "normal",
                         "order": true
                     },
                     "proc_name": "Mattermost",
@@ -44,6 +47,7 @@
                         "y": 523,
                         "width": 938,
                         "height": 510,
+                        "win_state": "normal",
                         "order": false
                     },
                     "proc_name": "firefox",
@@ -59,6 +63,7 @@
                         "y": 417,
                         "width": 1474,
                         "height": 623,
+                        "win_state": "normal",
                         "order": true
                     },
                     "proc_name": "thunderbird",
@@ -76,6 +81,7 @@
                         "y": 591,
                         "width": 983,
                         "height": 442,
+                        "win_state": "normal",
                         "order": true
                     },
                     "proc_name": "youtube-music-desktop-app",
@@ -93,6 +99,7 @@
                         "y": 0,
                         "width": 998,
                         "height": 600,
+                        "win_state": "normal",
                         "order": true
                     },
                     "proc_name": "WhatsApp.Root",
@@ -108,6 +115,7 @@
                         "y": 2,
                         "width": 952,
                         "height": 530,
+                        "win_state": "normal",
                         "order": true
                     },
                     "proc_name": "Telegram",
@@ -125,6 +133,7 @@
                         "y": 523,
                         "width": 938,
                         "height": 510,
+                        "win_state": "hidden",
                         "order": true
                     },
                     "proc_name": "NordVPN",
@@ -142,6 +151,7 @@
                         "y": 0,
                         "width": 1473,
                         "height": 425,
+                        "win_state": "normal",
                         "order": true
                     },
                     "proc_name": "qbittorrent",
@@ -160,6 +170,7 @@
                         "y": 0,
                         "width": 476,
                         "height": 870,
+                        "win_state": "normal",
                         "order": true
                     },
                     "proc_name": "MSIAfterburner",
@@ -177,6 +188,7 @@
                         "y": 523,
                         "width": 938,
                         "height": 510,
+                        "win_state": "normal",
                         "order": false
                     },
                     "proc_name": "discord",
@@ -194,6 +206,7 @@
                         "y": 862,
                         "width": 461,
                         "height": 170,
+                        "win_state": "normal",
                         "order": true
                     },
                     "proc_name": "NetMeterEvo",

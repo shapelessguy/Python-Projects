@@ -12,18 +12,19 @@ def startup(signal):
     while signal.is_alive() and len(started_apps):
         c += 1
         wait(signal, 1000)
-        ordered_apps = signal.reg_functions.ORDER.run([started_apps])
+        ordered_apps = signal.reg_functions.ORDER.run(started_apps)
         for ordered in ordered_apps:
             started_apps.discard(ordered)
         if c >= max_cycles:
             break
-    signal.reg_functions.ORDER.run()
-
+    signal.reg_functions.ORDER.run_verbose()
 
 
 def monitor_user_activity(signal):
     if "startup" in sys.argv:
         startup(signal)
+    signal.reg_functions.TURN_ON_MONITORS.run_verbose()
+    signal.reg_functions.LIGHTS_AUTO.run_verbose(False)
     pt = signal.reg_functions.GET_MOUSE_POS.run()
     last_activity = now = datetime.now()
     last_pos = (pt.x, pt.y)

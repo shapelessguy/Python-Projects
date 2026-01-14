@@ -1,3 +1,5 @@
 <Solution>
-  <Project Path="Timer/Timer.csproj" />
+  <Project Path="Timer/Timer.csproj">
+    <BuildType Project="Release" />
+  </Project>
 </Solution>

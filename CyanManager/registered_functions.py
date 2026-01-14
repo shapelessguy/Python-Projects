@@ -20,7 +20,7 @@ class HandleFunction:
     def add_signal(self, signal):
         self.signal = signal
     
-    def _run(self, verbose, args=()):
+    def _run(self, verbose, *args):
         result = ERR_FLAG
         try:
             if verbose:
@@ -34,11 +34,11 @@ class HandleFunction:
             pprint(text)
         return result
     
-    def run(self, args=()):
-        return self._run(False, args)
+    def run(self, *args):
+        return self._run(False, *args)
     
-    def run_verbose(self, args=()):
-        return self._run(True, args)
+    def run_verbose(self, *args):
+        return self._run(True, *args)
     
     def __name__(self):
         return self.function_.__name__
@@ -183,7 +183,7 @@ def register_functions_and_hotkeys(signal: Signal):
 
         # DEBUG PURPOSE -> NUMPAD4
         # (100, 0): reg_functions.SHOW_UWP_APP_NAMES,
-        (100, 0): reg_functions.STARTUP,
+        # (100, 0): reg_functions.STARTUP,
         # (100, 0): reg_functions.GET_APPS_STATUS,
         # (100, 0): reg_functions.FIND_WINDOWS.run_verbose,
         # (100, 0): reg_functions.GET_SCREENS.run_verbose,

@@ -1,0 +1,17 @@
+C:\Users\shape\Documents\codebase\sharedCode\CyanManager\tools\Timer\Timer\bin\Release\net10.0-windows\Timer.exe
+C:\Users\shape\Documents\codebase\sharedCode\CyanManager\tools\Timer\Timer\bin\Release\net10.0-windows\Timer.deps.json
+C:\Users\shape\Documents\codebase\sharedCode\CyanManager\tools\Timer\Timer\bin\Release\net10.0-windows\Timer.runtimeconfig.json
+C:\Users\shape\Documents\codebase\sharedCode\CyanManager\tools\Timer\Timer\bin\Release\net10.0-windows\Timer.dll
+C:\Users\shape\Documents\codebase\sharedCode\CyanManager\tools\Timer\Timer\bin\Release\net10.0-windows\Timer.pdb
+C:\Users\shape\Documents\codebase\sharedCode\CyanManager\tools\Timer\Timer\obj\Release\net10.0-windows\Timer.TimerWin.resources
+C:\Users\shape\Documents\codebase\sharedCode\CyanManager\tools\Timer\Timer\obj\Release\net10.0-windows\Timer.csproj.GenerateResource.cache
+C:\Users\shape\Documents\codebase\sharedCode\CyanManager\tools\Timer\Timer\obj\Release\net10.0-windows\Timer.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\shape\Documents\codebase\sharedCode\CyanManager\tools\Timer\Timer\obj\Release\net10.0-windows\Timer.AssemblyInfoInputs.cache
+C:\Users\shape\Documents\codebase\sharedCode\CyanManager\tools\Timer\Timer\obj\Release\net10.0-windows\Timer.AssemblyInfo.cs
+C:\Users\shape\Documents\codebase\sharedCode\CyanManager\tools\Timer\Timer\obj\Release\net10.0-windows\Timer.csproj.CoreCompileInputs.cache
+C:\Users\shape\Documents\codebase\sharedCode\CyanManager\tools\Timer\Timer\obj\Release\net10.0-windows\Timer.sourcelink.json
+C:\Users\shape\Documents\codebase\sharedCode\CyanManager\tools\Timer\Timer\obj\Release\net10.0-windows\Timer.dll
+C:\Users\shape\Documents\codebase\sharedCode\CyanManager\tools\Timer\Timer\obj\Release\net10.0-windows\refint\Timer.dll
+C:\Users\shape\Documents\codebase\sharedCode\CyanManager\tools\Timer\Timer\obj\Release\net10.0-windows\Timer.pdb
+C:\Users\shape\Documents\codebase\sharedCode\CyanManager\tools\Timer\Timer\obj\Release\net10.0-windows\Timer.genruntimeconfig.cache
+C:\Users\shape\Documents\codebase\sharedCode\CyanManager\tools\Timer\Timer\obj\Release\net10.0-windows\ref\Timer.dll

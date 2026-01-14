@@ -1,6 +1,6 @@
 import requests
 import json
-from utils import pprint
+from utils import pprint, notify
 
 
 def get_roomserver_settings(signal, verbose, topic, arg):
@@ -24,15 +24,20 @@ def get_roomserver_settings(signal, verbose, topic, arg):
         if verbose:
             pprint(f"HTTP request failed: {ex}")
         return False
+    
+
+def send_light_config(signal, verbose, value, notify_):
+    get_roomserver_settings(signal, verbose, "lights", value)
+    if notify_:
+        notify(title="Room Server", message=f"Lights {value}", icon="server.ico")
+
+def lights_on(signal, verbose=False, notify_=True):
+    send_light_config(signal, verbose, "on", notify_)
 
 
-def lights_on(signal, verbose=False):
-    get_roomserver_settings(signal, verbose, "lights", "on")
+def lights_off(signal, verbose=False, notify_=True):
+    send_light_config(signal, verbose, "off", notify_)
 
 
-def lights_off(signal, verbose=False):
-    get_roomserver_settings(signal, verbose, "lights", "off")
-
-
-def lights_auto(signal, verbose=False):
-    get_roomserver_settings(signal, verbose, "lights", "auto")
+def lights_auto(signal, verbose=False, notify_=True):
+    send_light_config(signal, verbose, "auto", notify_)

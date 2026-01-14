@@ -178,5 +178,11 @@ def order(signal, verbose=False, specific_apps=()):
                     if screen._id == monitor_id:
                         win.resizeTo(win_props["width"], win_props["height"])
                         win.moveTo(screen.x + win_props["x"], screen.y + win_props["y"])
+                        if win_props["win_state"] == "normal":
+                            win.restore()
+                        elif win_props["win_state"] == "hidden":
+                            win.close()
+                        elif win_props["win_state"] == "minimized":
+                            win.minimize()
                         windows_moved.append(app_name)
     return windows_moved

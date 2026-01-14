@@ -1,24 +1,7 @@
 {
   "Version": 1,
   "WorkspaceRootPath": "C:\\Users\\shape\\Documents\\codebase\\sharedCode\\CyanManager\\tools\\Timer\\",
-  "Documents": [
-    {
-      "AbsoluteMoniker": "D:0:0:{8DC30AF4-5987-4D9B-81B4-A6CC95230F48}|Timer\\Timer.csproj|c:\\users\\shape\\documents\\codebase\\sharedcode\\cyanmanager\\tools\\timer\\timer\\timerwin.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
-      "RelativeMoniker": "D:0:0:{8DC30AF4-5987-4D9B-81B4-A6CC95230F48}|Timer\\Timer.csproj|solutionrelative:timer\\timerwin.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{8DC30AF4-5987-4D9B-81B4-A6CC95230F48}|Timer\\Timer.csproj|c:\\users\\shape\\documents\\codebase\\sharedcode\\cyanmanager\\tools\\timer\\timer\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{8DC30AF4-5987-4D9B-81B4-A6CC95230F48}|Timer\\Timer.csproj|solutionrelative:timer\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{8DC30AF4-5987-4D9B-81B4-A6CC95230F48}|Timer\\Timer.csproj|c:\\users\\shape\\documents\\codebase\\sharedcode\\cyanmanager\\tools\\timer\\timer\\timerwin.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{8DC30AF4-5987-4D9B-81B4-A6CC95230F48}|Timer\\Timer.csproj|solutionrelative:timer\\timerwin.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{8DC30AF4-5987-4D9B-81B4-A6CC95230F48}|Timer\\Timer.csproj|c:\\users\\shape\\documents\\codebase\\sharedcode\\cyanmanager\\tools\\timer\\timer\\timerwin.designer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{8DC30AF4-5987-4D9B-81B4-A6CC95230F48}|Timer\\Timer.csproj|solutionrelative:timer\\timerwin.designer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    }
-  ],
+  "Documents": [],
   "DocumentGroupContainers": [
     {
       "Orientation": 0,
@@ -26,7 +9,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 5,
+          "SelectedChildIndex": -1,
           "Children": [
             {
               "$type": "Bookmark",
@@ -43,57 +26,6 @@
             {
               "$type": "Bookmark",
               "Name": "ST:0:0:{d78612c7-9962-4b83-95d9-268046dad23a}"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 1,
-              "Title": "Program.cs",
-              "DocumentMoniker": "C:\\Users\\shape\\Documents\\codebase\\sharedCode\\CyanManager\\tools\\Timer\\Timer\\Program.cs",
-              "RelativeDocumentMoniker": "Timer\\Program.cs",
-              "ToolTip": "C:\\Users\\shape\\Documents\\codebase\\sharedCode\\CyanManager\\tools\\Timer\\Timer\\Program.cs",
-              "RelativeToolTip": "Timer\\Program.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAAAyAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-01-14T00:29:42.325Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 0,
-              "Title": "TimerWin.cs [Design]",
-              "DocumentMoniker": "C:\\Users\\shape\\Documents\\codebase\\sharedCode\\CyanManager\\tools\\Timer\\Timer\\TimerWin.cs",
-              "RelativeDocumentMoniker": "Timer\\TimerWin.cs",
-              "ToolTip": "C:\\Users\\shape\\Documents\\codebase\\sharedCode\\CyanManager\\tools\\Timer\\Timer\\TimerWin.cs [Design]",
-              "RelativeToolTip": "Timer\\TimerWin.cs [Design]",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-01-13T23:21:49.444Z",
-              "EditorCaption": " [Design]"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 3,
-              "Title": "TimerWin.Designer.cs",
-              "DocumentMoniker": "C:\\Users\\shape\\Documents\\codebase\\sharedCode\\CyanManager\\tools\\Timer\\Timer\\TimerWin.Designer.cs",
-              "RelativeDocumentMoniker": "Timer\\TimerWin.Designer.cs",
-              "ToolTip": "C:\\Users\\shape\\Documents\\codebase\\sharedCode\\CyanManager\\tools\\Timer\\Timer\\TimerWin.Designer.cs",
-              "RelativeToolTip": "Timer\\TimerWin.Designer.cs",
-              "ViewState": "AgIAAB0AAAAAAAAAAAAMwB4AAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-01-13T23:20:11.522Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "TimerWin.cs",
-              "DocumentMoniker": "C:\\Users\\shape\\Documents\\codebase\\sharedCode\\CyanManager\\tools\\Timer\\Timer\\TimerWin.cs",
-              "RelativeDocumentMoniker": "Timer\\TimerWin.cs",
-              "ToolTip": "C:\\Users\\shape\\Documents\\codebase\\sharedCode\\CyanManager\\tools\\Timer\\Timer\\TimerWin.cs",
-              "RelativeToolTip": "Timer\\TimerWin.cs",
-              "ViewState": "AgIAABwAAAAAAAAAAAAgwCsAAAAWAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-01-13T23:19:46.426Z",
-              "EditorCaption": ""
             }
           ]
         }

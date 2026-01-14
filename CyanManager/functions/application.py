@@ -5,24 +5,14 @@ import subprocess
 from utils import pprint
 
 
-c = None
-
-
-def create_context():
-    global c
-    if c is None:
-        pythoncom.CoInitialize()
-        c = wmi.WMI()
-
-
 def get_apps_status(signal, verbose=False):
-    global c
-    create_context()
+    pythoncom.CoInitialize()
+    c = wmi.WMI()
 
     applications = signal.get_applications()
     app_exe_names = {a.proc_name: a for a in applications}
 
-    names_q = " OR ".join([f"Name = '{a.proc_name}.exe'" for a in applications])
+    names_q = " OR ".join([f"Name = \"{a.proc_name}.exe\"" for a in applications])
     query = f""" SELECT * FROM Win32_Process WHERE {names_q} """
     
     for p in c.query(query):

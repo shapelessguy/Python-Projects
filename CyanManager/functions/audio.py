@@ -1,12 +1,9 @@
-import os
 import subprocess
 import pythoncom
-import winsound
 import sounddevice as sd
 import numpy as np
-from utils import SV_EXE_PATH, ICONS_FOLDER_PATH, TIMER_EXE, pprint
+from utils import SV_EXE_PATH, TIMER_EXE, pprint, notify
 from pycaw.pycaw import AudioUtilities
-from plyer import notification
 
 volume_ticks = []
 for i in range(11):
@@ -114,13 +111,7 @@ def switch_to_headphones(signal, verbose=False):
     after = device.FriendlyName
     if after != before:
         pprint(f"Switch to {after}")
-        notification.notify(
-            title="Default Audio Device",
-            app_name="CyanSystemManager",
-            message=f"Switch to: {after}",
-            app_icon=os.path.join(ICONS_FOLDER_PATH, "wh1000.ico"),
-            timeout=2
-        )
+        notify(title="Default Audio Device", message=f"Switch to: {after}", icon="wh1000.ico")
 
 
 def switch_to_speakers(signal, verbose=False):
@@ -133,10 +124,4 @@ def switch_to_speakers(signal, verbose=False):
     after = device.FriendlyName
     if after != before:
         pprint(f"Switch to {after}")
-        notification.notify(
-            title="Default Audio Device",
-            app_name="CyanSystemManager",
-            message=f"Switch to: {after}",
-            app_icon=os.path.join(ICONS_FOLDER_PATH, "logitech.ico"),
-            timeout=2
-        )
+        notify(title="Default Audio Device", message=f"Switch to: {after}", icon="logitech.ico")

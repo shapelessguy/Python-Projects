@@ -2,6 +2,7 @@ import os
 import psutil
 import time
 import subprocess
+from plyer import notification
 from datetime import datetime
 from pathlib import Path
 
@@ -16,8 +17,8 @@ SV_EXE_PATH = os.path.join(TOOLS_PATH, 'svcl.exe')
 MULTIMONITOR_FOLDER_PATH = os.path.join(TOOLS_PATH, "MultiMonitorTool")
 RVX_EXE_PATH = os.path.join(TOOLS_PATH, "3RVX_portable", "3RVX.exe")
 XM4_EXE_PATH = os.path.join(TOOLS_PATH, "Xm4Battery-5.11.14", "Xm4Battery", "bin", "Release", "net10.0-windows", "Xm4Battery.exe")
-KEYBOARD_HOTKEYS_EXE = os.path.join(TOOLS_PATH, "KeyboardHotkeys", "KeyboardHotkeys", "bin", "Debug", "net10.0-windows", "KeyboardHotkeys.exe")
-TIMER_EXE = os.path.join(TOOLS_PATH, "Timer", "Timer", "bin", "Debug", "net10.0-windows", "Timer.exe")
+KEYBOARD_HOTKEYS_EXE = os.path.join(TOOLS_PATH, "KeyboardHotkeys", "KeyboardHotkeys", "bin", "Release", "net10.0-windows", "KeyboardHotkeys.exe")
+TIMER_EXE = os.path.join(TOOLS_PATH, "Timer", "Timer", "bin", "Release", "net10.0-windows", "Timer.exe")
 MULTIMONITOR_EXE_PATH = os.path.join(MULTIMONITOR_FOLDER_PATH, "MultiMonitorTool.exe")
 TEMP_MONITOR_CONF_PATH = os.path.join(MULTIMONITOR_FOLDER_PATH, "temp_config.cfg")
 MONITOR_CONF_PATH = os.path.join(MULTIMONITOR_FOLDER_PATH, "config.cfg")
@@ -59,6 +60,16 @@ def pprint(*args, dt_format="%Y-%m-%d %H:%M:%S", **kwargs):
     """
     timestamp = datetime.now().strftime(dt_format)
     print(f"[{timestamp}]", *args, **kwargs, flush=True)
+
+
+def notify(title, message, icon=None, timeout=2):
+    notification.notify(
+        title=title,
+        app_name="CyanSystemManager",
+        message=message,
+        app_icon=os.path.join(ICONS_FOLDER_PATH, icon) if icon else None,
+        timeout=timeout
+    )
 
 
 class Application:
