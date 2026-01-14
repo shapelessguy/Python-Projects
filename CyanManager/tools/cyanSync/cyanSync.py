@@ -501,7 +501,12 @@ def main(signal):
         prev_all_interfaces_connected = False
         while not signal["kill"]:
             for interface in interfaces:
-                interface.connected = interface.device_connected()
+                connected = False
+                try:
+                    connected = interface.device_connected()
+                except:
+                    pass
+                interface.connected = connected
 
             all_interfaces_connected = all([x.connected for x in interfaces])
             if CONFIGURATION["wait_for_connection"]:
