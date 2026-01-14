@@ -17,6 +17,23 @@
     },
     "services": {},
     "applications": {
+        "NotesSync": {
+            "window_kw": [],
+            "window_props": {
+                "monitor_id": "DELL U2421E",
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "win_state": "normal",
+                "order": false
+            },
+            "proc_name": "python:https_client.py",
+            "path": "TOOLS/cyanSync/https_client.py",
+            "arguments": "DLR",
+            "runas": "user",
+            "startup": true
+        },
         "CyanLauncherManager": {
             "window_kw": [],
             "window_props": {

@@ -76,11 +76,15 @@ def startup_applications(signal, verbose=False):
                 curDay = now.strftime("%d")
                 curHour = now.strftime("%H")
                 curMinute = now.strftime("%M")
-                logFile = Path(CYANSYNC_LOGS_PATH) / f"{app.name}_{app.arguments}_{curYear}-{curMonth}-{curDay}_{curHour}-{curMinute}.log"
-
-                cmd = ["python", app.path, app.arguments, str(logFile)]
-                with open(logFile, "w", encoding="utf-8") as log:
-                    subprocess.Popen(cmd, stdout=log, stderr=log)
+                if "cyanSync" in app.path:
+                    logFile = Path(CYANSYNC_LOGS_PATH) / f"{app.name}_{app.arguments}_{curYear}-{curMonth}-{curDay}_{curHour}-{curMinute}.log"
+                    os.makedirs(os.path.dirname(logFile), exist_ok=True)
+                    cmd = ["python", app.path, app.arguments, str(logFile)]
+                    with open(logFile, "w", encoding="utf-8") as log:
+                        subprocess.Popen(cmd, stdout=log, stderr=log)
+                else:
+                    cmd = ["python", app.path, app.arguments]
+                    subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             else:
                 if app.runas:
                     ctypes.windll.shell32.ShellExecuteW(
