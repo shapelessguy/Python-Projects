@@ -1,4 +1,0 @@
-2026-01-13 14:55:40Z System.Runtime.InteropServices.COMException (0x800706BA): The RPC server is unavailable. (0x800706BA)
-   at WmiPnp.PnpEntity.GetDeviceProperty(String key) in C:\Users\shape\Documents\codebase\Xm4Battery-5.11.14\WmiPnp\PnpEntity.cs:line 84
-   at WmiPnp.Xm4.Xm4Poller.ThreadWorker(Object o) in C:\Users\shape\Documents\codebase\Xm4Battery-5.11.14\WmiPnp.Xm4\Xm4Poller.cs:line 30
-   at System.Threading.Thread.StartCallback()
