@@ -53,6 +53,7 @@ def get_screens(signal, verbose=False):
             break
         wait(signal, 100)
 
+    monitor_matches = []
     while signal.is_alive():
         try:
             monitor_matches = parse_screen_info(TEMP_MONITOR_CONF_PATH)

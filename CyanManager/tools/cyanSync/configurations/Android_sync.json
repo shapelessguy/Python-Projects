@@ -1,0 +1,24 @@
+{
+    "headless": false,
+    "one_check": false,
+    "wait_for_connection": true,
+    "local_id": "EVA",
+    "interfaces": [
+        {
+            "interface_type": "Android",
+            "interface_id": "Samsung",
+            "interface_args": {
+                "local_root": "E:/Video/PhoneMultimedia/SamsungSync",
+                "android_serial": "RFCY21D9PCK",
+                "folder_map": {
+                    "Documents": {"master_local": "C:/Users/shape/Documents/bureaucracy/Documenti"},
+                    "Download": {},
+                    "DCIM": {},
+                    "Pictures": {},
+                    "Movies": {},
+                    "Music": {}
+                }
+            }
+        }
+    ]
+}

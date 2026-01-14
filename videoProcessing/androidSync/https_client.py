@@ -32,11 +32,11 @@ def check_if_process_already_running(script_name, last_arg):
             cmdline = proc.info.get("cmdline") or []
             if not cmdline:
                 continue
-            if any(script_name in part for part in cmdline) and cmdline[-1] == last_arg:
+            if any(script_name in part for part in cmdline) and last_arg in cmdline:
                 processes.append(proc)
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             continue
-    if len(processes) > 2:
+    if len(processes) > 1:
         print(f"SyncAndroid already running on the same configuration:")
         for proc in processes:
             print(" ".join(proc.info["cmdline"]) + f" -> {proc.pid}")

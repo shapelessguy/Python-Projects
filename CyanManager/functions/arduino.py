@@ -24,12 +24,13 @@ def get_roomserver_settings(signal, verbose, topic, arg):
         if verbose:
             pprint(f"HTTP request failed: {ex}")
         return False
-    
+
 
 def send_light_config(signal, verbose, value, notify_):
     get_roomserver_settings(signal, verbose, "lights", value)
     if notify_:
         notify(title="Room Server", message=f"Lights {value}", icon="server.ico")
+
 
 def lights_on(signal, verbose=False, notify_=True):
     send_light_config(signal, verbose, "on", notify_)

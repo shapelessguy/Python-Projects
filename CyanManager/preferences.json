@@ -213,6 +213,38 @@
                     "path": "E:/Software/Network/NetMeterEvo.exe",
                     "arguments": "",
                     "startup": true
+                },
+                "AndroidSync": {
+                    "window_kw": [],
+                    "window_props": {
+                        "monitor_id": "HKC2413",
+                        "x": 0,
+                        "y": 0,
+                        "width": 0,
+                        "height": 0,
+                        "win_state": "normal",
+                        "order": false
+                    },
+                    "proc_name": "python:cyanSync.py",
+                    "path": "TOOLS/cyanSync/cyanSync.py",
+                    "arguments": "Android_sync",
+                    "startup": true
+                },
+                "NotesSync": {
+                    "window_kw": [],
+                    "window_props": {
+                        "monitor_id": "HKC2413",
+                        "x": 0,
+                        "y": 0,
+                        "width": 0,
+                        "height": 0,
+                        "win_state": "normal",
+                        "order": false
+                    },
+                    "proc_name": "python:https_client.py",
+                    "path": "TOOLS/cyanSync/https_client.py",
+                    "arguments": "EVA",
+                    "startup": true
                 }
             }
         }

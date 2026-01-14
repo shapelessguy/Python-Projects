@@ -13,6 +13,7 @@ PROGRAM_FILES_X86_PATH = os.environ.get("ProgramFiles(x86)", "C:/Program Files (
 PROGRAM_FILES_PATH = os.environ.get("ProgramFiles", "C:/Program Files")
 
 TOOLS_PATH = os.path.join(os.path.dirname(__file__), 'tools')
+CYANSYNC_LOGS_PATH = os.path.join(TOOLS_PATH, 'cyanSync', 'logs')
 SV_EXE_PATH = os.path.join(TOOLS_PATH, 'svcl.exe')
 MULTIMONITOR_FOLDER_PATH = os.path.join(TOOLS_PATH, "MultiMonitorTool")
 RVX_EXE_PATH = os.path.join(TOOLS_PATH, "3RVX_portable", "3RVX.exe")
@@ -28,16 +29,6 @@ CODEBASE_PATH = os.path.join(DOCUMENTS_PATH, "codebase")
 ICONS_FOLDER_PATH = os.path.join(os.path.dirname(__file__), 'icons')
 PREFERENCES_PATH = os.path.join(os.path.dirname(__file__), 'preferences.json')
 ERR_FLAG = "CyanManagerError"
-DEFAULT_PREFERENCES = {
-    "current_profile": "default",
-    "all_profiles": {
-        "default": {
-            "services": {},
-            "applications": [],
-            "windows": {}
-        }
-    }
-}
 
 
 def wait(signal, ms: int):
@@ -79,7 +70,7 @@ class Application:
         self.window_kw = window_kw
         self.window_props = window_props
         self.proc_name = proc_name
-        self.path = Path(path).as_posix()
+        self.path = Path(path.replace("TOOLS", TOOLS_PATH)).as_posix()
         self.arguments = arguments
         self.startup = startup
     

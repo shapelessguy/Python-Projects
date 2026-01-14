@@ -6,7 +6,7 @@ from functions.monitors import *
 from functions.generic import *
 from functions.application import *
 from functions.arduino import *
-from utils import find_process_by_exe, Application, ERR_FLAG, PREFERENCES_PATH, DEFAULT_PREFERENCES
+from utils import find_process_by_exe, Application, ERR_FLAG, PREFERENCES_PATH
 from utils import KEYBOARD_HOTKEYS_EXE, RVX_EXE_PATH, XM4_EXE_PATH, pprint
 
 
@@ -62,6 +62,7 @@ class RegisteredFunctions:
     SHOW_UWP_APP_NAMES=HandleFunction(get_uwp_apps)
     SHOW_ALARM=HandleFunction(show_alarm)
     RING_ALARM=HandleFunction(ring_alarm)
+    THREADS_STATUS=HandleFunction(get_threads_status)
 
     LIGHTS_ON=HandleFunction(lights_on)
     LIGHTS_OFF=HandleFunction(lights_off)
@@ -89,10 +90,10 @@ class Signal:
             with open(PREFERENCES_PATH, "r") as file:
                 self.preferences = json.load(file)
         else:
-            self.preferences = DEFAULT_PREFERENCES
+            raise Exception("preferences.json file not found!")
     
     def get_applications(self):
-        applications = self.preferences["all_profiles"][self.preferences["current_profile"]]["applications"]
+        applications = json.loads(json.dumps(self.preferences["all_profiles"][self.preferences["current_profile"]]["applications"]))
         return [Application(a_name, **a) for a_name, a in applications.items()]
     
     def get_restart_options(self):
@@ -119,8 +120,9 @@ class Signal:
     
     def start_threads(self):
         for name, t in self.threads.items():
-            pprint(f"Starting thread: {name}")
-            t.start()
+            if not t.is_alive():
+                pprint(f"Starting thread: {name}")
+                t.start()
     
     def kill(self):
         self.kill_flag = True
@@ -182,6 +184,7 @@ def register_functions_and_hotkeys(signal: Signal):
         (99, 2): reg_functions.LIGHTS_AUTO,                 # CTRL + NUMPAD3
 
         # DEBUG PURPOSE -> NUMPAD4
+        # (100, 0): reg_functions.THREADS_STATUS,
         # (100, 0): reg_functions.SHOW_UWP_APP_NAMES,
         # (100, 0): reg_functions.STARTUP,
         # (100, 0): reg_functions.GET_APPS_STATUS,

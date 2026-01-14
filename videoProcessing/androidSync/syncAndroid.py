@@ -16,7 +16,8 @@ init(autoreset=True)
 
 
 config_name = sys.argv[1].replace('"', '')
-if check_if_process_already_running(Path(__file__).stem + ".py", config_name):
+process_already_running = check_if_process_already_running(Path(__file__).stem + ".py", config_name)
+if process_already_running:
     sys.exit(1)
 configurations_folder = os.path.join(os.path.dirname(__file__), "configurations")
 configurations = {x.replace(".json", ""): os.path.join(configurations_folder, x) for x in os.listdir(configurations_folder)}
@@ -31,6 +32,7 @@ print(f"CONFIGURATION: {config_name}")
 
 
 DEFAULT_SYNC_MD = {"files": {}}
+
 
 class File:
     folder = None
