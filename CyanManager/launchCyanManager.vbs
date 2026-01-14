@@ -1,4 +1,4 @@
-Set objShell = CreateObject("WScript.Shell")
+Set shell = CreateObject("Shell.Application")
 Set fso = CreateObject("Scripting.FileSystemObject")
 
 scriptDir = fso.GetParentFolderName(WScript.ScriptFullName)
@@ -15,12 +15,18 @@ curDay = Right("0" & Day(dt), 2)
 curHour   = Right("0" & Hour(dt), 2)
 curMinute = Right("0" & Minute(dt), 2)
 
-' Build log filename
 logFile = logDir & "\CyanManager_" & curYear & "-" & curMonth & "-" & curDay & "_" & curHour & "-" & curMinute & ".log"
 scriptPath = scriptDir & "\main_logic.py"
+installDepPath = scriptDir & "\install_dependencies.bat"
+requirementsPath = scriptDir & "\requirements.txt"
 
-' Build command
-cmd = "cmd /c python -u """ & scriptPath & """ ""startup"" > """ & logFile & """ 2>&1"
+Set installShell = CreateObject("WScript.Shell")
+pipCmd = "python -m pip install --upgrade --quiet --no-deps -r " & requirementsPath
+exitCode = installShell.Run("cmd /c " & pipCmd, 0, True)
 
-' Run hidden, wait until finished
-objShell.Run cmd, 0, True
+If exitCode <> 0 Then
+    MsgBox "Error installing dependencies!"
+End If
+
+cmdArgs = "-u """ & scriptPath & """ startup > """ & logFile & """ 2>&1"
+shell.ShellExecute "python.exe", cmdArgs, "", "runas", 0

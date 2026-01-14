@@ -27,7 +27,8 @@ MONITOR_CONF_PATH = os.path.join(MULTIMONITOR_FOLDER_PATH, "config.cfg")
 DOCUMENTS_PATH = os.path.join(os.path.expanduser("~"), "Documents")
 CODEBASE_PATH = os.path.join(DOCUMENTS_PATH, "codebase")
 ICONS_FOLDER_PATH = os.path.join(os.path.dirname(__file__), 'icons')
-PREFERENCES_PATH = os.path.join(os.path.dirname(__file__), 'preferences.json')
+CONFIGURATIONS_PATH = os.path.join(os.path.dirname(__file__), 'configurations')
+ENV_PATH = os.path.join(os.path.dirname(__file__), '.env')
 ERR_FLAG = "CyanManagerError"
 
 

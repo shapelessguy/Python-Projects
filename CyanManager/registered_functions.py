@@ -1,12 +1,13 @@
 import json
 import winreg
 import threading
+from dotenv import dotenv_values
 from functions.audio import *
 from functions.monitors import *
 from functions.generic import *
 from functions.application import *
 from functions.arduino import *
-from utils import find_process_by_exe, Application, ERR_FLAG, PREFERENCES_PATH
+from utils import find_process_by_exe, Application, ERR_FLAG, ENV_PATH, CONFIGURATIONS_PATH
 from utils import KEYBOARD_HOTKEYS_EXE, RVX_EXE_PATH, XM4_EXE_PATH, pprint
 
 
@@ -86,30 +87,41 @@ class Signal:
         self.kill_flag = False
     
     def load_preferences(self):
-        if os.path.exists(PREFERENCES_PATH):
-            with open(PREFERENCES_PATH, "r") as file:
+        env_vars = dotenv_values(ENV_PATH)
+        if "PROFILE" not in env_vars:
+            with open(ENV_PATH, "a", encoding="utf8") as file:
+                file.write("PROFILE=default\n")
+            env_vars = dotenv_values(ENV_PATH)
+        self.profile = env_vars["PROFILE"]
+        config = [x for x in os.listdir(CONFIGURATIONS_PATH) if x.replace(".json", "") == self.profile]
+        if not len(config):
+            raise Exception(f"PROFILE {self.profile} not found!")
+        profile_path = os.path.join(CONFIGURATIONS_PATH, config[0])
+        if os.path.exists(profile_path):
+            with open(profile_path, "r") as file:
                 self.preferences = json.load(file)
         else:
-            raise Exception("preferences.json file not found!")
+            raise Exception(f"File {profile_path} not found!")
     
     def get_applications(self):
-        applications = json.loads(json.dumps(self.preferences["all_profiles"][self.preferences["current_profile"]]["applications"]))
+        applications = json.loads(json.dumps(self.preferences["applications"]))
         return [Application(a_name, **a) for a_name, a in applications.items()]
     
     def get_restart_options(self):
-        restart_opt = self.preferences["all_profiles"][self.preferences["current_profile"]]["restart"]
+        restart_opt = self.preferences["restart"]
         return restart_opt
     
     def get_roomserver_settings(self):
-        rs_settings = self.preferences["all_profiles"][self.preferences["current_profile"]]["roomserver_settings"]
+        rs_settings = self.preferences["roomserver_settings"]
         return rs_settings
     
     def get_audio_devices(self):
-        devices = self.preferences["all_profiles"][self.preferences["current_profile"]]["audio_devices"]
+        devices = self.preferences["audio_devices"]
         return devices
     
     def save_preferences(self):
-        with open(PREFERENCES_PATH, "w") as file:
+        profile_path = os.path.join(CONFIGURATIONS_PATH, self.profile + ".json")
+        with open(profile_path, "w") as file:
             json.dump(self.preferences, file, indent=4)
     
     def set_reg_functions(self, reg_functions):

@@ -18,16 +18,17 @@ def get_apps_status(signal, verbose=False):
             app_exe_names["python"] = app_exe_names.get("python", []) + [a]
         app_exe_names[a.proc_name] = a
 
-    names_q = " OR ".join([f"Name = \"{name}.exe\"" for name in app_exe_names])
-    query = f""" SELECT * FROM Win32_Process WHERE {names_q} """
-    
-    for p in c.query(query):
-        if "python" in p.Caption.lower():
-            for app in app_exe_names["python"]:
-                if app.path in p.CommandLine and app.arguments in p.CommandLine:
-                    app.process = p
-        elif p.Name.replace(".exe", "") in app_exe_names:
-            app_exe_names[p.Name.replace(".exe", "")].process = p
+    if len(app_exe_names):
+        names_q = " OR ".join([f"Name = \"{name}.exe\"" for name in app_exe_names])
+        query = f""" SELECT * FROM Win32_Process WHERE {names_q} """
+        
+        for p in c.query(query):
+            if "python" in p.Caption.lower():
+                for app in app_exe_names["python"]:
+                    if app.path in p.CommandLine and app.arguments in p.CommandLine:
+                        app.process = p
+            elif p.Name.replace(".exe", "") in app_exe_names:
+                app_exe_names[p.Name.replace(".exe", "")].process = p
 
     if verbose:
         for app in applications:
@@ -94,5 +95,5 @@ def get_threads_status(signal, verbose=False):
     status = {name: thread.is_alive() for name, thread in signal.threads.items()}
     if verbose:
         for n, s in status.items():
-            print(f"Thread {n}: {'ACTIVE' if s else 'DOWN'}")
+            pprint(f"Thread {n}: {'ACTIVE' if s else 'DOWN'}")
     return status

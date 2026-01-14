@@ -9,17 +9,25 @@ def initialize(signal: Signal):
     register_functions_and_hotkeys(signal)
     register_start_and_shutdown_tasks(signal)
 
-try:
-    signal = Signal()
-    initialize(signal)
 
-    signal.start_threads()
-    while signal.is_alive():
-        wait(signal, 1000)
-except Exception:
-    pprint(traceback.format_exc())
-except KeyboardInterrupt:
-    pass
+def main():
+    signal = None
+    try:
+        signal = Signal()
+        initialize(signal)
 
-signal.kill()
-pprint("App killed")
+        signal.start_threads()
+        while signal.is_alive():
+            wait(signal, 1000)
+    except Exception:
+        pprint(traceback.format_exc())
+    except KeyboardInterrupt:
+        pass
+
+    if signal:
+        signal.kill()
+    pprint("CyanManager terminated")
+
+
+if __name__ == "__main__":
+    main()

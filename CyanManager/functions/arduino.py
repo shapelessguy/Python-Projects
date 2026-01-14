@@ -3,11 +3,11 @@ import json
 from utils import pprint, notify
 
 
-def get_roomserver_settings(signal, verbose, topic, arg):
+def send_to_roomserver(signal, verbose, topic, arg):
     try:
         values = {topic: arg}
         json_content = json.dumps(values)
-        url = f"http://cyanroomserver.duckdns.org:{signal.get_roomserver_settings()['port']}/{topic}"
+        url = f"{signal.get_roomserver_settings()['url']}:{signal.get_roomserver_settings()['port']}/{topic}"
         response = requests.post(url, data=json_content, headers={'Content-Type': 'application/json'}, timeout=5)
         response.encoding = 'iso-8859-1'
         response_text = response.text
@@ -27,7 +27,7 @@ def get_roomserver_settings(signal, verbose, topic, arg):
 
 
 def send_light_config(signal, verbose, value, notify_):
-    get_roomserver_settings(signal, verbose, "lights", value)
+    send_to_roomserver(signal, verbose, "lights", value)
     if notify_:
         notify(title="Room Server", message=f"Lights {value}", icon="server.ico")
 

@@ -7,6 +7,7 @@ from utils import wait, pprint
 def startup(signal):
     pprint("Startup...")
     started_apps = set(signal.reg_functions.STARTUP.run())
+    started_apps = set([app.name for app in signal.get_applications() if app.name in started_apps and app.window_props["order"]])
     max_cycles = 20
     c = 0
     while signal.is_alive() and len(started_apps):
