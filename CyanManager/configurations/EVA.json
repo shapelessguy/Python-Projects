@@ -28,7 +28,7 @@
                 "win_state": "normal",
                 "order": true
             },
-            "proc_name": "ChatGPT",
+            "proc_name": "ChatGPT.exe",
             "path": "app:ChatGPT",
             "arguments": "",
             "runas": "user",
@@ -47,7 +47,7 @@
                 "win_state": "normal",
                 "order": false
             },
-            "proc_name": "Mattermost",
+            "proc_name": "Mattermost.exe",
             "path": "app:Mattermost",
             "arguments": "",
             "runas": "user",
@@ -66,7 +66,7 @@
                 "win_state": "normal",
                 "order": false
             },
-            "proc_name": "firefox",
+            "proc_name": "firefox.exe",
             "path": "app:Firefox",
             "arguments": "",
             "runas": "user",
@@ -83,7 +83,7 @@
                 "win_state": "normal",
                 "order": true
             },
-            "proc_name": "thunderbird",
+            "proc_name": "thunderbird.exe",
             "path": "app:Thunderbird",
             "arguments": "",
             "runas": "user",
@@ -102,7 +102,7 @@
                 "win_state": "normal",
                 "order": true
             },
-            "proc_name": "youtube-music-desktop-app",
+            "proc_name": "youtube-music-desktop-app.exe",
             "path": "app:YouTube Music Desktop App",
             "arguments": "",
             "runas": "user",
@@ -121,7 +121,7 @@
                 "win_state": "normal",
                 "order": true
             },
-            "proc_name": "WhatsApp.Root",
+            "proc_name": "WhatsApp.Root.exe",
             "path": "app:WhatsApp",
             "arguments": "",
             "runas": "user",
@@ -138,7 +138,7 @@
                 "win_state": "normal",
                 "order": true
             },
-            "proc_name": "Telegram",
+            "proc_name": "Telegram.exe",
             "path": "app:Telegram Desktop",
             "arguments": "",
             "runas": "user",
@@ -157,7 +157,7 @@
                 "win_state": "hidden",
                 "order": true
             },
-            "proc_name": "NordVPN",
+            "proc_name": "NordVPN.exe",
             "path": "C:/Program Files/NordVPN/NordVPN.exe",
             "arguments": "",
             "runas": "user",
@@ -176,7 +176,7 @@
                 "win_state": "normal",
                 "order": true
             },
-            "proc_name": "qbittorrent",
+            "proc_name": "qbittorrent.exe",
             "path": "C:/Program Files/qBittorrent/qbittorrent.exe",
             "arguments": "",
             "runas": "user",
@@ -196,7 +196,7 @@
                 "win_state": "normal",
                 "order": true
             },
-            "proc_name": "MSIAfterburner",
+            "proc_name": "MSIAfterburner.exe",
             "path": "C:/Program Files (x86)/MSI Afterburner/MSIAfterburner.exe",
             "arguments": "",
             "runas": "user",
@@ -215,7 +215,7 @@
                 "win_state": "normal",
                 "order": false
             },
-            "proc_name": "discord",
+            "proc_name": "discord.exe",
             "path": "app:Discord",
             "arguments": "",
             "runas": "user",
@@ -234,7 +234,7 @@
                 "win_state": "normal",
                 "order": true
             },
-            "proc_name": "NetMeterEvo",
+            "proc_name": "NetMeterEvo.exe",
             "path": "E:/Software/Network/NetMeterEvo.exe",
             "arguments": "",
             "runas": "user",
@@ -285,7 +285,7 @@
                 "win_state": "normal",
                 "order": false
             },
-            "proc_name": "CyanLauncherManager",
+            "proc_name": "CyanLauncherManager.exe",
             "path": "TOOLS/CyanLauncherManager/bin/Release/CyanLauncherManager.exe",
             "arguments": "",
             "runas": "admin",

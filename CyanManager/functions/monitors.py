@@ -15,7 +15,7 @@ def find_windows(signal, verbose=False):
     windows = pwc.getAllWindows()
     for win in windows:
         _, pid = win32process.GetWindowThreadProcessId(win.getHandle())
-        win.proc_name = psutil.Process(pid).name().replace(".exe", "")
+        win.proc_name = psutil.Process(pid).name()
     matches = {}
     for a in signal.get_applications():
         match = None 
@@ -24,17 +24,14 @@ def find_windows(signal, verbose=False):
                 if all([v_ in win.title for v_ in a.window_kw]):
                     match = win
                     break
-        else:
-            for win in windows:
-                if win.proc_name == a.proc_name:
-                    match = win
-                    break
-        matches[a] = match
+        for win in windows:
+            if win.proc_name == a.proc_name:
+                match = win
+                break
+        matches[a.name] = match
     if verbose:
-        pprint("\nFind Windows")
         for k, m in matches.items():
             pprint(k, m)
-        pprint()
     return matches
 
 
@@ -69,10 +66,8 @@ def get_screens(signal, verbose=False):
             raise Exception(f"Error while moving {TEMP_MONITOR_CONF_PATH} into {MONITOR_CONF_PATH}")
 
     if verbose:
-        pprint("\nFind Monitors")
         for m in monitor_matches:
             pprint(f"- _id: {m._id} device_name: {m.device_name} x:{m.x} y:{m.y} width:{m.width} height:{m.height} is_primary:{m.is_primary} name:{m.name}")
-        pprint()
     return monitor_matches
 
 
@@ -162,6 +157,53 @@ def turn_on_monitors(signal, verbose=False):
     subprocess.run([MULTIMONITOR_EXE_PATH, "/TurnOn"] + monitor_names)
 
 
+def point_in_rect(px, py, rx, ry, width, height):
+    return (
+        rx <= px <= rx + width and
+        ry <= py <= ry + height
+    )
+
+
+def get_win_pos(signal, verbose=False):
+    os_windows = find_windows(signal)
+    screens = get_screens(signal)
+
+    default_pos = {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "win_state": "normal"
+    }
+
+    windows_pos = {}
+    for app in signal.get_applications():
+        app_name = app.name
+        windows_pos[app_name] = default_pos
+        for k, win in os_windows.items():
+            if win is not None and k == app_name:
+                cm = (win.left + win.width / 2, win.top + win.height / 2)
+                default_screen = None
+                for s in screens:
+                    if point_in_rect(cm[0], cm[1], s.x, s.y, s.width, s.height):
+                        default_screen = s
+                    elif s.is_primary and default_screen is None:
+                        default_screen = s
+                windows_pos[app_name] = {
+                    "monitor_id": default_screen._id,
+                    "x": win.left - default_screen.x,
+                    "y": win.top - default_screen.y,
+                    "width": win.width,
+                    "height": win.height,
+                    "win_state": ("minimized" if win.isMinimized else "maximized" if win.isMaximized else "normal")
+                }
+    if verbose:
+        for app_name, win_pos in windows_pos.items():
+            if win_pos["width"] > 0 and win_pos["height"] > 0:
+                pprint(app_name, win_pos)
+    return windows_pos
+
+
 def order(signal, verbose=False, specific_apps=()):
     os_windows = find_windows(signal)
     screens = get_screens(signal)
@@ -173,17 +215,18 @@ def order(signal, verbose=False, specific_apps=()):
         app_name = app.name
         win_props = app.window_props
         for k, win in os_windows.items():
-            if win is not None and k.name == app_name and win_props["order"]:
+            if win is not None and k == app_name and win_props["order"]:
                 monitor_id = win_props["monitor_id"]
                 for screen in screens:
                     if screen._id == monitor_id:
+                        win.restore()
                         win.resizeTo(win_props["width"], win_props["height"])
                         win.moveTo(screen.x + win_props["x"], screen.y + win_props["y"])
-                        if win_props["win_state"] == "normal":
-                            win.restore()
-                        elif win_props["win_state"] == "hidden":
+                        if win_props["win_state"] == "hidden":
                             win.close()
                         elif win_props["win_state"] == "minimized":
                             win.minimize()
+                        elif win_props["win_state"] == "maximized":
+                            win.maximize()
                         windows_moved.append(app_name)
     return windows_moved

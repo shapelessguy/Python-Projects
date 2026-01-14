@@ -59,6 +59,7 @@ class RegisteredFunctions:
     SHUTDOWN_MONITORS=HandleFunction(shutdown_monitors)
     GET_MOUSE_POS=HandleFunction(get_mouse_position)
     GET_APPS_STATUS=HandleFunction(get_apps_status)
+    GET_WIN_POSITIONS=HandleFunction(get_win_pos)
     STARTUP=HandleFunction(startup_applications)
     SHOW_UWP_APP_NAMES=HandleFunction(get_uwp_apps)
     SHOW_ALARM=HandleFunction(show_alarm)
@@ -196,6 +197,9 @@ def register_functions_and_hotkeys(signal: Signal):
         (99, 2): reg_functions.LIGHTS_AUTO,                 # CTRL + NUMPAD3
 
         # DEBUG PURPOSE -> NUMPAD4
+        (100, 0): reg_functions.GET_WIN_POSITIONS,
+        (103, 0): reg_functions.FIND_WINDOWS,
+        (105, 0): reg_functions.SHOW_UWP_APP_NAMES,
         # (100, 0): reg_functions.THREADS_STATUS,
         # (100, 0): reg_functions.SHOW_UWP_APP_NAMES,
         # (100, 0): reg_functions.STARTUP,
