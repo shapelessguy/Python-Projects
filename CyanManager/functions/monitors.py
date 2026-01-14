@@ -219,14 +219,17 @@ def order(signal, verbose=False, specific_apps=()):
                 monitor_id = win_props["monitor_id"]
                 for screen in screens:
                     if screen._id == monitor_id:
-                        win.restore()
-                        win.resizeTo(win_props["width"], win_props["height"])
-                        win.moveTo(screen.x + win_props["x"], screen.y + win_props["y"])
-                        if win_props["win_state"] == "hidden":
-                            win.close()
-                        elif win_props["win_state"] == "minimized":
-                            win.minimize()
-                        elif win_props["win_state"] == "maximized":
-                            win.maximize()
-                        windows_moved.append(app_name)
+                        try:
+                            win.restore()
+                            win.resizeTo(win_props["width"], win_props["height"])
+                            win.moveTo(screen.x + win_props["x"], screen.y + win_props["y"])
+                            if win_props["win_state"] == "hidden":
+                                win.close()
+                            elif win_props["win_state"] == "minimized":
+                                win.minimize()
+                            elif win_props["win_state"] == "maximized":
+                                win.maximize()
+                            windows_moved.append(app_name)
+                        except Exception as e:
+                            pprint(f"Exception while moving window for {app_name}: {e}")
     return windows_moved

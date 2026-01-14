@@ -197,9 +197,9 @@ def register_functions_and_hotkeys(signal: Signal):
         (99, 2): reg_functions.LIGHTS_AUTO,                 # CTRL + NUMPAD3
 
         # DEBUG PURPOSE -> NUMPAD4
-        (100, 0): reg_functions.GET_WIN_POSITIONS,
-        (103, 0): reg_functions.FIND_WINDOWS,
-        (105, 0): reg_functions.SHOW_UWP_APP_NAMES,
+        # (100, 0): reg_functions.GET_WIN_POSITIONS,
+        # (103, 0): reg_functions.FIND_WINDOWS,
+        # (105, 0): reg_functions.SHOW_UWP_APP_NAMES,
         # (100, 0): reg_functions.THREADS_STATUS,
         # (100, 0): reg_functions.SHOW_UWP_APP_NAMES,
         # (100, 0): reg_functions.STARTUP,
