@@ -17,7 +17,6 @@ def initialize(signal: Signal):
     register_functions_and_hotkeys(signal)
     register_start_and_shutdown_tasks(signal)
 
-
 try:
     signal = Signal()
     initialize(signal)

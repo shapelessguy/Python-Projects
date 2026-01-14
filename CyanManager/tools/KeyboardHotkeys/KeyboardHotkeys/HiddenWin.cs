@@ -10,7 +10,7 @@ namespace KeyboardHotkeys
     public partial class HiddenWin : Form
     {
         private Dictionary<string, (int key, int modifier)> keyMap;
-        const string RegPath = @"CyanHotkey";
+        const string RegPath = "CyanHotkey";
         DateTime lastSentTime = DateTime.MinValue;
         System.Windows.Forms.Timer clearRegistry;
         private NotifyIcon trayIcon;
@@ -31,7 +31,7 @@ namespace KeyboardHotkeys
             using (var k = Registry.CurrentUser.OpenSubKey(RegPath, writable: true)) k?.DeleteValue("function", false);
             clearRegistry.Tick += (o, e) =>
             {
-                string value = getFunction();
+                // string value = getFunction();
                 if (DateTime.UtcNow - lastSentTime > TimeSpan.FromMilliseconds(500)) deleteFunction();
             };
             InitializeTrayIcon();

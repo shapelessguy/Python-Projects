@@ -2,6 +2,10 @@
     "current_profile": "default",
     "all_profiles": {
         "default": {
+            "audio_devices": {
+                "speakers": "SPDIF-Out",
+                "headphones": "Headphones"
+            },
             "roomserver_settings": {
                 "port": 10004
             },

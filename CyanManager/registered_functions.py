@@ -6,7 +6,8 @@ from functions.monitors import *
 from functions.generic import *
 from functions.application import *
 from functions.arduino import *
-from utils import find_process_by_exe, Application, ERR_FLAG, PREFERENCES_PATH, DEFAULT_PREFERENCES, KEYBOARD_HOTKEYS_EXE, RVX_EXE_PATH, XM4_EXE_PATH, pprint
+from utils import find_process_by_exe, Application, ERR_FLAG, PREFERENCES_PATH, DEFAULT_PREFERENCES
+from utils import KEYBOARD_HOTKEYS_EXE, RVX_EXE_PATH, XM4_EXE_PATH, pprint
 
 
 reg_path = "CyanHotkey"
@@ -59,6 +60,8 @@ class RegisteredFunctions:
     GET_APPS_STATUS=HandleFunction(get_apps_status)
     STARTUP=HandleFunction(startup_applications)
     SHOW_UWP_APP_NAMES=HandleFunction(get_uwp_apps)
+    SHOW_ALARM=HandleFunction(show_alarm)
+    RING_ALARM=HandleFunction(ring_alarm)
 
     LIGHTS_ON=HandleFunction(lights_on)
     LIGHTS_OFF=HandleFunction(lights_off)
@@ -100,6 +103,10 @@ class Signal:
         rs_settings = self.preferences["all_profiles"][self.preferences["current_profile"]]["roomserver_settings"]
         return rs_settings
     
+    def get_audio_devices(self):
+        devices = self.preferences["all_profiles"][self.preferences["current_profile"]]["audio_devices"]
+        return devices
+    
     def save_preferences(self):
         with open(PREFERENCES_PATH, "w") as file:
             json.dump(self.preferences, file, indent=4)
@@ -124,6 +131,17 @@ class Signal:
 
 def listen_hotkeys(signal, hotkeys_operative):
     while signal.is_alive():
+
+        try:
+            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, reg_path, 0, winreg.KEY_READ)
+            value, _ = winreg.QueryValueEx(key, "alarm")
+            winreg.CloseKey(key)
+            winreg.DeleteKey(winreg.HKEY_CURRENT_USER, reg_path)
+            if value == "ALARM":
+                threading.Thread(target=signal.reg_functions.RING_ALARM.run).start()
+        except FileNotFoundError:
+            pass
+
         try:
             key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, reg_path, 0, winreg.KEY_READ)
             value, _ = winreg.QueryValueEx(key, "function")
@@ -157,6 +175,7 @@ def register_functions_and_hotkeys(signal: Signal):
         (105, 2): reg_functions.WIN_SNAPSHOT,               # CTRL + NUMPAD9
         (104, 0): reg_functions.TURN_ON_MONITORS,           # NUMPAD8
         (98, 0): reg_functions.SHUTDOWN_MONITORS,           # NUMPAD2
+        (109, 0): reg_functions.SHOW_ALARM,                 # NUMPAD -
 
         (97, 2): reg_functions.LIGHTS_ON,                   # CTRL + NUMPAD1
         (98, 2): reg_functions.LIGHTS_OFF,                  # CTRL + NUMPAD2

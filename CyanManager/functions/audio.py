@@ -1,10 +1,12 @@
 import os
 import subprocess
 import pythoncom
-from utils import SV_EXE_PATH, ICONS_FOLDER_PATH, pprint
+import winsound
+import sounddevice as sd
+import numpy as np
+from utils import SV_EXE_PATH, ICONS_FOLDER_PATH, TIMER_EXE, pprint
 from pycaw.pycaw import AudioUtilities
 from plyer import notification
-
 
 volume_ticks = []
 for i in range(11):
@@ -49,6 +51,35 @@ def get_step(cur_vol, direction):
     return (next_vol - cur_vol_int) / 100
 
 
+def show_alarm(signal, verbose=False):
+    subprocess.Popen([TIMER_EXE])
+
+
+def play_sound(duration=1.5):
+    fs = 44100
+    t = np.linspace(0, duration, int(fs * duration), False)
+    f1 = 950
+    f2 = 1050
+    wave1 = np.sign(np.sin(2 * np.pi * f1 * t))
+    wave2 = np.sign(np.sin(2 * np.pi * f2 * t))
+    tone = (wave1 + wave2) / 2
+    pulse = (np.sin(2 * np.pi * 5 * t) > 0).astype(float)
+    alarm = tone * pulse
+    sd.play(alarm, fs)
+    sd.wait()
+
+
+def ring_alarm(signal, verbose=False):
+    pythoncom.CoInitialize()
+    device = AudioUtilities.GetSpeakers()
+    volume = device.EndpointVolume
+    current = volume.GetMasterVolumeLevelScalar()
+    temp_vol = 0.4
+    volume.SetMasterVolumeLevelScalar(temp_vol, None)
+    play_sound()
+    volume.SetMasterVolumeLevelScalar(current, None)
+
+
 def volume_up(signal, verbose=False):
     pythoncom.CoInitialize()
     device = AudioUtilities.GetSpeakers()
@@ -77,7 +108,8 @@ def switch_to_headphones(signal, verbose=False):
     pythoncom.CoInitialize()
     device = AudioUtilities.GetSpeakers()
     before = device.FriendlyName
-    subprocess.run([SV_EXE_PATH, '/SetDefault', 'Headphones', '1'])
+    headphones_name = signal.get_audio_devices()["headphones"]
+    subprocess.run([SV_EXE_PATH, '/SetDefault', headphones_name, '1'])
     device = AudioUtilities.GetSpeakers()
     after = device.FriendlyName
     if after != before:
@@ -95,7 +127,8 @@ def switch_to_speakers(signal, verbose=False):
     pythoncom.CoInitialize()
     device = AudioUtilities.GetSpeakers()
     before = device.FriendlyName
-    subprocess.run([SV_EXE_PATH, '/SetDefault', 'SPDIF-Out', '1'])
+    speakers_name = signal.get_audio_devices()["speakers"]
+    subprocess.run([SV_EXE_PATH, '/SetDefault', speakers_name, '1'])
     device = AudioUtilities.GetSpeakers()
     after = device.FriendlyName
     if after != before:
