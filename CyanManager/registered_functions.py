@@ -184,6 +184,7 @@ def register_functions_and_hotkeys(signal: Signal):
         (175, 0): reg_functions.VOLUME_UP,                  # VOL+
         (174, 0): reg_functions.VOLUME_DOWN,                # VOL-
         (96, 0): reg_functions.ORDER,                       # NUMPAD0
+        (112, 0): reg_functions.ORDER,                      # F1
         (97, 0): reg_functions.HEADPHONES,                  # NUMPAD1
         (99, 0): reg_functions.SPEAKERS,                    # NUMPAD3
         (105, 0): reg_functions.SNAPSHOT,                   # NUMPAD9
