@@ -31,6 +31,7 @@
             "proc_name": "ChatGPT",
             "path": "app:ChatGPT",
             "arguments": "",
+            "runas": "user",
             "startup": true
         },
         "Mattermost": {
@@ -49,6 +50,7 @@
             "proc_name": "Mattermost",
             "path": "app:Mattermost",
             "arguments": "",
+            "runas": "user",
             "startup": true
         },
         "Mozilla Firefox": {
@@ -67,6 +69,7 @@
             "proc_name": "firefox",
             "path": "app:Firefox",
             "arguments": "",
+            "runas": "user",
             "startup": false
         },
         "Thunderbird": {
@@ -83,6 +86,7 @@
             "proc_name": "thunderbird",
             "path": "app:Thunderbird",
             "arguments": "",
+            "runas": "user",
             "startup": true
         },
         "Youtube Music": {
@@ -101,6 +105,7 @@
             "proc_name": "youtube-music-desktop-app",
             "path": "app:YouTube Music Desktop App",
             "arguments": "",
+            "runas": "user",
             "startup": true
         },
         "WhatsApp": {
@@ -119,6 +124,7 @@
             "proc_name": "WhatsApp.Root",
             "path": "app:WhatsApp",
             "arguments": "",
+            "runas": "user",
             "startup": true
         },
         "Telegram": {
@@ -135,6 +141,7 @@
             "proc_name": "Telegram",
             "path": "app:Telegram Desktop",
             "arguments": "",
+            "runas": "user",
             "startup": true
         },
         "NordVPN": {
@@ -153,6 +160,7 @@
             "proc_name": "NordVPN",
             "path": "C:/Program Files/NordVPN/NordVPN.exe",
             "arguments": "",
+            "runas": "user",
             "startup": true
         },
         "QBitTorrent": {
@@ -171,6 +179,7 @@
             "proc_name": "qbittorrent",
             "path": "C:/Program Files/qBittorrent/qbittorrent.exe",
             "arguments": "",
+            "runas": "user",
             "startup": true
         },
         "MSI Afterburner": {
@@ -190,6 +199,7 @@
             "proc_name": "MSIAfterburner",
             "path": "C:/Program Files (x86)/MSI Afterburner/MSIAfterburner.exe",
             "arguments": "",
+            "runas": "user",
             "startup": true
         },
         "Discord": {
@@ -208,6 +218,7 @@
             "proc_name": "discord",
             "path": "app:Discord",
             "arguments": "",
+            "runas": "user",
             "startup": false
         },
         "NetMeter Evo": {
@@ -226,6 +237,7 @@
             "proc_name": "NetMeterEvo",
             "path": "E:/Software/Network/NetMeterEvo.exe",
             "arguments": "",
+            "runas": "user",
             "startup": true
         },
         "AndroidSync": {
@@ -242,6 +254,7 @@
             "proc_name": "python:cyanSync.py",
             "path": "TOOLS/cyanSync/cyanSync.py",
             "arguments": "Android_sync",
+            "runas": "user",
             "startup": true
         },
         "NotesSync": {
@@ -258,6 +271,7 @@
             "proc_name": "python:https_client.py",
             "path": "TOOLS/cyanSync/https_client.py",
             "arguments": "EVA",
+            "runas": "user",
             "startup": true
         },
         "CyanLauncherManager": {
@@ -274,6 +288,7 @@
             "proc_name": "CyanLauncherManager",
             "path": "TOOLS/CyanLauncherManager/bin/Release/CyanLauncherManager.exe",
             "arguments": "",
+            "runas": "admin",
             "startup": true
         }
     }

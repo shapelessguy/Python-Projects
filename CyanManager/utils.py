@@ -65,7 +65,7 @@ def notify(title, message, icon=None, timeout=2):
 
 
 class Application:
-    def __init__(self, name, window_kw, window_props, proc_name, path, process=None, arguments="", startup=False):
+    def __init__(self, name, window_kw, window_props, proc_name, path, process=None, arguments="", runas="user", startup=False):
         self.name = name
         self.process = process
         self.window_kw = window_kw
@@ -73,6 +73,7 @@ class Application:
         self.proc_name = proc_name
         self.path = Path(path.replace("TOOLS", TOOLS_PATH)).as_posix()
         self.arguments = arguments
+        self.runas = runas == "admin"
         self.startup = startup
     
     def to_dict(self):
@@ -82,6 +83,7 @@ class Application:
             "proc_name": self.proc_name,
             "path": self.path,
             "arguments": self.arguments,
+            "runas": self.runas,
             "startup": self.startup
         }
 

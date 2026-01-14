@@ -1,7 +1,7 @@
 {
     "audio_devices": {
-        "speakers": "SPDIF-Out",
-        "headphones": "Headphones"
+        "speakers": "Lautsprecher",
+        "headphones": "WH-1000XM4"
     },
     "roomserver_settings": {
         "url": "http://cyanroomserver.duckdns.org",
@@ -17,5 +17,22 @@
     },
     "services": {},
     "applications": {
+        "CyanLauncherManager": {
+            "window_kw": [],
+            "window_props": {
+                "monitor_id": "DELL U2421E",
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "win_state": "normal",
+                "order": false
+            },
+            "proc_name": "CyanLauncherManagerAdmin",
+            "path": "C:/Users/cian_cl/Documents/TOPICS/shapeCode/clm_admin/CyanLauncherManagerAdmin.exe",
+            "arguments": "",
+            "runas": "admin",
+            "startup": true
+        }
     }
 }

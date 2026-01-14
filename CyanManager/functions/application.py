@@ -2,6 +2,7 @@ import os
 import wmi
 import pythoncom
 import subprocess
+import ctypes
 from datetime import datetime
 from pathlib import Path
 from utils import pprint, CYANSYNC_LOGS_PATH
@@ -81,12 +82,22 @@ def startup_applications(signal, verbose=False):
                 with open(logFile, "w", encoding="utf-8") as log:
                     subprocess.Popen(cmd, stdout=log, stderr=log)
             else:
-                subprocess.Popen(
-                    [app.path] + app.arguments.split(),
-                    cwd=os.path.dirname(app.path),
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL
-                )
+                if app.runas:
+                    ctypes.windll.shell32.ShellExecuteW(
+                        None,
+                        "runas",
+                        app.path,
+                        app.arguments,
+                        os.path.dirname(app.path),
+                        1
+                    )
+                else:
+                    subprocess.Popen(
+                        [app.path] + app.arguments.split(),
+                        cwd=os.path.dirname(app.path),
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL
+                    )
         started_apps.append(app.name)
     return started_apps
 

@@ -1,4 +1,5 @@
-Set shell = CreateObject("Shell.Application")
+Set objShell = CreateObject("WScript.Shell")
+Set installShell = CreateObject("WScript.Shell")
 Set fso = CreateObject("Scripting.FileSystemObject")
 
 scriptDir = fso.GetParentFolderName(WScript.ScriptFullName)
@@ -20,13 +21,13 @@ scriptPath = scriptDir & "\main_logic.py"
 installDepPath = scriptDir & "\install_dependencies.bat"
 requirementsPath = scriptDir & "\requirements.txt"
 
-Set installShell = CreateObject("WScript.Shell")
-pipCmd = "python -m pip install --upgrade --quiet --no-deps -r " & requirementsPath
+pipCmd = "python -m pip install --upgrade --user --quiet --no-deps -r " & requirementsPath
 exitCode = installShell.Run("cmd /c " & pipCmd, 0, True)
 
 If exitCode <> 0 Then
     MsgBox "Error installing dependencies!"
 End If
 
-cmdArgs = "-u """ & scriptPath & """ startup > """ & logFile & """ 2>&1"
-shell.ShellExecute "python.exe", cmdArgs, "", "runas", 0
+cmd = "cmd /c python -u """ & scriptPath & """ startup > """ & logFile & """ 2>&1"
+objShell.Run cmd, 0, True
+
