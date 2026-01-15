@@ -1,10 +1,8 @@
 import sys
 import os
 import importlib
-from PyQt5 import QtWidgets
-from PyQt5 import QtWidgets
 from PyQt5.QtCore import QObject, Qt
-from PyQt5.QtWidgets import QApplication
+from PyQt5.QtWidgets import QMainWindow, QApplication
 from PyQt5.QtCore import QObject, pyqtSignal
 from https_client import pprint
 from utils import *
@@ -62,7 +60,7 @@ class UI(EmptyUI):
         importlib.reload(frontend)
 
         app = QApplication(sys.argv)
-        MainWindow = QtWidgets.QMainWindow()
+        MainWindow = QMainWindow()
         ui = frontend.Ui_MainWindow()
         ui.app = app
         ui.main_window = MainWindow

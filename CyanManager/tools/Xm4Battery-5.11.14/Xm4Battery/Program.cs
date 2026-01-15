@@ -215,7 +215,7 @@ internal static class Program
         // icon text: battery level or status
         var iconText =
             uiBatteryLevel switch {
-                <= DisconnectedLevel => state.BatteryLevel <= WarningPowerLevel ? "%" : "X",
+                <= DisconnectedLevel => state.BatteryLevel <= WarningPowerLevel ? "%" : "10",
                 <= CriticalPowerLevel => "!",
                 FullPowerLevel => "10",
                 _ => $"{state.BatteryLevel / 10}", // One digit of charge level 1..9
@@ -261,11 +261,8 @@ internal static class Program
 
         var prevIcon = notifyIconCtrl.Icon;
 
-        notifyIconCtrl.Icon =
-            CreateXmIcon( currentState );
-
-        if (prevIcon is not null)
-            DestroyIcon( prevIcon.Handle );
+        using var newIcon = CreateXmIcon(currentState);
+        notifyIconCtrl.Icon = (Icon)newIcon.Clone();
 
         // a race condition may occur and it happens sometimes
         // somewhere between getting state and getting last connected time

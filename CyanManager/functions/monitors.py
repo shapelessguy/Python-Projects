@@ -210,7 +210,8 @@ def discover_windows(signal, verbose=False):
             string += f"\tWindow: title={win_info['win_title']}, monitor_id={win_info['monitor_id']}, "
             string += f"x={win_info['x']}, y={win_info['y']}, width={win_info['width']}, height={win_info['height']}\n"
             string += f"\tproc_name={win_info['proc_name']}, path={win_info['path']}, \n"
-            string += f"\tuwp_names={'\n\t'.join(json.dumps(uwp_names, indent=2).split('\n'))}"
+            uwp_names = '\n\t'.join(json.dumps(uwp_names, indent=2).split('\n'))
+            string += f"\tuwp_names={uwp_names}"
             pprint(string)
 
     return windows_info

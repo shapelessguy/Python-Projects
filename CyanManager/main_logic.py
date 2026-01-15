@@ -3,18 +3,23 @@ import json
 import threading
 import datetime
 import traceback
+import sys
+import ctypes
+from gui.manage_ui import UI
 from dotenv import dotenv_values
 from registered_functions import register_functions_and_hotkeys, RegisteredFunctions
 from start_and_shutdown import register_start_and_shutdown_tasks
-from utils import wait, pprint, notify, Application, ENV_PATH, CONFIGURATIONS_PATH
+from utils import pprint, notify, Application, ENV_PATH, CONFIGURATIONS_PATH
 
 
 class Signal:
     kill_flag = False
+    restart_flag = False
     _preferences: dict
     reg_functions: RegisteredFunctions
     threads: dict[str, threading.Thread]
     last_interaction: datetime
+    ui_manager = None
 
     def __init__(self):
         self.load_preferences()
@@ -71,31 +76,60 @@ class Signal:
                 pprint(f"Starting thread: {name}")
                 t.start()
     
+    def join_threads(self):
+        for t in self.threads.values():
+            if t.is_alive():
+                t.join()
+    
     def kill(self):
         self.kill_flag = True
+    
+    def restart(self):
+        self.kill_flag = True
+        self.restart_flag = True
     
     def is_alive(self):
         return not self.kill_flag
 
 
 def main():
-    notify(title="CyanSystemManager", message=f"Running", icon="cyan_system_manager.ico")
+    restart = True
+    form_closed = 1
+    sys.argv.append('--no-sandbox')
+    ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("CyanManager")
+    notify(title="CyanManager", message=f"Running", icon="cyan_system_manager.ico")
     signal = None
-    try:
-        signal = Signal()
-        register_functions_and_hotkeys(signal)
-        register_start_and_shutdown_tasks(signal)
+    
+    while restart:
+        restart = False
+        try:
+            signal = Signal()
+            
+            signal.ui_manager = UI()
+            signal.ui_manager.setup_ui(signal)
+            signal.ui_manager.resize_window()
 
-        signal.start_threads()
-        while signal.is_alive():
-            wait(signal, 1000)
-    except Exception:
-        pprint(traceback.format_exc())
-    except KeyboardInterrupt:
-        pass
+            register_functions_and_hotkeys(signal)
+            register_start_and_shutdown_tasks(signal)
+            signal.start_threads()
 
-    if signal:
-        signal.kill()
+            form_closed = signal.ui_manager.wait_for_close()
+        except Exception:
+            pprint(traceback.format_exc())
+        except KeyboardInterrupt:
+            pass
+        if signal:
+            signal.kill()
+            signal.join_threads()
+
+        restart = signal.ui_manager.restart
+        if restart:    
+            pprint("CyanManager restarted")
+
+    if form_closed == 1:
+        sys.exit()
+    else:
+        sys.exit(form_closed)
     pprint("CyanManager terminated")
 
 
