@@ -27,11 +27,13 @@ namespace KeyboardHotkeys
                 string jsonArg = args[0];
                 try
                 {
-                    var jsonMap = JsonSerializer.Deserialize<Dictionary<string, Hotkey>>(jsonArg);
+                    var jsonMap = JsonSerializer.Deserialize<Dictionary<string, List<Hotkey>>>(jsonArg);
                     win = new HiddenWin();
                     win.RegisterHotkeys(jsonMap.ToDictionary(
                         kvp => kvp.Key,
-                        kvp => (kvp.Value.key, kvp.Value.modifier)
+                        kvp => kvp.Value
+                            .Select(hk => (hk.key, hk.modifier))
+                            .ToList()
                     ));
                 }
                 catch (Exception e)
@@ -43,11 +45,10 @@ namespace KeyboardHotkeys
             else
             {
                 win = new HiddenWin();
-                win.RegisterHotkeys(new Dictionary<string, (int key, int modifier)>
+                win.RegisterHotkeys(new Dictionary<string, List<(int key, int modifier)>>
                 {
-                    { "funct1", (107, 0) },
-                    { "funct2", (107, 1) },
-                    { "funct3", (107, 2) },
+                    { "funct1", new List<(int key, int modifier)>(){(107, 0), (107, 1) } },
+                    { "funct3", new List<(int key, int modifier)>(){(107, 2) } },
                 });
             }
             Application.Run(win);

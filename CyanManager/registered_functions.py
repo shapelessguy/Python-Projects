@@ -1,147 +1,15 @@
 import json
 import winreg
 import threading
-from dotenv import dotenv_values
 from functions.audio import *
 from functions.monitors import *
 from functions.generic import *
 from functions.application import *
 from functions.arduino import *
-from utils import find_process_by_exe, Application, ERR_FLAG, ENV_PATH, CONFIGURATIONS_PATH
-from utils import KEYBOARD_HOTKEYS_EXE, RVX_EXE_PATH, XM4_EXE_PATH, pprint
+from utils import find_process_by_exe, ERR_FLAG, KEYBOARD_HOTKEYS_EXE, RVX_EXE_PATH, XM4_EXE_PATH, pprint
 
 
 reg_path = "CyanHotkey"
-
-
-class HandleFunction:
-    def __init__(self, function_):
-        self.function_ = function_
-    
-    def add_signal(self, signal):
-        self.signal = signal
-    
-    def _run(self, verbose, *args):
-        result = ERR_FLAG
-        try:
-            if verbose:
-                pprint(f"RUN FUNCTION: '{self.function_.__name__}'")
-            result = self.function_(self.signal, verbose, *args)
-        except:
-            import traceback
-            text = "\n-----------------\n"
-            text += traceback.format_exc()
-            text += "-----------------\n"
-            pprint(text)
-        return result
-    
-    def run(self, *args):
-        return self._run(False, *args)
-    
-    def run_verbose(self, *args):
-        return self._run(True, *args)
-    
-    def __name__(self):
-        return self.function_.__name__
-
-
-class RegisteredFunctions:
-    HEADPHONES=HandleFunction(switch_to_headphones)
-    SPEAKERS=HandleFunction(switch_to_speakers)
-    VOLUME_UP=HandleFunction(volume_up)
-    VOLUME_DOWN=HandleFunction(volume_down)
-    FIND_WINDOWS=HandleFunction(find_windows)
-    GET_SCREENS=HandleFunction(get_screens)
-    ORDER=HandleFunction(order)
-    SNAPSHOT=HandleFunction(get_snapshot)
-    WIN_SNAPSHOT=HandleFunction(get_win_snapshot)
-    TURN_ON_MONITORS=HandleFunction(turn_on_monitors)
-    SHUTDOWN_MONITORS=HandleFunction(shutdown_monitors)
-    GET_MOUSE_POS=HandleFunction(get_mouse_position)
-    GET_APPS_STATUS=HandleFunction(get_apps_status)
-    GET_WIN_POSITIONS=HandleFunction(get_win_pos)
-    STARTUP=HandleFunction(startup_applications)
-    SHOW_UWP_APP_NAMES=HandleFunction(get_uwp_apps)
-    SHOW_ALARM=HandleFunction(show_alarm)
-    RING_ALARM=HandleFunction(ring_alarm)
-    THREADS_STATUS=HandleFunction(get_threads_status)
-
-    LIGHTS_ON=HandleFunction(lights_on)
-    LIGHTS_OFF=HandleFunction(lights_off)
-    LIGHTS_AUTO=HandleFunction(lights_auto)
-
-    def __init__(self, signal):
-        for attr_value in self.__class__.__dict__.values():
-            if isinstance(attr_value, HandleFunction):
-                attr_value.add_signal(signal)
-
-
-class Signal:
-    kill_flag = False
-    preferences: dict
-    reg_functions: RegisteredFunctions
-    threads: dict[str, threading.Thread]
-
-    def __init__(self):
-        self.load_preferences()
-        self.threads = {}
-        self.kill_flag = False
-    
-    def load_preferences(self):
-        env_vars = dotenv_values(ENV_PATH)
-        if "PROFILE" not in env_vars:
-            with open(ENV_PATH, "a", encoding="utf8") as file:
-                file.write("PROFILE=default\n")
-            env_vars = dotenv_values(ENV_PATH)
-        self.profile = env_vars["PROFILE"]
-        config = [x for x in os.listdir(CONFIGURATIONS_PATH) if x.replace(".json", "") == self.profile]
-        if not len(config):
-            raise Exception(f"PROFILE {self.profile} not found!")
-        profile_path = os.path.join(CONFIGURATIONS_PATH, config[0])
-        if os.path.exists(profile_path):
-            with open(profile_path, "r") as file:
-                self.preferences = json.load(file)
-        else:
-            raise Exception(f"File {profile_path} not found!")
-    
-    def get_applications(self):
-        applications = json.loads(json.dumps(self.preferences["applications"]))
-        return [Application(a_name, **a) for a_name, a in applications.items()]
-    
-    def get_restart_options(self):
-        restart_opt = self.preferences["restart"]
-        return restart_opt
-    
-    def get_roomserver_settings(self):
-        rs_settings = self.preferences["roomserver_settings"]
-        return rs_settings
-    
-    def get_audio_devices(self):
-        devices = self.preferences["audio_devices"]
-        return devices
-    
-    def save_preferences(self):
-        profile_path = os.path.join(CONFIGURATIONS_PATH, self.profile + ".json")
-        with open(profile_path, "w") as file:
-            json.dump(self.preferences, file, indent=4)
-    
-    def set_reg_functions(self, reg_functions):
-        self.reg_functions = reg_functions
-    
-    def register_thread(self, name, target, args: tuple):
-        self.threads[name] = threading.Thread(target=target, args=args)
-    
-    def start_threads(self):
-        for name, t in self.threads.items():
-            if not t.is_alive():
-                pprint(f"Starting thread: {name}")
-                t.start()
-    
-    def kill(self):
-        self.kill_flag = True
-    
-    def is_alive(self):
-        return not self.kill_flag
 
 
 def listen_hotkeys(signal, hotkeys_operative):
@@ -167,7 +35,7 @@ def listen_hotkeys(signal, hotkeys_operative):
                 function_name, repetition = value.split("x")
                 if k == function_name:
                     for _ in range(int(repetition)):
-                        v.run_verbose() if "volume" not in function_name else v.run()
+                        v.run_shortcut()
                     found = True
                     break
             if not found:
@@ -177,7 +45,72 @@ def listen_hotkeys(signal, hotkeys_operative):
         wait(signal, 0.05)
 
 
-def register_functions_and_hotkeys(signal: Signal):
+class HandleFunction:
+    def __init__(self, function_, verbose_always_off=False):
+        self.function_ = function_
+        self.verbose_always_off = verbose_always_off
+    
+    def add_signal(self, signal):
+        self.signal = signal
+    
+    def _run(self, verbose, *args):
+        result = ERR_FLAG
+        try:
+            if verbose:
+                pprint(f"RUN FUNCTION: '{self.function_.__name__}'")
+            result = self.function_(self.signal, verbose, *args)
+        except:
+            import traceback
+            text = "\n-----------------\n"
+            text += traceback.format_exc()
+            text += "-----------------\n"
+            pprint(text)
+        return result
+    
+    def run(self, *args):
+        return self._run(False, *args)
+    
+    def run_shortcut(self, *args):
+        self.signal.last_interaction = datetime.now()
+        return self._run(not self.verbose_always_off, *args)
+    
+    def __name__(self):
+        return self.function_.__name__
+
+
+class RegisteredFunctions:
+    HEADPHONES=HandleFunction(switch_to_headphones)
+    SPEAKERS=HandleFunction(switch_to_speakers)
+    VOLUME_UP=HandleFunction(volume_up, verbose_always_off=True)
+    VOLUME_DOWN=HandleFunction(volume_down, verbose_always_off=True)
+    FIND_WINDOWS=HandleFunction(find_windows)
+    GET_SCREENS=HandleFunction(get_screens)
+    ORDER=HandleFunction(order)
+    SNAPSHOT=HandleFunction(get_snapshot)
+    WIN_SNAPSHOT=HandleFunction(get_win_snapshot)
+    TURN_ON_MONITORS=HandleFunction(turn_on_monitors)
+    SHUTDOWN_MONITORS=HandleFunction(shutdown_monitors)
+    GET_MOUSE_POS=HandleFunction(get_mouse_position)
+    GET_APPS_STATUS=HandleFunction(get_apps_status)
+    GET_WIN_POSITIONS=HandleFunction(get_win_pos)
+    DISCOVER_WIN=HandleFunction(discover_windows)
+    STARTUP=HandleFunction(startup_applications)
+    SHOW_UWP_APP_NAMES=HandleFunction(get_uwp_apps)
+    SHOW_ALARM=HandleFunction(show_alarm)
+    RING_ALARM=HandleFunction(ring_alarm)
+    THREADS_STATUS=HandleFunction(get_threads_status)
+
+    LIGHTS_ON=HandleFunction(lights_on)
+    LIGHTS_OFF=HandleFunction(lights_off)
+    LIGHTS_AUTO=HandleFunction(lights_auto)
+
+    def __init__(self, signal):
+        for attr_value in self.__class__.__dict__.values():
+            if isinstance(attr_value, HandleFunction):
+                attr_value.add_signal(signal)
+
+
+def register_functions_and_hotkeys(signal):
     reg_functions = RegisteredFunctions(signal)
 
     hotkeys = {
@@ -197,19 +130,24 @@ def register_functions_and_hotkeys(signal: Signal):
         (98, 2): reg_functions.LIGHTS_OFF,                  # CTRL + NUMPAD2
         (99, 2): reg_functions.LIGHTS_AUTO,                 # CTRL + NUMPAD3
 
-        # DEBUG PURPOSE -> NUMPAD4
+        # DEBUG PURPOSE
+        (100, 0): reg_functions.DISCOVER_WIN,
         # (100, 0): reg_functions.GET_WIN_POSITIONS,
-        # (103, 0): reg_functions.FIND_WINDOWS,
-        # (105, 0): reg_functions.SHOW_UWP_APP_NAMES,
+        # (100, 0): reg_functions.FIND_WINDOWS,
+        # (100, 0): reg_functions.SHOW_UWP_APP_NAMES,
         # (100, 0): reg_functions.THREADS_STATUS,
         # (100, 0): reg_functions.SHOW_UWP_APP_NAMES,
         # (100, 0): reg_functions.STARTUP,
         # (100, 0): reg_functions.GET_APPS_STATUS,
-        # (100, 0): reg_functions.FIND_WINDOWS.run_verbose,
-        # (100, 0): reg_functions.GET_SCREENS.run_verbose,
+        # (100, 0): reg_functions.FIND_WINDOWS,
+        # (100, 0): reg_functions.GET_SCREENS,
     }
-    hotkeys_json = {v.__name__(): { "key": k[0], "modifier": k[1] }  for k, v in hotkeys.items()}
-    hotkeys_operative = {v.__name__(): v for v in hotkeys.values()}
+
+    hotkeys_json, hotkeys_operative = {}, {}
+    for k, v in hotkeys.items():
+        funct_name = v.__name__()
+        hotkeys_json[funct_name] = hotkeys_json.get(funct_name, []) + [{ "key": k[0], "modifier": k[1] }]
+        hotkeys_operative[funct_name] = v
 
     find_process_by_exe(KEYBOARD_HOTKEYS_EXE, kill=True, relaunch=True, args=(json.dumps(hotkeys_json), ))
     find_process_by_exe(RVX_EXE_PATH, kill=False, relaunch=True, args=())

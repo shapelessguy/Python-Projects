@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("KeyboardHotkeys")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+5160cabafac56d369fd00f74f34b053da05e1d6c")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a9619edf56195dea8435ca2ecddb258c5d569234")]
 [assembly: System.Reflection.AssemblyProductAttribute("KeyboardHotkeys")]
 [assembly: System.Reflection.AssemblyTitleAttribute("KeyboardHotkeys")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

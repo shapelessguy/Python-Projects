@@ -5,34 +5,42 @@ import win32process
 import pywinctl as pwc
 import shutil
 import ctypes
+import json
+from functions.application import get_uwp_apps
 from utils import Monitor_, MULTIMONITOR_EXE_PATH, TEMP_MONITOR_CONF_PATH, MONITOR_CONF_PATH, wait, pprint
 from collections import defaultdict
 from operator import attrgetter
 from screeninfo import get_monitors
 
 
-def find_windows(signal, verbose=False):
+def find_windows(signal, verbose=False, discover=False):
     windows = pwc.getAllWindows()
     for win in windows:
         _, pid = win32process.GetWindowThreadProcessId(win.getHandle())
-        win.proc_name = psutil.Process(pid).name()
-    matches = {}
-    for a in signal.get_applications():
-        match = None 
-        if len(a.window_kw):
+        win.proc = psutil.Process(pid)
+
+    found = []
+    if discover:
+        for win in windows:
+            found.append(win)
+    else:
+        for a in signal.get_applications():
+            match = None
+            if len(a.window_kw):
+                for win in windows:
+                    if all([v_ in win.title for v_ in a.window_kw]):
+                        match = win
+                        break
             for win in windows:
-                if all([v_ in win.title for v_ in a.window_kw]):
+                if win.proc.name() == a.proc_name:
                     match = win
                     break
-        for win in windows:
-            if win.proc_name == a.proc_name:
-                match = win
-                break
-        matches[a.name] = match
+            found.append(match)
+
     if verbose:
-        for k, m in matches.items():
-            pprint(k, m)
-    return matches
+        for win in found:
+            pprint(win)
+    return found
 
 
 def get_screens(signal, verbose=False):
@@ -143,8 +151,7 @@ def shutdown_monitors(signal, verbose=False):
     screens = get_screens(signal)
     monitor_names = []
     for s in screens:
-        if s.device_name != "HECB350":
-            monitor_names.append(s.name)
+        monitor_names.append(s.name)
     subprocess.run([MULTIMONITOR_EXE_PATH, "/TurnOff"] + monitor_names)
 
 
@@ -152,8 +159,7 @@ def turn_on_monitors(signal, verbose=False):
     screens = get_screens(signal)
     monitor_names = []
     for s in screens:
-        if s.device_name != "HECB350":
-            monitor_names.append(s.name)
+        monitor_names.append(s.name)
     subprocess.run([MULTIMONITOR_EXE_PATH, "/TurnOn"] + monitor_names)
 
 
@@ -162,6 +168,52 @@ def point_in_rect(px, py, rx, ry, width, height):
         rx <= px <= rx + width and
         ry <= py <= ry + height
     )
+
+
+def get_window_properties(win, screens):
+    cm = (win.left + win.width / 2, win.top + win.height / 2)
+    default_screen = None
+    for s in screens:
+        if point_in_rect(cm[0], cm[1], s.x, s.y, s.width, s.height):
+            default_screen = s
+        elif s.is_primary and default_screen is None:
+            default_screen = s
+    return {
+        "win_title": win.title,
+        "monitor_id": default_screen._id,
+        "x": win.left - default_screen.x,
+        "y": win.top - default_screen.y,
+        "width": win.width,
+        "height": win.height,
+        "win_state": ("minimized" if win.isMinimized else "maximized" if win.isMaximized else "normal"),
+        "proc_name": win.proc.name(),
+        "path": win.proc.exe().replace('\\', '/'),
+    }
+
+
+def discover_windows(signal, verbose=False):
+    os_windows = find_windows(signal, discover=True)
+    screens = get_screens(signal)
+    uwp_apps = get_uwp_apps(signal)
+    windows_info = []
+    for win in os_windows:
+        windows_info.append(get_window_properties(win, screens))
+
+    if verbose:
+        for win_info in windows_info:
+            clean_name = win_info["proc_name"].lower().replace(".exe", "")
+            uwp_names = []
+            for k, v in uwp_apps.items():
+                if v.endswith(win_info['proc_name']) or k.replace(" ", "").lower() in clean_name or clean_name in k.replace(" ", "").lower():
+                    uwp_names.append(k)
+            string = f"\n\t{win_info['proc_name'][:-4]}:\n"
+            string += f"\tWindow: title={win_info['win_title']}, monitor_id={win_info['monitor_id']}, "
+            string += f"x={win_info['x']}, y={win_info['y']}, width={win_info['width']}, height={win_info['height']}\n"
+            string += f"\tproc_name={win_info['proc_name']}, path={win_info['path']}, \n"
+            string += f"\tuwp_names={'\n\t'.join(json.dumps(uwp_names, indent=2).split('\n'))}"
+            pprint(string)
+
+    return windows_info
 
 
 def get_win_pos(signal, verbose=False):
@@ -180,27 +232,14 @@ def get_win_pos(signal, verbose=False):
     for app in signal.get_applications():
         app_name = app.name
         windows_pos[app_name] = default_pos
-        for k, win in os_windows.items():
-            if win is not None and k == app_name:
-                cm = (win.left + win.width / 2, win.top + win.height / 2)
-                default_screen = None
-                for s in screens:
-                    if point_in_rect(cm[0], cm[1], s.x, s.y, s.width, s.height):
-                        default_screen = s
-                    elif s.is_primary and default_screen is None:
-                        default_screen = s
-                windows_pos[app_name] = {
-                    "monitor_id": default_screen._id,
-                    "x": win.left - default_screen.x,
-                    "y": win.top - default_screen.y,
-                    "width": win.width,
-                    "height": win.height,
-                    "win_state": ("minimized" if win.isMinimized else "maximized" if win.isMaximized else "normal")
-                }
+        for win in os_windows:
+            if win is not None and win.proc.name() == app.proc_name:
+                windows_pos[app_name] = get_window_properties(win, screens)
+
     if verbose:
         for app_name, win_pos in windows_pos.items():
             if win_pos["width"] > 0 and win_pos["height"] > 0:
-                pprint(app_name, win_pos)
+                pprint(f"{app_name}: monitor_id={win_pos['monitor_id']}, x={win_pos['x']}, y={win_pos['y']}, width={win_pos['width']}, height={win_pos['height']}")
     return windows_pos
 
 
@@ -214,8 +253,8 @@ def order(signal, verbose=False, specific_apps=()):
             continue
         app_name = app.name
         win_props = app.window_props
-        for k, win in os_windows.items():
-            if win is not None and k == app_name and win_props["order"]:
+        for win in os_windows:
+            if win is not None and win.proc.name() == app.proc_name and win_props["order"]:
                 monitor_id = win_props["monitor_id"]
                 for screen in screens:
                     if screen._id == monitor_id:

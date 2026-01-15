@@ -15,7 +15,6 @@
         "inactive_delay": "2:00",
         "active": false
     },
-    "services": {},
     "applications": {
         "Skype for Business": {
             "window_kw": [

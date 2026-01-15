@@ -15,7 +15,6 @@
         "inactive_delay": "2:00",
         "active": true
     },
-    "services": {},
     "applications": {
         "ChatGPT": {
             "window_kw": [],

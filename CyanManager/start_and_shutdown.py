@@ -18,16 +18,16 @@ def startup(signal):
             started_apps.discard(ordered)
         if c >= max_cycles:
             break
-    signal.reg_functions.ORDER.run_verbose()
+    signal.reg_functions.ORDER.run_shortcut()
 
 
 def monitor_user_activity(signal):
     if "startup" in sys.argv:
         startup(signal)
-    signal.reg_functions.TURN_ON_MONITORS.run_verbose()
-    signal.reg_functions.LIGHTS_AUTO.run_verbose(False)
+    signal.reg_functions.TURN_ON_MONITORS.run_shortcut()
+    signal.reg_functions.LIGHTS_AUTO.run_shortcut(False)
     pt = signal.reg_functions.GET_MOUSE_POS.run()
-    last_activity = now = datetime.now()
+    funct_interaction = datetime.now()
     last_pos = (pt.x, pt.y)
     restart_options = signal.get_restart_options()
     start_hours, start_minutes = map(int, restart_options["from"].split(":"))
@@ -41,16 +41,19 @@ def monitor_user_activity(signal):
         now = datetime.now()
         if pt.x != last_pos[0] or pt.y != last_pos[1]:
             last_pos = (pt.x, pt.y)
-            last_activity = now
+            signal.last_interaction = now
+            funct_interaction = now
         else:
             if not (start <= now.time() <= end):
-                last_activity = now
+                funct_interaction = now
+            elif funct_interaction < signal.last_interaction:
+                funct_interaction = signal.last_interaction
 
-        diff = (now - last_activity).total_seconds()
+        diff = (now - funct_interaction).total_seconds()
         if restart_options["active"] and diff > inactive_time:
             pprint("Shutdown triggered!")
             subprocess.run(["shutdown", "/r", "/t", "0"])
-            last_activity = now
+            funct_interaction = now
         wait(signal, 1000)
 
 

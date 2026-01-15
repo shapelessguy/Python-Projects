@@ -9,7 +9,7 @@ namespace KeyboardHotkeys
 {
     public partial class HiddenWin : Form
     {
-        private Dictionary<string, (int key, int modifier)> keyMap;
+        private Dictionary<string, List<(int key, int modifier)>> keyMap;
         const string RegPath = "CyanHotkey";
         DateTime lastSentTime = DateTime.MinValue;
         System.Windows.Forms.Timer clearRegistry;
@@ -129,23 +129,29 @@ namespace KeyboardHotkeys
             trayIcon.DoubleClick += (s, e) => ShowForm();
         }
 
-        public void RegisterHotkeys(Dictionary<string, (int key, int modifier)> keyMap)
+        public void RegisterHotkeys(Dictionary<string, List<(int key, int modifier)>> keyMap)
         {
             this.keyMap = keyMap;
             int i = 0;
             foreach (var kvp in keyMap)
             {
-                i += 1;
-                Keys k = (Keys)kvp.Value.key;
-                string modifiers = getFriendlyModifiers((KeyModifier)kvp.Value.modifier);
-                modifiers += k.ToString();
+                foreach (var hotkey in kvp.Value)
+                {
+                    i += 1;
 
-                var item = new ListViewItem(modifiers);
-                item.SubItems.Add(kvp.Key);
-                combination_view.Items.Add(item);
+                    Keys k = (Keys)hotkey.key;
+                    string modifiers = getFriendlyModifiers((KeyModifier)hotkey.modifier);
+                    modifiers += k.ToString();
 
-                if (!RegisterHotKey(Handle, i, kvp.Value.modifier, k.GetHashCode()))
-                    MessageBox.Show($"Failed to register hotkey {kvp.Key}");
+                    var item = new ListViewItem(modifiers);
+                    item.SubItems.Add(kvp.Key);
+                    combination_view.Items.Add(item);
+
+                    if (!RegisterHotKey(Handle, i, hotkey.modifier, (int)k))
+                    {
+                        MessageBox.Show($"Failed to register hotkey {kvp.Key}");
+                    }
+                }
             }
         }
         
@@ -230,12 +236,17 @@ namespace KeyboardHotkeys
                 {
                     foreach (var kvp in keyMap)
                     {
-                        var keyId = (int)((Keys)kvp.Value.key);
-                        var modId = (int)kvp.Value.modifier;
-                        if ((int)key == keyId & (int)modifier == modId)
+                        foreach (var hotkey in kvp.Value)
                         {
-                            setFunction(kvp.Key);
-                            lastSentTime = DateTime.UtcNow;
+                            var keyId = hotkey.key;
+                            var modId = hotkey.modifier;
+
+                            if ((int)key == keyId && (int)modifier == modId)
+                            {
+                                setFunction(kvp.Key);
+                                lastSentTime = DateTime.UtcNow;
+                                return;
+                            }
                         }
                     }
                 }

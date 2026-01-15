@@ -106,6 +106,7 @@ def switch_to_headphones(signal, verbose=False):
     device = AudioUtilities.GetSpeakers()
     before = device.FriendlyName
     headphones_name = signal.get_audio_devices()["headphones"]
+    print(SV_EXE_PATH, headphones_name)
     subprocess.run([SV_EXE_PATH, '/SetDefault', headphones_name, '1'])
     device = AudioUtilities.GetSpeakers()
     after = device.FriendlyName
