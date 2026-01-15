@@ -1,7 +1,14 @@
 import subprocess
 import sys
+import ctypes
+import time
 from datetime import datetime, time as dtime
 from utils import wait, pprint
+
+
+def jiggle_mouse():
+    ctypes.windll.user32.mouse_event(0x0001, 1, 0, 0, 0)
+    ctypes.windll.user32.mouse_event(0x0001, -1, 0, 0, 0)
 
 
 def startup(signal):
@@ -37,6 +44,7 @@ def monitor_user_activity(signal):
     end = dtime(end_hours, end_minutes)
     inactive_time = 60 * 60 * inactive_hours + 60 * inactive_minutes
     while signal.is_alive():
+        
         pt = signal.reg_functions.GET_MOUSE_POS.run()
         now = datetime.now()
         if pt.x != last_pos[0] or pt.y != last_pos[1]:
@@ -46,6 +54,9 @@ def monitor_user_activity(signal):
         else:
             if not (start <= now.time() <= end):
                 funct_interaction = now
+                diff = (now - signal.last_interaction).total_seconds()
+                if diff > 60:
+                    jiggle_mouse()
             elif funct_interaction < signal.last_interaction:
                 funct_interaction = signal.last_interaction
 
