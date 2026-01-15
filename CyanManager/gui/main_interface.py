@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'C:\Users\cian_cl\Documents\TOPICS\sharedCode\CyanManager\gui\main_interface.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.11
 #

@@ -38,6 +38,19 @@ class WindowDragFilter(QObject):
         return False
 
 
+def remove_pyuic_header(py_path):
+    with open(py_path, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+
+    lines = [
+        line for line in lines
+        if not line.startswith("# Form implementation generated from reading ui file")
+    ]
+
+    with open(py_path, "w", encoding="utf-8") as f:
+        f.writelines(lines)
+
+
 class UI:
     def __init__(self, signal):
         self.signal = signal
@@ -49,6 +62,7 @@ class UI:
             py_path = py_paths[i]
             if os.path.exists(ui_path):
                 os.system(f'pyuic5 -x {ui_path} -o {py_path}')
+                remove_pyuic_header(py_path)
 
         from gui import main_interface
 

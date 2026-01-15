@@ -12,15 +12,14 @@ namespace Timer
         private bool entered = false;
         const string RegPath = "CyanHotkey";
         DateTime lastSentTime = DateTime.MinValue;
-        System.Windows.Forms.Timer focusLostT, alarmT, recoverT, lastPositionT;
-        System.Windows.Forms.Timer clearRegistry;
+        System.Windows.Forms.Timer operativeTimer, alarmT, recoverT, lastPositionT, clearRegistry;
         int hours, minutes, seconds;
 
         private void DisposeAll()
         {
             try
             {
-                if (focusLostT != null) focusLostT.Dispose();
+                if (operativeTimer != null) operativeTimer.Dispose();
                 if (alarmT != null) alarmT.Dispose();
                 if (recoverT != null) recoverT.Dispose();
                 if (lastPositionT != null) lastPositionT.Dispose();
@@ -56,31 +55,17 @@ namespace Timer
         static public extern IntPtr GetForegroundWindow();
         void initializeTimers()
         {
-            focusLostT = new System.Windows.Forms.Timer() { Enabled = true, Interval = 100, };
+            operativeTimer = new System.Windows.Forms.Timer() { Enabled = true, Interval = 100, };
             alarmT = new System.Windows.Forms.Timer() { Enabled = true, Interval = 500, };
             recoverT = new System.Windows.Forms.Timer() { Enabled = true, Interval = 600, };
             lastPositionT = new System.Windows.Forms.Timer() { Enabled = true, Interval = 20, };
 
             SetForegroundWindow(this.Handle);
             this.TopMost = true;
-            focusLostT.Tick += LostFocus_Timer;
             timerFront.KeyDown += KeyEnter;
             notes.KeyDown += KeyEnter;
         }
 
-        void LostFocus_Timer(object sender, EventArgs e)
-        {
-            try
-            {
-                try
-                {
-                    IntPtr win = GetForegroundWindow();
-                    if (IsDisposed || win != Handle) { Close(); }
-                }
-                catch (Exception) { }
-            }
-            catch (Exception) { DisposeAll(); }
-        }
         void RealTimer(object sender, EventArgs e)
         {
             try
@@ -97,6 +82,12 @@ namespace Timer
             }
             catch (Exception) { DisposeAll(); }
         }
+        protected override void OnDeactivate(EventArgs e)
+        {
+            base.OnDeactivate(e);
+            if (!entered) Close();
+        }
+
 
         void setTimer(int hours, int minutes, int seconds)
         {
@@ -106,9 +97,8 @@ namespace Timer
             entered = true;
             if (hours == 0 && minutes == 0 && seconds == 0)
             { SendKeys.Send("{RIGHT}"); lastPositionT.Tick += LastPosition; return; }
-            focusLostT.Tick -= LostFocus_Timer;
-            focusLostT.Interval = 1000;
-            focusLostT.Tick += RealTimer;
+            operativeTimer.Interval = 1000;
+            operativeTimer.Tick += RealTimer;
             timerFront.Hide();
             overlay.Text = SetLabelText(hours, minutes, seconds);
             overlay.Show();
@@ -134,9 +124,8 @@ namespace Timer
                 minutes = timerFront.Value.Minute;
                 seconds = timerFront.Value.Second;
                 lastPositionT.Tick -= LastPosition;
-                focusLostT.Tick -= LostFocus_Timer;
-                focusLostT.Interval = 1000;
-                focusLostT.Tick += RealTimer;
+                operativeTimer.Interval = 1000;
+                operativeTimer.Tick += RealTimer;
                 timerFront.Hide();
                 overlay.Text = SetLabelText(hours, minutes, seconds);
                 overlay.Show();
