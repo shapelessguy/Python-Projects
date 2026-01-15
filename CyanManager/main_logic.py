@@ -1,5 +1,6 @@
 import os
 import json
+import time
 import threading
 import datetime
 import traceback
@@ -94,26 +95,27 @@ class Signal:
 
 def main():
     restart = True
-    form_closed = 1
     sys.argv.append('--no-sandbox')
     ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("CyanManager")
     notify(title="CyanManager", message=f"Running", icon="cyan_system_manager.ico")
-    signal = None
     
     while restart:
+        form_closed = 1
         restart = False
+        signal = None
         try:
+            pprint("startLoop")
             signal = Signal()
+            pprint("definedSignal")
             
-            signal.ui_manager = UI()
-            signal.ui_manager.setup_ui(signal)
-            signal.ui_manager.resize_window()
+            signal.ui_manager = UI(signal)
 
             register_functions_and_hotkeys(signal)
             register_start_and_shutdown_tasks(signal)
             signal.start_threads()
 
-            form_closed = signal.ui_manager.wait_for_close()
+            form_closed = signal.ui_manager.execute("wait_for_close")
+            pprint("endLoop")
         except Exception:
             pprint(traceback.format_exc())
         except KeyboardInterrupt:
@@ -121,16 +123,17 @@ def main():
         if signal:
             signal.kill()
             signal.join_threads()
+        time.sleep(2)
 
         restart = signal.ui_manager.restart
         if restart:    
             pprint("CyanManager restarted")
 
+    pprint("CyanManager terminated")
     if form_closed == 1:
         sys.exit()
     else:
         sys.exit(form_closed)
-    pprint("CyanManager terminated")
 
 
 if __name__ == "__main__":

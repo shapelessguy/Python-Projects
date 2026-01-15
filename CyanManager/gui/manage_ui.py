@@ -12,6 +12,7 @@ class UIThreadBridge(QObject):
     hide_window = pyqtSignal()
     restart_app = pyqtSignal()
     quit_app = pyqtSignal()
+    wait_for_close = pyqtSignal()
 
 
 class WindowDragFilter(QObject):
@@ -37,7 +38,8 @@ class WindowDragFilter(QObject):
 
 
 class UI:
-    def __init__(self):
+    def __init__(self, signal):
+        self.signal = signal
         ui_files = ['main_interface']
         ui_paths = [os.path.join(os.path.dirname(os.path.realpath(__file__)), x + '.ui') for x in ui_files]
         py_paths = [os.path.join(os.path.dirname(os.path.realpath(__file__)), x + '.py') for x in ui_files]
@@ -67,6 +69,7 @@ class UI:
         self.bridge.hide_window.connect(self._hide_window)
         self.bridge.restart_app.connect(self._restart_app)
         self.bridge.quit_app.connect(self._quit_app)
+        self.bridge.wait_for_close.connect(self._wait_for_close)
         self.ui = ui
 
         self.tray = QSystemTrayIcon(QIcon(os.path.join(os.path.dirname(os.path.dirname(__file__)), "icons", "cyan_system_manager.ico")), app)
@@ -79,6 +82,7 @@ class UI:
         self.tray.activated.connect(self._tray_activated)
         self.tray.setToolTip("CyanManager")
         self.tray.show()
+        self.setup_ui()
     
     def execute(self, function_, *args, **kwargs):
         f = getattr(self.bridge, function_)
@@ -88,9 +92,10 @@ class UI:
         signal.kill()
         self.ui.app.quit()
 
-    def setup_ui(self, signal):
+    def setup_ui(self):
         self.ui.setupUi(self.ui.main_window)
         # self.ui.exit.clicked.connect(lambda _=False: self.exit_sync(signal))
+        self.resize_window()
 
     def _close_event(self, event):
         event.ignore()
@@ -112,7 +117,7 @@ class UI:
         # self.ui.main_window.move(x, y)
         self.ui.main_window.hide()
 
-    def wait_for_close(self, _=None):
+    def _wait_for_close(self):
         app = self.ui.app
         form_closed = app.exec_()
         return form_closed
