@@ -20,3 +20,4 @@ sounddevice
 typing_extensions
 urllib3
 WMI
+PyQt5

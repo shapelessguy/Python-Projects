@@ -123,11 +123,11 @@ def main():
         if signal:
             signal.kill()
             signal.join_threads()
-        time.sleep(2)
-
         restart = signal.ui_manager.restart
+
         if restart:    
             pprint("CyanManager restarted")
+            time.sleep(2)
 
     pprint("CyanManager terminated")
     if form_closed == 1:

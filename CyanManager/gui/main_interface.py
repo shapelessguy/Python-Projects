@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'C:\Users\shape\Documents\codebase\sharedCode\CyanManager\gui\main_interface.ui'
+# Form implementation generated from reading ui file 'C:\Users\cian_cl\Documents\TOPICS\sharedCode\CyanManager\gui\main_interface.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.11
 #
@@ -16,9 +16,6 @@ class Ui_MainWindow(object):
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(800, 500)
         MainWindow.setMinimumSize(QtCore.QSize(800, 500))
-        icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap("C:\\Users\\shape\\Documents\\codebase\\sharedCode\\CyanManager\\gui\\../icons/cyan_system_manager.ico"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        MainWindow.setWindowIcon(icon)
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         MainWindow.setCentralWidget(self.centralwidget)

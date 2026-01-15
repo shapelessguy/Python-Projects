@@ -4,7 +4,8 @@ from gui.theme import dark_stylesheet
 from PyQt5.QtCore import QObject, Qt
 from PyQt5.QtWidgets import QMainWindow, QApplication, QSystemTrayIcon, QMenu
 from PyQt5.QtCore import QObject, pyqtSignal
-from PyQt5.QtGui import QIcon
+from PyQt5.QtGui import QIcon, QPixmap
+from utils import ICONS_FOLDER_PATH
 
 
 class UIThreadBridge(QObject):
@@ -55,11 +56,15 @@ class UI:
         app.setStyleSheet(dark_stylesheet)
         MainWindow = QMainWindow()
         ui = main_interface.Ui_MainWindow()
+        
         ui.app = app
         self.restart = False
         ui.main_window = MainWindow
         ui.main_window.setWindowFlags(Qt.WindowStaysOnTopHint)
         ui.size_to_reduce = 0
+        icon = QIcon()
+        icon.addPixmap(QPixmap(os.path.join(ICONS_FOLDER_PATH, "cyan_system_manager.ico")), QIcon.Normal, QIcon.Off)
+        MainWindow.setWindowIcon(icon)
         
         drag_filter = WindowDragFilter(MainWindow)
         MainWindow.installEventFilter(drag_filter)
