@@ -13,6 +13,20 @@ from operator import attrgetter
 from screeninfo import get_monitors
 
 
+EXCLUDE_FROM_DISCOVERY = [
+    "explorer",
+    "msedgewebview2",
+    "ApplicationFrameHost",
+    "TextInputHost",
+]
+
+
+# Insert title keywords to filter windows during discovery: if empty you will get all windows
+DISCOVER_BY_WIN_TITLE = []
+# Insert process's name (like firefox.exe) to filter windows by process: if empty string, you will get all windows
+DISCOVER_BY_PROCESS = ""
+
+
 def find_windows(signal, verbose=False, discover=False):
     windows = pwc.getAllWindows()
     for win in windows:
@@ -191,28 +205,45 @@ def get_window_properties(win, screens):
     }
 
 
-def discover_windows(signal, verbose=False):
+def discover_windows(signal, verbose=False, discover_by_win_title=DISCOVER_BY_WIN_TITLE, discover_by_process=DISCOVER_BY_PROCESS):
     os_windows = find_windows(signal, discover=True)
     screens = get_screens(signal)
     uwp_apps = get_uwp_apps(signal)
+    windows_info_windowless = []
     windows_info = []
     for win in os_windows:
-        windows_info.append(get_window_properties(win, screens))
+        win_info = get_window_properties(win, screens)
+        if len(discover_by_win_title) and not any([x in win_info["win_title"] for x in discover_by_win_title]):
+            continue
+        if discover_by_process != "" and win_info['proc_name'] != discover_by_process:
+            continue
+        friendly_name = win_info['proc_name'][:-4]
+        if friendly_name in EXCLUDE_FROM_DISCOVERY:
+            continue
+        if win_info["win_title"] == "" or win_info['width'] == 0 or win_info['height'] == 0:
+            windows_info_windowless.append(win_info)
+        else:
+            windows_info.append(win_info)
 
     if verbose:
-        for win_info in windows_info:
-            clean_name = win_info["proc_name"].lower().replace(".exe", "")
-            uwp_names = []
-            for k, v in uwp_apps.items():
-                if v.endswith(win_info['proc_name']) or k.replace(" ", "").lower() in clean_name or clean_name in k.replace(" ", "").lower():
-                    uwp_names.append(k)
-            string = f"\n\t{win_info['proc_name'][:-4]}:\n"
-            string += f"\tWindow: title={win_info['win_title']}, monitor_id={win_info['monitor_id']}, "
-            string += f"x={win_info['x']}, y={win_info['y']}, width={win_info['width']}, height={win_info['height']}\n"
-            string += f"\tproc_name={win_info['proc_name']}, path={win_info['path']}, \n"
-            uwp_names = '\n\t'.join(json.dumps(uwp_names, indent=2).split('\n'))
-            string += f"\tuwp_names={uwp_names}"
-            pprint(string)
+        for i, chunk in enumerate([windows_info, windows_info_windowless]):
+            if i == 0 and len(chunk):
+                pprint("\n\n BEST MATCHES ---------------------------------- \n")
+            elif i == 1 and len(chunk):
+                pprint("\n\n WINDOWLESS ------------------------------------ \n")
+            for win_info in chunk:
+                clean_name = win_info["proc_name"].lower().replace(".exe", "")
+                uwp_names = []
+                for k, v in uwp_apps.items():
+                    if v.endswith(win_info['proc_name']) or k.replace(" ", "").lower() in clean_name or clean_name in k.replace(" ", "").lower():
+                        uwp_names.append(k)
+                string = f"\n\t{win_info['proc_name'][:-4]}:\n"
+                string += f"\tWindow: title={win_info['win_title']}, monitor_id={win_info['monitor_id']}, "
+                string += f"x={win_info['x']}, y={win_info['y']}, width={win_info['width']}, height={win_info['height']}\n"
+                string += f"\tproc_name={win_info['proc_name']}, path={win_info['path']}, \n"
+                uwp_names = '\n\t'.join(json.dumps(uwp_names, indent=2).split('\n'))
+                string += f"\tuwp_names={uwp_names}"
+                pprint(string)
 
     return windows_info
 

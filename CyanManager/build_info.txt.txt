@@ -1,1 +1,1 @@
-C:\Windows\Microsoft.NET\Framework\v4.0.30319\csc.exe /target:winexe /win32icon:icons/cyan_system_manager.ico exe_gen.cs
+C:\Windows\Microsoft.NET\Framework\v4.0.30319\csc.exe /target:winexe /win32icon:icons/cyan_system_manager.ico CyanManager.cs

@@ -32,4 +32,34 @@ QMenu::item:selected {
     background-color: #505050;
 }
 
+QTabWidget::pane {
+    border: 1px solid #555;
+    background-color: #2b2b2b;
+}
+
+QTabBar::tab {
+    background: #3c3c3c;
+    color: #f0f0f0;
+    padding: 6px 12px;
+    border: 1px solid #555;
+    border-bottom: none;
+}
+
+QTabBar::tab:selected {
+    background: #2b2b2b;
+    color: #ffffff;
+}
+
+QTabBar::tab:hover {
+    background: #505050;
+}
+
+QTabBar::tab:!selected {
+    margin-top: 2px;
+}
+
+#app_divider {
+    border-top: 1px solid #555;
+}
+
 """
