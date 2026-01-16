@@ -65,10 +65,11 @@ def notify(title, message, icon=None, timeout=2):
 
 
 class Application:
-    def __init__(self, name, window_kw, window_props, proc_name, path, process=None, arguments="", runas="user", startup=False):
+    def __init__(self, name, window_kw, excluded_kw, window_props, proc_name, path, process=None, arguments="", runas="user", startup=False):
         self.name = name
         self.process = process
         self.window_kw = window_kw
+        self.excluded_kw = excluded_kw
         self.window_props = window_props
         self.proc_name = proc_name
         self.path = Path(path.replace("TOOLS", TOOLS_PATH)).as_posix()
@@ -79,6 +80,7 @@ class Application:
     def to_dict(self):
         return {
             "window_kw": self.window_kw,
+            "excluded_kw": self.excluded_kw,
             "window_props": self.window_props,
             "proc_name": self.proc_name,
             "path": self.path,

@@ -43,12 +43,25 @@ def find_windows(signal, verbose=False, discover=False):
             if len(a.window_kw):
                 for win in windows:
                     if all([v_ in win.title for v_ in a.window_kw]):
-                        match = win
-                        break
-            for win in windows:
-                if win.proc.name() == a.proc_name:
-                    match = win
-                    break
+                        exclude = False
+                        for kw in a.excluded_kw:
+                            if kw in win.title:
+                                exclude = True
+                                break
+                        if not exclude:
+                            match = win
+                            break
+            if not match:
+                for win in windows:
+                    if win.proc.name() == a.proc_name:
+                        exclude = False
+                        for kw in a.excluded_kw:
+                            if kw in win.title:
+                                exclude = True
+                                break
+                        if not exclude:
+                            match = win
+                            break
             found.append(match)
 
     if verbose:
