@@ -27,7 +27,7 @@
                 "monitor_id": "BOE09E9",
                 "x": 0,
                 "y": 0,
-                "width": 544,
+                "width": 402,
                 "height": 1032,
                 "win_state": "normal",
                 "order": true
@@ -45,10 +45,10 @@
             "excluded_kw": [],
             "window_props": {
                 "monitor_id": "BOE09E9",
-                "x": 544,
+                "x": 402,
                 "y": 0,
-                "width": 1376,
-                "height": 1032,
+                "width": 1518,
+                "height": 457,
                 "win_state": "normal",
                 "order": true
             },
@@ -64,12 +64,12 @@
             ],
             "excluded_kw": [],
             "window_props": {
-                "monitor_id": "HKC2413",
-                "x": 114,
-                "y": 34,
-                "width": 1599,
-                "height": 983,
-                "win_state": "maximized",
+                "monitor_id": "BOE09E9",
+                "x": 395,
+                "y": 457,
+                "width": 1532,
+                "height": 582,
+                "win_state": "normal",
                 "order": true
             },
             "proc_name": "OUTLOOK.EXE",
