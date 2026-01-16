@@ -139,7 +139,8 @@ def startup_applications(signal, verbose=False, application=None):
 
 
 def kill_application(signal, verbose=False, application=None):
-    print("Killing")
+    if verbose:
+        pprint(f"Killing application: {application.name}")
     if application is None:
         return
     applications = [x for x in get_apps_status(signal, False) if x.process is not None and x.name == application.name]
@@ -152,7 +153,6 @@ def kill_application(signal, verbose=False, application=None):
             process.Terminate()
         except:
             pass
-    print("4")
 
 
 def get_threads_status(signal, verbose=False):
