@@ -104,18 +104,16 @@ def main():
         restart = False
         signal = None
         try:
-            pprint("startLoop")
             signal = Signal()
-            pprint("definedSignal")
             
-            signal.ui_manager = UI(signal)
-
             register_functions_and_hotkeys(signal)
             register_start_and_shutdown_tasks(signal)
+            signal.ui_manager = UI(signal)
+
             signal.start_threads()
+            signal.ui_manager.start_gui_tasks()
 
             form_closed = signal.ui_manager.execute("wait_for_close")
-            pprint("endLoop")
         except Exception:
             pprint(traceback.format_exc())
         except KeyboardInterrupt:

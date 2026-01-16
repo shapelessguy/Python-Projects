@@ -234,9 +234,15 @@ def discover_windows(signal, verbose=False, discover_by_win_title=DISCOVER_BY_WI
             for win_info in chunk:
                 clean_name = win_info["proc_name"].lower().replace(".exe", "")
                 uwp_names = []
+                exact_match = False
                 for k, v in uwp_apps.items():
-                    if v.endswith(win_info['proc_name']) or k.replace(" ", "").lower() in clean_name or clean_name in k.replace(" ", "").lower():
+                    if v == win_info['proc_name']:
+                        exact_match = True
                         uwp_names.append(k)
+                if not exact_match:
+                    for k, v in uwp_apps.items():
+                        if v.endswith(win_info['proc_name']) or k.replace(" ", "").lower() in clean_name or clean_name in k.replace(" ", "").lower():
+                            uwp_names.append(k)
                 string = f"\n\t{win_info['proc_name'][:-4]}:\n"
                 string += f"\tWindow: title={win_info['win_title']}, monitor_id={win_info['monitor_id']}, "
                 string += f"x={win_info['x']}, y={win_info['y']}, width={win_info['width']}, height={win_info['height']}\n"

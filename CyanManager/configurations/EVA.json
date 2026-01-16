@@ -10,6 +10,7 @@
         "auto_to": "20:00"
     },
     "restart": {
+        "mouse_jiggle": true,
         "from": "2:00",
         "to": "7:00",
         "inactive_delay": "2:00",
@@ -214,7 +215,7 @@
                 "win_state": "normal",
                 "order": false
             },
-            "proc_name": "discord.exe",
+            "proc_name": "Discord.exe",
             "path": "app:Discord",
             "arguments": "",
             "runas": "user",

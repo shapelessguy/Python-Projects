@@ -95,6 +95,7 @@ class RegisteredFunctions:
     GET_WIN_POSITIONS=HandleFunction(get_win_pos)
     DISCOVER_WIN=HandleFunction(discover_windows)
     STARTUP=HandleFunction(startup_applications)
+    KILL_APP=HandleFunction(kill_application)
     SHOW_UWP_APP_NAMES=HandleFunction(get_uwp_apps)
     SHOW_ALARM=HandleFunction(show_alarm)
     RING_ALARM=HandleFunction(ring_alarm)
@@ -136,7 +137,6 @@ def register_functions_and_hotkeys(signal):
         # (100, 0): reg_functions.FIND_WINDOWS,
         # (100, 0): reg_functions.SHOW_UWP_APP_NAMES,
         # (100, 0): reg_functions.THREADS_STATUS,
-        # (100, 0): reg_functions.SHOW_UWP_APP_NAMES,
         # (100, 0): reg_functions.STARTUP,
         # (100, 0): reg_functions.GET_APPS_STATUS,
         # (100, 0): reg_functions.FIND_WINDOWS,

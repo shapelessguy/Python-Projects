@@ -1,11 +1,26 @@
 import os
 import sys
+import threading
+import time
 from gui.theme import dark_stylesheet
+from gui.tab_applications import set_apps_layout
 from PyQt5.QtCore import QObject, Qt
 from PyQt5.QtWidgets import QMainWindow, QApplication, QSystemTrayIcon, QMenu
 from PyQt5.QtCore import QObject, pyqtSignal
 from PyQt5.QtGui import QIcon, QPixmap
 from utils import ICONS_FOLDER_PATH
+
+
+def gui_loop(signal):
+    while signal.is_alive():
+        apps = signal.reg_functions.GET_APPS_STATUS.run()
+        for app in apps:
+            if app.path.startswith("app:"):
+                app_uwp_path = app.path.split("app:")[1]
+                app.path = signal.ui_manager.uwp_map.get(app_uwp_path, app.path)
+
+        signal.ui_manager.execute("set_apps", signal.ui_manager, apps)
+        time.sleep(2)
 
 
 class UIThreadBridge(QObject):
@@ -14,6 +29,7 @@ class UIThreadBridge(QObject):
     restart_app = pyqtSignal()
     quit_app = pyqtSignal()
     wait_for_close = pyqtSignal()
+    set_apps = pyqtSignal(object, list)
 
 
 class WindowDragFilter(QObject):
@@ -89,6 +105,7 @@ class UI:
         self.bridge.restart_app.connect(self._restart_app)
         self.bridge.quit_app.connect(self._quit_app)
         self.bridge.wait_for_close.connect(self._wait_for_close)
+        self.bridge.set_apps.connect(set_apps_layout)
         self.ui = ui
 
         self.tray = QSystemTrayIcon(QIcon(os.path.join(os.path.dirname(os.path.dirname(__file__)), "icons", "cyan_system_manager.ico")), app)
@@ -102,6 +119,7 @@ class UI:
         self.tray.setToolTip("CyanManager")
         self.tray.show()
         self.setup_ui()
+        self.uwp_map = self.signal.reg_functions.SHOW_UWP_APP_NAMES.run()
     
     def execute(self, function_, *args, **kwargs):
         f = getattr(self.bridge, function_)
@@ -114,7 +132,7 @@ class UI:
     def setup_ui(self):
         self.ui.setupUi(self.ui.main_window)
         # self.ui.exit.clicked.connect(lambda _=False: self.exit_sync(signal))
-        self.resize_window()
+        self.ui.main_window.hide()
 
     def _close_event(self, event):
         event.ignore()
@@ -124,17 +142,6 @@ class UI:
         if reason == QSystemTrayIcon.Trigger:
             self.ui.main_window.show()
             self.ui.main_window.activateWindow()
-
-    def resize_window(self):
-        width = 468
-        height = 210
-        
-        # self.ui.main_window.resize(width, height)
-        # screen_geometry = self.ui.app.primaryScreen().availableGeometry()
-        # x = screen_geometry.width() - width - 4
-        # y = screen_geometry.height() - height - 1
-        # self.ui.main_window.move(x, y)
-        self.ui.main_window.hide()
 
     def _wait_for_close(self):
         app = self.ui.app
@@ -146,6 +153,9 @@ class UI:
 
     def _hide_window(self):
         self.ui.main_window.hide()
+
+    def start_gui_tasks(self):
+        threading.Thread(target=gui_loop, args=(self.signal, )).start()
 
     def _quit_app(self):
         app = self.ui.app

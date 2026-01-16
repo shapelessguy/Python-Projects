@@ -3,9 +3,14 @@ import wmi
 import pythoncom
 import subprocess
 import ctypes
+import re
+import uuid
+import json
+from ctypes import wintypes
 from datetime import datetime
 from pathlib import Path
 from utils import pprint, CYANSYNC_LOGS_PATH
+wintypes.HRESULT = ctypes.c_long
 
 
 def get_apps_status(signal, verbose=False):
@@ -36,8 +41,33 @@ def get_apps_status(signal, verbose=False):
     return applications
 
 
+def resolve_known_folder(guid_str):
+    KF_FLAG_DEFAULT = 0
+    SHGetKnownFolderPath = ctypes.windll.shell32.SHGetKnownFolderPath
+    SHGetKnownFolderPath.argtypes = [ctypes.POINTER(ctypes.c_byte), wintypes.DWORD, wintypes.HANDLE, ctypes.POINTER(ctypes.c_wchar_p)]
+    SHGetKnownFolderPath.restype = wintypes.HRESULT
+
+    guid_bytes = uuid.UUID(guid_str).bytes_le
+    guid = (ctypes.c_byte * 16)(*guid_bytes)
+    path_ptr = ctypes.c_wchar_p()
+
+    hr = SHGetKnownFolderPath(guid, KF_FLAG_DEFAULT, None, ctypes.byref(path_ptr))
+    if hr != 0:
+        pass
+    return path_ptr.value
+
+
+def resolve_all_guids(path_str):
+    def repl(match):
+        guid_str = match.group(0)
+        return resolve_known_folder(guid_str)
+
+    pattern = re.compile(r'\{[0-9A-Fa-f\-]{36}\}')
+    resolved = pattern.sub(repl, path_str)
+    return os.path.normpath(resolved).replace("\\", "/")
+
+
 def get_uwp_apps(signal, verbose=False):
-    import json
     ps_command = "Get-StartApps | Select-Object Name,AppID | ConvertTo-Json"
     result = subprocess.run(
         ["powershell", "-Command", ps_command],
@@ -47,16 +77,19 @@ def get_uwp_apps(signal, verbose=False):
     if result.returncode != 0:
         raise RuntimeError(f"PowerShell failed: {result.stderr}")
     apps = json.loads(result.stdout)
-    apps = {x["Name"]: x["AppID"] for x in apps}
+    apps = {x["Name"]: resolve_all_guids(x["AppID"]) for x in apps}
     if verbose:
         pprint(json.dumps(apps, indent=2))
     return apps
 
 
-def startup_applications(signal, verbose=False):
+def startup_applications(signal, verbose=False, application=None):
     started_apps = []
     app_name_map = get_uwp_apps(signal, False)
-    applications = [x for x in get_apps_status(signal, False) if x.process is None and x.startup]
+    if application is None:
+        applications = [x for x in get_apps_status(signal, False) if x.process is None and x.startup]
+    else:
+        applications = [x for x in get_apps_status(signal, False) if x.process is None and x.name == application.name]
     for app in applications:
         pprint(f"Starting process -> {[app.path] + app.arguments.split()}")
         if app.path.startswith("app:"):
@@ -103,6 +136,23 @@ def startup_applications(signal, verbose=False):
                     )
         started_apps.append(app.name)
     return started_apps
+
+
+def kill_application(signal, verbose=False, application=None):
+    print("Killing")
+    if application is None:
+        return
+    applications = [x for x in get_apps_status(signal, False) if x.process is not None and x.name == application.name]
+    if not len(applications):
+        return
+    
+    c = wmi.WMI()
+    for process in c.Win32_Process(Name=applications[0].proc_name):
+        try:
+            process.Terminate()
+        except:
+            pass
+    print("4")
 
 
 def get_threads_status(signal, verbose=False):

@@ -54,9 +54,10 @@ def monitor_user_activity(signal):
         else:
             if not (start <= now.time() <= end):
                 funct_interaction = now
-                diff = (now - signal.last_interaction).total_seconds()
-                if diff > 60:
-                    jiggle_mouse()
+                if signal.get_restart_options()["mouse_jiggle"]:
+                    diff = (now - signal.last_interaction).total_seconds()
+                    if diff > 60:
+                        jiggle_mouse()
             elif funct_interaction < signal.last_interaction:
                 funct_interaction = signal.last_interaction
 
