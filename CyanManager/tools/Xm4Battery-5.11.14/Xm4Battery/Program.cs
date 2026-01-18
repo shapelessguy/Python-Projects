@@ -184,13 +184,14 @@ internal static class Program
         g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.Default;
         g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.SystemDefault;
 
-        var uiBatteryLevel =
-            state.Connected ? state.BatteryLevel
-            : DisconnectedLevel;
+        //var uiBatteryLevel =
+        //    state.Connected ? state.BatteryLevel
+        //    : DisconnectedLevel;
+        //MessageBox.Show(state.Connected.ToString());
 
         // icon background color
         var iconBackgroundBrush =
-            uiBatteryLevel switch {
+            state.BatteryLevel switch {
                 <= DisconnectedLevel => Brushes.Transparent,
                 <= CriticalPowerLevel => Brushes.Red,
                 <= LowPowerLevel => Brushes.Orange,
@@ -200,7 +201,7 @@ internal static class Program
 
         // icon text color
         var iconTextBrush =
-            uiBatteryLevel switch {
+            state.BatteryLevel switch {
                 <= DisconnectedLevel => Brushes.WhiteSmoke,
                 <= CriticalPowerLevel => Brushes.WhiteSmoke,
                 <= LowPowerLevel => Brushes.Black,
@@ -213,13 +214,23 @@ internal static class Program
             0, 0, iw, ih );
 
         // icon text: battery level or status
-        var iconText =
-            uiBatteryLevel switch {
-                <= DisconnectedLevel => state.BatteryLevel <= WarningPowerLevel ? "%" : "10",
-                <= CriticalPowerLevel => "!",
-                FullPowerLevel => "10",
-                _ => $"{state.BatteryLevel / 10}", // One digit of charge level 1..9
-            };
+        var iconText = state.BatteryLevel switch
+        {
+            <= DisconnectedLevel => state.BatteryLevel <= WarningPowerLevel ? "%" : "10",
+            <= CriticalPowerLevel => "!",
+            FullPowerLevel => "10",
+            _ => $"{state.BatteryLevel / 10}", // One digit of charge level 1..9 };
+        };
+
+        //var iconText =
+        //uiBatteryLevel switch
+        //{
+        //    FullPowerLevel => "10",
+        //    <= CriticalPowerLevel => "!",
+        //    <= WarningPowerLevel => "%",
+        //    _ => $"{state.BatteryLevel / 10}", // 1..9
+        //};
+        //MessageBox.Show($"{iconText} ⚡{state.BatteryLevel} {WarningPowerLevel} {CriticalPowerLevel} {FullPowerLevel}%");
 
         var sizeS =
             g.MeasureString(
