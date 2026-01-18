@@ -43,6 +43,7 @@ def on_change_rs(ui_manager):
     rs["port"] = ui_manager.ui.roomserver_port.text()
     rs["auto_from"] = time_to_str(ui_manager.ui.auto_from)
     rs["auto_to"] = time_to_str(ui_manager.ui.auto_to)
+    rs["active"] = ui_manager.ui.roomserver_active.isChecked()
     if d_str != json.dumps(rs):
         ui_manager.signal.set_roomserver_settings(rs)
 
@@ -77,6 +78,7 @@ def set_gen_layout(ui_manager):
     ui_manager.ui.roomserver_port.textChanged.connect(partial(on_change_rs, ui_manager))
     ui_manager.ui.auto_from.timeChanged.connect(partial(on_change_rs, ui_manager))
     ui_manager.ui.auto_to.timeChanged.connect(partial(on_change_rs, ui_manager))
+    ui_manager.ui.roomserver_active.toggled.connect(partial(on_change_rs, ui_manager))
     ui_manager.ui.shutdown_from.timeChanged.connect(partial(on_change_ro, ui_manager))
     ui_manager.ui.shutdown_to.timeChanged.connect(partial(on_change_ro, ui_manager))
     ui_manager.ui.inactivity.timeChanged.connect(partial(on_change_ro, ui_manager))
@@ -92,6 +94,7 @@ def set_gen_layout(ui_manager):
     ui_manager.ui.roomserver_port.setText(str(rs["port"]))
     ui_manager.ui.auto_from.setTime(QTime(int(rs["auto_from"].split(":")[0]), int(rs["auto_from"].split(":")[1]), 00))
     ui_manager.ui.auto_to.setTime(QTime(int(rs["auto_to"].split(":")[0]), int(rs["auto_to"].split(":")[1]), 00))
+    ui_manager.ui.roomserver_active.setChecked(rs["active"])
 
     ro = ui_manager.signal.get_restart_options()
     ui_manager.ui.shutdown_from.setTime(QTime(int(ro["from"].split(":")[0]), int(ro["from"].split(":")[1]), 00))

@@ -7,7 +7,8 @@
         "url": "http://cyanroomserver.duckdns.org",
         "port": 10004,
         "auto_from": "9:00",
-        "auto_to": "20:00"
+        "auto_to": "20:00",
+        "active": false
     },
     "restart": {
         "mouse_jiggle": true,
@@ -32,7 +33,7 @@
             "proc_name": "CyanLauncherManagerAdmin.exe",
             "path": "C:/Users/cian_cl/Documents/TOPICS/shapeCode/clm_admin/CyanLauncherManagerAdmin.exe",
             "arguments": "",
-            "runas": false,
+            "runas": true,
             "startup": true
         },
         "Mattermost": {

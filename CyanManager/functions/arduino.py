@@ -13,16 +13,16 @@ def send_to_roomserver(signal, verbose, topic, arg):
         response_text = response.text
 
         if verbose:
-            pprint(response_text.strip())
+            pprint("From RoomServer:", response_text.strip())
         return True
 
     except requests.exceptions.Timeout as ex:
         if verbose:
-            pprint(f"Request timed out: {ex}")
+            pprint(f"From RoomServer, Request timed out: {ex}")
         return False
     except Exception as ex:
         if verbose:
-            pprint(f"HTTP request failed: {ex}")
+            pprint(f"From RoomServer, HTTP request failed: {ex}")
         return False
 
 

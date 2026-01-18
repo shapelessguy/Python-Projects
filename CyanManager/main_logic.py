@@ -106,10 +106,6 @@ class Signal:
         else:
             raise Exception(f"File {profile_path} not found!")
     
-    def get_current_profile(self):
-        applications = json.loads(json.dumps(self._preferences["applications"]))
-        return [Application(a_name, **a) for a_name, a in applications.items()]
-    
     def get_applications(self):
         applications = json.loads(json.dumps(self._preferences["applications"]))
         return [Application(a_name, **a) for a_name, a in applications.items()]

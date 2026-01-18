@@ -77,7 +77,7 @@ class Application:
         "order": False
     }
 
-    def __init__(self, name, window_kw, excluded_kw, proc_name, path, window_props={}, process=None, arguments="", runas="user", startup=False):
+    def __init__(self, name, window_kw, excluded_kw, proc_name, path, window_props={}, process=None, arguments="", runas=False, startup=False):
         self.loaded_name = name
         self.name = name
         self.process = process
@@ -87,7 +87,7 @@ class Application:
         self.proc_name = proc_name
         self.path = path.replace("TOOLS", TOOLS_PATH).replace("\\", "/")
         self.arguments = arguments
-        self.runas = runas == "admin"
+        self.runas = runas
         self.startup = startup
     
     def equals(self, application):

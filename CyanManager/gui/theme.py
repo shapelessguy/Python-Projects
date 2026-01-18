@@ -166,7 +166,11 @@ QDateTimeEdit:focus {
     font-size: 16px;
 }
 
-#tab1 QLabel, tab1 QCheckBox {
+#tab1 QLabel {
+    font-size: 16px;
+}
+
+#tab1 QCheckBox {
     font-size: 16px;
 }
 

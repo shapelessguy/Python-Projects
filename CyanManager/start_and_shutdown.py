@@ -13,17 +13,22 @@ def jiggle_mouse():
 
 def startup(signal):
     pprint("Startup...")
-    started_apps = set(signal.reg_functions.STARTUP.run())
-    started_apps = set([app.name for app in signal.get_applications() if app.name in started_apps and app.window_props["order"]])
-    max_cycles = 20
-    c = 0
-    while signal.is_alive() and len(started_apps):
-        c += 1
-        wait(signal, 1000)
-        ordered_apps = signal.reg_functions.ORDER.run(started_apps)
-        for ordered in ordered_apps:
-            started_apps.discard(ordered)
-        if c >= max_cycles:
+    app_names_to_start = []
+    for _ in range(3):
+        started_apps = set(signal.reg_functions.STARTUP.run(app_names_to_start))
+        started_apps = set([app.name for app in signal.get_applications() if app.name in started_apps and app.window_props["order"]])
+        max_cycles = 10
+        c = 0
+        while signal.is_alive() and len(started_apps):
+            c += 1
+            wait(signal, 1000)
+            ordered_apps = signal.reg_functions.ORDER.run(started_apps)
+            for ordered in ordered_apps:
+                started_apps.discard(ordered)
+            if c >= max_cycles:
+                break
+        app_names_to_start = started_apps
+        if len(app_names_to_start) == 0:
             break
     signal.reg_functions.ORDER.run_shortcut()
 
@@ -33,6 +38,7 @@ def monitor_user_activity(thread_manager):
     signal.reg_functions.TURN_ON_MONITORS.run_shortcut()
     signal.reg_functions.LIGHTS_AUTO.run_shortcut(False)
     if "startup" in sys.argv:
+        sys.argv.remove("startup")
         startup(signal)
 
     pt = signal.reg_functions.GET_MOUSE_POS.run()

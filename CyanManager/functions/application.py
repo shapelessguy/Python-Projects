@@ -6,6 +6,7 @@ import ctypes
 import re
 import uuid
 import json
+import traceback
 from ctypes import wintypes
 from datetime import datetime
 from pathlib import Path
@@ -83,58 +84,61 @@ def get_uwp_apps(signal, verbose=False):
     return apps
 
 
-def startup_applications(signal, verbose=False, application=None):
+def startup_applications(signal, verbose=False, app_names=[]):
     started_apps = []
     app_name_map = get_uwp_apps(signal, False)
-    if application is None:
+    if not len(app_names):
         applications = [x for x in get_apps_status(signal, False) if x.process is None and x.startup]
     else:
-        applications = [x for x in get_apps_status(signal, False) if x.process is None and x.name == application.name]
+        applications = [x for x in get_apps_status(signal, False) if x.process is None and x.name in app_names]
     for app in applications:
-        pprint(f"Starting process -> {[app.path] + app.arguments.split()}")
-        if app.path.startswith("app:"):
-            app_name = "app:".join(app.path.split("app:")[1:])
-            app_id = app_name_map[app_name]
-            subprocess.Popen([
-                "powershell", "-Command",
-                f'Start-Process "shell:AppsFolder\\{app_id}"'
-            ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        else:
-            if app.proc_name.startswith("python:"):
-                app_name = "python:".join(app.proc_name.split("python:")[1:])
-                now = datetime.now()
-                curYear = now.strftime("%Y")
-                curMonth = now.strftime("%m")
-                curDay = now.strftime("%d")
-                curHour = now.strftime("%H")
-                curMinute = now.strftime("%M")
-                if "cyanSync" in app.path:
-                    logFile = Path(CYANSYNC_LOGS_PATH) / f"{app.name}_{app.arguments}_{curYear}-{curMonth}-{curDay}_{curHour}-{curMinute}.log"
-                    os.makedirs(os.path.dirname(logFile), exist_ok=True)
-                    cmd = ["python", app.path, app.arguments, str(logFile)]
-                    with open(logFile, "w", encoding="utf-8") as log:
-                        subprocess.Popen(cmd, stdout=log, stderr=log)
-                else:
-                    cmd = ["python", app.path, app.arguments]
-                    subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        try:
+            pprint(f"Starting process -> {[app.path] + app.arguments.split()}")
+            if app.path.startswith("app:"):
+                app_name = "app:".join(app.path.split("app:")[1:])
+                app_id = app_name_map[app_name]
+                subprocess.Popen([
+                    "powershell", "-Command",
+                    f'Start-Process "shell:AppsFolder\\{app_id}"'
+                ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             else:
-                if app.runas:
-                    ctypes.windll.shell32.ShellExecuteW(
-                        None,
-                        "runas",
-                        app.path,
-                        app.arguments,
-                        os.path.dirname(app.path),
-                        1
-                    )
+                if app.proc_name.startswith("python:"):
+                    app_name = "python:".join(app.proc_name.split("python:")[1:])
+                    now = datetime.now()
+                    curYear = now.strftime("%Y")
+                    curMonth = now.strftime("%m")
+                    curDay = now.strftime("%d")
+                    curHour = now.strftime("%H")
+                    curMinute = now.strftime("%M")
+                    if "cyanSync" in app.path:
+                        logFile = Path(CYANSYNC_LOGS_PATH) / f"{app.name}_{app.arguments}_{curYear}-{curMonth}-{curDay}_{curHour}-{curMinute}.log"
+                        os.makedirs(os.path.dirname(logFile), exist_ok=True)
+                        cmd = ["python", app.path, app.arguments, str(logFile)]
+                        with open(logFile, "w", encoding="utf-8") as log:
+                            subprocess.Popen(cmd, stdout=log, stderr=log)
+                    else:
+                        cmd = ["python", app.path, app.arguments]
+                        subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 else:
-                    subprocess.Popen(
-                        [app.path] + app.arguments.split(),
-                        cwd=os.path.dirname(app.path),
-                        stdout=subprocess.DEVNULL,
-                        stderr=subprocess.DEVNULL
-                    )
-        started_apps.append(app.name)
+                    if app.runas:
+                        ctypes.windll.shell32.ShellExecuteW(
+                            None,
+                            "runas",
+                            app.path,
+                            app.arguments,
+                            os.path.dirname(app.path),
+                            1
+                        )
+                    else:
+                        subprocess.Popen(
+                            [app.path] + app.arguments.split(),
+                            cwd=os.path.dirname(app.path),
+                            stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL
+                        )
+            started_apps.append(app.name)
+        except:
+            pprint(traceback.format_exc())
     return started_apps
 
 

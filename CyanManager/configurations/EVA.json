@@ -7,7 +7,8 @@
         "url": "http://cyanroomserver.duckdns.org",
         "port": "10004",
         "auto_from": "09:00",
-        "auto_to": "20:00"
+        "auto_to": "20:00",
+        "active": true
     },
     "restart": {
         "mouse_jiggle": false,
@@ -33,7 +34,7 @@
             "path": "c:/Users/shape/Documents/codebase/sharedCode/CyanManager/tools/cyanSync/cyanSync.py",
             "arguments": "Android_sync",
             "runas": false,
-            "startup": false
+            "startup": true
         },
         "ChatGPT": {
             "window_kw": [],
@@ -51,7 +52,7 @@
             "path": "app:ChatGPT",
             "arguments": "",
             "runas": false,
-            "startup": false
+            "startup": true
         },
         "CyanLauncherManager": {
             "window_kw": [],
@@ -69,7 +70,7 @@
             "path": "c:/Users/shape/Documents/codebase/sharedCode/CyanManager/tools/CyanLauncherManager/bin/Release/CyanLauncherManager.exe",
             "arguments": "",
             "runas": false,
-            "startup": false
+            "startup": true
         },
         "Discord": {
             "window_kw": [
@@ -109,8 +110,8 @@
             "proc_name": "MSIAfterburner.exe",
             "path": "C:/Program Files (x86)/MSI Afterburner/MSIAfterburner.exe",
             "arguments": "",
-            "runas": false,
-            "startup": false
+            "runas": true,
+            "startup": true
         },
         "Mattermost": {
             "window_kw": [
@@ -170,7 +171,7 @@
             "path": "E:/Software/Network/NetMeterEvo.exe",
             "arguments": "",
             "runas": false,
-            "startup": false
+            "startup": true
         },
         "NordVPN": {
             "window_kw": [
@@ -190,7 +191,7 @@
             "path": "C:/Program Files/NordVPN/NordVPN.exe",
             "arguments": "",
             "runas": false,
-            "startup": false
+            "startup": true
         },
         "NotesSync": {
             "window_kw": [],
@@ -208,7 +209,7 @@
             "path": "C:/Users/shape/Documents/codebase/sharedCode/CyanManager/tools/cyanSync/https_client.py",
             "arguments": "EVA",
             "runas": false,
-            "startup": false
+            "startup": true
         },
         "QBitTorrent": {
             "window_kw": [
@@ -228,7 +229,7 @@
             "path": "C:/Program Files/qBittorrent/qbittorrent.exe",
             "arguments": "",
             "runas": false,
-            "startup": false
+            "startup": true
         },
         "Telegram": {
             "window_kw": [],
@@ -246,7 +247,7 @@
             "path": "app:Telegram Desktop",
             "arguments": "",
             "runas": false,
-            "startup": false
+            "startup": true
         },
         "Thunderbird": {
             "window_kw": [],
@@ -264,7 +265,7 @@
             "path": "app:Thunderbird",
             "arguments": "",
             "runas": false,
-            "startup": false
+            "startup": true
         },
         "WhatsApp": {
             "window_kw": [
@@ -284,7 +285,7 @@
             "path": "app:WhatsApp",
             "arguments": "",
             "runas": false,
-            "startup": false
+            "startup": true
         },
         "Youtube Music": {
             "window_kw": [
@@ -304,7 +305,7 @@
             "path": "app:YouTube Music Desktop App",
             "arguments": "",
             "runas": false,
-            "startup": false
+            "startup": true
         }
     }
 }

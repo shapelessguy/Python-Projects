@@ -7,15 +7,15 @@
         "url": "http://cyanroomserver.duckdns.org",
         "port": 10004,
         "auto_from": "9:00",
-        "auto_to": "20:00"
+        "auto_to": "20:00",
+        "active": false
     },
     "restart": {
         "mouse_jiggle": true,
-        "from": "2:00",
-        "to": "7:00",
-        "inactive_delay": "2:00",
-        "active": false
+        "from": "02:00",
+        "to": "07:00",
+        "inactive_delay": "01:00",
+        "active": true
     },
-    "services": {},
     "applications": {}
 }
