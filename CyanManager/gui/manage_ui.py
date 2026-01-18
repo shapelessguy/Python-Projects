@@ -6,10 +6,11 @@ from gui.theme import dark_stylesheet
 from gui.tab_general import set_gen_layout
 from gui.tab_applications import set_apps_layout
 from PyQt5.QtCore import QObject, Qt
-from PyQt5.QtWidgets import QMainWindow, QApplication, QSystemTrayIcon, QMenu, QLabel
+from PyQt5.QtWidgets import QMainWindow, QApplication, QSystemTrayIcon, QMenu
 from PyQt5.QtCore import QObject, pyqtSignal
 from PyQt5.QtGui import QIcon, QPixmap, QMovie
 from utils import ICONS_FOLDER_PATH, wait
+
 
 
 def gui_loop(signal):
@@ -32,13 +33,20 @@ def gui_loop(signal):
                         exe_map[a.name] = a.process.ExecutablePath
                 signal.update_exe_table(exe_map)
                 signal.ui_manager.execute("set_apps", signal.ui_manager, visibility_change, apps, monitors)
-                wait(signal, 800)
+                wait(signal, 500)
             else:
                 visibility_change = prev_visible
                 prev_visible = False
                 wait(signal, 100)
         except:
             wait(signal, 800)
+
+
+def terminal_loop(signal):
+    while signal.is_alive():
+        while signal.is_alive() and not signal.log_queue.empty():
+            signal.ui_manager.execute("push_to_terminal", signal.log_queue.get().rstrip())
+        wait(signal, 50)
 
 
 class UIThreadBridge(QObject):
@@ -48,6 +56,7 @@ class UIThreadBridge(QObject):
     quit_app = pyqtSignal()
     wait_for_close = pyqtSignal()
     set_general = pyqtSignal(object)
+    push_to_terminal = pyqtSignal(str)
     set_apps = pyqtSignal(object, bool, list, list)
 
 
@@ -126,6 +135,7 @@ class UI:
         self.bridge.wait_for_close.connect(self._wait_for_close)
         self.bridge.set_general.connect(set_gen_layout)
         self.bridge.set_apps.connect(set_apps_layout)
+        self.bridge.push_to_terminal.connect(self._push_to_terminal)
         self.ui = ui
 
         self.tray = QSystemTrayIcon(QIcon(os.path.join(os.path.dirname(os.path.dirname(__file__)), "icons", "cyan_system_manager.ico")), app)
@@ -164,6 +174,9 @@ class UI:
     def _close_event(self, event):
         event.ignore()
         self.ui.main_window.hide()
+    
+    def _push_to_terminal(self, line):
+        self.ui.terminal.append(line)
 
     def _tray_activated(self, reason):
         if reason == QSystemTrayIcon.Trigger:
@@ -182,6 +195,7 @@ class UI:
         self.ui.main_window.hide()
 
     def start_gui_tasks(self):
+        threading.Thread(target=terminal_loop, args=(self.signal, )).start()
         threading.Thread(target=gui_loop, args=(self.signal, )).start()
 
     def _quit_app(self):

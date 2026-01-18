@@ -10,7 +10,7 @@ from gui.manage_ui import UI
 from dotenv import dotenv_values
 from registered_functions import register_functions_and_hotkeys, RegisteredFunctions
 from start_and_shutdown import register_start_and_shutdown_tasks
-from utils import pprint, notify, Application, ENV_PATH, CONFIGURATIONS_PATH, EXE_MAP_PATH
+from utils import Tee, pprint, notify, Application, ENV_PATH, CONFIGURATIONS_PATH, EXE_MAP_PATH
 
 
 class ThreadManager():
@@ -50,6 +50,12 @@ class Signal:
     profile: str
 
     def __init__(self):
+        
+        from queue import Queue
+        self.log_queue = Queue()
+
+        sys.stdout = Tee(self.log_queue, sys.stdout)
+        sys.stderr = Tee(self.log_queue, sys.stderr)
         self.load_exe_table()
         self.load_preferences()
         self.threads = {}

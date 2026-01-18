@@ -111,7 +111,6 @@ class RegisteredFunctions:
     SHOW_ALARM=HandleFunction(show_alarm)
     RING_ALARM=HandleFunction(ring_alarm)
     THREADS_STATUS=HandleFunction(get_threads_status)
-
     LIGHTS_ON=HandleFunction(lights_on)
     LIGHTS_OFF=HandleFunction(lights_off)
     LIGHTS_AUTO=HandleFunction(lights_auto)

@@ -1,7 +1,6 @@
 import subprocess
 import sys
 import ctypes
-import time
 from datetime import datetime, time as dtime
 from utils import wait, pprint
 

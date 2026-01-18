@@ -5,7 +5,6 @@ import subprocess
 import json
 from plyer import notification
 from datetime import datetime
-from pathlib import Path
 
 
 APP_DATA_PATH = os.path.dirname(os.environ.get("APPDATA", "C:/Users/Default/AppData/Roaming"))
@@ -34,6 +33,20 @@ ENV_PATH = os.path.join(os.path.dirname(__file__), '.env')
 ERR_FLAG = "CyanManagerError"
 
 
+class Tee:
+    def __init__(self, log_queue, stream):
+        self.log_queue = log_queue
+        self.stream = stream
+
+    def write(self, msg):
+        self.stream.write(msg)
+        self.stream.flush()
+        self.log_queue.put(msg)
+
+    def flush(self):
+        self.stream.flush()
+
+
 def wait(signal, ms: int):
     while signal.is_alive():
         remaining = ms
@@ -46,14 +59,12 @@ def wait(signal, ms: int):
 def pprint(*args, dt_format="%Y-%m-%d %H:%M:%S", **kwargs):
     """
     Prints messages with a timestamp.
-    
-    Args:
-        *args: values to print
-        dt_format: datetime format string
-        **kwargs: passed to print()
+    All args are joined into a single string to avoid splitting.
     """
     timestamp = datetime.now().strftime(dt_format)
-    print(f"[{timestamp}]", *args, **kwargs, flush=True)
+    # Join all args with spaces into one string
+    message = " ".join(str(arg) for arg in args)
+    print(f"[{timestamp}] {message}", **kwargs, flush=True)
 
 
 def notify(title, message, icon=None, timeout=2):

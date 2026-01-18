@@ -5,6 +5,10 @@ import numpy as np
 from utils import SV_EXE_PATH, TIMER_EXE, pprint, notify
 from pycaw.pycaw import AudioUtilities
 
+
+TEMP_VOLUME = 0.20
+
+
 volume_ticks = []
 for i in range(13):
     volume_ticks.append(i)
@@ -71,8 +75,7 @@ def ring_alarm(signal, verbose=False):
     device = AudioUtilities.GetSpeakers()
     volume = device.EndpointVolume
     current = volume.GetMasterVolumeLevelScalar()
-    temp_vol = 0.4
-    volume.SetMasterVolumeLevelScalar(temp_vol, None)
+    volume.SetMasterVolumeLevelScalar(TEMP_VOLUME, None)
     play_sound()
     volume.SetMasterVolumeLevelScalar(current, None)
 
