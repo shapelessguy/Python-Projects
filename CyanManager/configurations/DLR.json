@@ -11,31 +11,28 @@
     },
     "restart": {
         "mouse_jiggle": true,
-        "from": "2:00",
-        "to": "7:00",
-        "inactive_delay": "2:00",
-        "active": false
+        "from": "02:00",
+        "to": "07:00",
+        "inactive_delay": "01:00",
+        "active": true
     },
     "applications": {
-        "Skype for Business": {
-            "window_kw": [
-                "Skype",
-                "Business"
-            ],
-            "excluded_kw": ["Conversation"],
+        "CyanLauncherManager": {
+            "window_kw": [],
+            "excluded_kw": [],
             "window_props": {
                 "monitor_id": "BOE09E9",
                 "x": 0,
                 "y": 0,
-                "width": 402,
-                "height": 1032,
+                "width": 0,
+                "height": 0,
                 "win_state": "normal",
-                "order": true
+                "order": false
             },
-            "proc_name": "lync.exe",
-            "path": "app:Skype for Business",
+            "proc_name": "CyanLauncherManagerAdmin.exe",
+            "path": "C:/Users/cian_cl/Documents/TOPICS/shapeCode/clm_admin/CyanLauncherManagerAdmin.exe",
             "arguments": "",
-            "runas": "user",
+            "runas": false,
             "startup": true
         },
         "Mattermost": {
@@ -55,27 +52,25 @@
             "proc_name": "Mattermost.exe",
             "path": "app:Mattermost",
             "arguments": "",
-            "runas": "user",
+            "runas": false,
             "startup": true
         },
-        "Outlook": {
-            "window_kw": [
-                "Outlook", "Claudio.Ciano@dlr.de"
-            ],
+        "NotesSync": {
+            "window_kw": [],
             "excluded_kw": [],
             "window_props": {
                 "monitor_id": "BOE09E9",
-                "x": 395,
-                "y": 457,
-                "width": 1532,
-                "height": 582,
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
                 "win_state": "normal",
-                "order": true
+                "order": false
             },
-            "proc_name": "OUTLOOK.EXE",
-            "path": "app:Outlook (classic)",
-            "arguments": "",
-            "runas": "user",
+            "proc_name": "python:https_client.py",
+            "path": "C:/Users/cian_cl/Documents/TOPICS/sharedCode/CyanManager/tools/cyanSync/https_client.py",
+            "arguments": "DLR",
+            "runas": false,
             "startup": true
         },
         "Obsidian": {
@@ -95,43 +90,51 @@
             "proc_name": "Obsidian.exe",
             "path": "app:Obsidian",
             "arguments": "",
-            "runas": "user",
+            "runas": false,
             "startup": true
         },
-        "NotesSync": {
-            "window_kw": [],
+        "Outlook": {
+            "window_kw": [
+                "Outlook",
+                "Claudio.Ciano@dlr.de"
+            ],
             "excluded_kw": [],
             "window_props": {
                 "monitor_id": "BOE09E9",
-                "x": 0,
-                "y": 0,
-                "width": 0,
-                "height": 0,
+                "x": 395,
+                "y": 457,
+                "width": 1532,
+                "height": 582,
                 "win_state": "normal",
-                "order": false
+                "order": true
             },
-            "proc_name": "python:https_client.py",
-            "path": "TOOLS/cyanSync/https_client.py",
-            "arguments": "DLR",
-            "runas": "user",
-            "startup": true
-        },
-        "CyanLauncherManager": {
-            "window_kw": [],
-            "excluded_kw": [],
-            "window_props": {
-                "monitor_id": "BOE09E9",
-                "x": 0,
-                "y": 0,
-                "width": 0,
-                "height": 0,
-                "win_state": "normal",
-                "order": false
-            },
-            "proc_name": "CyanLauncherManagerAdmin.exe",
-            "path": "C:/Users/cian_cl/Documents/TOPICS/shapeCode/clm_admin/CyanLauncherManagerAdmin.exe",
+            "proc_name": "OUTLOOK.EXE",
+            "path": "app:Outlook (classic)",
             "arguments": "",
-            "runas": "admin",
+            "runas": false,
+            "startup": true
+        },
+        "Skype for Business": {
+            "window_kw": [
+                "Skype",
+                "Business"
+            ],
+            "excluded_kw": [
+                "Conversation"
+            ],
+            "window_props": {
+                "monitor_id": "BOE09E9",
+                "x": 0,
+                "y": 0,
+                "width": 402,
+                "height": 1032,
+                "win_state": "normal",
+                "order": true
+            },
+            "proc_name": "lync.exe",
+            "path": "app:Skype for Business",
+            "arguments": "",
+            "runas": false,
             "startup": true
         }
     }
