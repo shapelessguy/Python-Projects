@@ -6,21 +6,41 @@ QWidget {
     font-family: Segoe UI;
 }
 
-QPushButton {
+QLineEdit, QPlainTextEdit, QTextEdit {
     background-color: #3c3c3c;
     color: #f0f0f0;
     border: 1px solid #555;
-    padding: 1px;
+    border-radius: 4px;
+    padding: 4px 6px;
+    selection-background-color: #555;
+    selection-color: #fff;
 }
 
-QPushButton:hover {
-    background-color: #505050;
-}
-
-QLineEdit, QTextEdit {
+QComboBox {
     background-color: #3c3c3c;
     color: #f0f0f0;
     border: 1px solid #555;
+    border-radius: 4px;
+    padding: 2px 6px;
+}
+
+QComboBox:hover {
+    border: 1px solid #888;
+}
+
+QComboBox::drop-down {
+    subcontrol-origin: padding;
+    subcontrol-position: top right;
+    width: 0px;
+    border-left: 1px solid #555;
+}
+
+QComboBox QAbstractItemView {
+    background-color: #3c3c3c;
+    color: #f0f0f0;
+    border: 1px solid #555;
+    selection-background-color: #555;
+    selection-color: #fff;
 }
 
 QMenuBar, QMenu, QToolBar {
@@ -58,8 +78,96 @@ QTabBar::tab:!selected {
     margin-top: 2px;
 }
 
+QPushButton {
+    background-color: #3c3c3c;
+    color: #f0f0f0;
+    border: 1px solid #555;
+    border-radius: 4px;
+    padding: 4px 8px;
+}
+
+QPushButton:hover {
+    border: 1px solid #888;
+    background-color: #444;
+}
+
+QPushButton:pressed {
+    background-color: #555;
+}
+
+QCheckBox, QRadioButton {
+    color: #f0f0f0;
+    qproperty-layoutDirection: RightToLeft;
+    spacing: 5px;
+}
+
+QCheckBox::indicator, QRadioButton::indicator {
+    width: 16px;
+    height: 16px;
+}
+
+QCheckBox::indicator:unchecked, QRadioButton::indicator:unchecked {
+    border: 1px solid #555;
+    background-color: #3c3c3c;
+    border-radius: 3px; /* use 8px for radio */
+}
+
+QCheckBox::indicator:checked, QRadioButton::indicator:checked {
+    border: 1px solid #555;
+    background-color: #50a0ff;
+}
+
+QScrollBar:vertical, QScrollBar:horizontal {
+    background: #3c3c3c;
+    width: 12px;
+    height: 12px;
+    margin: 0px;
+}
+
+QScrollBar::handle {
+    background: #555;
+    border-radius: 4px;
+}
+
+QScrollBar::handle:hover {
+    background: #666;
+}
+
+QScrollBar::add-line, QScrollBar::sub-line {
+    background: none;
+}
+
+QDateTimeEdit {
+    background-color: #3c3c3c;       /* matches QPushButton background */
+    color: #f0f0f0;                  /* text color */
+    border: 1px solid #555;          /* same border as QTabWidget */
+    border-radius: 4px;
+    padding: 2px 6px;
+    selection-background-color: #50a0ff; /* selection highlight */
+    selection-color: #ffffff;
+}
+
+QDateTimeEdit:hover {
+    background-color: #444;
+    border: 1px solid #888;
+}
+
+QDateTimeEdit:focus {
+    border: 1px solid #50a0ff;
+}
+
+
+
 #app_divider {
-    border-top: 1px solid #555;
+    border-right: 1px solid #555;
+}
+
+#tab1 {
+    font-size: 16px;
+}
+
+#tab1 QLabel, tab1 QCheckBox {
+    font-size: 16px;
 }
 
 """

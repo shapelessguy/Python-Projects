@@ -6,9 +6,9 @@ from utils import SV_EXE_PATH, TIMER_EXE, pprint, notify
 from pycaw.pycaw import AudioUtilities
 
 volume_ticks = []
-for i in range(11):
+for i in range(13):
     volume_ticks.append(i)
-for i in range(12, 21, 2):
+for i in range(14, 21, 2):
     volume_ticks.append(i)
 for i in range(22, 35, 3):
     volume_ticks.append(i)

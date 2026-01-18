@@ -3,24 +3,42 @@ import sys
 import threading
 import time
 from gui.theme import dark_stylesheet
+from gui.tab_general import set_gen_layout
 from gui.tab_applications import set_apps_layout
 from PyQt5.QtCore import QObject, Qt
-from PyQt5.QtWidgets import QMainWindow, QApplication, QSystemTrayIcon, QMenu
+from PyQt5.QtWidgets import QMainWindow, QApplication, QSystemTrayIcon, QMenu, QLabel
 from PyQt5.QtCore import QObject, pyqtSignal
-from PyQt5.QtGui import QIcon, QPixmap
-from utils import ICONS_FOLDER_PATH
+from PyQt5.QtGui import QIcon, QPixmap, QMovie
+from utils import ICONS_FOLDER_PATH, wait
 
 
 def gui_loop(signal):
+    signal.ui_manager.execute("set_general", signal.ui_manager)
+    prev_visible = False
+    visibility_change = False
     while signal.is_alive():
-        apps = signal.reg_functions.GET_APPS_STATUS.run()
-        for app in apps:
-            if app.path.startswith("app:"):
-                app_uwp_path = app.path.split("app:")[1]
-                app.path = signal.ui_manager.uwp_map.get(app_uwp_path, app.path)
+        try:
+            win_visible = signal.ui_manager.ui.main_window.isVisible() and int(signal.ui_manager.ui.main_window.windowState()) == 0
+            if win_visible:
+                visibility_change = not prev_visible
+                prev_visible = True
 
-        signal.ui_manager.execute("set_apps", signal.ui_manager, apps)
-        time.sleep(2)
+                apps = signal.reg_functions.GET_APPS_STATUS.run()
+                monitors = signal.reg_functions.GET_SCREENS.run()
+
+                exe_map = {}
+                for a in apps:
+                    if a.process:
+                        exe_map[a.name] = a.process.ExecutablePath
+                signal.update_exe_table(exe_map)
+                signal.ui_manager.execute("set_apps", signal.ui_manager, visibility_change, apps, monitors)
+                wait(signal, 800)
+            else:
+                visibility_change = prev_visible
+                prev_visible = False
+                wait(signal, 100)
+        except:
+            wait(signal, 800)
 
 
 class UIThreadBridge(QObject):
@@ -29,7 +47,8 @@ class UIThreadBridge(QObject):
     restart_app = pyqtSignal()
     quit_app = pyqtSignal()
     wait_for_close = pyqtSignal()
-    set_apps = pyqtSignal(object, list)
+    set_general = pyqtSignal(object)
+    set_apps = pyqtSignal(object, bool, list, list)
 
 
 class WindowDragFilter(QObject):
@@ -105,13 +124,14 @@ class UI:
         self.bridge.restart_app.connect(self._restart_app)
         self.bridge.quit_app.connect(self._quit_app)
         self.bridge.wait_for_close.connect(self._wait_for_close)
+        self.bridge.set_general.connect(set_gen_layout)
         self.bridge.set_apps.connect(set_apps_layout)
         self.ui = ui
 
         self.tray = QSystemTrayIcon(QIcon(os.path.join(os.path.dirname(os.path.dirname(__file__)), "icons", "cyan_system_manager.ico")), app)
         menu = QMenu()
         menu.addAction("Show", self._show_window)
-        menu.addAction("Restart", self._restart_app)
+        # menu.addAction("Restart", self._restart_app)
         menu.addAction("Quit", self._quit_app)
         MainWindow.closeEvent = self._close_event
         self.tray.setContextMenu(menu)
@@ -131,6 +151,13 @@ class UI:
 
     def setup_ui(self):
         self.ui.setupUi(self.ui.main_window)
+        
+        # self.ui.loadingBar = QLabel()
+        # movie = QMovie(os.path.join(ICONS_FOLDER_PATH, "spinner.gif"))  # Load a GIF of a spinner
+        # self.ui.loadingBar.setMovie(movie)
+        # movie.start()
+        # self.ui.loadingBar.setVisible(False)
+        # self.ui.application_view_layout.insertWidget(self.ui.application_view_layout.count() - 2, self.ui.loadingBar, alignment=Qt.AlignHCenter)
         # self.ui.exit.clicked.connect(lambda _=False: self.exit_sync(signal))
         self.ui.main_window.hide()
 
@@ -158,13 +185,19 @@ class UI:
         threading.Thread(target=gui_loop, args=(self.signal, )).start()
 
     def _quit_app(self):
-        app = self.ui.app
-        app.quit()
+        self.ui.main_window.closeEvent = None
+        if self.tray:
+            self.tray.hide()
+            self.tray.deleteLater()
+            self.tray = None
+        self.ui.main_window.close()
+        self.ui.main_window.deleteLater()
+        self.ui.main_window = None
+        self.ui.app.quit()
         print("App quit")
 
     def _restart_app(self):
         self.restart = True
-        self.tray.deleteLater()
         self._quit_app()
 
 

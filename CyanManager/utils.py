@@ -2,6 +2,7 @@ import os
 import psutil
 import time
 import subprocess
+import json
 from plyer import notification
 from datetime import datetime
 from pathlib import Path
@@ -28,6 +29,7 @@ DOCUMENTS_PATH = os.path.join(os.path.expanduser("~"), "Documents")
 CODEBASE_PATH = os.path.join(DOCUMENTS_PATH, "codebase")
 ICONS_FOLDER_PATH = os.path.join(os.path.dirname(__file__), 'icons')
 CONFIGURATIONS_PATH = os.path.join(os.path.dirname(__file__), 'configurations')
+EXE_MAP_PATH = os.path.join(os.path.dirname(__file__), 'exe_map.json')
 ENV_PATH = os.path.join(os.path.dirname(__file__), '.env')
 ERR_FLAG = "CyanManagerError"
 
@@ -65,23 +67,39 @@ def notify(title, message, icon=None, timeout=2):
 
 
 class Application:
-    def __init__(self, name, window_kw, excluded_kw, window_props, proc_name, path, process=None, arguments="", runas="user", startup=False):
+    window_props_values = {
+        "monitor_id": "",
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "win_state": "normal",
+        "order": False
+    }
+
+    def __init__(self, name, window_kw, excluded_kw, proc_name, path, window_props={}, process=None, arguments="", runas="user", startup=False):
+        self.loaded_name = name
         self.name = name
         self.process = process
         self.window_kw = window_kw
         self.excluded_kw = excluded_kw
-        self.window_props = window_props
+        self.window_props = {k: window_props.get(k, v) for k, v in self.window_props_values.items()}
         self.proc_name = proc_name
-        self.path = Path(path.replace("TOOLS", TOOLS_PATH)).as_posix()
+        self.path = path.replace("TOOLS", TOOLS_PATH).replace("\\", "/")
         self.arguments = arguments
         self.runas = runas == "admin"
         self.startup = startup
     
+    def equals(self, application):
+        if not application:
+            return False
+        return json.dumps(self.to_dict()) == json.dumps(application.to_dict())
+
     def to_dict(self):
         return {
             "window_kw": self.window_kw,
             "excluded_kw": self.excluded_kw,
-            "window_props": self.window_props,
+            "window_props": {k: self.window_props[k] for k in self.window_props_values},
             "proc_name": self.proc_name,
             "path": self.path,
             "arguments": self.arguments,

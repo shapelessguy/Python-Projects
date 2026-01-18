@@ -12,9 +12,10 @@ from utils import find_process_by_exe, ERR_FLAG, KEYBOARD_HOTKEYS_EXE, RVX_EXE_P
 reg_path = "CyanHotkey"
 
 
-def listen_hotkeys(signal, hotkeys_operative):
-    while signal.is_alive():
+def listen_hotkeys(thread_manager, hotkeys_operative):
+    signal = thread_manager.signal
 
+    while signal.is_alive() and not thread_manager.to_kill:
         try:
             key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, reg_path, 0, winreg.KEY_READ)
             value, _ = winreg.QueryValueEx(key, "alarm")
@@ -31,18 +32,28 @@ def listen_hotkeys(signal, hotkeys_operative):
             winreg.CloseKey(key)
             winreg.DeleteKey(winreg.HKEY_CURRENT_USER, reg_path)
             found = False
+
+            function_name, repetition = value.split("x")
+            if function_name == "sessionLocked":
+                signal.session_locked = True
+                found = True
+            elif function_name == "sessionUnlocked":
+                signal.session_locked = False
+                found = True
             for k, v in hotkeys_operative.items():
-                function_name, repetition = value.split("x")
                 if k == function_name:
                     for _ in range(int(repetition)):
                         v.run_shortcut()
                     found = True
                     break
+
+
             if not found:
                 pprint("unrecognized:", v.__name__())
         except FileNotFoundError:
             pass
         wait(signal, 0.05)
+    pprint(f"{thread_manager.name} thread down..")
 
 
 class HandleFunction:
@@ -154,4 +165,4 @@ def register_functions_and_hotkeys(signal):
     find_process_by_exe(XM4_EXE_PATH, kill=False, relaunch=True, args=())
 
     signal.set_reg_functions(reg_functions)
-    signal.register_thread(name="Hotkeys", target=listen_hotkeys, args=(signal, hotkeys_operative))
+    signal.register_thread(name="Hotkeys", target=listen_hotkeys, args=(hotkeys_operative, ))

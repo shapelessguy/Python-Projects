@@ -30,7 +30,7 @@ def get_apps_status(signal, verbose=False):
         for p in c.query(query):
             if "python" in p.Caption.lower():
                 for app in app_exe_names["python.exe"]:
-                    if app.path in p.CommandLine and app.arguments in p.CommandLine:
+                    if (app.path != "" and app.path in p.CommandLine) and app.arguments in p.CommandLine:
                         app.process = p
             elif p.Name in app_exe_names:
                 app_exe_names[p.Name].process = p
@@ -148,7 +148,7 @@ def kill_application(signal, verbose=False, application=None):
         return
     
     c = wmi.WMI()
-    for process in c.Win32_Process(Name=applications[0].proc_name):
+    for process in c.Win32_Process(Name=applications[0].proc_name) + c.Win32_Process(ProcessId=applications[0].process.ProcessId):
         try:
             process.Terminate()
         except:

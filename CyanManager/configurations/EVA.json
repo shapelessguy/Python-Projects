@@ -5,18 +5,36 @@
     },
     "roomserver_settings": {
         "url": "http://cyanroomserver.duckdns.org",
-        "port": 10004,
-        "auto_from": "9:00",
+        "port": "10004",
+        "auto_from": "09:00",
         "auto_to": "20:00"
     },
     "restart": {
-        "mouse_jiggle": true,
-        "from": "2:00",
-        "to": "7:00",
-        "inactive_delay": "2:00",
+        "mouse_jiggle": false,
+        "from": "02:00",
+        "to": "07:00",
+        "inactive_delay": "02:00",
         "active": true
     },
     "applications": {
+        "AndroidSyncs": {
+            "window_kw": [],
+            "excluded_kw": [],
+            "window_props": {
+                "monitor_id": "HKC2413",
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "win_state": "normal",
+                "order": false
+            },
+            "proc_name": "python:cyanSync.py",
+            "path": "c:/Users/shape/Documents/codebase/sharedCode/CyanManager/tools/cyanSync/cyanSync.py",
+            "arguments": "Android_sync",
+            "runas": false,
+            "startup": false
+        },
         "ChatGPT": {
             "window_kw": [],
             "excluded_kw": [],
@@ -32,128 +50,30 @@
             "proc_name": "ChatGPT.exe",
             "path": "app:ChatGPT",
             "arguments": "",
-            "runas": "user",
-            "startup": true
-        },
-        "Mattermost": {
-            "window_kw": [
-                "Mattermost Desktop App"
-            ],
-            "excluded_kw": [],
-            "window_props": {
-                "monitor_id": "HKC2413(2)",
-                "x": 982,
-                "y": 523,
-                "width": 938,
-                "height": 510,
-                "win_state": "normal",
-                "order": false
-            },
-            "proc_name": "Mattermost.exe",
-            "path": "app:Mattermost",
-            "arguments": "",
-            "runas": "user",
-            "startup": true
-        },
-        "Mozilla Firefox": {
-            "window_kw": [
-                "Mozilla Firefox"
-            ],
-            "excluded_kw": [],
-            "window_props": {
-                "monitor_id": "HKC2413(2)",
-                "x": 982,
-                "y": 523,
-                "width": 938,
-                "height": 510,
-                "win_state": "normal",
-                "order": false
-            },
-            "proc_name": "firefox.exe",
-            "path": "app:Firefox",
-            "arguments": "",
-            "runas": "user",
+            "runas": false,
             "startup": false
         },
-        "Thunderbird": {
+        "CyanLauncherManager": {
             "window_kw": [],
             "excluded_kw": [],
             "window_props": {
                 "monitor_id": "HKC2413",
-                "x": 453,
-                "y": 417,
-                "width": 1474,
-                "height": 623,
-                "win_state": "normal",
-                "order": true
-            },
-            "proc_name": "thunderbird.exe",
-            "path": "app:Thunderbird",
-            "arguments": "",
-            "runas": "user",
-            "startup": true
-        },
-        "Youtube Music": {
-            "window_kw": [
-                "YouTube Music Desktop App"
-            ],
-            "excluded_kw": [],
-            "window_props": {
-                "monitor_id": "HKC2413(2)",
-                "x": 982,
+                "x": 0,
                 "y": 0,
-                "width": 938,
-                "height": 442,
+                "width": 0,
+                "height": 0,
                 "win_state": "normal",
-                "order": true
+                "order": false
             },
-            "proc_name": "youtube-music-desktop-app.exe",
-            "path": "app:YouTube Music Desktop App",
+            "proc_name": "CyanLauncherManager.exe",
+            "path": "c:/Users/shape/Documents/codebase/sharedCode/CyanManager/tools/CyanLauncherManager/bin/Release/CyanLauncherManager.exe",
             "arguments": "",
-            "runas": "user",
-            "startup": true
+            "runas": false,
+            "startup": false
         },
-        "WhatsApp": {
+        "Discord": {
             "window_kw": [
-                "WhatsApp"
-            ],
-            "excluded_kw": [],
-            "window_props": {
-                "monitor_id": "HKC2413(2)",
-                "x": 975,
-                "y": 440,
-                "width": 953,
-                "height": 600,
-                "win_state": "normal",
-                "order": true
-            },
-            "proc_name": "WhatsApp.Root.exe",
-            "path": "app:WhatsApp",
-            "arguments": "",
-            "runas": "user",
-            "startup": true
-        },
-        "Telegram": {
-            "window_kw": [],
-            "excluded_kw": [],
-            "window_props": {
-                "monitor_id": "HKC2413(2)",
-                "x": -7,
-                "y": 0,
-                "width": 998,
-                "height": 513,
-                "win_state": "normal",
-                "order": true
-            },
-            "proc_name": "Telegram.exe",
-            "path": "app:Telegram Desktop",
-            "arguments": "",
-            "runas": "user",
-            "startup": true
-        },
-        "NordVPN": {
-            "window_kw": [
-                "NordVPN"
+                "Discord"
             ],
             "excluded_kw": [],
             "window_props": {
@@ -162,34 +82,14 @@
                 "y": 523,
                 "width": 938,
                 "height": 510,
-                "win_state": "hidden",
-                "order": true
-            },
-            "proc_name": "NordVPN.exe",
-            "path": "C:/Program Files/NordVPN/NordVPN.exe",
-            "arguments": "",
-            "runas": "user",
-            "startup": true
-        },
-        "QBitTorrent": {
-            "window_kw": [
-                "qBittorrent"
-            ],
-            "excluded_kw": [],
-            "window_props": {
-                "monitor_id": "HKC2413",
-                "x": 454,
-                "y": 0,
-                "width": 1473,
-                "height": 425,
                 "win_state": "normal",
-                "order": true
+                "order": false
             },
-            "proc_name": "qbittorrent.exe",
-            "path": "C:/Program Files/qBittorrent/qbittorrent.exe",
+            "proc_name": "Discord.exe",
+            "path": "app:Discord",
             "arguments": "",
-            "runas": "user",
-            "startup": true
+            "runas": false,
+            "startup": false
         },
         "MSI Afterburner": {
             "window_kw": [
@@ -209,12 +109,12 @@
             "proc_name": "MSIAfterburner.exe",
             "path": "C:/Program Files (x86)/MSI Afterburner/MSIAfterburner.exe",
             "arguments": "",
-            "runas": "admin",
-            "startup": true
+            "runas": false,
+            "startup": false
         },
-        "Discord": {
+        "Mattermost": {
             "window_kw": [
-                "Discord"
+                "Mattermost Desktop App"
             ],
             "excluded_kw": [],
             "window_props": {
@@ -226,10 +126,30 @@
                 "win_state": "normal",
                 "order": false
             },
-            "proc_name": "Discord.exe",
-            "path": "app:Discord",
+            "proc_name": "Mattermost.exe",
+            "path": "app:Mattermost",
             "arguments": "",
-            "runas": "user",
+            "runas": false,
+            "startup": false
+        },
+        "Mozilla Firefox": {
+            "window_kw": [
+                "Mozilla Firefox"
+            ],
+            "excluded_kw": [],
+            "window_props": {
+                "monitor_id": "HKC2413(2)",
+                "x": 982,
+                "y": 523,
+                "width": 938,
+                "height": 510,
+                "win_state": "normal",
+                "order": false
+            },
+            "proc_name": "firefox.exe",
+            "path": "app:Firefox",
+            "arguments": "",
+            "runas": false,
             "startup": false
         },
         "NetMeter Evo": {
@@ -249,26 +169,28 @@
             "proc_name": "NetMeterEvo.exe",
             "path": "E:/Software/Network/NetMeterEvo.exe",
             "arguments": "",
-            "runas": "user",
-            "startup": true
+            "runas": false,
+            "startup": false
         },
-        "AndroidSync": {
-            "window_kw": [],
+        "NordVPN": {
+            "window_kw": [
+                "NordVPN"
+            ],
             "excluded_kw": [],
             "window_props": {
-                "monitor_id": "HKC2413",
-                "x": 0,
-                "y": 0,
-                "width": 0,
-                "height": 0,
-                "win_state": "normal",
-                "order": false
+                "monitor_id": "HKC2413(2)",
+                "x": 982,
+                "y": 523,
+                "width": 938,
+                "height": 510,
+                "win_state": "hidden",
+                "order": true
             },
-            "proc_name": "python:cyanSync.py",
-            "path": "TOOLS/cyanSync/cyanSync.py",
-            "arguments": "Android_sync",
-            "runas": "user",
-            "startup": true
+            "proc_name": "NordVPN.exe",
+            "path": "C:/Program Files/NordVPN/NordVPN.exe",
+            "arguments": "",
+            "runas": false,
+            "startup": false
         },
         "NotesSync": {
             "window_kw": [],
@@ -283,28 +205,106 @@
                 "order": false
             },
             "proc_name": "python:https_client.py",
-            "path": "TOOLS/cyanSync/https_client.py",
+            "path": "C:/Users/shape/Documents/codebase/sharedCode/CyanManager/tools/cyanSync/https_client.py",
             "arguments": "EVA",
-            "runas": "user",
-            "startup": true
+            "runas": false,
+            "startup": false
         },
-        "CyanLauncherManager": {
+        "QBitTorrent": {
+            "window_kw": [
+                "qBittorrent"
+            ],
+            "excluded_kw": [],
+            "window_props": {
+                "monitor_id": "HKC2413",
+                "x": 454,
+                "y": 0,
+                "width": 1473,
+                "height": 425,
+                "win_state": "normal",
+                "order": true
+            },
+            "proc_name": "qbittorrent.exe",
+            "path": "C:/Program Files/qBittorrent/qbittorrent.exe",
+            "arguments": "",
+            "runas": false,
+            "startup": false
+        },
+        "Telegram": {
+            "window_kw": [],
+            "excluded_kw": [],
+            "window_props": {
+                "monitor_id": "HKC2413(2)",
+                "x": -7,
+                "y": 0,
+                "width": 998,
+                "height": 513,
+                "win_state": "normal",
+                "order": true
+            },
+            "proc_name": "Telegram.exe",
+            "path": "app:Telegram Desktop",
+            "arguments": "",
+            "runas": false,
+            "startup": false
+        },
+        "Thunderbird": {
             "window_kw": [],
             "excluded_kw": [],
             "window_props": {
                 "monitor_id": "HKC2413",
-                "x": 0,
-                "y": 0,
-                "width": 0,
-                "height": 0,
+                "x": 453,
+                "y": 417,
+                "width": 1474,
+                "height": 623,
                 "win_state": "normal",
-                "order": false
+                "order": true
             },
-            "proc_name": "CyanLauncherManager.exe",
-            "path": "TOOLS/CyanLauncherManager/bin/Release/CyanLauncherManager.exe",
+            "proc_name": "thunderbird.exe",
+            "path": "app:Thunderbird",
             "arguments": "",
-            "runas": "admin",
-            "startup": true
+            "runas": false,
+            "startup": false
+        },
+        "WhatsApp": {
+            "window_kw": [
+                "WhatsApp"
+            ],
+            "excluded_kw": [],
+            "window_props": {
+                "monitor_id": "HKC2413(2)",
+                "x": 975,
+                "y": 440,
+                "width": 953,
+                "height": 600,
+                "win_state": "normal",
+                "order": true
+            },
+            "proc_name": "WhatsApp.Root.exe",
+            "path": "app:WhatsApp",
+            "arguments": "",
+            "runas": false,
+            "startup": false
+        },
+        "Youtube Music": {
+            "window_kw": [
+                "YouTube Music Desktop App"
+            ],
+            "excluded_kw": [],
+            "window_props": {
+                "monitor_id": "HKC2413(2)",
+                "x": 982,
+                "y": 0,
+                "width": 938,
+                "height": 442,
+                "win_state": "normal",
+                "order": true
+            },
+            "proc_name": "youtube-music-desktop-app.exe",
+            "path": "app:YouTube Music Desktop App",
+            "arguments": "",
+            "runas": false,
+            "startup": false
         }
     }
 }

@@ -28,23 +28,26 @@ def startup(signal):
     signal.reg_functions.ORDER.run_shortcut()
 
 
-def monitor_user_activity(signal):
-    if "startup" in sys.argv:
-        startup(signal)
+def monitor_user_activity(thread_manager):
+    signal = thread_manager.signal
     signal.reg_functions.TURN_ON_MONITORS.run_shortcut()
     signal.reg_functions.LIGHTS_AUTO.run_shortcut(False)
+    if "startup" in sys.argv:
+        startup(signal)
+
     pt = signal.reg_functions.GET_MOUSE_POS.run()
     funct_interaction = datetime.now()
     last_pos = (pt.x, pt.y)
-    restart_options = signal.get_restart_options()
-    start_hours, start_minutes = map(int, restart_options["from"].split(":"))
-    end_hours, end_minutes = map(int, restart_options["to"].split(":"))
-    inactive_hours, inactive_minutes = map(int, restart_options["inactive_delay"].split(":"))
-    start = dtime(start_hours, start_minutes)
-    end = dtime(end_hours, end_minutes)
-    inactive_time = 60 * 60 * inactive_hours + 60 * inactive_minutes
-    while signal.is_alive():
-        
+    
+    while signal.is_alive() and not thread_manager.to_kill:
+        restart_options = signal.get_restart_options()
+        start_hours, start_minutes = map(int, restart_options["from"].split(":"))
+        end_hours, end_minutes = map(int, restart_options["to"].split(":"))
+        inactive_hours, inactive_minutes = map(int, restart_options["inactive_delay"].split(":"))
+        start = dtime(start_hours, start_minutes)
+        end = dtime(end_hours, end_minutes)
+        inactive_time = 60 * 60 * inactive_hours + 60 * inactive_minutes
+    
         pt = signal.reg_functions.GET_MOUSE_POS.run()
         now = datetime.now()
         if pt.x != last_pos[0] or pt.y != last_pos[1]:
@@ -54,7 +57,7 @@ def monitor_user_activity(signal):
         else:
             if not (start <= now.time() <= end):
                 funct_interaction = now
-                if signal.get_restart_options()["mouse_jiggle"]:
+                if restart_options["mouse_jiggle"] and not signal.session_locked:
                     diff = (now - signal.last_interaction).total_seconds()
                     if diff > 60:
                         jiggle_mouse()
@@ -64,10 +67,19 @@ def monitor_user_activity(signal):
         diff = (now - funct_interaction).total_seconds()
         if restart_options["active"] and diff > inactive_time:
             pprint("Shutdown triggered!")
-            subprocess.run(["shutdown", "/r", "/t", "0"])
+            subprocess.run(["shutdown", "/s", "/t", "60"])
+            pt_at_shutdown = signal.reg_functions.GET_MOUSE_POS.run()
+            for _ in range(59):
+                wait(signal, 1000)
+                pt = signal.reg_functions.GET_MOUSE_POS.run()
+                if pt.x != pt_at_shutdown.x or pt.y != pt_at_shutdown.y:
+                    subprocess.run(["shutdown", "/a"])
+                    pprint("Shutdown aborted")
+                    break
             funct_interaction = now
-        wait(signal, 1000)
+        wait(signal, 2000)
+    pprint(f"{thread_manager.name} thread down..")
 
 
 def register_start_and_shutdown_tasks(signal):
-    signal.register_thread(name="Start&Shutdown", target=monitor_user_activity, args=(signal,))
+    signal.register_thread(name="Start&Shutdown", target=monitor_user_activity)

@@ -3,6 +3,7 @@ using Microsoft.Win32;
 using System.Runtime.InteropServices;
 using System.Security.Policy;
 using System.Windows.Forms;
+using Microsoft.Win32;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace KeyboardHotkeys
@@ -27,12 +28,26 @@ namespace KeyboardHotkeys
             combination_view.View = View.Details;
             combination_view.Columns.Add("Modifiers", 330);
             combination_view.Columns.Add("Action", 330);
+
+            SystemEvents.SessionSwitch += (sender, e) =>
+            {
+                if (e.Reason == SessionSwitchReason.SessionLock)
+                {
+                    setFunction("sessionLocked");
+                }
+                else if (e.Reason == SessionSwitchReason.SessionUnlock)
+                {
+                    setFunction("sessionUnlocked");
+                }
+            };
+
             clearRegistry = new System.Windows.Forms.Timer() { Enabled = true, Interval = 200 };
             using (var k = Registry.CurrentUser.OpenSubKey(RegPath, writable: true)) k?.DeleteValue("function", false);
             clearRegistry.Tick += (o, e) =>
             {
                 // string value = getFunction();
                 if (DateTime.UtcNow - lastSentTime > TimeSpan.FromMilliseconds(500)) deleteFunction();
+
             };
             InitializeTrayIcon();
         }
