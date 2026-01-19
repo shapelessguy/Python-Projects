@@ -296,6 +296,42 @@
             "year": 2025,
             "month": 12,
             "day": 30
+        },
+        {
+            "index": 33,
+            "name": "Mara",
+            "price": 2.75,
+            "reason": "Kitchen paper",
+            "year": 2026,
+            "month": 1,
+            "day": 12
+        },
+        {
+            "index": 34,
+            "name": "Mara",
+            "price": 3.95,
+            "reason": "Toilet paper",
+            "year": 2026,
+            "month": 1,
+            "day": 12
+        },
+        {
+            "index": 35,
+            "name": "Mara",
+            "price": 1.75,
+            "reason": "Cleaner",
+            "year": 2026,
+            "month": 1,
+            "day": 17
+        },
+        {
+            "index": 36,
+            "name": "Mara",
+            "price": 1.65,
+            "reason": "Dish soap",
+            "year": 2026,
+            "month": 1,
+            "day": 17
         }
     ]
 }
