@@ -156,8 +156,16 @@ def parse_screen_info(info_path):
         else:
             m.id = f"{m.device_name}({name_freq[m.device_name]})"
 
-        if m.screen.x != m.x or m.screen.y != m.y or m.screen.width != m.width or m.screen.height != m.height:
-            raise("Monitor inconsistency detected")
+        if m.screen.x != m.x or m.screen.y != m.y:
+            print("Monitor inconsistency detected")
+
+        m.scaling = 1
+        if m.screen.width != m.width or m.screen.height != m.height:
+            scaling_x = m.width / m.screen.width
+            scaling_y = m.height / m.screen.height
+            scaling = (scaling_x + scaling_y) / 2
+            m.screen.scaling = scaling
+
         m.screen.device_name = m.device_name
         m.screen._id = m.id
         en_screens.append(m.screen)
@@ -311,8 +319,10 @@ def order(signal, verbose=False, specific_apps=()):
                     if screen._id == monitor_id:
                         try:
                             win.restore()
-                            win.resizeTo(win_props["width"], win_props["height"])
-                            win.moveTo(screen.x + win_props["x"], screen.y + win_props["y"])
+                            if win_props["win_state"] not in ["hidden", "minimized"]:
+                                win.resizeTo(win_props["width"], win_props["height"])
+                                win.moveTo(screen.x + win_props["x"], screen.y + win_props["y"])
+                                win.resizeTo(win_props["width"], win_props["height"])
                             if win_props["win_state"] == "hidden":
                                 win.close()
                             elif win_props["win_state"] == "minimized":

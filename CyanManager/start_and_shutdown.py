@@ -35,7 +35,6 @@ def startup(signal):
 def monitor_user_activity(thread_manager):
     signal = thread_manager.signal
     signal.reg_functions.TURN_ON_MONITORS.run_shortcut()
-    signal.reg_functions.LIGHTS_AUTO.run_shortcut(False)
     if "startup" in sys.argv:
         sys.argv.remove("startup")
         startup(signal)

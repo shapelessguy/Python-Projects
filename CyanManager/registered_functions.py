@@ -143,7 +143,7 @@ def register_functions_and_hotkeys(signal):
 
         # DEBUG PURPOSE
         # (100, 0): reg_functions.DISCOVER_WIN,
-        # (100, 0): reg_functions.GET_WIN_POSITIONS,
+        (100, 0): reg_functions.GET_WIN_POSITIONS,
         # (100, 0): reg_functions.FIND_WINDOWS,
         # (100, 0): reg_functions.SHOW_UWP_APP_NAMES,
         # (100, 0): reg_functions.THREADS_STATUS,

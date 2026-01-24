@@ -198,7 +198,6 @@ class ApplicationRow(QWidget):
         self.set_monitors()
         self.win_state_combobox.addItems(["normal", "minimized", "maximized", "hidden"])
         self.win_state_combobox.setCurrentText(self.application.window_props["win_state"])
-        self.win_state_combobox.setEnabled(application.window_props["order"])
         self.order_checkbox.setChecked(application.window_props["order"])
         for w, prop, size in zip([self.screen_combobox, self.win_state_combobox], ["monitor_id", "win_state"], [90, 70]):
             w.setCurrentText(application.window_props[prop])
@@ -217,6 +216,8 @@ class ApplicationRow(QWidget):
         self.order_checkbox.toggled.connect(on_value_committed)
         self.screen_combobox.setEnabled(application.window_props["order"])
         self.screen_combobox.currentTextChanged.connect(on_value_committed)
+        self.win_state_combobox.setEnabled(application.window_props["order"])
+        self.win_state_combobox.currentTextChanged.connect(on_value_committed)
 
         def start_app():
             threading.Thread(target=ui_manager.signal.reg_functions.STARTUP.run_shortcut, args=(application, )).start()
