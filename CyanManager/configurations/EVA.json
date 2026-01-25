@@ -42,9 +42,9 @@
             "window_props": {
                 "monitor_id": "HKC2413(2)",
                 "x": -7,
-                "y": 504,
-                "width": 998,
-                "height": 536,
+                "y": 593,
+                "width": 976,
+                "height": 446,
                 "win_state": "normal",
                 "order": true
             },
@@ -101,8 +101,8 @@
             "window_props": {
                 "monitor_id": "HKC2413",
                 "x": -7,
-                "y": 0,
-                "width": 476,
+                "y": -1,
+                "width": 475,
                 "height": 870,
                 "win_state": "normal",
                 "order": true
@@ -180,11 +180,11 @@
             "excluded_kw": [],
             "window_props": {
                 "monitor_id": "HKC2413(2)",
-                "x": 982,
-                "y": 523,
-                "width": 938,
-                "height": 510,
-                "win_state": "hidden",
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "win_state": "normal",
                 "order": true
             },
             "proc_name": "NordVPN.exe",
@@ -218,10 +218,10 @@
             "excluded_kw": [],
             "window_props": {
                 "monitor_id": "HKC2413",
-                "x": 454,
-                "y": 0,
-                "width": 1473,
-                "height": 425,
+                "x": 453,
+                "y": -1,
+                "width": 1475,
+                "height": 427,
                 "win_state": "normal",
                 "order": true
             },
@@ -236,9 +236,9 @@
             "excluded_kw": [],
             "window_props": {
                 "monitor_id": "HKC2413(2)",
-                "x": -7,
-                "y": 0,
-                "width": 998,
+                "x": 954,
+                "y": 527,
+                "width": 966,
                 "height": 513,
                 "win_state": "normal",
                 "order": true
@@ -256,7 +256,7 @@
                 "monitor_id": "HKC2413",
                 "x": 453,
                 "y": 417,
-                "width": 1474,
+                "width": 1476,
                 "height": 623,
                 "win_state": "normal",
                 "order": true
@@ -274,9 +274,9 @@
             "excluded_kw": [],
             "window_props": {
                 "monitor_id": "HKC2413(2)",
-                "x": 975,
-                "y": 440,
-                "width": 945,
+                "x": -7,
+                "y": 0,
+                "width": 975,
                 "height": 600,
                 "win_state": "normal",
                 "order": true
@@ -294,10 +294,10 @@
             "excluded_kw": [],
             "window_props": {
                 "monitor_id": "HKC2413(2)",
-                "x": 982,
+                "x": 961,
                 "y": 0,
-                "width": 931,
-                "height": 442,
+                "width": 952,
+                "height": 527,
                 "win_state": "normal",
                 "order": true
             },

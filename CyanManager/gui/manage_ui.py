@@ -124,8 +124,8 @@ class UI:
         icon.addPixmap(QPixmap(os.path.join(ICONS_FOLDER_PATH, "cyan_system_manager.ico")), QIcon.Normal, QIcon.Off)
         MainWindow.setWindowIcon(icon)
         
-        drag_filter = WindowDragFilter(MainWindow)
-        MainWindow.installEventFilter(drag_filter)
+        # drag_filter = WindowDragFilter(MainWindow)
+        # MainWindow.installEventFilter(drag_filter)
 
         self.bridge = UIThreadBridge()
         self.bridge.show_window.connect(self._show_window)

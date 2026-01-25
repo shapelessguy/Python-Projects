@@ -3,11 +3,10 @@ import subprocess
 import psutil
 import win32process
 import pywinctl as pwc
-import shutil
 import ctypes
 import json
 from functions.application import get_uwp_apps
-from utils import Monitor_, MULTIMONITOR_EXE_PATH, TEMP_MONITOR_CONF_PATH, MONITOR_CONF_PATH, wait, pprint
+from utils import Monitor_, MULTIMONITOR_EXE_PATH, TEMP_MONITOR_CONF_PATH, wait, pprint
 from collections import defaultdict
 from operator import attrgetter
 from screeninfo import get_monitors
@@ -70,35 +69,26 @@ def find_windows(signal, verbose=False, discover=False):
     return found
 
 
+previous_matches = []
 def get_screens(signal, verbose=False):
+    global previous_matches
     try:
         if os.path.exists(TEMP_MONITOR_CONF_PATH):
             os.remove(TEMP_MONITOR_CONF_PATH)
-            wait(signal, 100)
     except Exception:
         pass
-
     subprocess.run([MULTIMONITOR_EXE_PATH, "/SaveConfig", TEMP_MONITOR_CONF_PATH])
-
     for _ in range(20):
+        wait(signal, 100)
         if os.path.exists(TEMP_MONITOR_CONF_PATH):
             break
-        wait(signal, 100)
 
     monitor_matches = []
-    while signal.is_alive():
-        try:
-            monitor_matches = parse_screen_info(TEMP_MONITOR_CONF_PATH)
-            break
-        except:
-            monitor_matches = []
-        wait(signal, 1000)
-
-    if os.path.exists(TEMP_MONITOR_CONF_PATH):
-        try:
-            shutil.move(TEMP_MONITOR_CONF_PATH, MONITOR_CONF_PATH)
-        except shutil.Error:
-            raise Exception(f"Error while moving {TEMP_MONITOR_CONF_PATH} into {MONITOR_CONF_PATH}")
+    try:
+        monitor_matches = parse_screen_info(TEMP_MONITOR_CONF_PATH)
+    except:
+        pprint("Parsing screen information unsuccessful.")
+        monitor_matches = previous_matches
 
     if verbose:
         for m in monitor_matches:
@@ -302,13 +292,13 @@ def get_win_pos(signal, verbose=False):
     return windows_pos
 
 
-def order(signal, verbose=False, specific_apps=()):
+def order(signal, verbose=False, only_app_names=()):
     os_windows = find_windows(signal)
     screens = get_screens(signal)
 
     windows_moved = []
     for app in signal.get_applications():
-        if len(specific_apps) > 0 and app.name not in specific_apps:
+        if len(only_app_names) > 0 and app.name not in only_app_names:
             continue
         app_name = app.name
         win_props = app.window_props
