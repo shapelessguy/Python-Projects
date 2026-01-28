@@ -179,12 +179,12 @@
             ],
             "excluded_kw": [],
             "window_props": {
-                "monitor_id": "HKC2413(2)",
-                "x": 0,
-                "y": 0,
-                "width": 0,
-                "height": 0,
-                "win_state": "normal",
+                "monitor_id": "DEL41EE",
+                "x": 399,
+                "y": 159,
+                "width": 902,
+                "height": 702,
+                "win_state": "hidden",
                 "order": true
             },
             "proc_name": "NordVPN.exe",

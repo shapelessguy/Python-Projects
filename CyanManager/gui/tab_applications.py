@@ -257,7 +257,7 @@ class ApplicationRow(QWidget):
         self.win_state_combobox.currentTextChanged.connect(on_value_committed)
 
         def start_app():
-            threading.Thread(target=ui_manager.signal.reg_functions.STARTUP.run_shortcut, args=(application, )).start()
+            threading.Thread(target=ui_manager.signal.reg_functions.STARTUP.run_shortcut, args=([application.name], )).start()
         self.start_btn.clicked.connect(start_app)
 
         def kill_app():
