@@ -162,16 +162,6 @@ def parse_screen_info(info_path):
     return en_screens
 
 
-class POINT(ctypes.Structure):
-    _fields_ = [("x", ctypes.c_long), ("y", ctypes.c_long)]
-
-
-pt = POINT()
-def get_mouse_position(signal, verbose=False):
-    ctypes.windll.user32.GetCursorPos(ctypes.byref(pt))
-    return pt
-
-
 def shutdown_monitors(signal, verbose=False):
     screens = get_screens(signal)
     monitor_names = []
