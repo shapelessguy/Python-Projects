@@ -22,7 +22,6 @@ KEYBOARD_HOTKEYS_EXE = os.path.join(TOOLS_PATH, "KeyboardHotkeys", "KeyboardHotk
 TIMER_EXE = os.path.join(TOOLS_PATH, "Timer", "Timer", "bin", "Release", "net10.0-windows", "Timer.exe")
 MULTIMONITOR_EXE_PATH = os.path.join(MULTIMONITOR_FOLDER_PATH, "MultiMonitorTool.exe")
 TEMP_MONITOR_CONF_PATH = os.path.join(MULTIMONITOR_FOLDER_PATH, "temp_config.cfg")
-MONITOR_CONF_PATH = os.path.join(MULTIMONITOR_FOLDER_PATH, "config.cfg")
 
 DOCUMENTS_PATH = os.path.join(os.path.expanduser("~"), "Documents")
 CODEBASE_PATH = os.path.join(DOCUMENTS_PATH, "codebase")
