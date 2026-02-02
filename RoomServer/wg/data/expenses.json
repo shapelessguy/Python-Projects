@@ -341,6 +341,51 @@
             "year": 2026,
             "month": 1,
             "day": 22
+        },
+        {
+            "index": 38,
+            "name": "Natchaya",
+            "price": 4.95,
+            "reason": "Gloves for cooking",
+            "year": 2026,
+            "month": 1,
+            "day": 27
+        },
+        {
+            "index": 39,
+            "name": "Natchaya",
+            "price": 1.45,
+            "reason": "Big trash bags",
+            "year": 2026,
+            "month": 1,
+            "day": 29
+        },
+        {
+            "index": 40,
+            "name": "Natchaya",
+            "price": 0.59,
+            "reason": "Small trash bags",
+            "year": 2026,
+            "month": 1,
+            "day": 29
+        },
+        {
+            "index": 41,
+            "name": "Natchaya",
+            "price": 0.85,
+            "reason": "Hand soap",
+            "year": 2026,
+            "month": 1,
+            "day": 29
+        },
+        {
+            "index": 42,
+            "name": "Jay",
+            "price": 2.58,
+            "reason": "salt - 2",
+            "year": 2026,
+            "month": 1,
+            "day": 31
         }
     ]
 }
