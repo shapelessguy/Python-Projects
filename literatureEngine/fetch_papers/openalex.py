@@ -1,6 +1,6 @@
 import requests
 import json
-from gui.utils import matching_string
+from gui.utils import matching_string, SEARCH_REQ_TIMEOUT
 
 
 def from_openalex(work):
@@ -8,7 +8,7 @@ def from_openalex(work):
     venue = work.get("host_venue", {})
 
     return {
-        "doi": work.get("doi").replace("https://doi.org/", "").replace("http://doi.org/", ""),
+        "doi": work.get("doi", "").replace("https://doi.org/", "").replace("http://doi.org/", ""),
         "type": work.get("type"),
         "title": work.get("title"),
         "authors": [
@@ -34,7 +34,7 @@ def fetch_from_openalex(value: str, obj: str):
     if obj == "title":
         url = "https://api.openalex.org/works"
         params = {"search": value, "per_page": 5}
-        response = requests.get(url, params=params, headers=headers, timeout=30)
+        response = requests.get(url, params=params, headers=headers, timeout=SEARCH_REQ_TIMEOUT)
         response.raise_for_status()
         data = response.json()
 
@@ -48,7 +48,7 @@ def fetch_from_openalex(value: str, obj: str):
     else:
         doi = value.lower()
         url = f"https://api.openalex.org/works/doi:{doi}"
-        response = requests.get(url, headers=headers, timeout=30)
+        response = requests.get(url, headers=headers, timeout=SEARCH_REQ_TIMEOUT)
         response.raise_for_status()
         results = [response.json()]
     return results, from_openalex

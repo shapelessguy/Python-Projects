@@ -13,10 +13,10 @@ class Signal:
     cur_review: str
     cur_library: str
     mongo: MongoDB = None
+    stopped = False
 
     def __init__(self):
         self.log_queue = Queue()
-
         sys.stdout = Tee(self.log_queue, sys.stdout)
         sys.stderr = Tee(self.log_queue, sys.stderr)
         self.threads = {}
@@ -31,8 +31,8 @@ class Signal:
     def set_current_library(self, library):
         self.cur_library = library
     
-    def fetch_containers(self):
-        return self.mongo.fetch_containers(self.cur_review)
+    def set_current_context(self, context):
+        self.cur_context = context
     
     def kill(self):
         self.kill_flag = True

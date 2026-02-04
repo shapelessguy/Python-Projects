@@ -3,46 +3,75 @@ import sys
 import threading
 from queue import Queue
 from gui.theme import light_stylesheet
-from gui.tab_pdfs import setup_tab_pdfs, load_containers, Operation
+from gui.tab_pdfs import setup_tab_pdfs, load_containers
+from gui.tab_contexts import setup_tab_contexts, load_contexts
 from PyQt5.QtCore import QObject, Qt
-from PyQt5.QtWidgets import QMainWindow, QApplication, QSystemTrayIcon, QMenu, QDialog, QPushButton, QProgressBar
+from PyQt5.QtWidgets import QMainWindow, QApplication, QStyleFactory, QSystemTrayIcon, QMenu, QDialog, QPushButton, QProgressBar
 from PyQt5.QtCore import QObject, pyqtSignal, QSize
 from PyQt5.QtGui import QIcon, QPixmap, QFont
-from utils import ICONS_FOLDER_PATH, wait
+from gui.utils import UI_FILES, ICONS_FOLDER_PATH, wait, Operation, StopOp
 
+
+class OpState:
+    CONTINUE = 0
+    WAITING = 1
+    REPEAT = 2
 
 def gui_loop(signal):
-    pending_element: Operation = None
-
     buffer_op_class_name = ""
     buffer: list[Operation] = []
+    buffer_index = 0
+    signal.op_next_task = OpState.CONTINUE
+
+    def initialize():
+        signal.stopped = False
+        signal.ui_manager.execute("show_loading", "")
+        return [], "", 0
 
     while signal.is_alive():
         try:
-            if not signal.ui_manager.operation_queue.empty() or pending_element:
+            if not signal.ui_manager.operation_queue.empty() or len(buffer):
 
-                if pending_element:
-                    buffer.append(pending_element)
-                    buffer_op_class_name = pending_element.op_class_name
+                if len(buffer) == buffer_index:
+                    buffer, buffer_op_class_name, buffer_index = initialize()
 
                 while not signal.ui_manager.operation_queue.empty():
                     operation: Operation = signal.ui_manager.operation_queue.get()
-                    if buffer_op_class_name != "" and operation.op_class_name != buffer_op_class_name:
-                        pending_element = operation
+                    if operation.op_class_name == "StopOp":
+                        while not signal.ui_manager.operation_queue.empty():
+                            signal.ui_manager.operation_queue.get()
+                        buffer, buffer_op_class_name, buffer_index = initialize()
                         break
-                    else:
+                    if buffer_op_class_name == "" or operation.op_class_name == buffer_op_class_name:
                         buffer_op_class_name = operation.op_class_name
-                        buffer.append(operation)
+                        processing = False
+                        for op in buffer:
+                            if op.id == operation.id:
+                                processing = True
+                                break
+                        if len(buffer) == 0 or not processing:
+                            buffer.append(operation)
                 
-                for i, operation in enumerate(buffer, start=1):
-                    signal.ui_manager.execute("show_loading", f"({i}/{len(buffer)}) {operation.op_class_name}")
-                    operation.start()
-                    signal.ui_manager.execute("end_of_operation", operation)
-                    signal.ui_manager.execute("show_loading", "")
+                if len(buffer):
+                    operation = buffer[buffer_index]
+                    buffer_index += 1
+                    signal.ui_manager.execute("show_loading", f"({buffer_index}/{len(buffer)}) {operation.op_class_name}")
 
-                buffer = []
-                buffer_op_class_name = ""
-            wait(signal, 100)
+                    repeated = False
+                    while signal.is_alive():
+                        while signal.is_alive() and signal.op_next_task == OpState.WAITING:
+                            repeated = True
+                            wait(signal, 50)
+                        if not signal.is_alive():
+                            return
+
+                        if signal.op_next_task == OpState.CONTINUE and repeated:
+                            break
+                        operation.start()
+                        signal.ui_manager.execute("end_of_operation", operation)
+                        signal.op_next_task = OpState.WAITING
+
+            wait(signal, 50)
         except:
             wait(signal, 1000)
 
@@ -51,8 +80,6 @@ def terminal_loop(signal):
     while signal.is_alive():
         while signal.is_alive() and not signal.log_queue.empty():
             signal.ui_manager.execute("push_to_terminal", signal.log_queue.get().rstrip())
-
-        signal.ui_manager.execute("increase_loading_value")
         wait(signal, 50)
 
 
@@ -63,7 +90,6 @@ class UIThreadBridge(QObject):
     wait_for_close = pyqtSignal()
     end_of_operation = pyqtSignal(object)
     push_to_terminal = pyqtSignal(str)
-    increase_loading_value = pyqtSignal()
     show_loading = pyqtSignal(str)
 
 
@@ -106,9 +132,8 @@ class UI_Manager:
     def __init__(self, signal):
         self.signal = signal
         self.operation_queue = Queue()
-        ui_files = ['literatureEngineMainWin', 'new_review_dialog', 'generalDialog', 'paper_widget']
-        ui_paths = [os.path.join(os.path.dirname(os.path.realpath(__file__)), x + '.ui') for x in ui_files]
-        py_paths = [os.path.join(os.path.dirname(os.path.realpath(__file__)), x + '.py') for x in ui_files]
+        ui_paths = [os.path.join(os.path.dirname(os.path.realpath(__file__)), x + '.ui') for x in UI_FILES]
+        py_paths = [os.path.join(os.path.dirname(os.path.realpath(__file__)), x + '.py') for x in UI_FILES]
         for i in range(len(ui_paths)):
             ui_path = ui_paths[i]
             py_path = py_paths[i]
@@ -118,6 +143,7 @@ class UI_Manager:
 
         from gui import literatureEngineMainWin as main_interface
 
+        QApplication.setStyle(QStyleFactory.create("Fusion"))
         app = QApplication(sys.argv)
         app.setStyleSheet(light_stylesheet)
         MainWindow = QMainWindow()
@@ -141,7 +167,7 @@ class UI_Manager:
         self.bridge.wait_for_close.connect(self._wait_for_close)
         self.bridge.end_of_operation.connect(self._end_of_operation)
         self.bridge.push_to_terminal.connect(self._push_to_terminal)
-        self.bridge.increase_loading_value.connect(self._increase_loading_value)
+        # self.bridge.increase_loading_value.connect(self._increase_loading_value)
         self.bridge.show_loading.connect(self._show_loading)
         self.ui = ui
 
@@ -226,16 +252,38 @@ class UI_Manager:
 
         self.ui.op_lbl.setMinimumWidth(100)
         self.ui.op_lbl.setText("")
+
         self.ui.op_loading = QProgressBar(None)
-        self.ui.op_loading.setMinimum(20)
-        self.ui.op_loading.setMaximum(100)
-        self.ui.op_loading.setFixedWidth(120)
-        self.ui.op_loading.setFixedHeight(10)
+        self.ui.op_loading.setRange(0, 0)
+        self.ui.op_loading.setFixedWidth(60)
+        self.ui.op_loading.setFixedHeight(12)
         self.ui.op_loading.setTextVisible(False)
         self.ui.op_loading.hide()
-        self.ui.bottom_layout.insertWidget(self.ui.bottom_layout.count() - 3, self.ui.op_loading)
+
+        self.ui.stopOp.setIcon(QIcon(os.path.join(ICONS_FOLDER_PATH, "stop.png")))
+        self.ui.stopOp.hide()
+        normal_stop_size, hovered_stop_size = QSize(15, 15), QSize(18, 18)
+        self.ui.stopOp.setStyleSheet(f"""QPushButton {{border: none; background: transparent; padding: 0px; text-align: center;}}""")
+        self.ui.stopOp.setIconSize(normal_stop_size)
+        def enterEvent(event):
+            self.ui.stopOp.setIconSize(hovered_stop_size)
+            QPushButton.enterEvent(self.ui.stopOp, event)
+        def leaveEvent(event):
+            self.ui.stopOp.setIconSize(normal_stop_size)
+            QPushButton.leaveEvent(self.ui.stopOp, event)
+        self.ui.stopOp.enterEvent = enterEvent
+        self.ui.stopOp.leaveEvent = leaveEvent
+
+        def sendStop():
+            self.signal.stopped = True
+            self.ui.stopOp.hide()
+            self.send_operation(Operation(self.signal, StopOp))
+
+        self.ui.stopOp.clicked.connect(sendStop)
+        self.ui.bottom_layout.insertWidget(self.ui.bottom_layout.count() - 2, self.ui.op_loading)
         self.load_reviews()
         setup_tab_pdfs(self)
+        setup_tab_contexts(self)
 
         self.ui.main_window.show()
     
@@ -245,6 +293,7 @@ class UI_Manager:
         self.ui.main_widget.setVisible(True)
         self.ui.review_indicator.setText(f"Review: {review_name}")
         load_containers(self)
+        load_contexts(self)
 
     def load_reviews(self):
         self.ui.select_review.setVisible(True)
@@ -273,26 +322,23 @@ class UI_Manager:
         # self.ui.main_window.hide()
     
     def _end_of_operation(self, operation):
-        operation.end()
+        result = operation.end()
+        self.signal.op_next_task = OpState.CONTINUE if result is None else OpState.REPEAT
     
     def _push_to_terminal(self, line):
         if line == "":
             return
         self.ui.terminal.insertPlainText(f"{line}\n")
     
-    def _increase_loading_value(self):
-        cur_value = self.ui.op_loading.value()
-        next_value = cur_value + 2
-        if next_value > 100:
-            next_value = 20
-        self.ui.op_loading.setValue(next_value)
-    
     def _show_loading(self, show_txt: str):
         self.ui.op_lbl.setText(show_txt)
         if show_txt:
             self.ui.op_loading.show()
+            if not self.signal.stopped:
+                self.ui.stopOp.show()
         else:
             self.ui.op_loading.hide()
+            self.ui.stopOp.hide()
 
     def _tray_activated(self, reason):
         if reason == QSystemTrayIcon.Trigger:

@@ -187,6 +187,7 @@ class Tee:
         self.stream.flush()
 
 
+ICONS_FOLDER_PATH = os.path.join(os.path.dirname(__file__), 'gui', 'icons')
 def wait(signal, ms: int):
     while signal.is_alive():
         remaining = ms

@@ -6,6 +6,12 @@ QWidget {
     font-family: Segoe UI;
 }
 
+QProgressBar {
+    border: 0;
+    background: #eef3f8;
+    border-radius: 4px;
+}
+
 QLineEdit, QPlainTextEdit, QTextEdit {
     background-color: #f7f7f7;
     color: #000000;

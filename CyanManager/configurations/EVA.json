@@ -15,7 +15,7 @@
         "from": "02:00",
         "to": "07:00",
         "inactive_delay": "02:00",
-        "active": true
+        "active": false
     },
     "applications": {
         "AndroidSyncs": {

@@ -1,6 +1,6 @@
 import requests
 import json
-from gui.utils import matching_string
+from gui.utils import matching_string, SEARCH_REQ_TIMEOUT
 
 
 def from_datacite(item):
@@ -10,10 +10,14 @@ def from_datacite(item):
     if pages and "-" in pages:
         first_page, last_page = pages.split("-", 1)
     container_title = None
-    venue_type = None
     publisher = attrs.get("publisher")
     issn = None
     isbn = attrs.get("isbn")
+    descriptions = attrs.get("descriptions", [])
+    abstract = ""
+    for d in descriptions:
+        if d.get("descriptionType", "") == "Abstract":
+            abstract = d.get("description", "")
     
     container_title_list = attrs.get("container-title") or []
     if isinstance(container_title_list, list) and container_title_list:
@@ -21,8 +25,9 @@ def from_datacite(item):
     
     return {
         "doi": attrs.get("doi"),
-        "type": attrs.get("types", {}).get("resourceTypeGeneral"),
+        "venue_type": attrs.get("types", {}).get("resourceTypeGeneral"),
         "title": attrs.get("titles", [{}])[0].get("title"),
+        "abstract": abstract,
         "authors": [
             f"{c.get('givenName')} {c.get('familyName')}"
             for c in attrs.get("creators", [])
@@ -30,8 +35,8 @@ def from_datacite(item):
         ],
         "year": attrs.get("publicationYear"),
         "container_title": container_title,
-        "venue_type": venue_type,
         "publisher": publisher,
+        "citation_count": attrs.get("citationCount"),
         "first_page": first_page,
         "last_page": last_page,
         "issn": issn,
@@ -46,7 +51,7 @@ def fetch_from_datacite(value: str, obj: str):
     if obj == "title":
         url = "https://api.datacite.org/dois"
         params = {"query": value, "page[size]": 5}
-        response = requests.get(url, params=params, headers=headers, timeout=30)
+        response = requests.get(url, params=params, headers=headers, timeout=SEARCH_REQ_TIMEOUT)
         response.raise_for_status()
         data = response.json()
         
@@ -61,7 +66,7 @@ def fetch_from_datacite(value: str, obj: str):
         # fetch by DOI
         doi = value.lower()
         url = f"https://api.datacite.org/dois/{doi}"
-        response = requests.get(url, headers=headers, timeout=30)
+        response = requests.get(url, headers=headers, timeout=SEARCH_REQ_TIMEOUT)
         response.raise_for_status()
         results = [response.json().get("data", {})]
     return results, from_datacite

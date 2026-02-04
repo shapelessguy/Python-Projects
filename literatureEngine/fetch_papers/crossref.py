@@ -1,6 +1,6 @@
 import requests
 import json
-from gui.utils import matching_string
+from gui.utils import matching_string, SEARCH_REQ_TIMEOUT
 
 
 def from_crossref(message):
@@ -12,13 +12,15 @@ def from_crossref(message):
 
     year = issued.get("date-parts", [[None]])[0][0]
     pages = message.get("page")
+    references = [x["DOI"] for x in message.get("reference", []) if "DOI" in x]
+
     first_page, last_page = (None, None)
     if pages and "-" in pages:
         first_page, last_page = pages.split("-", 1)
 
     return {
         "doi": message.get("DOI"),
-        "type": message.get("type"),
+        "venue_type": message.get("type"),
         "title": message.get("title", [None])[0],
         "authors": [
             f"{a.get('given')} {a.get('family')}"
@@ -29,6 +31,7 @@ def from_crossref(message):
         "container_title": message.get("container-title", [None])[0],
         "publisher": message.get("publisher"),
         "publisher_location": message.get("publisher-location"),
+        "references": references,
         "volume": message.get("volume"),
         "issue": message.get("issue"),
         "first_page": first_page,
@@ -53,7 +56,7 @@ def fetch_from_crossref(value: str, obj: str):
         url = f"https://api.crossref.org/works/{value}"
         params = {}
     
-    response = requests.get(url, params=params, headers=headers, timeout=30)
+    response = requests.get(url, params=params, headers=headers, timeout=SEARCH_REQ_TIMEOUT)
     response.raise_for_status()
 
     data = response.json()

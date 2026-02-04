@@ -1,9 +1,48 @@
 import traceback
 import difflib
 import re
+import os
+import time
 import hashlib
 import unicodedata
 from utils import pprint
+
+
+SEARCH_REQ_TIMEOUT = (3, 5)
+VENUE_TYPES = [
+    "other",
+    "journal-article",
+    "proceedings-article",
+    "proceedings",
+    "book",
+    "book-chapter",
+    "report",
+    "dataset",
+    "dissertation",
+    "posted-content",
+    "reference-entry",
+    "standard",
+    "peer-review"
+]
+UI_FILES = [
+    'literatureEngineMainWin',
+    'new_review_dialog',
+    'generalDialog',
+    'paper_widget',
+    'contextExpansion'
+]
+
+
+ICONS_FOLDER_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'gui', 'icons')
+
+
+def wait(signal, ms: int):
+    while signal.is_alive():
+        remaining = ms
+        while remaining > 0 and signal.is_alive():
+            time.sleep(min(remaining / 1000, 0.05))
+            remaining -= 50
+        break
 
 
 class OpClass:
@@ -19,9 +58,15 @@ class OpClass:
         pass
 
 
+class StopOp(OpClass):
+    def __init__(self):
+        super().__init__()
+
+
 class Operation:
-    def __init__(self, signal, op_class: OpClass, args: dict):
+    def __init__(self, signal, op_class: OpClass, id: str = "", args: dict = {}):
         self.signal = signal
+        self.id = signal.cur_review + ":" + id
         self.op_class = op_class()
         self.op_class_name = op_class.__name__
         self.args = args
@@ -34,7 +79,7 @@ class Operation:
     
     def end(self):
         try:
-            self.op_class.end(self.signal, self.args)
+            return self.op_class.end(self.signal, self.args)
         except:
             pprint(traceback.format_exc())
 
@@ -47,7 +92,7 @@ def matching_string(string: str, collection: list[str]):
     return result
 
 
-def query_to_hash(query: str, algo="sha1", length=12):
+def query_to_hash(query: str, algo="sha1", length=24):
     h = hashlib.new(algo)
     h.update(query.encode("utf-8"))
     return h.hexdigest()[:length]
@@ -66,4 +111,4 @@ def normalize_name(name: str, max_length: int = 150):
 
 
 def create_paper_id(title, doi, year):
-    return query_to_hash(normalize_name(title) + doi + str(year))
+    return query_to_hash(normalize_name(title) + str(doi) + str(year))
