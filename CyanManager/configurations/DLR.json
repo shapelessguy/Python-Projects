@@ -86,7 +86,7 @@
                 "width": 1763,
                 "height": 1060,
                 "win_state": "maximized",
-                "order": true
+                "order": false
             },
             "proc_name": "Obsidian.exe",
             "path": "app:Obsidian",
