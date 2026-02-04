@@ -114,6 +114,7 @@ class RegisteredFunctions:
     LIGHTS_ON=HandleFunction(lights_on)
     LIGHTS_OFF=HandleFunction(lights_off)
     LIGHTS_AUTO=HandleFunction(lights_auto)
+    TYPE_PASSWORD=HandleFunction(type_password)
 
     def __init__(self, signal):
         for attr_value in self.__class__.__dict__.values():
@@ -136,6 +137,7 @@ def register_functions_and_hotkeys(signal):
         (104, 0): reg_functions.TURN_ON_MONITORS,           # NUMPAD8
         (98, 0): reg_functions.SHUTDOWN_MONITORS,           # NUMPAD2
         (109, 0): reg_functions.SHOW_ALARM,                 # NUMPAD -
+        (103, 0): reg_functions.TYPE_PASSWORD,              # NUMPAD7
 
         (97, 2): reg_functions.LIGHTS_ON,                   # CTRL + NUMPAD1
         (98, 2): reg_functions.LIGHTS_OFF,                  # CTRL + NUMPAD2

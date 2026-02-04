@@ -31,7 +31,7 @@ def get_apps_status(signal, verbose=False):
         for p in c.query(query):
             if "python" in p.Caption.lower():
                 for app in app_exe_names["python.exe"]:
-                    if (app.path != "" and app.path in p.CommandLine) and app.arguments in p.CommandLine:
+                    if (app.path != "" and p.CommandLine and app.path in p.CommandLine) and app.arguments in p.CommandLine:
                         app.process = p
             elif p.Name in app_exe_names:
                 app_exe_names[p.Name].process = p

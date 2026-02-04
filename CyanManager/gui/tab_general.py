@@ -3,6 +3,7 @@ import os
 import sys
 import threading
 import json
+import keyring
 from utils import pprint
 from functools import partial
 from PyQt5.QtWidgets import QWidget, QLabel, QPushButton, QHBoxLayout, QLineEdit
@@ -54,6 +55,8 @@ def on_change_ro(ui_manager):
         return
     ro = ui_manager.signal.get_restart_options()
     d_str = json.dumps(ro)
+
+    keyring.set_password("CyanManager", ui_manager.signal.profile, ui_manager.ui.password.text())
     ro["active"] = ui_manager.ui.shutdown_active.isChecked()
     ro["mouse_jiggle"] = ui_manager.ui.mouse_jiggle.isChecked()
     ro["from"] = time_to_str(ui_manager.ui.shutdown_from)
@@ -79,6 +82,7 @@ def set_gen_layout(ui_manager):
     ui_manager.ui.auto_from.timeChanged.connect(partial(on_change_rs, ui_manager))
     ui_manager.ui.auto_to.timeChanged.connect(partial(on_change_rs, ui_manager))
     ui_manager.ui.roomserver_active.toggled.connect(partial(on_change_rs, ui_manager))
+    ui_manager.ui.password.textChanged.connect(partial(on_change_ro, ui_manager))
     ui_manager.ui.shutdown_from.timeChanged.connect(partial(on_change_ro, ui_manager))
     ui_manager.ui.shutdown_to.timeChanged.connect(partial(on_change_ro, ui_manager))
     ui_manager.ui.inactivity.timeChanged.connect(partial(on_change_ro, ui_manager))
@@ -97,6 +101,8 @@ def set_gen_layout(ui_manager):
     ui_manager.ui.roomserver_active.setChecked(rs["active"])
 
     ro = ui_manager.signal.get_restart_options()
+    ui_manager.ui.password.setEchoMode(QLineEdit.Password)
+    ui_manager.ui.password.setText(keyring.get_password("CyanManager", ui_manager.signal.profile))
     ui_manager.ui.shutdown_from.setTime(QTime(int(ro["from"].split(":")[0]), int(ro["from"].split(":")[1]), 00))
     ui_manager.ui.shutdown_to.setTime(QTime(int(ro["to"].split(":")[0]), int(ro["to"].split(":")[1]), 00))
     ui_manager.ui.inactivity.setTime(QTime(int(ro["inactive_delay"].split(":")[0]), int(ro["inactive_delay"].split(":")[1]), 00))
