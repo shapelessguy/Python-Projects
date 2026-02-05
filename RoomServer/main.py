@@ -71,19 +71,24 @@ def main():
         sys.stderr = TeeOutput('MAIN', sys.__stderr__, signal['log_file_name'])
         signal['kill'] = False
         threads = []
-        threads.append(threading.Thread(target=background, args=(signal, )))
+        # threads.append(threading.Thread(target=background, args=(signal, )))
         threads.append(threading.Thread(target=trackIp_task, args=(signal, )))
         threads.append(threading.Thread(target=spawn_monitoring, args=(signal, )))
         threads.append(threading.Thread(target=launch_actuator, args=(signal, )))
         threads.append(threading.Thread(target=server_control, args=(signal, )))
-        threads.append(threading.Thread(target=websocket_control, args=(signal, )))
+        # threads.append(threading.Thread(target=websocket_control, args=(signal, )))
         for t in threads:
             t.start()
 
         while not signal['kill']:
-            # now = datetime.now()
-            # if now.hour == RESET_HOUR and now.minute == 0 and now.second == 0:
-            #     signal['kill'] = True
+            now = datetime.now()
+            if now.hour == RESET_HOUR and now.minute == 0:
+                try:
+                    subprocess.run(["sudo", "reboot"], check=True)
+                except subprocess.CalledProcessError as e:
+                    print(f"Reboot command failed: {e}")
+                except PermissionError:
+                    print("Permission denied — probably not running as root")
             time.sleep(0.5)
 
         for t in threads:
