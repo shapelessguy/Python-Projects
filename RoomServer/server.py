@@ -50,7 +50,7 @@ def start_flask_server(signal):
 
 
 def server_control(signal):
-    init = True
+    init = False
     p = None
     while not signal['kill']:
         signal['restart_server'] = False
