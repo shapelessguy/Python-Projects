@@ -6,6 +6,20 @@ import time
 import hashlib
 import unicodedata
 from utils import pprint
+from PyQt5.QtWidgets import QLineEdit, QTextEdit, QPlainTextEdit, QComboBox, QSpinBox, QDoubleSpinBox, QDateEdit, QTimeEdit, QDateTimeEdit
+
+
+READONLY_TYPES = (
+    QLineEdit,
+    QTextEdit,
+    QPlainTextEdit,
+    QSpinBox,
+    QDoubleSpinBox,
+    QDateEdit,
+    QTimeEdit,
+    QDateTimeEdit,
+    QComboBox
+)
 
 
 SEARCH_REQ_TIMEOUT = (3, 5)
@@ -43,6 +57,12 @@ def wait(signal, ms: int):
             time.sleep(min(remaining / 1000, 0.05))
             remaining -= 50
         break
+
+
+def objectid_decoder(obj):
+    if isinstance(obj, dict) and "$oid" in obj:
+        return obj["$oid"]
+    return obj
 
 
 class OpClass:

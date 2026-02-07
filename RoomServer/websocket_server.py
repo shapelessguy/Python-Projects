@@ -71,7 +71,7 @@ def start_websocket(signal):
 
 
 def websocket_control(signal):
-    init = True
+    init = False
     p = None
     while not signal['kill']:
         signal['restart_websocket'] = False

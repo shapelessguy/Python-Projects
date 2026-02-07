@@ -17,6 +17,7 @@ class OpState:
     WAITING = 1
     REPEAT = 2
 
+
 def gui_loop(signal):
     buffer_op_class_name = ""
     buffer: list[Operation] = []
@@ -25,8 +26,12 @@ def gui_loop(signal):
 
     def initialize():
         signal.stopped = False
+        signal.cur_operation = ""
         signal.ui_manager.execute("show_loading", "")
         return [], "", 0
+    
+    def has_stop_operation(queue) -> bool:
+        return any(op.op_class_name == "StopOp" for op in queue.queue)
 
     while signal.is_alive():
         try:
@@ -36,12 +41,12 @@ def gui_loop(signal):
                     buffer, buffer_op_class_name, buffer_index = initialize()
 
                 while not signal.ui_manager.operation_queue.empty():
-                    operation: Operation = signal.ui_manager.operation_queue.get()
-                    if operation.op_class_name == "StopOp":
+                    if has_stop_operation(signal.ui_manager.operation_queue):
                         while not signal.ui_manager.operation_queue.empty():
                             signal.ui_manager.operation_queue.get()
                         buffer, buffer_op_class_name, buffer_index = initialize()
                         break
+                    operation: Operation = signal.ui_manager.operation_queue.get()
                     if buffer_op_class_name == "" or operation.op_class_name == buffer_op_class_name:
                         buffer_op_class_name = operation.op_class_name
                         processing = False
@@ -55,17 +60,25 @@ def gui_loop(signal):
                 if len(buffer):
                     operation = buffer[buffer_index]
                     buffer_index += 1
+                    signal.cur_operation = operation.op_class_name
                     signal.ui_manager.execute("show_loading", f"({buffer_index}/{len(buffer)}) {operation.op_class_name}")
 
                     repeated = False
-                    while signal.is_alive():
-                        while signal.is_alive() and signal.op_next_task == OpState.WAITING:
+                    
+                    if has_stop_operation(signal.ui_manager.operation_queue):
+                        while not signal.ui_manager.operation_queue.empty():
+                            signal.ui_manager.operation_queue.get()
+                        buffer, buffer_op_class_name, buffer_index = initialize()
+                        break
+
+                    while signal.is_alive() and not has_stop_operation(signal.ui_manager.operation_queue):
+                        while signal.is_alive() and signal.op_next_task == OpState.WAITING and not has_stop_operation(signal.ui_manager.operation_queue):
                             repeated = True
                             wait(signal, 50)
                         if not signal.is_alive():
                             return
 
-                        if signal.op_next_task == OpState.CONTINUE and repeated:
+                        if (signal.op_next_task == OpState.CONTINUE and repeated) or has_stop_operation(signal.ui_manager.operation_queue):
                             break
                         operation.start()
                         signal.ui_manager.execute("end_of_operation", operation)
@@ -126,6 +139,21 @@ def remove_pyuic_header(py_path):
 
     with open(py_path, "w", encoding="utf-8") as f:
         f.writelines(lines)
+
+
+def make_btn_transparent(button, icon="", normal_dim=QSize(15, 15), hovered_dim=QSize(18, 18)):
+    button.setIcon(QIcon(os.path.join(ICONS_FOLDER_PATH, icon)))
+    button.setStyleSheet(f"""QPushButton {{border: none; background: transparent; padding: 0px; text-align: center;}}""")
+    button.setIconSize(normal_dim)
+    def enterEvent(event):
+        button.setIconSize(hovered_dim)
+        QPushButton.enterEvent(button, event)
+    def leaveEvent(event):
+        button.setIconSize(normal_dim)
+        QPushButton.leaveEvent(button, event)
+    button.enterEvent = enterEvent
+    button.leaveEvent = leaveEvent
+    
 
 
 class UI_Manager:
@@ -259,20 +287,9 @@ class UI_Manager:
         self.ui.op_loading.setFixedHeight(12)
         self.ui.op_loading.setTextVisible(False)
         self.ui.op_loading.hide()
-
-        self.ui.stopOp.setIcon(QIcon(os.path.join(ICONS_FOLDER_PATH, "stop.png")))
+        self.ui.make_btn_transparent = make_btn_transparent
         self.ui.stopOp.hide()
-        normal_stop_size, hovered_stop_size = QSize(15, 15), QSize(18, 18)
-        self.ui.stopOp.setStyleSheet(f"""QPushButton {{border: none; background: transparent; padding: 0px; text-align: center;}}""")
-        self.ui.stopOp.setIconSize(normal_stop_size)
-        def enterEvent(event):
-            self.ui.stopOp.setIconSize(hovered_stop_size)
-            QPushButton.enterEvent(self.ui.stopOp, event)
-        def leaveEvent(event):
-            self.ui.stopOp.setIconSize(normal_stop_size)
-            QPushButton.leaveEvent(self.ui.stopOp, event)
-        self.ui.stopOp.enterEvent = enterEvent
-        self.ui.stopOp.leaveEvent = leaveEvent
+        make_btn_transparent(self.ui.stopOp, icon="stop.png", normal_dim=QSize(15, 15), hovered_dim=QSize(18, 18))
 
         def sendStop():
             self.signal.stopped = True

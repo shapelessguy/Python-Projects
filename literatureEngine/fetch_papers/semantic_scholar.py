@@ -29,7 +29,7 @@ def from_semantic_scholar(data):
         references = [x["paperId"] for x in data["references"] if "paperId" in x]
     publTypes = "other" if data.get("publicationTypes", None) is None else data["publicationTypes"][0]
     return {
-        "doi": data.get("doi") or data.get("externalIds", {}).get("DOI"),
+        "doi": data.get("externalIds", {}).get("DOI"),
         "title": data.get("title"),
         "authors": [a.get("name") for a in data.get("authors", [])],
         "year": data.get("year"),
@@ -84,6 +84,20 @@ def fetch_from_semantic_scholar(value: str, obj: str):
     return results, from_semantic_scholar
 
 
+def search_dois_from_semantic_scholar(query: str):
+    url = "http://api.semanticscholar.org/graph/v1/paper/search/bulk"
+    headers = {"x-api-key": SEMANTIC_SCHOLAR_KEY}
+
+    response = requests.get(url, params={"fields": "abstract,externalIds", "query": query}, headers=headers)
+    response.raise_for_status()
+    results = []
+    for data in response.json()['data']:
+        doi = data.get("doi") or data.get("externalIds", {}).get("DOI")
+        if doi and data.get("abstract", None) not in ["", None]:
+            results.append(doi)
+    return results, from_semantic_scholar
+
+
 def search_bulk_from_semantic_scholar(query: str):
     url = "http://api.semanticscholar.org/graph/v1/paper/search/bulk"
     headers = {"x-api-key": SEMANTIC_SCHOLAR_KEY}
@@ -92,19 +106,4 @@ def search_bulk_from_semantic_scholar(query: str):
     response.raise_for_status()
     results = response.json()['data']
     results = [x for x in results if x.get("abstract", None) is not None]
-    for r in results:
-        print(r.get("openAccessPdf", None))
     return results, from_semantic_scholar
-
-
-def fetch_from_semantic_scholar_ids(doi_list: list[str]):
-    url = "https://api.semanticscholar.org/graph/v1/paper/batch"
-    headers = {
-        "x-api-key": SEMANTIC_SCHOLAR_KEY,
-        "Content-Type": "application/json"
-    }
-
-    response = requests.post(url, params={'fields': ",".join(FIELDS)}, headers=headers, json={"ids": [f"{doi}" for doi in doi_list]})
-    response.raise_for_status()
-    data = response.json()
-    return data, from_semantic_scholar

@@ -52,7 +52,7 @@
             "path": "app:ChatGPT",
             "arguments": "",
             "runas": false,
-            "startup": true
+            "startup": false
         },
         "CyanLauncherManager": {
             "window_kw": [],
@@ -91,6 +91,46 @@
             "arguments": "",
             "runas": false,
             "startup": false
+        },
+        "Gemini": {
+            "window_kw": [
+                "Gemini"
+            ],
+            "excluded_kw": [],
+            "window_props": {
+                "monitor_id": "DEL41EE",
+                "x": 0,
+                "y": 0,
+                "width": 500,
+                "height": 500,
+                "win_state": "normal",
+                "order": true
+            },
+            "proc_name": "chrome.exe",
+            "path": "C:/Program Files/Google/Chrome/Application/chrome_proxy.exe",
+            "arguments": "\"C:\\Program Files\\Google\\Chrome\\Application\\chrome_proxy.exe\"  --profile-directory=Default --app-id=gdfaincndogidkdcdkhapmbffkckdkhn",
+            "runas": false,
+            "startup": false
+        },
+        "Grok": {
+            "window_kw": [
+                "Grok"
+            ],
+            "excluded_kw": [],
+            "window_props": {
+                "monitor_id": "HKC2413(2)",
+                "x": -7,
+                "y": 593,
+                "width": 976,
+                "height": 446,
+                "win_state": "normal",
+                "order": true
+            },
+            "proc_name": "chrome.exe",
+            "path": "C:/Program Files/Google/Chrome/Application/chrome_proxy.exe",
+            "arguments": "\"C:\\Program Files\\Google\\Chrome\\Application\\chrome_proxy.exe\"  --profile-directory=Default --app-id=ggjocahimgaohmigbfhghnlfcnjemagj",
+            "runas": false,
+            "startup": true
         },
         "MSI Afterburner": {
             "window_kw": [
@@ -284,6 +324,26 @@
             "proc_name": "WhatsApp.Root.exe",
             "path": "app:WhatsApp",
             "arguments": "",
+            "runas": false,
+            "startup": false
+        },
+        "Whatsapp": {
+            "window_kw": [
+                "WhatsApp Web"
+            ],
+            "excluded_kw": [],
+            "window_props": {
+                "monitor_id": "HKC2413(2)",
+                "x": -7,
+                "y": 0,
+                "width": 975,
+                "height": 600,
+                "win_state": "normal",
+                "order": true
+            },
+            "proc_name": "chrome.exe",
+            "path": "C:/Program Files/Google/Chrome/Application/chrome_proxy.exe",
+            "arguments": "\"C:\\Program Files\\Google\\Chrome\\Application\\chrome_proxy.exe\"  --profile-directory=Default --app-id=hnpfjngllnobngcgfapefoaidbinmjnm",
             "runas": false,
             "startup": true
         },

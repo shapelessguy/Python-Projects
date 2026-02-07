@@ -24,6 +24,5 @@ def fetch_from_unpaywall(value: str, obj: str):
         if data.get("is_oa") and data.get("best_oa_location"):
             pdf_url = data["best_oa_location"].get("url_for_pdf")
             if pdf_url:
-                print(pdf_url)
                 results.append({"pdf_url": pdf_url})
     return results, from_unpaywall

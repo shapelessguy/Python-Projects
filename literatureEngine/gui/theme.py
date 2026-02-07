@@ -6,6 +6,27 @@ QWidget {
     font-family: Segoe UI;
 }
 
+QScrollBar {
+    border: none;
+    background: #f0f0f0;
+    width: 12px;
+    margin: 0px 0px 0px 0px;
+}
+
+QScrollBar::handle {
+    background: #888;
+    min-height: 30px;
+    border-radius: 5px;
+}
+
+QScrollBar::add-line, QScrollBar::sub-line {
+    height: 0px;
+}
+
+QScrollBar::add-page, QScrollBar::sub-page {
+    background: none;
+}
+
 QProgressBar {
     border: 0;
     background: #eef3f8;

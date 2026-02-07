@@ -1,11 +1,13 @@
 import os
 import json
+from bson import json_util
 from utils import ICONS_FOLDER_PATH
-from fetch_papers.fetch import expand
-from PyQt5.QtWidgets import QApplication, QShortcut, QDialog, QPushButton, QListWidget, QListWidgetItem, QSizePolicy, QTableView
+from fetch_papers.fetch import fetch_metadata, expand_dois
+from PyQt5.QtWidgets import QApplication, QShortcut, QDialog, QPushButton, QListWidget, QListWidgetItem, QTableView, QWidget, QAbstractItemView
 from PyQt5.QtGui import QFont, QIcon, QColor, QBrush, QStandardItemModel, QStandardItem, QKeySequence
 from PyQt5.QtCore import QThread, pyqtSignal, Qt, QSize
-from gui.utils import pprint, Operation, OpClass, VENUE_TYPES
+from gui.utils import pprint, Operation, OpClass, StopOp, VENUE_TYPES, READONLY_TYPES, objectid_decoder
+from gui.paper_tools import References
 
 
 TABLE_HEADERS = {
@@ -20,53 +22,105 @@ TABLE_HEADERS = {
 class SearchBulk(OpClass):
 
     def start(self, signal, args):
-        query = args["query"]
-        widget = args["widget"]
-        end = args["end"]
-        n_found = 0
-        
-        results = expand(signal, args["query"])
-        # print(results)
-
-
-
-        args["n_found"] = len(results)
-        args["result"] = results
-        # signal.mongo.add_performed_query(signal.cur_review, signal.cur_context, {"query": args["query"], "n_found": n_found})
+        CHUNK_SIZE = 5
+        stage = args.get("stage", -2)
+        args["stage"] = stage
+        args['update_ui'] = False
+        if stage == -2:
+            pass
+        elif stage == -1:
+            dois = expand_dois(signal, args["query"])
+            args['n_found'] = 0
+            args['n_found_ids'] = len(dois)
+            args["doi_list"] = [dois[i:i + CHUNK_SIZE] for i in range(0, len(dois), CHUNK_SIZE)]
+        else:
+            doi_list = args["doi_list"][stage]
+            missing_dois = signal.mongo.get_missing_dois_from_context(signal.cur_review, signal.cur_context, doi_list)
+            args['n_found'] += (len(doi_list) - len(missing_dois))
+            results = fetch_metadata(signal, missing_dois, "paper_ids")
+            stored_ids = []
+            for paper in results:
+                stored_ids.append(signal.mongo.add_paper(signal.cur_review, paper))
+            signal.mongo.add_paperIds_to_context(signal.cur_review, signal.cur_context, stored_ids)
+            args['n_found'] += len(results)
+            args['update_ui'] = len(results) > 0
     
     def end(self, signal, args):
+        args["stage"] += 1
+        stage = args["stage"]
         query = args["query"]
-        widget = args["widget"]
+        widget = args["ui_manager"].expansion_widget
 
-        for i in range(widget.queryList.count()):
-            item = widget.queryList.item(i)
-            item_data = item.data(Qt.UserRole)
-            if item_data["query"] == query:
-                item.setText(f"{item.text()} (found: {args['n_found']})")
-                item.setBackground(QColor("#5BFF4C"))
-                item.setData(Qt.UserRole, {"query": query, "search_complete": True})
-    
-        if args["end"]:
-            current_index = widget.tabWidget.currentIndex()
-            widget.tabWidget.setTabEnabled(current_index, True)
-            for i in range(widget.tabWidget.count()):
-                if i != current_index:
-                    widget.tabWidget.setTabEnabled(i, True)
-            widget.queryEdit.setVisible(True)
-            widget.addQuery.setVisible(True)
-            widget.instruction_lbl.setVisible(True)
-            widget.executeQuery.setEnabled(True)
-            widget.error_lbl.setStyleSheet("color: green")
-            widget.error_lbl.setText("Search complete!")
+        if stage > -1 and stage >= len(args.get("doi_list", [])) - 1:
+            try:
+                for i in range(widget.queryList.count()):
+                    item = widget.queryList.item(i)
+                    item_data = item.data(Qt.UserRole)
+                    if item_data["query"] == query:
+                        item.setText(f"{query} (found: {args['n_found']})")
+                        item.setBackground(QColor("#5BFF4C"))
+                        item.setData(Qt.UserRole, {"query": query, "search_complete": True, "n_found": args["n_found"]})
+            
+                if args["end"]:
+                    activate_expansion_widget(widget)
+            except:
+                pass
+            update_query_results(signal, args, search_complete=True)
+        else:
+            try:
+                for i in range(widget.queryList.count()):
+                    item = widget.queryList.item(i)
+                    item_data = item.data(Qt.UserRole)
+                    if item_data["query"] == query:
+                        if stage > 0:
+                            item.setText(f"{query} (found: {args['n_found']})")
+                            item.setBackground(QColor("#FCFF4C"))
+                        else:
+                            item.setText(f"{query} (working...)")
+                            item.setBackground(QColor("#E66BFF"))
+            except:
+                pass
+            if args['update_ui']:
+                update_query_results(signal, args, search_complete=False)
+            return True
+
+
+def update_query_results(signal, args, search_complete):
+    signal.mongo.add_query(signal.cur_review, signal.cur_context, {"query": args["query"], "search_complete": search_complete, "n_found": args['n_found']})
+    try:
+        args["ui_manager"].expansion_widget.queryList.item(0)
+    except:
+        reload_context(args["ui_manager"])
+
+
+def activate_expansion_widget(widget, text="Search complete!", color="green"):
+    current_index = widget.tabWidget.currentIndex()
+    widget.tabWidget.setTabEnabled(current_index, True)
+    for i in range(widget.tabWidget.count()):
+        if i != current_index:
+            widget.tabWidget.setTabEnabled(i, True)
+    widget.queryList.setSelectionMode(QAbstractItemView.SingleSelection)
+    widget.queryList.setEditTriggers(QAbstractItemView.DoubleClicked | QAbstractItemView.EditKeyPressed)
+    widget.queryList.setFocusPolicy(Qt.StrongFocus)
+
+    widget.queryEditBlock.setVisible(True)
+    widget.aiBlock.setVisible(False)
+    widget.askAi.setVisible(True)
+    widget.instruction_lbl.setVisible(True)
+    widget.executeQuery.setEnabled(True)
+    widget.error_lbl.setStyleSheet(f"color: {color}")
+    widget.error_lbl.setText(text)
+    widget.stop_btn.setVisible(False)
 
 
 def clear_layout(ui_manager):
     # ui_manager.signal.set_current_library("")
     # ui_manager.ui.container_name_lbl.setText("")
-    ui_manager.ui.referenceView.setVisible(False)
+    ui_manager.ui.table_widget.setVisible(False)
     ui_manager.ui.delete_context.setVisible(False)
-    ui_manager.ui.expand_btn.setVisible(False)
+    ui_manager.ui.processes.setVisible(False)
     ui_manager.ui.references_lbl.setText("")
+    
     # ui_manager.ui.user_papers.setVisible(False)
     # clear_user_papers(ui_manager)
 
@@ -97,47 +151,46 @@ def copy_selected(table):
     QApplication.clipboard().setText("\n".join(text))
 
 
-def populate_references_table(ui_manager, references):
-    model = ui_manager.ui.referenceViewModel
-    table = ui_manager.ui.referenceView
-    model.removeRows(0, model.rowCount())
-    for ref in references:
-        row = []
-        for header in TABLE_HEADERS.values():
-            if header["type"] is str:
-                value = ref.get(header["attribute"], "")
-                item = QStandardItem(value)
-            elif header["type"] is int:
-                value = ref.get(header["attribute"], 0)
-                item = QStandardItem()
-                item.setData(value, Qt.DisplayRole)
-            else:
-                raise
-            item.setData(value, Qt.ToolTipRole)
-            row.append(item)
-        model.appendRow(row)
-
-    ui_manager.ui.referenceView.resizeColumnsToContents()
-    for i, header in enumerate(TABLE_HEADERS.values()):
-        table.setColumnWidth(i, header["size"])
-
-
 def reload_context(ui_manager):
     if not hasattr(ui_manager.signal, "cur_context"):
         return
+    if not ui_manager.signal.ref_holder:
+        model = QStandardItemModel()
+        ui_manager.ui.referenceView.setModel(model)
+        model.removeRows(0, model.rowCount())
+        ui_manager.ui.table_widget.setVisible(False)
+
+    ui_manager.signal.ref_holder = References(ui_manager.signal)
     pprint(f"Reloading context: {ui_manager.signal.cur_context}")
-    references = ui_manager.signal.mongo.fetch_refs_by_context(ui_manager.signal.cur_review, ui_manager.signal.cur_context)
-    ui_manager.ui.references_lbl.setText(f"References ({len(references)})")
-    populate_references_table(ui_manager, references)
+    if ui_manager.ui.table_widget.isVisible():
+        reload_table(ui_manager)
+
+
+def reload_table(ui_manager):
+    ui_manager.ui.table_widget.setVisible(True)
+    ui_manager.ui.references_lbl.setText(f"References ({len(ui_manager.signal.ref_holder.view)})")
+    populate_references_table(ui_manager)
 
 
 def load_context(ui_manager, context_name):
+    if ui_manager.signal.cur_context == context_name:
+        return
     ui_manager.signal.set_current_context(context_name)
     ui_manager.ui.context_name_lbl.setText(f"Context: {context_name}")
     ui_manager.ui.delete_context.setVisible(True)
-    ui_manager.ui.expand_btn.setVisible(True)
-    ui_manager.ui.referenceView.setVisible(True)
+    ui_manager.ui.processes.setVisible(True)
+    ui_manager.signal.ref_holder = None
     reload_context(ui_manager)
+
+    layout = ui_manager.ui.context_area_layout
+    for i in range(layout.count()):
+        item = layout.itemAt(i)
+        widget = item.widget()
+        if widget:
+            widget.setProperty("activeContainer", widget.name == context_name)
+            widget.style().unpolish(widget)
+            widget.style().polish(widget)
+            widget.update()
 
 
 def load_contexts(ui_manager, cur_context_name=""):
@@ -157,28 +210,76 @@ def load_contexts(ui_manager, cur_context_name=""):
             load_context(ui_manager, cur_context_name)
 
 
+def populate_references_table(ui_manager):
+    table = ui_manager.ui.referenceView
+    shortcut = QShortcut(QKeySequence("Ctrl+C"), table)
+    shortcut.activated.connect(lambda: copy_selected(table))
+    
+    model = QStandardItemModel()
+    model.setHorizontalHeaderLabels(list(TABLE_HEADERS.keys()))
+
+    table.setModel(model)
+    model.removeRows(0, model.rowCount())
+    for ref in ui_manager.signal.ref_holder.get_attributes([x["attribute"] for x in TABLE_HEADERS.values()]):
+        row = []
+        for header in TABLE_HEADERS.values():
+            if header["type"] is str:
+                value = ref.get(header["attribute"], "")
+                item = QStandardItem(value)
+            elif header["type"] is int:
+                value = ref.get(header["attribute"], 0)
+                item = QStandardItem()
+                item.setData(value, Qt.DisplayRole)
+            else:
+                raise
+            item.setData(value, Qt.ToolTipRole)
+            item.setData(ref, Qt.UserRole)
+            row.append(item)
+        model.appendRow(row)
+
+    ui_manager.ui.referenceView.resizeColumnsToContents()
+    for i, header in enumerate(TABLE_HEADERS.values()):
+        table.setColumnWidth(i, header["size"])
+
+
 def execute_by_queries(ui_manager, widget):
     widget.queryList.clearSelection()
     widget.deleteQuery.setVisible(False)
     widget.newQuery.setVisible(False)
-    widget.queryEdit.setVisible(False)
-    widget.addQuery.setVisible(False)
+    widget.queryEditBlock.setVisible(False)
+    widget.aiBlock.setVisible(False)
+    widget.askAi.setVisible(False)
     widget.instruction_lbl.setVisible(False)
     widget.executeQuery.setEnabled(False)
     current_index = widget.tabWidget.currentIndex()
     all_items = [widget.queryList.item(i).data(Qt.UserRole) for i in range(widget.queryList.count())]
-    all_queries = [x["query"] for x in all_items if not x["search_complete"]]
-    if len(all_queries) == 0:
+    all_queries = [x for x in all_items if not x["search_complete"]]
+    if len(all_queries) == 0 and ui_manager.signal.cur_operation == "":
         widget.error_lbl.setStyleSheet("color: red")
         widget.error_lbl.setText("No queries defined")
+        widget.executeQuery.setEnabled(True)
+        widget.newQuery.setVisible(True)
         return
     for i in range(widget.tabWidget.count()):
         if i != current_index:
             widget.tabWidget.setTabEnabled(i, False)
-    widget.tabWidget.setTabEnabled(current_index, False)
+
+    widget.queryList.setSelectionMode(QAbstractItemView.NoSelection)
+    widget.queryList.setEditTriggers(QAbstractItemView.NoEditTriggers)
+    widget.queryList.setFocusPolicy(Qt.NoFocus)
     widget.error_lbl.setText("Searching by Semantic queries...")
+    widget.stop_btn.setVisible(True)
+
+    if ui_manager.signal.cur_operation != "":
+        return
+
     for i, query in enumerate(all_queries, start=1):
-        ui_manager.send_operation(Operation(ui_manager.signal, SearchBulk, query, {"query": query, "widget": widget, "end": i == len(all_queries)}))
+        if not query["search_complete"] and query["n_found"] == 0:
+            ui_manager.signal.mongo.add_query(ui_manager.signal.cur_review, ui_manager.signal.cur_context,
+                                                        {"query": query["query"], "search_complete": False, "n_found": 0})
+    for i, query in enumerate(all_queries, start=1):
+        ui_manager.send_operation(Operation(ui_manager.signal, SearchBulk, query["query"],
+                                            {"query": query["query"], "ui_manager": ui_manager, "end": i == len(all_queries)}))
 
 
 def execute_by_refs(ui_manager, widget):
@@ -191,11 +292,13 @@ def showExpandWidget(ui_manager):
     expansionWin.setWindowIcon(ui_manager.icon)
     ui = contextExpansion.Ui_expansionWin()
     ui.setupUi(expansionWin)
+    ui_manager.expansion_widget = ui
     ui.tabWidget.setStyleSheet("""QTabBar::tab {width: 242px;}""")
     ui.deleteQuery.setVisible(False)
     ui.newQuery.setVisible(False)
-    ui.queryEdit.setVisible(True)
-    ui.addQuery.setVisible(True)
+    ui.queryEditBlock.setVisible(True)
+    ui.aiBlock.setVisible(False)
+    ui.askAi.setVisible(True)
     ui.instruction_lbl.setVisible(True)
     label = ui.instruction_lbl
     link = '<a href="https://api.semanticscholar.org/api-docs/#tag/Paper-Data/operation/get_graph_paper_bulk_search">Semantic Scholar API</a>'
@@ -206,16 +309,19 @@ def showExpandWidget(ui_manager):
     queries = ui_manager.signal.mongo.fetch_performed_queries(ui_manager.signal.cur_review, ui_manager.signal.cur_context)
     for q_info in queries:
         item = QListWidgetItem(q_info["query"])
-        item.setText(f"{item.text()} (found: {q_info['n_found']})")
-        item.setBackground(QColor("#5BFF4C"))
-        item.setData(Qt.UserRole, {"query": q_info["query"], "search_complete": True})
+        post_text = f" (found: {q_info['n_found']})" if (q_info["search_complete"] or (not q_info["search_complete"] and q_info['n_found'] > 0)) else ""
+        item.setText(f"{item.text()}{post_text}")
+        if q_info["search_complete"]:
+            item.setBackground(QColor("#5BFF4C"))
+        item.setData(Qt.UserRole, q_info)
         ui.queryList.addItem(item)
 
     def on_selection_changed():
         item = ui.queryList.currentItem() is not None
         ui.newQuery.setVisible(item)
-        ui.queryEdit.setVisible(not item)
-        ui.addQuery.setVisible(not item)
+        ui.queryEditBlock.setVisible(not item)
+        ui.aiBlock.setVisible(False)
+        ui.askAi.setVisible(not item)
         ui.deleteQuery.setVisible(item and not ui.queryList.currentItem().data(Qt.UserRole)["search_complete"])
     
     ui.queryList.itemSelectionChanged.connect(on_selection_changed)
@@ -223,8 +329,9 @@ def showExpandWidget(ui_manager):
     def create_query():
         ui.queryList.clearSelection()
         ui.newQuery.setVisible(False)
-        ui.queryEdit.setVisible(True)
-        ui.addQuery.setVisible(True)
+        ui.queryEditBlock.setVisible(True)
+        ui.aiBlock.setVisible(False)
+        ui.askAi.setVisible(True)
         ui.deleteQuery.setVisible(False)
         
     ui.newQuery.clicked.connect(create_query)
@@ -232,6 +339,7 @@ def showExpandWidget(ui_manager):
     def delete_query():
         for item in ui.queryList.selectedItems():
             row = ui.queryList.row(item)
+            ui_manager.signal.mongo.remove_query(ui_manager.signal.cur_review, ui_manager.signal.cur_context, item.data(Qt.UserRole)["query"])
             ui.queryList.takeItem(row)
         create_query()
         
@@ -241,17 +349,19 @@ def showExpandWidget(ui_manager):
         queries = ui.queryEdit.toPlainText().split("\n")
         queries = [x.strip() for x in queries]
         for q in queries:
-            all_qs = [ui.queryList.item(i).data(Qt.UserRole)["query"] for i in range(ui.queryList.count())]
-            existing = any([x == q for x in all_qs])
+            all_q_items = [ui.queryList.item(i).data(Qt.UserRole) for i in range(ui.queryList.count())]
+            q_stored = [x for x in all_q_items if x["query"] == q]
+            existing = len(q_stored) != 0
             if not existing and q != "":
                 item = QListWidgetItem(q)
-                item.setData(Qt.UserRole, {"query": q, "search_complete": False})
+                item.setData(Qt.UserRole, {"query": q, "search_complete": False, "n_found": 0})
                 ui.queryList.addItem(item)
                 ui.queryEdit.clear()
     ui.addQuery.clicked.connect(add_query)
 
-    def execute_search():
-        current_index = ui.tabWidget.currentIndex()
+    def execute_search(index=None):
+        current_index = ui.tabWidget.currentIndex() if index is None else index
+        ui.tabWidget.setCurrentIndex(current_index)
         ui.error_lbl.setStyleSheet("color: blue")
         if current_index == 0:
             try:
@@ -262,9 +372,141 @@ def showExpandWidget(ui_manager):
         elif current_index == 1:
             execute_by_refs(ui_manager, ui)
     
+    def askAi():
+        ui.queryEditBlock.setVisible(False)
+        ui.askAi.setVisible(False)
+        ui.aiBlock.setVisible(True)
+    
+    def manualQueries():
+        ui.queryEditBlock.setVisible(True)
+        ui.askAi.setVisible(True)
+        ui.aiBlock.setVisible(False)
+
+    ui.askAi.clicked.connect(askAi)
+    ui.manual_queries.clicked.connect(manualQueries)
+    
+    def stop_op():
+        ui_manager.send_operation(Operation(ui_manager.signal, StopOp))
+        activate_expansion_widget(ui, "Search interrupted", "orange")
+    
     ui.executeQuery.clicked.connect(execute_search)
+    ui.stop_btn.clicked.connect(stop_op)
+    ui.stop_btn.setVisible(False)
+    ui_manager.ui.make_btn_transparent(ui.stop_btn, icon="stop.png", normal_dim=QSize(15, 15), hovered_dim=QSize(18, 18))
+    for i, n in enumerate([SearchBulk.__name__]):
+        if ui_manager.signal.cur_operation == n:
+            execute_search(i)
 
     expansionWin.exec()
+    reload_context(ui_manager)
+
+
+def show_paper(ui_manager, paper_item):
+    from gui import paper_widget
+    container = QWidget()
+    container.setWindowIcon(ui_manager.icon)
+    widget = paper_widget.Ui_paper_widget()
+    widget.setupUi(container)
+    widget.paper_data = json.loads(json_util.dumps(ui_manager.signal.mongo.fetch_ref_by_id(ui_manager.signal.cur_review, paper_item.data(Qt.UserRole)["_id"])),
+                                   object_hook=objectid_decoder)
+    widget.cur_review = ui_manager.signal.cur_review
+
+    ui_manager._open_paper_windows.append(container)
+
+    container.setWindowTitle(f"Paper View")
+    container.resize(600, 400)
+    container.show()
+    container.activateWindow()
+
+    widget_state = widget.paper_data.get("fill_mode", "")  # "maual" / "auto" / ""
+
+    widget.search_by_title.setVisible(widget_state == "")
+    widget.search_by_doi.setVisible(widget_state == "")
+    widget.save_btn.setVisible(False)
+    
+    widget.venue_type_box.addItems(VENUE_TYPES)
+    for child in widget.op_widget.findChildren(READONLY_TYPES):
+        if hasattr(child, "setReadOnly"):
+            child.setReadOnly(True)
+        elif hasattr(child, "setEnabled"):
+            child.setEnabled(False)
+
+    widget.view_pdf.setVisible(widget.paper_data.get("file_id", "") != "")
+    widget.clear_btn.setVisible(False)
+    widget.rm_paper.setVisible(False)
+    widget.search_by_title.setVisible(False)
+    widget.search_by_doi.setVisible(False)
+    widget.abstract_box.setReadOnly(False)
+    widget.notes_box.setReadOnly(False)
+
+    def get_temp_paper():
+        temp_paper = json.loads(json_util.dumps(widget.paper_data), object_hook=objectid_decoder)
+        temp_paper["abstract"] = widget.abstract_box.toPlainText()
+        temp_paper["notes"] = widget.notes_box.toPlainText()
+        return temp_paper
+
+    def on_change(ui_manager_, widget_):
+        temp_paper = get_temp_paper()
+        valid_change = json_util.dumps(widget.paper_data) != json_util.dumps(temp_paper)
+        widget.save_btn.setVisible(valid_change)
+    set_paper_props(ui_manager, widget, widget.paper_data, on_change)
+
+    def save_paper():
+        temp_paper = get_temp_paper()
+        widget.save_btn.setVisible(False)
+        ui_manager.signal.mongo.add_paper(widget.cur_review, temp_paper, overwrite=True)
+        cur_index = ui_manager.ui.tab_widget.currentIndex()
+        if cur_index == 0:
+            ui_manager.load_user_pdfs(ui_manager)
+        elif cur_index == 1:
+            reload_context(ui_manager)
+        widget.paper_data = json.loads(json_util.dumps(temp_paper), object_hook=objectid_decoder)
+
+    def view_paper():
+        ui_manager.signal.mongo.open_pdf(widget.paper_data.get("file_id", ""))
+
+    for btn_info in [
+        {"name": "save_btn", "icon": "save.png", "on_clicked": save_paper},
+        {"name": "view_pdf", "icon": "pdf.png", "on_clicked": view_paper},
+        ]:
+
+        btn = getattr(widget, btn_info["name"])
+        btn.setIcon(QIcon(os.path.join(ICONS_FOLDER_PATH, btn_info["icon"])))
+        btn.setIconSize(QSize(18, 18))
+        btn.clicked.connect(btn_info["on_clicked"])
+
+
+    # widget.init_md = json.dumps(get_temp_paper(ui_manager, widget))
+
+def disable_boxes(widget, props):
+    widget_state = props.get("fill_mode", "")
+
+    widget.venue_box.setReadOnly(widget_state != "" and props.get("venue", "") != "")
+    widget.venue_type_box.setDisabled(widget_state != "" and props.get("venue_type", "") != "")
+    widget.citation_box.setReadOnly(widget_state != "" and props.get("citation_count", "") != "")
+
+def set_paper_props(ui_manager, widget, props, on_change):
+    widget.title_box.setText(props.get("title", ""))
+    widget.title_box.textChanged.connect(lambda: on_change(ui_manager, widget))
+    widget.doi_box.setText(props.get("doi", ""))
+    widget.doi_box.textChanged.connect(lambda: on_change(ui_manager, widget))
+    widget.year_box.setValue(props.get("year", 2025))
+    widget.year_box.valueChanged.connect(lambda: on_change(ui_manager, widget))
+
+    widget.venue_box.setText(props.get("venue", ""))
+    widget.venue_box.textChanged.connect(lambda: on_change(ui_manager, widget))
+
+    widget.venue_type_box.setCurrentText(props.get("venue_type", ""))
+    widget.venue_type_box.currentTextChanged.connect(lambda: on_change(ui_manager, widget))
+
+    widget.citation_box.setValue(props.get("citation_count", 0))
+    widget.citation_box.valueChanged.connect(lambda: on_change(ui_manager, widget))
+
+    widget.abstract_box.setText(props.get("abstract", ""))
+    widget.abstract_box.textChanged.connect(lambda: on_change(ui_manager, widget))
+
+    widget.notes_box.setText(props.get("notes", ""))
+    widget.notes_box.textChanged.connect(lambda: on_change(ui_manager, widget))
 
 
 def setup_tab_contexts(ui_manager):
@@ -366,16 +608,30 @@ def setup_tab_contexts(ui_manager):
         btn.clicked.connect(btn_info["on_clicked"])
         btn.setToolTip(btn_info["tooltip"])
 
+
+
+    def test1(ui_manager):
+        def filter_(p):
+            return True
+        ui_manager.signal.ref_holder.apply_filters([filter_])
+        reload_table(ui_manager)
+
+    def test2(ui_manager):
+        def mah_(p):
+            import random
+            return random.random() > 0.8
+        ui_manager.signal.ref_holder.apply_filters([mah_])
+        reload_table(ui_manager)
     
-    model = QStandardItemModel()
-    model.setHorizontalHeaderLabels(list(TABLE_HEADERS.keys()))
-    ui_manager.ui.referenceViewModel = model
     table = ui_manager.ui.referenceView
-    shortcut = QShortcut(QKeySequence("Ctrl+C"), table)
-    shortcut.activated.connect(lambda: copy_selected(table))
-    table.setModel(model)
     table.setSortingEnabled(True)
     table.setEditTriggers(QTableView.NoEditTriggers)
+    table.doubleClicked.connect(lambda item: show_paper(ui_manager, item))
+    shortcut = QShortcut(QKeySequence("Ctrl+C"), table)
+    shortcut.activated.connect(lambda: copy_selected(table))
     ui_manager.ui.expand_btn.clicked.connect(lambda: showExpandWidget(ui_manager))
+    ui_manager.ui.base_btn.clicked.connect(lambda: test1(ui_manager))
     ui_manager.ui.context_name_lbl.setText("")
     ui_manager.ui.add_context.clicked.connect(add_context_)
+    ui_manager._open_paper_windows = []
+    ui_manager.ui.pushButton.clicked.connect(lambda: test2(ui_manager))

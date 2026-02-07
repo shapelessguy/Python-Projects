@@ -6,9 +6,10 @@ from gui.utils import matching_string, SEARCH_REQ_TIMEOUT
 def from_openalex(work):
     biblio = work.get("biblio", {})
     venue = work.get("host_venue", {})
+    doi = work["doi"] if work.get("doi", None) is not None else ""
 
     return {
-        "doi": work.get("doi", "").replace("https://doi.org/", "").replace("http://doi.org/", ""),
+        "doi": doi.replace("https://doi.org/", "").replace("http://doi.org/", ""),
         "type": work.get("type"),
         "title": work.get("title"),
         "authors": [

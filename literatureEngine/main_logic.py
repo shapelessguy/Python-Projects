@@ -10,10 +10,13 @@ from utils import Tee, pprint
 class Signal:
     kill_flag = False
     ui_manager = None
-    cur_review: str
-    cur_library: str
     mongo: MongoDB = None
     stopped = False
+    cur_review: str = ""
+    cur_library: str = ""
+    cur_context: str = ""
+    cur_operation: str = ""
+    ref_holder = None
 
     def __init__(self):
         self.log_queue = Queue()

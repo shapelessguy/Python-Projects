@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>442</width>
-    <height>521</height>
+    <width>589</width>
+    <height>619</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -120,7 +120,7 @@
            <number>0</number>
           </property>
           <property name="indent">
-           <number>10</number>
+           <number>0</number>
           </property>
          </widget>
         </item>
@@ -171,7 +171,7 @@
            <number>0</number>
           </property>
           <property name="indent">
-           <number>10</number>
+           <number>0</number>
           </property>
          </widget>
         </item>
@@ -230,7 +230,7 @@
            <number>0</number>
           </property>
           <property name="indent">
-           <number>10</number>
+           <number>0</number>
           </property>
          </widget>
         </item>
@@ -281,7 +281,7 @@
            <number>0</number>
           </property>
           <property name="indent">
-           <number>10</number>
+           <number>0</number>
           </property>
          </widget>
         </item>
@@ -362,7 +362,7 @@
            <string>Abstract:</string>
           </property>
           <property name="indent">
-           <number>10</number>
+           <number>0</number>
           </property>
          </widget>
         </item>
@@ -371,22 +371,6 @@
           <property name="topMargin">
            <number>0</number>
           </property>
-          <item>
-           <spacer name="horizontalSpacer_2">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="sizeType">
-             <enum>QSizePolicy::Fixed</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>10</width>
-              <height>20</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
           <item>
            <widget class="QTextEdit" name="abstract_box">
             <property name="sizePolicy">
@@ -430,22 +414,6 @@
            <number>0</number>
           </property>
           <item>
-           <spacer name="horizontalSpacer_4">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="sizeType">
-             <enum>QSizePolicy::Fixed</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>10</width>
-              <height>20</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
-          <item>
            <widget class="QLabel" name="notes_lbl">
             <property name="text">
              <string>Personal notes:</string>
@@ -462,22 +430,6 @@
           <property name="topMargin">
            <number>0</number>
           </property>
-          <item>
-           <spacer name="horizontalSpacer_3">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="sizeType">
-             <enum>QSizePolicy::Fixed</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>10</width>
-              <height>20</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
           <item>
            <widget class="QTextEdit" name="notes_box"/>
           </item>

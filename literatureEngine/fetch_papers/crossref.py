@@ -13,6 +13,7 @@ def from_crossref(message):
     year = issued.get("date-parts", [[None]])[0][0]
     pages = message.get("page")
     references = [x["DOI"] for x in message.get("reference", []) if "DOI" in x]
+    container_title = message["container-title"][0] if len(message.get("container-title", [])) else ""
 
     first_page, last_page = (None, None)
     if pages and "-" in pages:
@@ -28,7 +29,7 @@ def from_crossref(message):
             if a.get("family")
         ],
         "year": year,
-        "container_title": message.get("container-title", [None])[0],
+        "container_title": container_title,
         "publisher": message.get("publisher"),
         "publisher_location": message.get("publisher-location"),
         "references": references,

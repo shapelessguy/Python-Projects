@@ -5,8 +5,8 @@ from fetch_papers.fetch import fetch_metadata
 from PyQt5.QtWidgets import QWidget, QDialog, QPushButton, QListWidget, QListWidgetItem, QSizePolicy, QStyledItemDelegate, QStyleOptionViewItem, QStyle
 from PyQt5.QtGui import QFont, QIcon, QColor, QBrush, QPainter
 from PyQt5.QtCore import QThread, pyqtSignal, Qt, QSize
-from gui.tab_contexts import reload_context
-from gui.utils import pprint, Operation, OpClass, VENUE_TYPES
+from gui.tab_contexts import reload_context, set_paper_props, disable_boxes
+from gui.utils import pprint, Operation, OpClass, VENUE_TYPES, READONLY_TYPES
 
 
 class SavePDF(OpClass):
@@ -29,7 +29,7 @@ class SearchMD(OpClass):
         args["result"] = fetch_metadata(signal, normalized_filename, "title")
         if args["result"].get("doi", None):
             args["result"]["fill_mode"] = "auto"
-            ui_manager.signal.mongo.add_paper(ui_manager.signal.cur_review, args["result"], missing_md["_id"])
+            ui_manager.signal.mongo.add_paper(ui_manager.signal.cur_review, args["result"], missing_md["_id"], overwrite=True)
     
     def end(self, signal, args):
         list_widget = args["ui_manager"].ui.list_user_pdfs
@@ -109,7 +109,7 @@ def search_by(ui_manager, default_query, widget=None, obj="title"):
         result["fill_mode"] = "auto"
         
         if result.get("doi", None):
-            ui_manager.signal.mongo.add_paper(ui_manager.signal.cur_review, result, ui_manager.pdf_selected_btn.data(Qt.UserRole)["_id"])    
+            ui_manager.signal.mongo.add_paper(ui_manager.signal.cur_review, result, ui_manager.pdf_selected_btn.data(Qt.UserRole)["_id"], overwrite=True)    
             set_item_background_by_md(ui_manager, ui_manager.pdf_selected_btn)
             if widget:
                 load_paper_props(ui_manager, widget, result)
@@ -132,7 +132,7 @@ def remove_paper(ui_manager):
     def on_ok():
         ui_manager.signal.mongo.delete_user_pdf_ref(ui_manager.signal.cur_review, ui_manager.signal.cur_library, paper_fs_id)
         delete_paper_dialog.accept()
-        load_user_pdfs(ui_manager)
+        ui_manager.load_user_pdfs(ui_manager)
 
     ui.buttonBox.accepted.disconnect()
     ui.buttonBox.accepted.connect(on_ok)
@@ -166,26 +166,13 @@ def load_paper_props(ui_manager, widget, temp_paper=None):
     widget.search_by_doi.setVisible(widget_state == "")
     widget.save_btn.setVisible(False)
 
+    disable_boxes(widget, props)
+    set_paper_props(ui_manager, widget, props, manual_change)
     widget.title_box.setReadOnly(widget_state != "")
     widget.doi_box.setReadOnly(widget_state != "")
     widget.year_box.setReadOnly(widget_state != "")
-    widget.venue_box.setReadOnly(widget_state != "" and props.get("venue", "") != "")
-    widget.venue_type_box.setDisabled(widget_state != "" and props.get("venue_type", "") != "")
-    widget.citation_box.setReadOnly(widget_state != "" and props.get("citation_count", "") != "")
-
-    widget.title_box.setText(props.get("title", ""))
-    widget.title_box.textChanged.connect(lambda: manual_change(ui_manager, widget))
-    widget.doi_box.setText(props.get("doi", ""))
-    widget.year_box.setValue(props.get("year", 2025))
-    widget.venue_box.setText(props.get("venue", ""))
-    widget.venue_box.textChanged.connect(lambda: manual_change(ui_manager, widget))
-    widget.venue_type_box.setCurrentText(props.get("venue_type", ""))
-    widget.venue_type_box.currentTextChanged.connect(lambda: manual_change(ui_manager, widget))
-    widget.citation_box.setValue(props.get("citation_count", 0))
-    widget.abstract_box.setText(props.get("abstract", ""))
-    widget.abstract_box.textChanged.connect(lambda: manual_change(ui_manager, widget))
-    widget.notes_box.setText(props.get("notes", ""))
-    widget.notes_box.textChanged.connect(lambda: manual_change(ui_manager, widget))
+    widget.abstract_box.setReadOnly(False)
+    widget.notes_box.setReadOnly(False)
 
     widget.init_md = json.dumps(get_temp_paper(ui_manager, widget))
 
@@ -210,7 +197,7 @@ def save_paper(ui_manager, widget):
     widget.init_md = str_md
     widget.save_btn.setVisible(False)
     load_paper_props(ui_manager, widget, temp_paper)
-    ui_manager.signal.mongo.add_paper(ui_manager.signal.cur_review, temp_paper, ui_manager.pdf_selected_btn.data(Qt.UserRole)["_id"])
+    ui_manager.signal.mongo.add_paper(ui_manager.signal.cur_review, temp_paper, ui_manager.pdf_selected_btn.data(Qt.UserRole)["_id"], overwrite=True)
     set_item_background_by_md(ui_manager, ui_manager.pdf_selected_btn)
 
 
@@ -399,12 +386,15 @@ def clear_user_papers(ui_manager):
 
 
 def load_container(ui_manager, container_name):
+    if ui_manager.signal.cur_library == container_name:
+        return
     ui_manager.signal.set_current_library(container_name)
     ui_manager.ui.delete_container.setVisible(True)
     ui_manager.ui.edit_container.setVisible(True)
     ui_manager.ui.search_by_filename.setVisible(True)
     ui_manager.ui.user_papers.setVisible(True)
-    load_user_pdfs(ui_manager)
+    ui_manager.load_user_pdfs = load_user_pdfs
+    ui_manager.load_user_pdfs(ui_manager)
     layout = ui_manager.ui.container_area_layout
     
     for i in range(layout.count()):

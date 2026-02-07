@@ -6,7 +6,7 @@ from fetch_papers.crossref import fetch_from_crossref
 from fetch_papers.openalex import fetch_from_openalex
 from fetch_papers.datacite import fetch_from_datacite
 from fetch_papers.unpaywall import fetch_from_unpaywall
-from fetch_papers.semantic_scholar import fetch_from_semantic_scholar, search_bulk_from_semantic_scholar
+from fetch_papers.semantic_scholar import fetch_from_semantic_scholar, search_dois_from_semantic_scholar
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
@@ -84,20 +84,31 @@ def fetch_metadata(signal, value: str, obj: str):
         elif obj == "doi":
             sources = fetch_from_dois(signal, [value])
             result = merge_sources(sources, value)
+        elif obj == "paper_ids":
+            result = []
+            for paper_id in value:
+                formated = merge_sources(fetch_from_dois(signal, [paper_id]), paper_id)
+                if "title" in formated:
+                    result.append(formated)
     except Exception as e:
         pprint("Exception while fetching metadata:")
         pprint(traceback.format_exc())
     return result
 
 
-def expand(signal, query: str):
+def expand_dois(signal, query: str):
     final = []
+    repeat = True
     try:
-        results, extract_func = search_bulk_from_semantic_scholar(query)
-        results = [extract_func(result) for result in results]
-        final = [merge_sources({"semantic_scholar": [r]}) for r in results]
+        while signal.is_alive() and repeat:
+            try:
+                results, _ = search_dois_from_semantic_scholar(query)
+                final = results
+                repeat = False
+            except:
+                repeat = True
     except Exception as e:
-        pprint("Exception while fetching metadata:")
+        pprint("Exception while fetching Semantic Scholar ids:")
         pprint(traceback.format_exc())
     return final
 
@@ -121,12 +132,15 @@ def fetch_from_source(fetch_funct, signal, value: str, obj: str):
             results = [extract_func(result) for result in results]
         except Exception as e:
             if "429" in str(e) or "Too Many Requests" in str(e):
+                print(traceback.format_exc())
                 repeat = True
                 wait(signal, 1000 * repeat_idx)
             elif "404" in str(e):
                 signal.missing_fetches[obj].add(value)
+                print(traceback.format_exc())
             else:
                 print(f"{fetch_funct.__name__} fetch failed: {e}")
+                print(traceback.format_exc())
     return results
 
 
