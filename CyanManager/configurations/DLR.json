@@ -31,6 +31,7 @@
                 "order": false
             },
             "proc_name": "CyanLauncherManagerAdmin.exe",
+            "proc_type": "exe",
             "path": "C:/Users/cian_cl/Documents/TOPICS/shapeCode/clm_admin/CyanLauncherManagerAdmin.exe",
             "arguments": "",
             "runas": true,
@@ -51,6 +52,7 @@
                 "order": true
             },
             "proc_name": "Mattermost.exe",
+            "proc_type": "exe",
             "path": "app:Mattermost",
             "arguments": "",
             "runas": false,
@@ -68,7 +70,8 @@
                 "win_state": "normal",
                 "order": false
             },
-            "proc_name": "python:https_client.py",
+            "proc_name": "https_client.py",
+            "proc_type": "python",
             "path": "C:/Users/cian_cl/Documents/TOPICS/sharedCode/CyanManager/tools/cyanSync/https_client.py",
             "arguments": "DLR",
             "runas": false,
@@ -89,6 +92,7 @@
                 "order": false
             },
             "proc_name": "Obsidian.exe",
+            "proc_type": "exe",
             "path": "app:Obsidian",
             "arguments": "",
             "runas": false,
@@ -110,6 +114,7 @@
                 "order": true
             },
             "proc_name": "OUTLOOK.EXE",
+            "proc_type": "exe",
             "path": "app:Outlook (classic)",
             "arguments": "",
             "runas": false,
@@ -133,6 +138,7 @@
                 "order": true
             },
             "proc_name": "lync.exe",
+            "proc_type": "exe",
             "path": "app:Skype for Business",
             "arguments": "",
             "runas": false,
