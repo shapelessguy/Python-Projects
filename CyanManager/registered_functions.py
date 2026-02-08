@@ -115,6 +115,7 @@ class RegisteredFunctions:
     LIGHTS_OFF=HandleFunction(lights_off)
     LIGHTS_AUTO=HandleFunction(lights_auto)
     TYPE_PASSWORD=HandleFunction(type_password)
+    PLAY_PAUSE=HandleFunction(play_pause)
 
     def __init__(self, signal):
         for attr_value in self.__class__.__dict__.values():

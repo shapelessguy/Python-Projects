@@ -28,8 +28,8 @@ def send_to_roomserver(signal, verbose, topic, arg):
 
 def send_light_config(signal, verbose, value, notify_):
     send_to_roomserver(signal, verbose, "lights", value)
-    if notify_:
-        notify(title="Room Server", message=f"Lights {value}", icon="server.ico")
+    # if notify_:
+    #     notify(title="Room Server", message=f"Lights {value}", icon="server.ico")
 
 
 def lights_on(signal, verbose=False, notify_=True):

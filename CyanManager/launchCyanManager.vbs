@@ -21,13 +21,23 @@ scriptPath = scriptDir & "\main_logic.py"
 installDepPath = scriptDir & "\install_dependencies.bat"
 requirementsPath = scriptDir & "\requirements.txt"
 
-pipCmd = "python -m pip install --upgrade --user --quiet --no-deps -r " & requirementsPath
-exitCode = installShell.Run("cmd /c " & pipCmd, 0, True)
+Dim checkCmd
+checkCmd = "python -m pip install --dry-run --quiet --no-deps -r """ & requirementsPath & """"
 
-If exitCode <> 0 Then
-    MsgBox "Error installing dependencies!"
+Dim checkExit
+checkExit = installShell.Run("cmd /c " & checkCmd, 0, True)
+
+If checkExit <> 0 Then
+    MsgBox "Installing/updating dependencies... (this may take a moment)", vbInformation
+
+    pipCmd = "python -m pip install --upgrade --user --quiet --no-deps -r """ & requirementsPath & """"
+    exitCode = installShell.Run("cmd /c " & pipCmd, 0, True)
+
+    If exitCode <> 0 Then
+        MsgBox "Error installing dependencies! (code: " & exitCode & ")", vbCritical
+        WScript.Quit 1
+    End If
 End If
 
 cmd = "cmd /c python -u """ & scriptPath & """ startup > """ & logFile & """ 2>&1"
 objShell.Run cmd, 0, True
-

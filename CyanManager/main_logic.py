@@ -10,6 +10,7 @@ from gui.manage_ui import UI
 from dotenv import dotenv_values
 from registered_functions import register_functions_and_hotkeys, RegisteredFunctions
 from start_and_shutdown import register_start_and_shutdown_tasks
+from arduino_processes import register_arduino_tasks
 from utils import Tee, pprint, notify, Application, ENV_PATH, CONFIGURATIONS_PATH, EXE_MAP_PATH
 
 
@@ -204,6 +205,7 @@ def main():
             signal = Signal()
             
             register_functions_and_hotkeys(signal)
+            register_arduino_tasks(signal)
             register_start_and_shutdown_tasks(signal)
             signal.ui_manager = UI(signal)
 
