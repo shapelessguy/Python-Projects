@@ -1,11 +1,7 @@
 import os
 import subprocess
-import psutil
-import win32process
-import pywinctl as pwc
-import ctypes
 import json
-from functions.application import get_uwp_apps
+from functions.application import get_uwp_apps, get_corrispondences, find_windows
 from utils import Monitor_, MULTIMONITOR_EXE_PATH, TEMP_MONITOR_CONF_PATH, wait, pprint
 from collections import defaultdict
 from operator import attrgetter
@@ -24,49 +20,6 @@ EXCLUDE_FROM_DISCOVERY = [
 DISCOVER_BY_WIN_TITLE = []
 # Insert process's name (like firefox.exe) to filter windows by process: if empty string, you will get all windows
 DISCOVER_BY_PROCESS = ""
-
-
-def find_windows(signal, verbose=False, discover=False):
-    windows = pwc.getAllWindows()
-    for win in windows:
-        _, pid = win32process.GetWindowThreadProcessId(win.getHandle())
-        win.proc = psutil.Process(pid)
-
-    found = []
-    if discover:
-        for win in windows:
-            found.append(win)
-    else:
-        for a in signal.get_applications():
-            match = None
-            if len(a.window_kw):
-                for win in windows:
-                    if all([v_ in win.title for v_ in a.window_kw]):
-                        exclude = False
-                        for kw in a.excluded_kw:
-                            if kw in win.title:
-                                exclude = True
-                                break
-                        if not exclude:
-                            match = win
-                            break
-            if not match:
-                for win in windows:
-                    if win.proc.name() == a.proc_name:
-                        exclude = False
-                        for kw in a.excluded_kw:
-                            if kw in win.title:
-                                exclude = True
-                                break
-                        if not exclude:
-                            match = win
-                            break
-            found.append(match)
-
-    if verbose:
-        for win in found:
-            pprint(win)
-    return found
 
 
 previous_matches = []
@@ -187,17 +140,18 @@ def point_in_rect(px, py, rx, ry, width, height):
 
 def get_window_properties(win, screens):
     cm = (win.left + win.width / 2, win.top + win.height / 2)
-    default_screen = None
+    primary_screen = [s for s in screens if s.is_primary][0]
+    screen = None
     for s in screens:
         if point_in_rect(cm[0], cm[1], s.x, s.y, s.width, s.height):
-            default_screen = s
-        elif s.is_primary and default_screen is None:
-            default_screen = s
+            screen = s
+    if s.is_primary and screen is None:
+        screen = primary_screen
     return {
         "win_title": win.title,
-        "monitor_id": default_screen._id,
-        "x": win.left - default_screen.x,
-        "y": win.top - default_screen.y,
+        "monitor_id": screen._id,
+        "x": win.left - screen.x,
+        "y": win.top - screen.y,
         "width": win.width,
         "height": win.height,
         "win_state": ("minimized" if win.isMinimized else "maximized" if win.isMaximized else "normal"),
@@ -256,24 +210,18 @@ def discover_windows(signal, verbose=False, discover_by_win_title=DISCOVER_BY_WI
 
 
 def get_win_pos(signal, verbose=False):
-    os_windows = find_windows(signal)
     screens = get_screens(signal)
-
-    default_pos = {
-        "x": 0,
-        "y": 0,
-        "width": 0,
-        "height": 0,
-        "win_state": "normal"
-    }
+    corrispondences = get_corrispondences(signal)
 
     windows_pos = {}
     for app in signal.get_applications():
-        app_name = app.name
-        windows_pos[app_name] = default_pos
-        for win in os_windows:
-            if win is not None and win.proc.name() == app.proc_name:
-                windows_pos[app_name] = get_window_properties(win, screens)
+        windows_pos[app.name] = app.window_props
+
+    for app, win in corrispondences.items():
+        windows_pos[app.name] = get_window_properties(win, screens)
+        windows_pos[app.name]["proc_name"] = app.proc_name
+        windows_pos[app.name]["proc_type"] = app.proc_type
+        windows_pos[app.name]["path"] = app.path
 
     if verbose:
         for app_name, win_pos in windows_pos.items():
@@ -283,33 +231,29 @@ def get_win_pos(signal, verbose=False):
 
 
 def order(signal, verbose=False, only_app_names=()):
-    os_windows = find_windows(signal)
     screens = get_screens(signal)
+    corrispondences = get_corrispondences(signal, only_app_names)
 
     windows_moved = []
-    for app in signal.get_applications():
-        if len(only_app_names) > 0 and app.name not in only_app_names:
-            continue
-        app_name = app.name
+    for app, win in corrispondences.items():
         win_props = app.window_props
-        for win in os_windows:
-            if win is not None and win.proc.name() == app.proc_name and win_props["order"]:
-                monitor_id = win_props["monitor_id"]
-                for screen in screens:
-                    if screen._id == monitor_id:
-                        try:
-                            win.restore()
-                            if win_props["win_state"] not in ["hidden", "minimized"]:
-                                win.resizeTo(win_props["width"], win_props["height"])
-                                win.moveTo(screen.x + win_props["x"], screen.y + win_props["y"])
-                                win.resizeTo(win_props["width"], win_props["height"])
-                            if win_props["win_state"] == "hidden":
-                                win.close()
-                            elif win_props["win_state"] == "minimized":
-                                win.minimize()
-                            elif win_props["win_state"] == "maximized":
-                                win.maximize()
-                            windows_moved.append(app_name)
-                        except Exception as e:
-                            pprint(f"Exception while moving window for {app_name}: {e}")
+        monitor_id = win_props["monitor_id"]
+        opts = [s for s in screens if s._id == monitor_id]
+        if len(opts):
+            screen = opts[0]
+            try:
+                win.restore()
+                if win_props["win_state"] not in ["hidden", "minimized"]:
+                    win.resizeTo(win_props["width"], win_props["height"])
+                    win.moveTo(screen.x + win_props["x"], screen.y + win_props["y"])
+                    win.resizeTo(win_props["width"], win_props["height"])
+                if win_props["win_state"] == "hidden":
+                    win.close()
+                elif win_props["win_state"] == "minimized":
+                    win.minimize()
+                elif win_props["win_state"] == "maximized":
+                    win.maximize()
+                windows_moved.append(app.name)
+            except Exception as e:
+                pprint(f"Exception while moving window for {app.name}: {e}")
     return windows_moved

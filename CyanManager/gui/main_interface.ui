@@ -34,7 +34,7 @@
        <enum>QTabWidget::Rounded</enum>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>1</number>
       </property>
       <widget class="QWidget" name="tab1">
        <attribute name="title">
@@ -668,10 +668,10 @@
             <widget class="QWidget" name="application_view_widget">
              <property name="geometry">
               <rect>
-               <x>0</x>
+               <x>-28</x>
                <y>0</y>
                <width>380</width>
-               <height>681</height>
+               <height>682</height>
               </rect>
              </property>
              <layout class="QVBoxLayout" name="application_view_layout">
@@ -1296,35 +1296,9 @@
                    <number>0</number>
                   </property>
                   <item>
-                   <widget class="QLabel" name="appproc_lbl">
-                    <property name="text">
-                     <string>Process name:</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item>
-                   <widget class="QLineEdit" name="appproc"/>
-                  </item>
-                  <item>
-                   <spacer name="horizontalSpacer_5">
-                    <property name="orientation">
-                     <enum>Qt::Horizontal</enum>
-                    </property>
-                    <property name="sizeType">
-                     <enum>QSizePolicy::Fixed</enum>
-                    </property>
-                    <property name="sizeHint" stdset="0">
-                     <size>
-                      <width>10</width>
-                      <height>20</height>
-                     </size>
-                    </property>
-                   </spacer>
-                  </item>
-                  <item>
                    <widget class="QLabel" name="proc_type_lbl">
                     <property name="text">
-                     <string>Type:</string>
+                     <string>Process type:</string>
                     </property>
                    </widget>
                   </item>
@@ -1346,7 +1320,69 @@
                       <string>python</string>
                      </property>
                     </item>
+                    <item>
+                     <property name="text">
+                      <string>chrome</string>
+                     </property>
+                    </item>
                    </widget>
+                  </item>
+                  <item>
+                   <spacer name="horizontalSpacer_5">
+                    <property name="orientation">
+                     <enum>Qt::Horizontal</enum>
+                    </property>
+                    <property name="sizeType">
+                     <enum>QSizePolicy::Fixed</enum>
+                    </property>
+                    <property name="sizeHint" stdset="0">
+                     <size>
+                      <width>10</width>
+                      <height>20</height>
+                     </size>
+                    </property>
+                   </spacer>
+                  </item>
+                  <item>
+                   <widget class="QWidget" name="spacer" native="true">
+                    <property name="minimumSize">
+                     <size>
+                      <width>0</width>
+                      <height>26</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>16777215</width>
+                      <height>26</height>
+                     </size>
+                    </property>
+                    <layout class="QHBoxLayout" name="horizontalLayout_20">
+                     <item>
+                      <spacer name="horizontalSpacer_17">
+                       <property name="orientation">
+                        <enum>Qt::Horizontal</enum>
+                       </property>
+                       <property name="sizeHint" stdset="0">
+                        <size>
+                         <width>29</width>
+                         <height>20</height>
+                        </size>
+                       </property>
+                      </spacer>
+                     </item>
+                    </layout>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QLabel" name="appproc_lbl">
+                    <property name="text">
+                     <string>ID:</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QLineEdit" name="appproc"/>
                   </item>
                  </layout>
                 </item>

@@ -5,7 +5,7 @@ import threading
 import json
 from functools import partial
 from utils import pprint, Application
-from PyQt5.QtWidgets import QWidget, QLabel, QPushButton, QHBoxLayout, QLineEdit, QComboBox, QCheckBox
+from PyQt5.QtWidgets import QWidget, QLabel, QPushButton, QHBoxLayout, QLineEdit, QComboBox, QCheckBox, QSizePolicy
 from PyQt5.QtGui import QColor, QPainter, QIcon, QIntValidator
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWinExtras import QtWin
@@ -103,17 +103,36 @@ def on_change_controls(ui_manager, size_cmd):
         ui_manager.signal.reg_functions.ORDER.run_shortcut([cur_application.name])
 
 
+def on_change_dynamical(ui_manager):
+    try:
+        global cur_application, new_application
+        handling_obj = cur_application if cur_application else new_application
+        ui_manager.ui.appproc_lbl.setText("ID:")
+        ui_manager.ui.appproc.setVisible(True)
+        ui_manager.ui.spacer.setVisible(False)
+        if handling_obj.proc_type == "python":
+            ui_manager.ui.appproc_lbl.setText("Script:")
+        elif handling_obj.proc_type == "chrome":
+            ui_manager.ui.appproc_lbl.setText("")
+            ui_manager.ui.appproc.setVisible(False)
+            ui_manager.ui.spacer.setVisible(True)
+    except:
+        import traceback
+        print(traceback.format_exc())
+
+
 def on_change(ui_manager):
     global cur_application, new_application, suspend_change_cb, previous_object_state
     if suspend_change_cb:
         return
     
-    proc_type = ui_manager.ui.proc_type.currentText()
     handling_obj = cur_application if cur_application else new_application
     handling_obj.name = ui_manager.ui.appname.text()
     handling_obj.window_kw = [x.strip() for x in ui_manager.ui.appinclude.toPlainText().split(",") if x.strip() != ""]
     handling_obj.excluded_kw = [x.strip() for x in ui_manager.ui.appexclude.toPlainText().split(",") if x.strip() != ""]
-    handling_obj.proc_name = (f"{proc_type}:" if proc_type != "exe" else "") + ui_manager.ui.appproc.text()
+    handling_obj.proc_name = ui_manager.ui.appproc.text()
+    handling_obj.proc_type = ui_manager.ui.proc_type.currentText()
+    on_change_dynamical(ui_manager)
     handling_obj.path = ui_manager.ui.apppath.toPlainText()
     handling_obj.arguments = ui_manager.ui.appargs.text()
     handling_obj.runas = ui_manager.ui.runas.isChecked()
@@ -132,7 +151,6 @@ def view_application(ui_manager, application=None):
 
     suspend_change_cb = True
     cur_application = application
-    highlight(ui_manager, cur_application)
     if cur_application:
         ui_manager.ui.app_name_lbl.setText(f"{cur_application.name}")
         ui_manager.ui.create_app_btn.setVisible(True)
@@ -144,23 +162,22 @@ def view_application(ui_manager, application=None):
         ui_manager.ui.create_app_btn.setVisible(False)
         ui_manager.ui.remove_app_btn.setVisible(False)
         ui_manager.ui.add_app_btn.setVisible(True)
-        new_application = Application("", [], [], "", "")
+        new_application = Application("", [], [], "", "exe", "")
         handling_obj = new_application
 
-    proc_name = handling_obj.proc_name
-    proc_type = proc_name.split(":")[0]
-    proc_type = proc_type if proc_type in ["python"] else "exe"
     ui_manager.ui.appname.setText(handling_obj.name)
     ui_manager.ui.appinclude.setPlainText(", ".join(handling_obj.window_kw))
     ui_manager.ui.appexclude.setPlainText(", ".join(handling_obj.excluded_kw))
-    ui_manager.ui.appproc.setText(proc_name.split(":")[-1])
+    ui_manager.ui.appproc.setText(handling_obj.proc_name)
+    ui_manager.ui.proc_type.setCurrentText(handling_obj.proc_type)
+    on_change_dynamical(ui_manager)
     ui_manager.ui.apppath.setPlainText(handling_obj.path)
     ui_manager.ui.appargs.setText(handling_obj.arguments)
     ui_manager.ui.runas.setChecked(handling_obj.runas)
     ui_manager.ui.startup.setChecked(handling_obj.startup)
-    ui_manager.ui.proc_type.setCurrentText(proc_type)
 
     suspend_change_cb = False
+    highlight(ui_manager, cur_application)
 
 
 def on_win_pos_value_committed(app_row, application):
@@ -171,6 +188,7 @@ def on_win_pos_value_committed(app_row, application):
         applications = ui_manager.signal.get_applications()
         cur_application = [x for x in applications if x.name == application.name][0]
         order = app_row.order_checkbox.isChecked()
+        app_row.application = cur_application
         cur_application.window_props["order"] = order
         cur_application.window_props["monitor_id"] = app_row.screen_combobox.currentText()
         cur_application.window_props["win_state"] = app_row.win_state_combobox.currentText()
@@ -181,6 +199,7 @@ def on_win_pos_value_committed(app_row, application):
             if w.hasAcceptableInput():
                 cur_application.window_props[prop] = int(w.text())
         set_applications(ui_manager, applications)
+        return cur_application
 
 
 
@@ -202,7 +221,7 @@ class ApplicationRow(QWidget):
         super().__init__(parent)
         self.ui_manager = ui_manager
         self.application = application
-        self.dot = StatusDot("green" if application.process else "red")
+        self.dot = StatusDot("green" if (application.process or application.window) else "red")
         self.label = ClickableLabel(application.name)
         self.label.setMinimumWidth(150)
         self.label.setMaximumWidth(150)
@@ -219,18 +238,20 @@ class ApplicationRow(QWidget):
         self.height_textbox = QLineEdit()
         self.win_state_combobox = QComboBox()
 
-        def on_value_committed():
-            on_win_pos_value_committed(self, application)
+        def on_value_committed(highlight_=False):
+            cur_app = on_win_pos_value_committed(self, application)
+            if cur_app and highlight_:
+                highlight(ui_manager, cur_app)
 
         ui_manager.ui.appname.textChanged.connect(partial(on_change, ui_manager))
         ui_manager.ui.appinclude.textChanged.connect(partial(on_change, ui_manager))
         ui_manager.ui.appexclude.textChanged.connect(partial(on_change, ui_manager))
         ui_manager.ui.appproc.textChanged.connect(partial(on_change, ui_manager))
+        ui_manager.ui.proc_type.currentTextChanged.connect(partial(on_change, ui_manager))
         ui_manager.ui.apppath.textChanged.connect(partial(on_change, ui_manager))
         ui_manager.ui.appargs.textChanged.connect(partial(on_change, ui_manager))
         ui_manager.ui.runas.toggled.connect(partial(on_change, ui_manager))
         ui_manager.ui.startup.toggled.connect(partial(on_change, ui_manager))
-        ui_manager.ui.proc_type.currentTextChanged.connect(partial(on_change, ui_manager))
 
         self.set_monitors()
         self.set_values()
@@ -250,7 +271,7 @@ class ApplicationRow(QWidget):
             w.setValidator(QIntValidator(-10_000, 10_000))
             w.textChanged.connect(on_value_committed)
 
-        self.order_checkbox.toggled.connect(on_value_committed)
+        self.order_checkbox.toggled.connect(lambda _: on_value_committed(True))
         self.screen_combobox.setEnabled(application.window_props["order"])
         self.screen_combobox.currentTextChanged.connect(on_value_committed)
         self.win_state_combobox.setEnabled(application.window_props["order"])
@@ -373,17 +394,14 @@ def build_layout(ui_manager, apps):
         save_app_position(ui_manager)
     ui_manager.ui.save_current_positions.clicked.connect(save_app_pos)
 
-    app_view_loaded = False
     for application in apps:
         if application.equals(cur_application):
             view_application(ui_manager, application)
-            app_view_loaded = True
-
         row = ApplicationRow(ui_manager, application)
         ui_manager.ui.application_area_layout.addWidget(row)
-    if not app_view_loaded:
-        view_application(ui_manager)
     ui_manager.ui.application_area_layout.addStretch()
+    for application in apps:
+        highlight(ui_manager, application)
 
 
 def set_values(ui_manager, apps):
@@ -408,23 +426,32 @@ def change_states(ui_manager, apps, monitors):
                 if widget.application.name == app.name:
                     widget.application = app
                     widget.set_monitors(monitors)
-                    widget.dot.setColor("green" if app.process else "red")
+                    widget.dot.setColor("green" if (app.process or app.window) else "red")
                     break
 
 
+def set_dark_background_recursive(w, color):
+    if isinstance(w, (QLineEdit, QComboBox)):
+        w.setStyleSheet(f"background-color: {color};")
+    for child in w.findChildren(QWidget):
+        set_dark_background_recursive(child, color)
+
+
 def highlight(ui_manager, app):
+    global cur_application
     for i in range(ui_manager.ui.application_area_layout.count()):
         item = ui_manager.ui.application_area_layout.itemAt(i)
         widget = item.widget()
 
         if isinstance(widget, ApplicationRow):
-            if app and widget.application.name == app.name:
+            if app and cur_application and widget.application.name == cur_application.name:
                 widget.set_background("#1b696e")
             else:
-                # if not widget.application.window_props["order"]:
-                #     widget.set_background("#1d1d1d")
-                # else:
-                    widget.set_background("transparent")
+                widget.set_background("transparent")
+                if not widget.application.window_props["order"]:
+                    set_dark_background_recursive(widget, "#1d1d1d")
+                else:
+                    set_dark_background_recursive(widget, "transparent")
 
 prev_app_names = []
 def set_apps_layout(ui_manager, force_layout_build, apps, monitors):

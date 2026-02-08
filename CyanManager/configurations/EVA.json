@@ -30,7 +30,8 @@
                 "win_state": "normal",
                 "order": false
             },
-            "proc_name": "python:cyanSync.py",
+            "proc_name": "cyanSync.py",
+            "proc_type": "python",
             "path": "c:/Users/shape/Documents/codebase/sharedCode/CyanManager/tools/cyanSync/cyanSync.py",
             "arguments": "Android_sync",
             "runas": false,
@@ -46,9 +47,10 @@
                 "width": 976,
                 "height": 446,
                 "win_state": "normal",
-                "order": true
+                "order": false
             },
             "proc_name": "ChatGPT.exe",
+            "proc_type": "exe",
             "path": "app:ChatGPT",
             "arguments": "",
             "runas": false,
@@ -67,6 +69,7 @@
                 "order": false
             },
             "proc_name": "CyanLauncherManager.exe",
+            "proc_type": "exe",
             "path": "c:/Users/shape/Documents/codebase/sharedCode/CyanManager/tools/CyanLauncherManager/bin/Release/CyanLauncherManager.exe",
             "arguments": "",
             "runas": false,
@@ -87,6 +90,7 @@
                 "order": false
             },
             "proc_name": "Discord.exe",
+            "proc_type": "exe",
             "path": "app:Discord",
             "arguments": "",
             "runas": false,
@@ -98,17 +102,18 @@
             ],
             "excluded_kw": [],
             "window_props": {
-                "monitor_id": "DEL41EE",
+                "monitor_id": "HKC2413(2)",
                 "x": 0,
                 "y": 0,
                 "width": 500,
                 "height": 500,
                 "win_state": "normal",
-                "order": true
+                "order": false
             },
-            "proc_name": "chrome.exe",
+            "proc_name": "",
+            "proc_type": "chrome",
             "path": "C:/Program Files/Google/Chrome/Application/chrome_proxy.exe",
-            "arguments": "\"C:\\Program Files\\Google\\Chrome\\Application\\chrome_proxy.exe\"  --profile-directory=Default --app-id=gdfaincndogidkdcdkhapmbffkckdkhn",
+            "arguments": "--profile-directory=Default --app-id=gdfaincndogidkdcdkhapmbffkckdkhn",
             "runas": false,
             "startup": false
         },
@@ -120,15 +125,16 @@
             "window_props": {
                 "monitor_id": "HKC2413(2)",
                 "x": -7,
-                "y": 593,
+                "y": 529,
                 "width": 976,
-                "height": 446,
+                "height": 510,
                 "win_state": "normal",
                 "order": true
             },
-            "proc_name": "chrome.exe",
+            "proc_name": "",
+            "proc_type": "chrome",
             "path": "C:/Program Files/Google/Chrome/Application/chrome_proxy.exe",
-            "arguments": "\"C:\\Program Files\\Google\\Chrome\\Application\\chrome_proxy.exe\"  --profile-directory=Default --app-id=ggjocahimgaohmigbfhghnlfcnjemagj",
+            "arguments": "--profile-directory=Default --app-id=ggjocahimgaohmigbfhghnlfcnjemagj",
             "runas": false,
             "startup": true
         },
@@ -141,13 +147,14 @@
             "window_props": {
                 "monitor_id": "HKC2413",
                 "x": -7,
-                "y": -1,
+                "y": 0,
                 "width": 475,
                 "height": 870,
                 "win_state": "normal",
                 "order": true
             },
             "proc_name": "MSIAfterburner.exe",
+            "proc_type": "exe",
             "path": "C:/Program Files (x86)/MSI Afterburner/MSIAfterburner.exe",
             "arguments": "",
             "runas": true,
@@ -168,6 +175,7 @@
                 "order": false
             },
             "proc_name": "Mattermost.exe",
+            "proc_type": "exe",
             "path": "app:Mattermost",
             "arguments": "",
             "runas": false,
@@ -188,6 +196,7 @@
                 "order": false
             },
             "proc_name": "firefox.exe",
+            "proc_type": "exe",
             "path": "app:Firefox",
             "arguments": "",
             "runas": false,
@@ -208,6 +217,7 @@
                 "order": true
             },
             "proc_name": "NetMeterEvo.exe",
+            "proc_type": "exe",
             "path": "E:/Software/Network/NetMeterEvo.exe",
             "arguments": "",
             "runas": false,
@@ -228,6 +238,7 @@
                 "order": true
             },
             "proc_name": "NordVPN.exe",
+            "proc_type": "exe",
             "path": "C:/Program Files/NordVPN/NordVPN.exe",
             "arguments": "",
             "runas": false,
@@ -245,7 +256,8 @@
                 "win_state": "normal",
                 "order": false
             },
-            "proc_name": "python:https_client.py",
+            "proc_name": "https_client.py",
+            "proc_type": "python",
             "path": "C:/Users/shape/Documents/codebase/sharedCode/CyanManager/tools/cyanSync/https_client.py",
             "arguments": "EVA",
             "runas": false,
@@ -266,6 +278,7 @@
                 "order": true
             },
             "proc_name": "qbittorrent.exe",
+            "proc_type": "exe",
             "path": "C:/Program Files/qBittorrent/qbittorrent.exe",
             "arguments": "",
             "runas": false,
@@ -284,6 +297,7 @@
                 "order": true
             },
             "proc_name": "Telegram.exe",
+            "proc_type": "exe",
             "path": "app:Telegram Desktop",
             "arguments": "",
             "runas": false,
@@ -302,30 +316,11 @@
                 "order": true
             },
             "proc_name": "thunderbird.exe",
+            "proc_type": "exe",
             "path": "app:Thunderbird",
             "arguments": "",
             "runas": false,
             "startup": true
-        },
-        "WhatsApp": {
-            "window_kw": [
-                "WhatsApp"
-            ],
-            "excluded_kw": [],
-            "window_props": {
-                "monitor_id": "HKC2413(2)",
-                "x": -7,
-                "y": 0,
-                "width": 975,
-                "height": 600,
-                "win_state": "normal",
-                "order": true
-            },
-            "proc_name": "WhatsApp.Root.exe",
-            "path": "app:WhatsApp",
-            "arguments": "",
-            "runas": false,
-            "startup": false
         },
         "Whatsapp": {
             "window_kw": [
@@ -337,13 +332,14 @@
                 "x": -7,
                 "y": 0,
                 "width": 975,
-                "height": 600,
+                "height": 536,
                 "win_state": "normal",
                 "order": true
             },
-            "proc_name": "chrome.exe",
+            "proc_name": "",
+            "proc_type": "chrome",
             "path": "C:/Program Files/Google/Chrome/Application/chrome_proxy.exe",
-            "arguments": "\"C:\\Program Files\\Google\\Chrome\\Application\\chrome_proxy.exe\"  --profile-directory=Default --app-id=hnpfjngllnobngcgfapefoaidbinmjnm",
+            "arguments": "--profile-directory=Default --app-id=hnpfjngllnobngcgfapefoaidbinmjnm",
             "runas": false,
             "startup": true
         },
@@ -362,6 +358,7 @@
                 "order": true
             },
             "proc_name": "youtube-music-desktop-app.exe",
+            "proc_type": "exe",
             "path": "app:YouTube Music Desktop App",
             "arguments": "",
             "runas": false,

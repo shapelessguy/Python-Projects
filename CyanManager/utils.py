@@ -87,14 +87,16 @@ class Application:
         "order": False
     }
 
-    def __init__(self, name, window_kw, excluded_kw, proc_name, path, window_props={}, process=None, arguments="", runas=False, startup=False):
+    def __init__(self, name, window_kw, excluded_kw, proc_name, proc_type, path, window_props={}, process=None, window=None, arguments="", runas=False, startup=False):
         self.loaded_name = name
         self.name = name
         self.process = process
+        self.window = window
         self.window_kw = window_kw
         self.excluded_kw = excluded_kw
         self.window_props = {k: window_props.get(k, v) for k, v in self.window_props_values.items()}
         self.proc_name = proc_name
+        self.proc_type = proc_type
         self.path = path.replace("TOOLS", TOOLS_PATH).replace("\\", "/")
         self.arguments = arguments
         self.runas = runas
@@ -111,6 +113,7 @@ class Application:
             "excluded_kw": self.excluded_kw,
             "window_props": {k: self.window_props[k] for k in self.window_props_values},
             "proc_name": self.proc_name,
+            "proc_type": self.proc_type,
             "path": self.path,
             "arguments": self.arguments,
             "runas": self.runas,
@@ -118,7 +121,7 @@ class Application:
         }
 
     def __repr__(self):
-        return f"Application(name={self.name}, state={'ACTIVE' if self.process else 'DOWN'})"
+        return f"Application(name={self.name}, state={'ACTIVE' if self.process or self.window else 'DOWN'})"
 
 
 class Monitor_:
