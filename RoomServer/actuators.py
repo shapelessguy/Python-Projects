@@ -33,7 +33,7 @@ class Command:
 
 
 class LightCommand(Command):
-    class_name = "light"
+    class_name = "lights"
     types = [
         "on",
         "off",
