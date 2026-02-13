@@ -14,6 +14,31 @@ active_times = [('9:00', '19:59')]
 signal = None
 
 
+class Command:
+    class_name = ""
+    cmd_type = ""
+    types = []
+
+    def __init__(self, cmd_type):
+        assert cmd_type.lower() in [x.lower() for x in self.types]
+        self.cmd_type = cmd_type.lower()
+
+    def arduino_cmd(self):
+        return self.class_name + self.cmd_type
+    
+    def send(self):
+        write(self.arduino_cmd())
+
+
+class LightCommand(Command):
+    class_name = "light"
+    types = [
+        "on",
+        "off",
+        "auto"
+    ]
+
+
 def initialize(signal_):
     global serialPort, initialized, lights, auto_time, signal
     signal = signal_
@@ -73,10 +98,10 @@ def change_lights(on):
     global lights, initialized
     if on and (not lights or not initialized):
         lights = True
-        write('LIGHTSON')
+        LightCommand("on").send()
     elif not on and (lights or not initialized):
         lights = False
-        write('LIGHTSOFF')
+        LightCommand("off").send()
     initialized = True
 
 
@@ -87,11 +112,6 @@ def actuator(signal):
     mode = 'LIGHTSAUTO'
     act_times_func = [list(int(y.split(':')[0]) * 60 + int(y.split(':')[1]) for y in x) for x in active_times]
     global auto_time
-    if signal['state'].get_param('audio') == True:
-        audio_on = True
-    else:
-        audio_on = False
-        sequences.audio_off(write)
     last_audio_ping = datetime.now()
     audio_ping_index = 0
     ping_period = 10  # audio ping received every 10 seconds
@@ -102,18 +122,12 @@ def actuator(signal):
             cur_time = datetime.now()
             if 'AUDIOON' in commands or 'AUDIOOFF' in commands:
                 pass
-            elif cur_time - last_audio_ping > timedelta(seconds=tollerance) and audio_on:
-                print('Audio set off automatically')
-                commands.append('AUDIOOFF')
-                audio_on = False
-                signal['state'].set_param('audio', False)
-                signal['state'].save()
-            elif cur_time - last_audio_ping < timedelta(seconds=tollerance) and not audio_on:
-                print('Audio set on automatically')
-                commands.append('AUDIOON')
-                audio_on = True
-                signal['state'].set_param('audio', True)
-                signal['state'].save()
+            # elif cur_time - last_audio_ping > timedelta(seconds=tollerance) and audio_on:
+            #     print('Audio set off automatically')
+            #     commands.append('AUDIOOFF')
+            # elif cur_time - last_audio_ping < timedelta(seconds=tollerance) and not audio_on:
+            #     print('Audio set on automatically')
+            #     commands.append('AUDIOON')
 
             time_list = [cur_time.hour, cur_time.minute]
             if auto_time is not None and time_list[0] == auto_time[0] and time_list[1] == auto_time[1]:
@@ -140,15 +154,9 @@ def actuator(signal):
                     elif command == 'AUDIOON':
                         reply = f'Command {command} sent'
                         last_audio_ping = cur_time
-                        audio_on = True
-                        signal['state'].set_param('audio', True)
-                        signal['state'].save()
                         sequences.audio_on(write)
                     elif command == 'AUDIOOFF':
                         reply = f'Command {command} sent'
-                        audio_on = False
-                        signal['state'].set_param('audio', False)
-                        signal['state'].save()
                         sequences.audio_off(write)
                     else:
                         write(command)
@@ -203,3 +211,10 @@ def launch_actuator(signal):
     else:
         print("Arduino not enabled.")
     actuator(signal)
+
+if __name__ == "__main__":
+    commands = []
+    replies = []
+    signal = {'kill': False, 'restart_server': False, 'restart_websocket': False, 'termination': False,
+              'data': {'commands': commands, 'replies': replies}, 'log_file_name': None}
+    launch_actuator(signal)

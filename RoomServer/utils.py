@@ -17,7 +17,7 @@ hostnames = {
     'shape': {
         'websocket_port': 10002,
         'server_port': 10001,
-        'arduino_device': None,
+        'arduino_device': 'COM7',
         'domain': 'cyanshape'
     },
     'claudio-X200MA': {
