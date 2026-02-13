@@ -72,7 +72,7 @@ def pull(path, signal):
     print(r.stdout)
     print(r.stderr)
     if  r.returncode != 0:
-        signal['kill'] = True
+        # signal['kill'] = True
         return False
     return True
 
@@ -83,7 +83,7 @@ def push(path, signal):
     print(r.stdout)
     print(r.stderr)
     if r.returncode != 0:
-        signal['kill'] = True
+        # signal['kill'] = True
         return False
     return True
 

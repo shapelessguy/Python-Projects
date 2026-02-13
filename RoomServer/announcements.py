@@ -129,7 +129,8 @@ def get_date_from_week_id(week_id_):
 
 def get_last_announcement():
     global bh
-    pull(MAIN_FOLDER_PATH, bh.signal)
+    if not pull(MAIN_FOLDER_PATH, bh.signal):
+        return None, None
     last_announcement = None
     try:
         with open(ANNOUNCEMENT_FILEPATH, 'r') as file:
@@ -143,42 +144,45 @@ def get_last_announcement():
 
 def spawn_monitoring(signal_):
     global bh, bot_history
-    bac.initialize_repo()
-    print('Bot is ready.')
-    if os.path.exists(MSG_HISTORY_PATH):
-        with open(MSG_HISTORY_PATH, 'r') as file:
-            bot_history = json.load(file)
-    else:
-        bot_history = {}
-    bh.signal = signal_
-    monitor_thread = threading.Thread(target=monitor, args=(bh, ))
-    monitor_thread.start()
-    bh.bot.enable_save_next_step_handlers(delay=2)
-    bh.bot.load_next_step_handlers()
-    bh.bot.infinity_polling()
-    print('Bot killed.')
+    try:
+        bac.initialize_repo()
+        print('Bot is ready.')
+        if os.path.exists(MSG_HISTORY_PATH):
+            with open(MSG_HISTORY_PATH, 'r') as file:
+                bot_history = json.load(file)
+        else:
+            bot_history = {}
+        bh.signal = signal_
+        monitor_thread = threading.Thread(target=monitor, args=(bh, ))
+        monitor_thread.start()
+        bh.bot.enable_save_next_step_handlers(delay=2)
+        bh.bot.load_next_step_handlers()
+        bh.bot.infinity_polling()
+    except:
+        print('Bot killed.')
 
 
 def monitor(bh):
     last_announcement, id_last_announcement = get_last_announcement()
-    index = 0
-    while not bh.signal['kill']:
-        if 'set_announcement' in bh.signal:
-            set_announcement(**bh.signal['set_announcement'])
-            del bh.signal['set_announcement']
-        index += 1
-        if index == 60:
-            save_history()
-            index = 0
-        try:
-            last_announcement, id_last_announcement = update(last_announcement, id_last_announcement)
-            time.sleep(1)
-        except Exception:
-            import traceback
-            print(traceback.format_exc())
+    if last_announcement:
+        index = 0
+        while not bh.signal['kill']:
+            if 'set_announcement' in bh.signal:
+                set_announcement(**bh.signal['set_announcement'])
+                del bh.signal['set_announcement']
+            index += 1
+            if index == 60:
+                save_history()
+                index = 0
+            try:
+                last_announcement, id_last_announcement = update(last_announcement, id_last_announcement)
+                time.sleep(1)
+            except Exception:
+                import traceback
+                print(traceback.format_exc())
+            time.sleep(0.5)
         time.sleep(0.5)
-    time.sleep(0.5)
-    save_history()
+        save_history()
     bh.bot.stop_polling()
 
 

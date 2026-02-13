@@ -9,6 +9,8 @@ def audio_on(write: callable):
     write('STRIPTOPG4')
 
 def audio_off(write: callable):
+    write('AUDIOMUTE')
+    time.sleep(0.3)
     write('AUDIOON/OFF')
     time.sleep(1)
     write('AUDIOON/OFF')

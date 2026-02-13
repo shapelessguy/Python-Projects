@@ -114,6 +114,8 @@ class RegisteredFunctions:
     LIGHTS_ON=HandleFunction(lights_on)
     LIGHTS_OFF=HandleFunction(lights_off)
     LIGHTS_AUTO=HandleFunction(lights_auto)
+    AUDIO_POWER=HandleFunction(audio_power)
+    
     TYPE_PASSWORD=HandleFunction(type_password)
     PLAY_PAUSE=HandleFunction(play_pause)
 
@@ -143,10 +145,11 @@ def register_functions_and_hotkeys(signal):
         (97, 2): reg_functions.LIGHTS_ON,                   # CTRL + NUMPAD1
         (98, 2): reg_functions.LIGHTS_OFF,                  # CTRL + NUMPAD2
         (99, 2): reg_functions.LIGHTS_AUTO,                 # CTRL + NUMPAD3
+        (100, 0): reg_functions.AUDIO_POWER,                # CTRL + NUMPAD4
 
         # DEBUG PURPOSE
         # (100, 0): reg_functions.DISCOVER_WIN,
-        (100, 0): reg_functions.GET_WIN_POSITIONS,
+        # (100, 0): reg_functions.GET_WIN_POSITIONS,
         # (100, 0): reg_functions.FIND_WINDOWS,
         # (100, 0): reg_functions.SHOW_UWP_APP_NAMES,
         # (100, 0): reg_functions.THREADS_STATUS,
