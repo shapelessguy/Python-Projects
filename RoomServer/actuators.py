@@ -24,7 +24,9 @@ class Command:
         self.cmd_type = cmd_type.lower()
 
     def arduino_cmd(self):
-        return self.class_name + self.cmd_type
+        cmd = (self.class_name + self.cmd_type).upper()
+        print(cmd)
+        return cmd
     
     def send(self):
         write(self.arduino_cmd())
