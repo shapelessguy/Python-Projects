@@ -4,21 +4,44 @@
 #include <IRremote.hpp>
 
 #define LIGHT_PIN 2
-#define MOTOR_PIN 3
-#define MIC_PIN A0
+// IR_PIN = 3 from PinDefinitions
+
 String command;
 int DELAY = 100;
 char deviceCode = '_';
 bool lights_on = false;
 
+
 void setup() {
   Serial.begin(9600);
-  IrSender.begin(); // Start with IR_SEND_PIN as send pin and enable feedback LED at default feedback LED pin
-  IrSender.enableIROut(38); // Call it with 38 kHz to initialize the values printed below
+  IrSender.begin();
+  IrSender.enableIROut(38);
   pinMode(LIGHT_PIN, OUTPUT);
-  pinMode(MOTOR_PIN, OUTPUT);
   Serial.println("loop_init");
 }
+
+void turn_on_lights(){
+  digitalWrite(LIGHT_PIN, HIGH); 
+  Serial.println("lights_on");
+  lights_on = true;
+}
+
+void turn_off_lights(){
+  digitalWrite(LIGHT_PIN, LOW); 
+  Serial.println("lights_off");
+  lights_on = false;
+}
+
+void change_lights(){
+  if (lights_on){
+    turn_off_lights();
+  }
+  else{
+    turn_on_lights();
+  }
+}
+
+
 
 long comTv(String c){
   if (c == "ON") return 0xE0E09966;
@@ -70,109 +93,17 @@ void sendAudio(String c){
   }
 }
 
-void sendLightStrip(String c){
-  Serial.println("LightStrip command: " + c);
-  if (c == "ON") { IrSender.sendNEC(0x0, 0x40, 1); }
-
-  else if (c == "TOPDEF") { IrSender.sendNEC(0xEF00, 0x14, 1); }
-  else if (c == "TOPLIGHTSWITCH") { IrSender.sendNEC(0xEF00, 0x02, 1); }
-  else if (c == "TOPCOLSWITCH") { IrSender.sendNEC(0xEF00, 0x03, 1); }
-  else if (c == "TOPCHANGECOL") { IrSender. (0xEF00, 0x7, 1); }
-
-  if (c == "I1") { IrSender.sendNEC(0x0, 0x1B, 1); }
-  else if (c == "I2") { IrSender.sendNEC(0x0, 0x1F, 1); }
-  else if (c == "I3") { IrSender.sendNEC(0x0, 0x4C, 1); }
-  else if (c == "I4") { IrSender.sendNEC(0x0, 0x48, 1); }
-
-  else if (c == "R0") { IrSender.sendNEC(0x0, 0x58, 1); }
-  else if (c == "R1") { IrSender.sendNEC(0x0, 0x54, 1); }
-  else if (c == "R2") { IrSender.sendNEC(0x0, 0x50, 1); }
-  else if (c == "R3") { IrSender.sendNEC(0x0, 0x1C, 1); }
-  else if (c == "R4") { IrSender.sendNEC(0x0, 0x18, 1); }
-
-  else if (c == "G0") { IrSender.sendNEC(0x0, 0x59, 1); }
-  else if (c == "G1") { IrSender.sendNEC(0x0, 0x55, 1); }
-  else if (c == "G2") { IrSender.sendNEC(0x0, 0x51, 1); }
-  else if (c == "G3") { IrSender.sendNEC(0x0, 0x1D, 1); }
-  else if (c == "G4") { IrSender.sendNEC(0x0, 0x19, 1); }
-
-  else if (c == "B0") { IrSender.sendNEC(0x0, 0x45, 1); }
-  else if (c == "B1") { IrSender.sendNEC(0x0, 0x49, 1); }
-  else if (c == "B2") { IrSender.sendNEC(0x0, 0x4D, 1); }
-  else if (c == "B3") { IrSender.sendNEC(0x0, 0x1E, 1); }
-  else if (c == "B4") { IrSender.sendNEC(0x0, 0x1A, 1); }
-
-  else if (c == "W0") { IrSender.sendNEC(0x0, 0x44, 1); }
-
-  else if (c == "OFF") { IrSender.sendNEC(0x0, 0x41, 1); }
-}
-
-void turn_on_lights(){
-  digitalWrite(LIGHT_PIN, HIGH); 
-  Serial.println("lights_on");
-  lights_on = true;
-}
-
-void turn_off_lights(){
-  digitalWrite(LIGHT_PIN, LOW); 
-  Serial.println("lights_off");
-  lights_on = false;
-}
-
-void turn_motor(){
-  digitalWrite(MOTOR_PIN, HIGH); 
-  delay(1000);
-  digitalWrite(MOTOR_PIN, LOW);
-}
-
-void change_lights(){
-  if (lights_on){
-    turn_off_lights();
-  }
-  else{
-    turn_on_lights();
-  }
-}
-
-int iteration = 0;
-int claps = 0;
-int threshold = 600;
-int t_claps = 2;
-int min_iter = 20;
-int max_iter = 300;
 void loop() {
-  /*
-  int value_mic = analogRead(MIC_PIN);
-  if (claps > 0) iteration += 1;
-  if (value_mic < threshold && claps == 0) { claps += 1; }
-  if (iteration > min_iter) {
-    if (value_mic < threshold && claps < t_claps) { claps += 1; }
-    if (claps == t_claps){
-      change_lights();
-      claps = 0;
-      iteration = 0;
-      delay(1000);
-    } 
-  }
-  if (iteration > max_iter) {
-    claps = 0;
-    iteration = 0;
-  }
-  */
-
-    //digitalWrite(MOTOR_PIN, HIGH); 
-    //delay(5000);
-    
   if (Serial.available()) {
     command = Serial.readStringUntil('\n');
     command.trim();
     
     if (command.equals("LIGHTSON")) { turn_on_lights(); }
     else if (command.equals("LIGHTSOFF")) { turn_off_lights(); }
-    else if (command.equals("H")) { turn_motor(); }
+
     else if (command.substring(0, 2) == "TV") sendSamsung(command.substring(2, command.length()));
     else if (command.substring(0, 5) == "AUDIO") sendAudio(command.substring(5, command.length()));
-    else if (command.substring(0, 5) == "STRIP") sendLightStrip(command.substring(5, command.length()));
+
     else { Serial.println("bad command"); }
   }
 }
