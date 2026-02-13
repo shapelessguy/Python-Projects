@@ -70,12 +70,17 @@ int repeatAudio(String c){
   return 0;
 }
 
-void sendSamsung(String c){
-  Serial.println("TV command: " + c);
- for (int i = 0; i < 6; i++) {
-    IrSender.sendSAMSUNG(comTv(c), 32);
+void sendHisense(String c) {
+  Serial.println("Sending Hisense POWER TOGGLE (address 0xBF00, cmd 0x0D)...");
+  uint16_t address = 0xBF00;
+  uint8_t  command = 0x0D;
+
+  for (int i = 0; i < 6; i++) {
+    IrSender.sendNEC(address, command, 0);
     delay(40);
   }
+
+  Serial.println("Toggle sent 6 times — check TV!");
 }
 
 void sendAudio(String c){
@@ -101,7 +106,7 @@ void loop() {
     if (command.equals("LIGHTSON")) { turn_on_lights(); }
     else if (command.equals("LIGHTSOFF")) { turn_off_lights(); }
 
-    else if (command.substring(0, 2) == "TV") sendSamsung(command.substring(2, command.length()));
+    else if (command.substring(0, 2) == "TV") sendHisense(command.substring(2, command.length()));
     else if (command.substring(0, 5) == "AUDIO") sendAudio(command.substring(5, command.length()));
 
     else { Serial.println("bad command"); }

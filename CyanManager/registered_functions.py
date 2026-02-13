@@ -115,6 +115,7 @@ class RegisteredFunctions:
     LIGHTS_OFF=HandleFunction(lights_off)
     LIGHTS_AUTO=HandleFunction(lights_auto)
     AUDIO_POWER=HandleFunction(audio_power)
+    TV_POWER=HandleFunction(tv_power)
     
     TYPE_PASSWORD=HandleFunction(type_password)
     PLAY_PAUSE=HandleFunction(play_pause)
@@ -145,7 +146,8 @@ def register_functions_and_hotkeys(signal):
         (97, 2): reg_functions.LIGHTS_ON,                   # CTRL + NUMPAD1
         (98, 2): reg_functions.LIGHTS_OFF,                  # CTRL + NUMPAD2
         (99, 2): reg_functions.LIGHTS_AUTO,                 # CTRL + NUMPAD3
-        (100, 0): reg_functions.AUDIO_POWER,                # CTRL + NUMPAD4
+        (102, 0): reg_functions.AUDIO_POWER,                # NUMPAD6
+        (102, 2): reg_functions.TV_POWER,                # CTRL + NUMPAD6
 
         # DEBUG PURPOSE
         # (100, 0): reg_functions.DISCOVER_WIN,
