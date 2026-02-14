@@ -101,8 +101,13 @@ class HTTPSInterface(Interface):
             for i in range(current_fb.tot_chunks):
                 pprint(f"getting chunk {i+1}/{current_fb.tot_chunks}: {current_fb.to_path}")
                 data = {"request": "get_file_chunk", "from_path": src, "index": i}
-                future = asyncio.run_coroutine_threadsafe(self.signal["ws_manager"].send_to_client(self.interface_id, data, LONG_TIMEOUT), self.signal["loop"])
-                chunk = future.result(timeout=LONG_TIMEOUT)["reply"]
+                for _ in range(10):
+                    try:
+                        future = asyncio.run_coroutine_threadsafe(self.signal["ws_manager"].send_to_client(self.interface_id, data, LONG_TIMEOUT), self.signal["loop"])
+                        chunk = future.result(timeout=LONG_TIMEOUT)["reply"]
+                        break
+                    except:
+                        pass
                 if chunk == 1:
                     raise Exception("Bad file transfer")
                 current_fb.add_part(chunk)
@@ -136,8 +141,13 @@ class HTTPSInterface(Interface):
 
                     encoded = base64.b64encode(chunk).decode("ascii")
                     chunk_data = {**data, "index": chunk_index, "encoded": encoded}
-                    future = asyncio.run_coroutine_threadsafe(self.signal["ws_manager"].send_to_client(self.interface_id, chunk_data, SHORT_TIMEOUT), self.signal["loop"])
-                    future.result(timeout=5.0)["reply"]
+                    for _ in range(10):
+                        try:
+                            future = asyncio.run_coroutine_threadsafe(self.signal["ws_manager"].send_to_client(self.interface_id, chunk_data, SHORT_TIMEOUT), self.signal["loop"])
+                            future.result(timeout=LONG_TIMEOUT)["reply"]
+                            break
+                        except:
+                            pass
             return 0
         except Exception as e:
             pprint(f"HTTPS request failed on 'copy_file_to_remote': {e}")
@@ -150,7 +160,7 @@ class HTTPSInterface(Interface):
         try:
             data = {"request": "move_file_from_remote_to_remote", "from_path": src, "to_path": dst}
             future = asyncio.run_coroutine_threadsafe(self.signal["ws_manager"].send_to_client(self.interface_id, data, SHORT_TIMEOUT), self.signal["loop"])
-            return future.result(timeout=5.0)["reply"]
+            return future.result(timeout=LONG_TIMEOUT)["reply"]
         except Exception as e:
             pprint(f"HTTPS request failed on 'move_file_from_remote_to_remote': {e}")
             return None
