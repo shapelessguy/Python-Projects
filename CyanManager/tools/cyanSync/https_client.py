@@ -60,6 +60,9 @@ def check_if_process_already_running(script_name, last_arg):
 class FileBuilder:
     def __init__(self, to_path, last_modified, file_id, tot_chunks, file_size=0):
         self.to_path = to_path
+        temp_path = self.to_path + TEMP_EXT
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
         os.makedirs(os.path.dirname(to_path), exist_ok=True)
         self.last_modified = datetime.fromisoformat(last_modified).timestamp()
         self.file_id = file_id
@@ -185,8 +188,6 @@ def copy_file_to_remote(to_path, last_modified, file_id, index, tot_chunks, enco
     global current_fb
     if index == 0:
         current_fb = FileBuilder(to_path, last_modified, file_id, tot_chunks)
-        if os.path.exists(to_path):
-            os.remove(to_path)
     current_fb.add_part(encoded)
     if index == tot_chunks - 1:
         current_fb.close()
