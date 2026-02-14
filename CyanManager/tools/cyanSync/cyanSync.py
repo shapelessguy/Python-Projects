@@ -443,12 +443,15 @@ def init_loop(sync_folders, signal):
 
 
 def set_memory_consumption(signal):
-    consumption = signal['interface'].get_memory_consumption()
-    if consumption:
-        used, total, percent = consumption
-        signal["ui"].execute("set_text", "used_lbl", scale_bytes(used, 2))
-        signal["ui"].execute("set_text", "total_lbl", scale_bytes(total, 2))
-        signal["ui"].execute("set_text", "percent_lbl", percent)
+    try:
+        consumption = signal['interface'].get_memory_consumption()
+        if consumption:
+            used, total, percent = consumption
+            signal["ui"].execute("set_text", "used_lbl", scale_bytes(used, 2))
+            signal["ui"].execute("set_text", "total_lbl", scale_bytes(total, 2))
+            signal["ui"].execute("set_text", "percent_lbl", percent)
+    except:
+        pass
 
 
 def get_interface(interface_str, local_id, interface_id, ws_manager, args):
