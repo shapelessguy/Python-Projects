@@ -25,9 +25,10 @@ async def handle(ws):
     except websockets.ConnectionClosed:
         await signal['ws_manager'].unregister(ws)
         pprint(f"Client {client_name} disconnected")
-    except:
+    except Exception as e:
         import traceback
         print(traceback.format_exc())
+        print(e)
 
 
 async def run_server(signal_):
