@@ -139,7 +139,7 @@ class HTTPSInterface(Interface):
                     future.result(timeout=5.0)["reply"]
             return 0
         except Exception as e:
-            pprint(f"HTTPS request failed on 'move_file_from_remote_to_remote': {e}")
+            pprint(f"HTTPS request failed on 'copy_file_to_remote': {e}")
             return 1
 
     def move_file_from_remote_to_remote(self, remote_path, dest_path):
@@ -148,6 +148,7 @@ class HTTPSInterface(Interface):
         
         try:
             data = {"request": "move_file_from_remote_to_remote", "from_path": src, "to_path": dst}
+            print(data)
             future = asyncio.run_coroutine_threadsafe(self.signal["ws_manager"].send_to_client(self.interface_id, data, SHORT_TIMEOUT), self.signal["loop"])
             return future.result(timeout=5.0)["reply"]
         except Exception as e:
