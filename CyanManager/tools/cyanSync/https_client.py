@@ -185,6 +185,8 @@ def copy_file_to_remote(to_path, last_modified, file_id, index, tot_chunks, enco
     global current_fb
     if index == 0:
         current_fb = FileBuilder(to_path, last_modified, file_id, tot_chunks)
+        if os.path.exists(to_path):
+            os.remove(to_path)
     current_fb.add_part(encoded)
     if index == tot_chunks - 1:
         current_fb.close()
