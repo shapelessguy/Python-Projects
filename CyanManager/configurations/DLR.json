@@ -143,6 +143,44 @@
             "arguments": "",
             "runas": false,
             "startup": true
+        },
+        "WSL": {
+            "window_kw": [],
+            "excluded_kw": [],
+            "window_props": {
+                "monitor_id": "",
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "win_state": "normal",
+                "order": false
+            },
+            "proc_name": "wsl.exe",
+            "proc_type": "exe",
+            "path": "C:/Windows/System32/wsl.exe",
+            "arguments": "-d Ubuntu-24.04",
+            "runas": false,
+            "startup": true
+        },
+        "syncEmails": {
+            "window_kw": [],
+            "excluded_kw": [],
+            "window_props": {
+                "monitor_id": "",
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "win_state": "normal",
+                "order": false
+            },
+            "proc_name": "syncEmails.py",
+            "proc_type": "python",
+            "path": "C:/Users/cian_cl/Documents/TOPICS/sharedCode/emailSync/syncEmails.py",
+            "arguments": "",
+            "runas": false,
+            "startup": true
         }
     }
 }
