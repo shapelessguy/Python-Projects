@@ -18,6 +18,25 @@
         "active": true
     },
     "applications": {
+        "AndroidSync": {
+            "window_kw": [],
+            "excluded_kw": [],
+            "window_props": {
+                "monitor_id": "",
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "win_state": "normal",
+                "order": false
+            },
+            "proc_name": "cyanSync.py",
+            "proc_type": "python",
+            "path": "C:/Users/shape/Documents/codebase/sharedCode/CyanManager/tools/cyanSync/cyanSync.py",
+            "arguments": "Android_sync",
+            "runas": false,
+            "startup": true
+        },
         "ChatGPT": {
             "window_kw": [],
             "excluded_kw": [],
