@@ -22,9 +22,11 @@ async def handle(ws):
 
     try:
         if fault_index[client_name] > 10:
-            raise websockets.ConnectionClosed
-        async for message in ws:
-            await signal['ws_manager'].handle_response(message)
+            await signal['ws_manager'].unregister(ws)
+            pprint(f"Client {client_name} disconnected")
+        else:
+            async for message in ws:
+                await signal['ws_manager'].handle_response(message)
     except websockets.ConnectionClosed:
         await signal['ws_manager'].unregister(ws)
         pprint(f"Client {client_name} disconnected")
