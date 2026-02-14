@@ -192,7 +192,7 @@ def set_local_sync_md(data, local_path, interface):
         with open(md_path, "r", encoding="utf-8") as file:
             prev_data = json.load(file)
     if not prev_data or json.dumps(data) != json.dumps(prev_data):
-        if os.name == "nt":
+        if os.path.exists(md_path) and os.name == "nt":
             os.chmod(md_path, stat.S_IWRITE)
             os.system(f'attrib -H -S "{md_path}"')
         with open(md_path, "w", encoding="utf-8") as file:
