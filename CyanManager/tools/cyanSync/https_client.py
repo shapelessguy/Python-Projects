@@ -217,7 +217,6 @@ async def receive_messages(ws):
                     value = data_json.get(arg, None)
                     if value is not None:
                         arg_lst.append(f"{arg}: {value}")
-                print(data_json.get("request"))
                 if data_json.get("request") == "parse_device_info":
                     reply = parse_device_info()
                 elif data_json.get("request") == "get_memory_consumption":
