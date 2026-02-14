@@ -128,6 +128,7 @@ class HTTPSInterface(Interface):
         try:
             with open(src, "rb") as f:
                 data = {"request": "copy_file_to_remote", "to_path": dst, "last_modified": last_modified, "file_id": file_id, "tot_chunks": total_chunks}
+                print(data)
                 for chunk_index in range(total_chunks):
                     chunk = f.read(CHUNK_SIZE)
                     if not chunk:
@@ -148,7 +149,6 @@ class HTTPSInterface(Interface):
         
         try:
             data = {"request": "move_file_from_remote_to_remote", "from_path": src, "to_path": dst}
-            print(data)
             future = asyncio.run_coroutine_threadsafe(self.signal["ws_manager"].send_to_client(self.interface_id, data, SHORT_TIMEOUT), self.signal["loop"])
             return future.result(timeout=5.0)["reply"]
         except Exception as e:
