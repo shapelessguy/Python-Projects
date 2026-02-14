@@ -510,7 +510,6 @@ def main(signal):
                 except:
                     pass
                 interface.connected = connected
-                print(interface.connected)
 
             all_interfaces_connected = all([x.connected for x in interfaces])
             if CONFIGURATION["wait_for_connection"]:

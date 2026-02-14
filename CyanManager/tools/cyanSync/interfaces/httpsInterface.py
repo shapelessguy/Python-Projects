@@ -27,7 +27,6 @@ class HTTPSInterface(Interface):
 
     def device_connected(self):
         future = asyncio.run_coroutine_threadsafe(self.signal["ws_manager"].list_clients(), self.signal["loop"]).result(timeout=SHORT_TIMEOUT)
-        print("CONNECTED?", self.interface_id, future)
         return self.interface_id in future
 
     def parse_device_info(self):
