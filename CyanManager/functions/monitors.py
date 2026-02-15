@@ -145,7 +145,7 @@ def get_window_properties(win, screens):
     for s in screens:
         if point_in_rect(cm[0], cm[1], s.x, s.y, s.width, s.height):
             screen = s
-    if s.is_primary and screen is None:
+    if screen is None:
         screen = primary_screen
     return {
         "win_title": win.title,

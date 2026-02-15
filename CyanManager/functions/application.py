@@ -244,26 +244,29 @@ def find_windows(signal, verbose=False, discover=False):
     found = []
     if discover:
         for win in windows:
-            found.append(win)
+            if win.width > 0 and win.height > 0:
+                found.append(win)
     else:
         for a in signal.get_applications():
             match = None
             if len(a.window_kw):
                 for win in windows:
-                    match = match_app_win(a, win)
-                    if match:
-                        break
+                    if win.width > 0 and win.height > 0:
+                        match = match_app_win(a, win)
+                        if match:
+                            break
             if not match:
                 for win in windows:
-                    if win.proc.name() == a.proc_name:
-                        exclude = False
-                        for kw in a.excluded_kw:
-                            if kw in win.title:
-                                exclude = True
+                    if win.width > 0 and win.height > 0:
+                        if win.proc.name() == a.proc_name:
+                            exclude = False
+                            for kw in a.excluded_kw:
+                                if kw in win.title:
+                                    exclude = True
+                                    break
+                            if not exclude:
+                                match = win
                                 break
-                        if not exclude:
-                            match = win
-                            break
             found.append(match)
 
     if verbose:

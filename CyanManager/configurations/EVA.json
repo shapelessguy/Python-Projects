@@ -96,6 +96,27 @@
             "runas": false,
             "startup": false
         },
+        "Fantastical": {
+            "window_kw": [
+                "Fantastical"
+            ],
+            "excluded_kw": [],
+            "window_props": {
+                "monitor_id": "HKC2413",
+                "x": 1460,
+                "y": 0,
+                "width": 466,
+                "height": 1039,
+                "win_state": "normal",
+                "order": true
+            },
+            "proc_name": "Fantastical.exe",
+            "proc_type": "exe",
+            "path": "C:/Program Files/WindowsApps/FlexibitsInc.Fantastical_4.1.8.0_x64__xhwyj10g4qjsr/Fantastical.exe",
+            "arguments": "",
+            "runas": false,
+            "startup": true
+        },
         "Gemini": {
             "window_kw": [
                 "Gemini"
@@ -272,7 +293,7 @@
                 "monitor_id": "HKC2413",
                 "x": 453,
                 "y": -1,
-                "width": 1474,
+                "width": 1020,
                 "height": 427,
                 "win_state": "normal",
                 "order": true
@@ -310,7 +331,7 @@
                 "monitor_id": "HKC2413",
                 "x": 453,
                 "y": 417,
-                "width": 1474,
+                "width": 1020,
                 "height": 623,
                 "win_state": "normal",
                 "order": true
