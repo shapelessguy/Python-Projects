@@ -89,23 +89,24 @@ class Signal:
             print(f"At least one element must be already synchronized: len(self.outlook_events)={len(self.outlook_events)}; len(self.gmail_events)={len(self.gmail_events)}")
             return
 
-        print("Synching now...")
+        print("Synchronizing now...")
         new_map = []
         out_events = {k: v for k, v in self.outlook_events.items()}
         gmail_events = {k: v for k, v in self.gmail_events.items()}
+
         for out_id, gmail_id in self.id_map:
             if out_id in out_events and gmail_id in gmail_events:
                 new_map.append([out_id, gmail_id])
                 if out_events[out_id]["hash"] != gmail_events[gmail_id]["hash"]:
                     if PERFORM_OPERATIONS:
-                        print(gmail_events[gmail_id])
-                        print(out_events[out_id])
                         Operation(self, OpType.UPDATE, gmail_id, out_events[out_id]).execute()
                     pass
-            if out_id in out_events:
+                # Events already synchronized
                 del out_events[out_id]
-            if gmail_id in gmail_events:
                 del gmail_events[gmail_id]
+            else:
+                if out_id in out_events:
+                    del out_events[out_id]
 
         for _id, data in gmail_events.items():
             if PERFORM_OPERATIONS:

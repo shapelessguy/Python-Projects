@@ -24,17 +24,17 @@ category_map = {
 def get_service(signal):
     SCOPES = ['https://www.googleapis.com/auth/calendar']
     creds = None
-    if os.path.exists('token.pickle'):
-        with open('token.pickle', 'rb') as token:
+    if os.path.exists(os.path.join(os.path.dirname(__file__), 'token.pickle')):
+        with open(os.path.join(os.path.dirname(__file__), 'token.pickle'), 'rb') as token:
             creds = pickle.load(token)
 
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
+            flow = InstalledAppFlow.from_client_secrets_file(os.path.join(os.path.dirname(__file__), 'credentials.json'), SCOPES)
             creds = flow.run_local_server(port=0)
-        with open('token.pickle', 'wb') as token:
+        with open(os.path.join(os.path.dirname(__file__), 'token.pickle'), 'wb') as token:
             pickle.dump(creds, token)
     signal.service = build('calendar', 'v3', credentials=creds)
 
