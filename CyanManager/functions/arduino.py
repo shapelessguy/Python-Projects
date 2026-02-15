@@ -62,3 +62,7 @@ def audio_power(signal, verbose=False, notify_=True):
 
 def tv_power(signal, verbose=False, notify_=True):
     send_tv(signal, verbose, "power", notify_)
+
+
+def tv_ok(signal, verbose=False, notify_=True):
+    send_tv(signal, verbose, "ok", notify_)

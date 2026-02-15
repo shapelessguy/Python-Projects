@@ -42,6 +42,8 @@ def take_action(signal, verb):
         signal.reg_functions.TURN_ON_MONITORS.run_shortcut()
     elif verb == "8":
         signal.reg_functions.SHUTDOWN_MONITORS.run_shortcut()
+    elif verb == "6":
+        signal.reg_functions.TV_OK.run_shortcut()
     elif verb == "UP":
         signal.reg_functions.VOLUME_UP.run_shortcut()
     elif verb == "DOWN":
