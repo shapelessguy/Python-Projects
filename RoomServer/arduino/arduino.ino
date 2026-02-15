@@ -71,16 +71,24 @@ int repeatAudio(String c){
 }
 
 void sendHisense(String c) {
-  Serial.println("Sending Hisense POWER TOGGLE (address 0xBF00, cmd 0x0D)...");
+  Serial.println("Sending Hisense...");
   uint16_t address = 0xBF00;
-  uint8_t  command = 0x0D;
+  uint8_t  command;
+  int      repetitions = 1;
 
-  for (int i = 0; i < 6; i++) {
+  if (c.substring(0, 2) == "OK"){
+    command = 0x15;
+    repetitions = 1;
+  }
+  else if (c.substring(0, 5) == "POWER"){
+    command = 0x0D;
+    repetitions = 6;
+  }
+
+  for (int i = 0; i < repetitions; i++) {
     IrSender.sendNEC(address, command, 0);
     delay(40);
   }
-
-  Serial.println("Toggle sent 6 times — check TV!");
 }
 
 void sendAudio(String c){
