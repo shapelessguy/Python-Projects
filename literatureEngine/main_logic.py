@@ -15,6 +15,7 @@ class Signal:
     cur_review: str = ""
     cur_library: str = ""
     cur_context: str = ""
+    cur_process: str = ""
     cur_operation: str = ""
     ref_holder = None
 
@@ -35,7 +36,11 @@ class Signal:
         self.cur_library = library
     
     def set_current_context(self, context):
+        self.cur_process = {}
         self.cur_context = context
+    
+    def set_current_process(self, process):
+        self.cur_process = process
     
     def kill(self):
         self.kill_flag = True

@@ -137,7 +137,6 @@ def fetch_from_source(fetch_funct, signal, value: str, obj: str):
                 wait(signal, 1000 * repeat_idx)
             elif "404" in str(e):
                 signal.missing_fetches[obj].add(value)
-                print(traceback.format_exc())
             else:
                 print(f"{fetch_funct.__name__} fetch failed: {e}")
                 print(traceback.format_exc())

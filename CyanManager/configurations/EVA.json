@@ -112,7 +112,7 @@
             },
             "proc_name": "Fantastical.exe",
             "proc_type": "exe",
-            "path": "C:/Program Files/WindowsApps/FlexibitsInc.Fantastical_4.1.8.0_x64__xhwyj10g4qjsr/Fantastical.exe",
+            "path": "app:Fantastical",
             "arguments": "",
             "runas": false,
             "startup": true
@@ -169,7 +169,7 @@
                 "monitor_id": "HKC2413",
                 "x": -7,
                 "y": 0,
-                "width": 475,
+                "width": 415,
                 "height": 870,
                 "win_state": "normal",
                 "order": true
@@ -232,7 +232,7 @@
                 "monitor_id": "HKC2413",
                 "x": 0,
                 "y": 862,
-                "width": 461,
+                "width": 400,
                 "height": 170,
                 "win_state": "normal",
                 "order": true
@@ -253,7 +253,7 @@
                 "monitor_id": "DEL41EE",
                 "x": 399,
                 "y": 159,
-                "width": 902,
+                "width": 1080,
                 "height": 702,
                 "win_state": "hidden",
                 "order": true
@@ -291,9 +291,9 @@
             "excluded_kw": [],
             "window_props": {
                 "monitor_id": "HKC2413",
-                "x": 453,
+                "x": 393,
                 "y": -1,
-                "width": 1020,
+                "width": 1080,
                 "height": 427,
                 "win_state": "normal",
                 "order": true
@@ -329,9 +329,9 @@
             "excluded_kw": [],
             "window_props": {
                 "monitor_id": "HKC2413",
-                "x": 453,
+                "x": 393,
                 "y": 417,
-                "width": 1020,
+                "width": 1080,
                 "height": 623,
                 "win_state": "normal",
                 "order": true

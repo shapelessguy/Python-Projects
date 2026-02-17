@@ -5,7 +5,7 @@ from fetch_papers.fetch import fetch_metadata
 from PyQt5.QtWidgets import QWidget, QDialog, QPushButton, QListWidget, QListWidgetItem, QSizePolicy, QStyledItemDelegate, QStyleOptionViewItem, QStyle
 from PyQt5.QtGui import QFont, QIcon, QColor, QBrush, QPainter
 from PyQt5.QtCore import QThread, pyqtSignal, Qt, QSize
-from gui.tab_contexts import reload_context, set_paper_props, disable_boxes
+from gui.tabs.tab_context.tab_contexts import reload_context, set_paper_props, disable_boxes
 from gui.utils import pprint, Operation, OpClass, VENUE_TYPES, READONLY_TYPES
 
 
@@ -37,6 +37,7 @@ class SearchMD(OpClass):
             item = list_widget.item(i)
             existing_md = item.data(Qt.UserRole)
             if existing_md["_id"] == args["missing_md"]["_id"]:
+                reload_context(args["ui_manager"])
                 set_item_background_by_md(args["ui_manager"], item)
                 if hasattr(args["ui_manager"], "pdf_selected_btn") and args["ui_manager"].pdf_selected_btn == item:
                     load_paper(args["ui_manager"], item)
@@ -74,7 +75,7 @@ def view_paper(ui_manager, widget):
 
 
 def search_by(ui_manager, default_query, widget=None, obj="title"):
-    from gui import new_review_dialog as reviewDialog
+    from gui.shapes.py_files import new_review_dialog as reviewDialog
     search_name_dialog = QDialog(ui_manager.ui.main_window)
     search_name_dialog.setWindowIcon(ui_manager.icon)
     ui = reviewDialog.Ui_new_review_dialog()
@@ -110,6 +111,7 @@ def search_by(ui_manager, default_query, widget=None, obj="title"):
         
         if result.get("doi", None):
             ui_manager.signal.mongo.add_paper(ui_manager.signal.cur_review, result, ui_manager.pdf_selected_btn.data(Qt.UserRole)["_id"], overwrite=True)    
+            reload_context(ui_manager)
             set_item_background_by_md(ui_manager, ui_manager.pdf_selected_btn)
             if widget:
                 load_paper_props(ui_manager, widget, result)
@@ -121,7 +123,7 @@ def search_by(ui_manager, default_query, widget=None, obj="title"):
 
 
 def remove_paper(ui_manager):
-    from gui import generalDialog as deleteReviewDialog
+    from gui.shapes.py_files import generalDialog as deleteReviewDialog
     paper_fs_id = ui_manager.pdf_selected_btn.data(Qt.UserRole)["_id"]
     delete_paper_dialog = QDialog(ui_manager.ui.main_window)
     delete_paper_dialog.setWindowIcon(ui_manager.icon)
@@ -145,6 +147,7 @@ def clear_paper_md(ui_manager, widget):
             ui_manager.signal.mongo.remove_paper(ui_manager.signal.cur_review, ui_manager.paper_selected["_id"])
             ui_manager.paper_selected = None
         load_paper_props(ui_manager, widget)
+        reload_context(ui_manager)
         set_item_background_by_md(ui_manager, ui_manager.pdf_selected_btn)
     except:
         import traceback
@@ -198,6 +201,7 @@ def save_paper(ui_manager, widget):
     widget.save_btn.setVisible(False)
     load_paper_props(ui_manager, widget, temp_paper)
     ui_manager.signal.mongo.add_paper(ui_manager.signal.cur_review, temp_paper, ui_manager.pdf_selected_btn.data(Qt.UserRole)["_id"], overwrite=True)
+    reload_context(ui_manager)
     set_item_background_by_md(ui_manager, ui_manager.pdf_selected_btn)
 
 
@@ -237,7 +241,7 @@ def format_authors(authors):
 
 
 def load_paper(ui_manager, paper_item):
-    from gui import paper_widget
+    from gui.shapes.py_files import paper_widget
     clear_paper(ui_manager)
     ui_manager.pdf_selected_btn = paper_item
     
@@ -282,6 +286,7 @@ def add_user_paper(ui_manager, user_pdf_md):
     item = QListWidgetItem(user_pdf_md["filename"])
     item.setData(Qt.UserRole, user_pdf_md)
     list_widget.addItem(item)
+    reload_context(ui_manager)
     set_item_background_by_md(ui_manager, item)
     ui_manager.ui.user_paper_lbl.setText(f"Your papers ({list_widget.count()})")
     return True
@@ -305,15 +310,16 @@ def set_items_background(ui_manager):
 def set_item_background_by_md(ui_manager, item):
     p_mds = get_user_paper_md(ui_manager, item)
     has_abstract = set_item_state(item, p_mds)
-    _load_contexts = False
+    # _load_contexts = False
     if item in ui_manager.ui.abstract_papers and not has_abstract:
-        _load_contexts = True
+        # _load_contexts = True
         ui_manager.ui.abstract_papers = [x for x in ui_manager.ui.abstract_papers if x != item]
     elif item not in ui_manager.ui.abstract_papers and has_abstract:
-        _load_contexts = True
+        # _load_contexts = True
         ui_manager.ui.abstract_papers += [item]
-    if _load_contexts:
-        reload_context(ui_manager)
+    # _load_contexts = True # Always reload the current context
+    # if _load_contexts:
+    # reload_context(ui_manager)
 
 
 class TransparentSelectionDelegate(QStyledItemDelegate):
@@ -492,7 +498,7 @@ def setup_tab_pdfs(ui_manager):
     ui_manager.ui.user_papers.dropEvent = dropEvent
 
     def add_container_(edit=False):
-        from gui import new_review_dialog as reviewDialog
+        from gui.shapes.py_files import new_review_dialog as reviewDialog
         new_library_dialog = QDialog(ui_manager.ui.main_window)
         new_library_dialog.setWindowIcon(ui_manager.icon)
         ui = reviewDialog.Ui_new_review_dialog()
@@ -529,7 +535,7 @@ def setup_tab_pdfs(ui_manager):
         add_container_(edit=True)
 
     def rm_container():
-        from gui import generalDialog as deleteReviewDialog
+        from gui.shapes.py_files import generalDialog as deleteReviewDialog
         delete_library_dialog = QDialog(ui_manager.ui.main_window)
         delete_library_dialog.setWindowIcon(ui_manager.icon)
         ui = deleteReviewDialog.Ui_Dialog()

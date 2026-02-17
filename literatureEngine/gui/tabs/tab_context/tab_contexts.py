@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import QApplication, QShortcut, QDialog, QPushButton, QList
 from PyQt5.QtGui import QFont, QIcon, QColor, QBrush, QStandardItemModel, QStandardItem, QKeySequence
 from PyQt5.QtCore import QThread, pyqtSignal, Qt, QSize
 from gui.utils import pprint, Operation, OpClass, StopOp, VENUE_TYPES, READONLY_TYPES, objectid_decoder
+from gui.tabs.tab_context.processes_handler import setup_processes, reload_processes
 from gui.paper_tools import References
 
 
@@ -114,15 +115,12 @@ def activate_expansion_widget(widget, text="Search complete!", color="green"):
 
 
 def clear_layout(ui_manager):
-    # ui_manager.signal.set_current_library("")
-    # ui_manager.ui.container_name_lbl.setText("")
+    ui_manager.signal.set_current_context("")
     ui_manager.ui.table_widget.setVisible(False)
     ui_manager.ui.delete_context.setVisible(False)
-    ui_manager.ui.processes.setVisible(False)
+    ui_manager.ui.context_info_area.setVisible(False)
+    ui_manager.ui.context_title.setVisible(False)
     ui_manager.ui.references_lbl.setText("")
-    
-    # ui_manager.ui.user_papers.setVisible(False)
-    # clear_user_papers(ui_manager)
 
     layout = ui_manager.ui.context_area_layout
     while layout.count():
@@ -151,6 +149,15 @@ def copy_selected(table):
     QApplication.clipboard().setText("\n".join(text))
 
 
+def load_data(ui_manager):
+    if ui_manager.signal.ref_holder:
+        ui_manager.signal.ref_holder.apply_filters()
+    else:
+        ui_manager.signal.ref_holder = References(ui_manager.signal)
+    reload_table(ui_manager)
+    reload_processes(ui_manager)
+
+
 def reload_context(ui_manager):
     if not hasattr(ui_manager.signal, "cur_context"):
         return
@@ -160,10 +167,12 @@ def reload_context(ui_manager):
         model.removeRows(0, model.rowCount())
         ui_manager.ui.table_widget.setVisible(False)
 
-    ui_manager.signal.ref_holder = References(ui_manager.signal)
     pprint(f"Reloading context: {ui_manager.signal.cur_context}")
-    if ui_manager.ui.table_widget.isVisible():
-        reload_table(ui_manager)
+    if ui_manager.ui.tab_widget.tabText(ui_manager.ui.tab_widget.currentIndex()) != "Contexts":
+        ui_manager.reload_table_delayed = True
+    else:
+        load_data(ui_manager)
+
 
 
 def reload_table(ui_manager):
@@ -172,13 +181,15 @@ def reload_table(ui_manager):
     populate_references_table(ui_manager)
 
 
-def load_context(ui_manager, context_name):
-    if ui_manager.signal.cur_context == context_name:
+def load_context(ui_manager, context_name, force=False):
+    if ui_manager.signal.cur_context == context_name and not force:
         return
+    print("Loading context")
     ui_manager.signal.set_current_context(context_name)
     ui_manager.ui.context_name_lbl.setText(f"Context: {context_name}")
     ui_manager.ui.delete_context.setVisible(True)
-    ui_manager.ui.processes.setVisible(True)
+    ui_manager.ui.context_info_area.setVisible(True)
+    ui_manager.ui.context_title.setVisible(True)
     ui_manager.signal.ref_holder = None
     reload_context(ui_manager)
 
@@ -287,7 +298,7 @@ def execute_by_refs(ui_manager, widget):
 
     
 def showExpandWidget(ui_manager):
-    from gui import contextExpansion
+    from gui.shapes.py_files import contextExpansion
     expansionWin = QDialog()
     expansionWin.setWindowIcon(ui_manager.icon)
     ui = contextExpansion.Ui_expansionWin()
@@ -402,7 +413,7 @@ def showExpandWidget(ui_manager):
 
 
 def show_paper(ui_manager, paper_item):
-    from gui import paper_widget
+    from gui.shapes.py_files import paper_widget
     container = QWidget()
     container.setWindowIcon(ui_manager.icon)
     widget = paper_widget.Ui_paper_widget()
@@ -511,34 +522,45 @@ def set_paper_props(ui_manager, widget, props, on_change):
 
 def setup_tab_contexts(ui_manager):
 
+    def on_import_change(widget):
+        import_from = widget.import_from.currentText()
+        if import_from == "Libraries":
+            widget.library_list.setVisible(True)
+            widget.context_list.setVisible(False)
+        elif import_from == "Contexts":
+            widget.library_list.setVisible(False)
+            widget.context_list.setVisible(True)
+
     def add_context_(edit=False):
-        from gui import new_review_dialog as reviewDialog
+        from gui.shapes.py_files import new_context_dialog as contextDialog
         new_context_dialog = QDialog(ui_manager.ui.main_window)
         new_context_dialog.setWindowIcon(ui_manager.icon)
-        ui = reviewDialog.Ui_new_review_dialog()
+        ui = contextDialog.Ui_new_context_dialog()
         ui.setupUi(new_context_dialog)
         new_context_dialog.setMinimumHeight(250)
         new_context_dialog.setMaximumHeight(250)
-        ui.requestTitle.setText("Context's name:")
-        ui.new_name.setPlaceholderText("Enter a name for the context here...")
         new_context_dialog.setWindowTitle("New Context" if not edit else "Edit Context")
         ui.error_lbl.setText("")
         ui.error_lbl.setStyleSheet("color: red")
-
-        ui.context_list = QListWidget(new_context_dialog)
-        ui.context_list.setSelectionMode(QListWidget.NoSelection)
-        ui.context_list.setStyleSheet("""QListWidget {padding-top: 3px;}""")
-        ui.verticalLayout.insertWidget(1, ui.context_list)
+        ui.context_list.setVisible(False)
+        ui.import_from.currentTextChanged.connect(lambda: on_import_change(ui))
+        ui.library_list.setSelectionMode(QListWidget.NoSelection)
+        ui.library_list.setStyleSheet("""QListWidget {padding-top: 3px;}""")
         
         libraries = ui_manager.signal.mongo.fetch_containers(ui_manager.signal.cur_review)
-        target_libraries = []
-        old_name = ""
+        contexts = ui_manager.signal.mongo.fetch_contexts(ui_manager.signal.cur_review)
+        target_libraries, target_contexts = [], []
+        cur_context = [x for x in ui_manager.signal.mongo.fetch_contexts(ui_manager.signal.cur_review) if x["name"] == ui_manager.signal.cur_context]
+        cur_context_name = cur_context[0]["name"] if len(cur_context) else ""
         if edit:
-            cur_context = [x for x in ui_manager.signal.mongo.fetch_contexts(ui_manager.signal.cur_review) if x["name"] == ui_manager.signal.cur_context]
             if len(cur_context):
-                old_name = cur_context[0]["name"]
-                ui.new_name.setText(old_name)
+                ui.new_name.setText(cur_context_name)
                 target_libraries = cur_context[0]['target_libraries']
+                target_contexts = cur_context[0]['target_contexts']
+                if len(target_libraries):
+                    ui.import_from.setCurrentText("Libraries")
+                elif len(target_contexts):
+                    ui.import_from.setCurrentText("Contexts")
             else:
                 edit = False
     
@@ -546,31 +568,54 @@ def setup_tab_contexts(ui_manager):
             item = QListWidgetItem(lib["name"])
             item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
             item.setCheckState(Qt.Unchecked if lib["_id"] not in target_libraries else Qt.Checked)
-            ui.context_list.addItem(item)
+            ui.library_list.addItem(item)
+
+        for context in contexts:
+            if context["name"] != cur_context_name:
+                item = QListWidgetItem(context["name"])
+                item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
+                item.setCheckState(Qt.Unchecked if context["_id"] not in target_contexts else Qt.Checked)
+                ui.context_list.addItem(item)
 
         def on_ok():
             new_name = ui.new_name.text().strip()
-            checked_items = []
-            for i in range(ui.context_list.count()):
-                item = ui.context_list.item(i)
-                if item.checkState() == Qt.Checked:
-                    checked_items.append(item.text())
             if not new_name:
                 ui.error_lbl.setText("Empty name")
                 return
-            if not len(checked_items):
-                ui.error_lbl.setText("Select libraries")
-                return
-            if new_name != old_name and new_name in [x["name"] for x in ui_manager.signal.mongo.fetch_contexts(ui_manager.signal.cur_review)]:
+            if new_name != cur_context_name and new_name in [x["name"] for x in ui_manager.signal.mongo.fetch_contexts(ui_manager.signal.cur_review)]:
                 ui.error_lbl.setText("Name already in use")
                 return
-            lib_ids = [x["_id"] for x in ui_manager.signal.mongo.fetch_containers(ui_manager.signal.cur_review) if x["name"] in checked_items]
+            
+            lib_ids, contexts_ids = [], []
+            if ui.import_from.currentText() == "Libraries":
+                checked_items = []
+                for i in range(ui.library_list.count()):
+                    item = ui.library_list.item(i)
+                    if item.checkState() == Qt.Checked:
+                        checked_items.append(item.text())
+                if not len(checked_items):
+                    ui.error_lbl.setText("Select libraries")
+                    return
+                lib_ids = [x["_id"] for x in ui_manager.signal.mongo.fetch_containers(ui_manager.signal.cur_review) if x["name"] in checked_items]
+            elif ui.import_from.currentText() == "Contexts":
+                checked_items = []
+                for i in range(ui.context_list.count()):
+                    item = ui.context_list.item(i)
+                    if item.checkState() == Qt.Checked:
+                        checked_items.append(item.text())
+                if not len(checked_items):
+                    ui.error_lbl.setText("Select contexts")
+                    return
+                contexts_ids = [x["_id"] for x in ui_manager.signal.mongo.fetch_contexts(ui_manager.signal.cur_review) if x["name"] in checked_items]
+            
             new_context_dialog.accept()
             if edit:
-                ui_manager.signal.mongo.edit_context(ui_manager.signal.cur_review, old_name, new_name, lib_ids)
+                ui_manager.signal.mongo.edit_context(ui_manager.signal.cur_review, cur_context_name, new_name, lib_ids, contexts_ids)
                 load_contexts(ui_manager, new_name)
+                ui_manager.signal.cur_context = ""
+                load_context(ui_manager, cur_context_name)
             else:
-                ui_manager.signal.mongo.create_context(ui_manager.signal.cur_review, new_name, lib_ids)
+                ui_manager.signal.mongo.create_context(ui_manager.signal.cur_review, new_name, lib_ids, contexts_ids)
                 load_contexts(ui_manager)
 
         ui.buttonBox.accepted.disconnect()
@@ -578,7 +623,7 @@ def setup_tab_contexts(ui_manager):
         new_context_dialog.exec()
 
     def rm_context():
-        from gui import generalDialog as deleteReviewDialog
+        from gui.shapes.py_files import generalDialog as deleteReviewDialog
         delete_context_dialog = QDialog(ui_manager.ui.main_window)
         delete_context_dialog.setWindowIcon(ui_manager.icon)
         ui = deleteReviewDialog.Ui_Dialog()
@@ -597,7 +642,6 @@ def setup_tab_contexts(ui_manager):
     def edit_context():
         add_context_(edit=True)
 
-
     for btn_info in [
         {"name": "edit_context", "icon": "edit.png", "tooltip": "Edit context", "on_clicked": edit_context},
         {"name": "delete_context", "icon": "trash.png", "tooltip": "Delete context", "on_clicked": rm_context},
@@ -607,21 +651,6 @@ def setup_tab_contexts(ui_manager):
         btn.setIconSize(QSize(18, 18))
         btn.clicked.connect(btn_info["on_clicked"])
         btn.setToolTip(btn_info["tooltip"])
-
-
-
-    def test1(ui_manager):
-        def filter_(p):
-            return True
-        ui_manager.signal.ref_holder.apply_filters([filter_])
-        reload_table(ui_manager)
-
-    def test2(ui_manager):
-        def mah_(p):
-            import random
-            return random.random() > 0.8
-        ui_manager.signal.ref_holder.apply_filters([mah_])
-        reload_table(ui_manager)
     
     table = ui_manager.ui.referenceView
     table.setSortingEnabled(True)
@@ -630,8 +659,15 @@ def setup_tab_contexts(ui_manager):
     shortcut = QShortcut(QKeySequence("Ctrl+C"), table)
     shortcut.activated.connect(lambda: copy_selected(table))
     ui_manager.ui.expand_btn.clicked.connect(lambda: showExpandWidget(ui_manager))
-    ui_manager.ui.base_btn.clicked.connect(lambda: test1(ui_manager))
     ui_manager.ui.context_name_lbl.setText("")
     ui_manager.ui.add_context.clicked.connect(add_context_)
     ui_manager._open_paper_windows = []
-    ui_manager.ui.pushButton.clicked.connect(lambda: test2(ui_manager))
+    ui_manager._reload_table = reload_table
+    ui_manager.reload_table_delayed = False
+
+    def on_tab_changed(index):
+        if ui_manager.reload_table_delayed and ui_manager.ui.tab_widget.tabText(index) == "Contexts":
+            ui_manager.reload_table_delayed = False
+            load_data(ui_manager)
+    ui_manager.ui.tab_widget.currentChanged.connect(on_tab_changed)
+    setup_processes(ui_manager)

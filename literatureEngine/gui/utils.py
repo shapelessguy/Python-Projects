@@ -38,13 +38,6 @@ VENUE_TYPES = [
     "standard",
     "peer-review"
 ]
-UI_FILES = [
-    'literatureEngineMainWin',
-    'new_review_dialog',
-    'generalDialog',
-    'paper_widget',
-    'contextExpansion'
-]
 
 
 ICONS_FOLDER_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'gui', 'icons')

@@ -97,6 +97,73 @@ class MongoDB:
             upsert=True
         )
     
+    def add_process(self, collection_name: str, context_name: str, process_info: dict):
+        db = self.client[self.db_name]
+        coll = db[collection_name]
+
+        if "_id" not in process_info:
+            process_info = {"_id": ObjectId(), **process_info}
+        
+        result = coll.update_one(
+            {
+                "contexts.name": context_name,
+                "contexts.processes._id": process_info["_id"]
+            },
+            {
+                "$set": {
+                    "contexts.$[ctx].processes.$[proc]": process_info
+                }
+            },
+            array_filters=[
+                {"ctx.name": context_name},
+                {"proc._id": process_info["_id"]}
+            ]
+        )
+
+        if result.modified_count == 0:
+            coll.update_one(
+                {"contexts.name": context_name},
+                {"$push": {"contexts.$[ctx].processes": process_info}},
+                array_filters=[{"ctx.name": context_name}],
+                upsert=True
+            )
+        return process_info
+    
+    def remove_process(self, collection_name: str, context_name: str, process_id: ObjectId):
+        db = self.client[self.db_name]
+        coll = db[collection_name]
+        process_id = ObjectId(process_id)
+
+        coll.update_one(
+            {
+                "contexts.name": context_name,
+                "contexts.processes._id": process_id
+            },
+            {
+                "$pull": {
+                    "contexts.$[ctx].processes": {"_id": process_id}
+                }
+            },
+            array_filters=[
+                {"ctx.name": context_name}
+            ]
+        )
+
+    def save_process_order(self, collection_name: str, context_name: str, new_processes_list: list):
+        db = self.client[self.db_name]
+        coll = db[collection_name]
+        coll.update_one(
+            {"contexts.name": context_name},
+            {"$set": {"contexts.$.processes": new_processes_list}}
+        )
+    
+    def fetch_processes(self, collection_name: str, context_name: str):
+        db = self.client[self.db_name]
+        doc = db[collection_name].find_one({"contexts.name": context_name}, {"contexts.$": 1})
+        if not doc or "contexts" not in doc or len(doc["contexts"]) == 0:
+            return []
+        return doc["contexts"][0].get("processes", [])
+    
     def remove_query(self, collection_name: str, context_name: str, query: str):
         db = self.client[self.db_name]
         db[collection_name].update_one({"contexts.name": context_name}, {"$pull": {"contexts.$.queries": {"query": query}}})
@@ -215,21 +282,26 @@ class MongoDB:
         db = self.client[self.db_name]
         db[collection_name].update_one({ "containers.name": old_container_name }, { "$set": {"containers.$.name": container_name }})
     
-    def create_context(self, collection_name: str, context_name: str, container_ids: list):
+    def create_context(self, collection_name: str, context_name: str, container_ids: list, contexts_ids: list):
         db = self.client[self.db_name]
         new_item = {
+            "_id": ObjectId(),
             "name": context_name,
             "target_libraries": container_ids,
-            "references": []
+            "target_contexts": contexts_ids,
+            "queries": [],
+            "references": [],
+            "processes": []
         }
         db[collection_name].update_one({}, {"$push": {"contexts": new_item}}, upsert=True)
     
-    def edit_context(self, collection_name: str, old_context_name: str, context_name: str, container_ids: list):
+    def edit_context(self, collection_name: str, old_context_name: str, context_name: str, container_ids: list, contexts_ids: list):
         db = self.client[self.db_name]
         db[collection_name].update_one({ "contexts.name": old_context_name },
             { "$set": {
                 "contexts.$.name": context_name,
-                "contexts.$.target_libraries": container_ids
+                "contexts.$.target_libraries": container_ids,
+                "contexts.$.target_contexts": contexts_ids
             }}
         )
     

@@ -1,15 +1,16 @@
 import os
 import sys
 import threading
+from pathlib import Path
 from queue import Queue
 from gui.theme import light_stylesheet
-from gui.tab_pdfs import setup_tab_pdfs, load_containers
-from gui.tab_contexts import setup_tab_contexts, load_contexts
+from gui.tabs.tab_pdfs.tab_pdfs import setup_tab_pdfs, load_containers
+from gui.tabs.tab_context.tab_contexts import setup_tab_contexts, load_contexts
 from PyQt5.QtCore import QObject, Qt
 from PyQt5.QtWidgets import QMainWindow, QApplication, QStyleFactory, QSystemTrayIcon, QMenu, QDialog, QPushButton, QProgressBar
 from PyQt5.QtCore import QObject, pyqtSignal, QSize
 from PyQt5.QtGui import QIcon, QPixmap, QFont
-from gui.utils import UI_FILES, ICONS_FOLDER_PATH, wait, Operation, StopOp
+from gui.utils import ICONS_FOLDER_PATH, wait, Operation, StopOp
 
 
 class OpState:
@@ -160,8 +161,10 @@ class UI_Manager:
     def __init__(self, signal):
         self.signal = signal
         self.operation_queue = Queue()
-        ui_paths = [os.path.join(os.path.dirname(os.path.realpath(__file__)), x + '.ui') for x in UI_FILES]
-        py_paths = [os.path.join(os.path.dirname(os.path.realpath(__file__)), x + '.py') for x in UI_FILES]
+        ui_folder_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "shapes", "ui_files")
+        ui_paths = [os.path.join(ui_folder_path, x) for x in os.listdir(ui_folder_path)]
+        py_paths = [os.path.join(os.path.dirname(os.path.dirname(path)), "py_files", Path(path).stem + ".py") for path in ui_paths]
+        
         for i in range(len(ui_paths)):
             ui_path = ui_paths[i]
             py_path = py_paths[i]
@@ -169,7 +172,7 @@ class UI_Manager:
                 os.system(f'pyuic5 -x {ui_path} -o {py_path}')
                 remove_pyuic_header(py_path)
 
-        from gui import literatureEngineMainWin as main_interface
+        from gui.shapes.py_files import literatureEngineMainWin as main_interface
 
         QApplication.setStyle(QStyleFactory.create("Fusion"))
         app = QApplication(sys.argv)
@@ -221,7 +224,7 @@ class UI_Manager:
 
     def custom_setup(self):
         def new_review():
-            from gui import new_review_dialog as reviewDialog
+            from gui.shapes.py_files import new_review_dialog as reviewDialog
             new_review_dialog = QDialog(self.ui.main_window)
             new_review_dialog.setWindowIcon(self.icon)
             ui = reviewDialog.Ui_new_review_dialog()
