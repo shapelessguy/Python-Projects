@@ -15,7 +15,8 @@ void setup() {
 
 
 bool shouldRepeat(uint8_t cmd) {
-  return true;
+  if (cmd == 0x07 || cmd == 0x0B) return true;
+  return false;
 }
 
 
