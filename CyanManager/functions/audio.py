@@ -9,9 +9,6 @@ from pycaw.pycaw import AudioUtilities
 from utils import AUDIO_PATH
 
 
-TEMP_VOLUME = 0.20
-
-
 volume_ticks = []
 for i in range(13):
     volume_ticks.append(i)
@@ -59,28 +56,68 @@ def show_alarm(signal, verbose=False):
     subprocess.Popen([TIMER_EXE])
 
 
-def play_sound(duration=1.5):
-    fs = 44100
-    t = np.linspace(0, duration, int(fs * duration), False)
-    f1 = 950
-    f2 = 1050
-    wave1 = np.sign(np.sin(2 * np.pi * f1 * t))
-    wave2 = np.sign(np.sin(2 * np.pi * f2 * t))
-    tone = (wave1 + wave2) / 2
-    pulse = (np.sin(2 * np.pi * 5 * t) > 0).astype(float)
-    alarm = tone * pulse
-    sd.play(alarm, fs)
-    sd.wait()
-
-
-def ring_alarm(signal, verbose=False):
+def get_relative_volume(absolute_volume):
     pythoncom.CoInitialize()
     device = AudioUtilities.GetSpeakers()
     volume = device.EndpointVolume
     current = volume.GetMasterVolumeLevelScalar()
-    volume.SetMasterVolumeLevelScalar(TEMP_VOLUME, None)
-    play_sound()
-    volume.SetMasterVolumeLevelScalar(current, None)
+
+    compensation_speakers = {
+        1.0:   0.03,
+        0.9:   0.032,
+        0.8:   0.038,
+        0.7:   0.043,
+        0.6:   0.055,
+        0.5:   0.09,
+        0.4:   0.14,
+        0.3:   0.21,
+        0.2:   0.45,
+        0.1:   1.0,
+        0.0:   1.0,
+    }
+    keys = sorted(compensation_speakers.keys(), reverse=True)
+    for i in range(len(keys) - 1):
+        upper = keys[i]
+        lower = keys[i + 1]
+        if lower < current <= upper:
+            comp_upper = compensation_speakers[upper]
+            comp_lower = compensation_speakers[lower]
+            fraction = (current - lower) / (upper - lower)
+            interpolated = comp_lower + fraction * (comp_upper - comp_lower)
+            modulated = interpolated * absolute_volume * 10
+            modulated = 1 if modulated > 1 else modulated
+            return modulated
+    return 0.5
+
+
+def play_audio(audio_path, volume, n_loops=1, start_at=0.0):
+    pygame.mixer.init()
+    pygame.mixer.music.load(os.path.join(AUDIO_PATH, audio_path))
+    pygame.mixer.music.play(loops=n_loops, start=start_at)
+    pygame.mixer.music.set_volume(get_relative_volume(volume))
+    pygame.mixer.music.pause()
+    pygame.mixer.music.unpause()
+    while pygame.mixer.music.get_busy():
+        pygame.time.Clock().tick(10)
+
+
+    # volume = get_relative_volume(0.1)
+def ring_alarm(signal, verbose=False):
+    volume = 0.05
+    duration = 1.5
+    fs = 44100
+    t = np.linspace(0, duration, int(fs * duration), False)
+    f1 = 1000
+    f2 = 100
+    wave1 = np.sign(np.sin(2 * np.pi * f1 * t))
+    wave2 = np.sign(np.sin(2 * np.pi * f2 * t))
+    tone = (wave1 + wave2) / 2
+    pulse = 0.35 * (np.sin(2 * np.pi * 5 * t) > 0).astype(float)
+    alarm = tone * pulse
+    print(volume)
+    alarm = alarm * volume
+    sd.play(alarm, fs)
+    sd.wait()
 
 
 def volume_up(signal, verbose=False):
@@ -105,29 +142,6 @@ def volume_down(signal, verbose=False):
     if verbose:
         pprint("Current volume:", new_vol)
     un_mute_volume(volume, new_vol)
-
-
-def play_audio(audio_path):
-    pythoncom.CoInitialize()
-    device = AudioUtilities.GetSpeakers()
-    volume = device.EndpointVolume
-    current = volume.GetMasterVolumeLevelScalar()
-
-    abs_volume = 0.10
-    relative_vol = abs_volume / current
-    relative_vol = 1 if relative_vol > 1 else relative_vol
-    
-    pygame.mixer.init()
-    pygame.mixer.music.load(os.path.join(AUDIO_PATH, audio_path))
-    pygame.mixer.music.play(1)
-    # pygame.mixer.music.play(loops=3, start=10.0)  # start at 10 seconds
-
-    pygame.mixer.music.set_volume(relative_vol)
-    pygame.mixer.music.pause()
-    pygame.mixer.music.unpause()
-
-    while pygame.mixer.music.get_busy():
-        pygame.time.Clock().tick(10)
 
 
 def switch_to_headphones(signal, verbose=False):

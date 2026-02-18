@@ -1,5 +1,5 @@
 import keyboard
-import time
+import threading
 import keyring
 import ctypes
 from functions.audio import play_audio
@@ -23,7 +23,7 @@ def type_password(signal, verbose=False):
 
 
 def special(signal, verbose=False):
-    play_audio("shocking.mp3")
+    threading.Thread(target=play_audio, args=("shocking.mp3", 0.1)).start()
 
 
 class POINT(ctypes.Structure):
