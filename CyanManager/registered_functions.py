@@ -117,6 +117,7 @@ class RegisteredFunctions:
     AUDIO_POWER=HandleFunction(audio_power)
     TV_POWER=HandleFunction(tv_power)
     TV_OK=HandleFunction(tv_ok)
+    SPECIAL=HandleFunction(special)
     
     TYPE_PASSWORD=HandleFunction(type_password)
     PLAY_PAUSE=HandleFunction(play_pause)
@@ -143,6 +144,7 @@ def register_functions_and_hotkeys(signal):
         (98, 0): reg_functions.SHUTDOWN_MONITORS,           # NUMPAD2
         (109, 0): reg_functions.SHOW_ALARM,                 # NUMPAD -
         (103, 0): reg_functions.TYPE_PASSWORD,              # NUMPAD7
+        (109, 2): reg_functions.SPECIAL,                    # CTRL + NUMPAD-
 
         (97, 2): reg_functions.LIGHTS_ON,                   # CTRL + NUMPAD1
         (98, 2): reg_functions.LIGHTS_OFF,                  # CTRL + NUMPAD2

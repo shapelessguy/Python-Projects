@@ -97,15 +97,17 @@ def clear_process(ui_manager):
 
 def load_process(ui_manager, processes, process):
     print("Loading process:", process.get("_id"))
-    filters = []
+    process_list_1 = []
+    process_list_2 = []
+    process_list = process_list_1
     for p in processes:
-        if p["type"] == "Filter":
-            filters.append(p)
+        process_list.append(p)
         if p["_id"] == process["_id"]:
-            break
+            process_list = process_list_2
+
     ui_manager.signal.set_current_process(process)
     highlight_btns(ui_manager)
-    ui_manager.signal.ref_holder.apply_filters(filters)
+    ui_manager.signal.ref_holder.apply_processes(process_list_1, process_list_2)
     ui_manager._reload_table(ui_manager)
     
     clear_process(ui_manager)
@@ -212,7 +214,7 @@ def setup_processes(ui_manager):
         ui_manager.signal.set_current_process({})
         highlight_btns(ui_manager)
         try:
-            ui_manager.signal.ref_holder.apply_filters([])
+            ui_manager.signal.ref_holder.process_list([])
             ui_manager._reload_table(ui_manager)
         except:
             import traceback

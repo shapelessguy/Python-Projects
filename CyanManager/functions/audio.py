@@ -2,8 +2,11 @@ import subprocess
 import pythoncom
 import sounddevice as sd
 import numpy as np
+import pygame
+import os
 from utils import SV_EXE_PATH, TIMER_EXE, pprint, notify
 from pycaw.pycaw import AudioUtilities
+from utils import AUDIO_PATH
 
 
 TEMP_VOLUME = 0.20
@@ -102,6 +105,29 @@ def volume_down(signal, verbose=False):
     if verbose:
         pprint("Current volume:", new_vol)
     un_mute_volume(volume, new_vol)
+
+
+def play_audio(audio_path):
+    pythoncom.CoInitialize()
+    device = AudioUtilities.GetSpeakers()
+    volume = device.EndpointVolume
+    current = volume.GetMasterVolumeLevelScalar()
+
+    abs_volume = 0.10
+    relative_vol = abs_volume / current
+    relative_vol = 1 if relative_vol > 1 else relative_vol
+    
+    pygame.mixer.init()
+    pygame.mixer.music.load(os.path.join(AUDIO_PATH, audio_path))
+    pygame.mixer.music.play(1)
+    # pygame.mixer.music.play(loops=3, start=10.0)  # start at 10 seconds
+
+    pygame.mixer.music.set_volume(relative_vol)
+    pygame.mixer.music.pause()
+    pygame.mixer.music.unpause()
+
+    while pygame.mixer.music.get_busy():
+        pygame.time.Clock().tick(10)
 
 
 def switch_to_headphones(signal, verbose=False):

@@ -46,7 +46,7 @@ class References(list):
         self.signal = signal
         self.extend([Paper(x["_id"]) for x in signal.mongo.fetch_refs_by_context(signal.cur_review, signal.cur_context, ["_id"])])
         self.view = []
-        self.last_filters = []
+        self.last_processes = []
     
     def get_attributes(self, attributes: list[str]):
         ui_manager = self.signal.ui_manager
@@ -54,14 +54,15 @@ class References(list):
         return raw_papers
         
 
-    def apply_filters(self, filters: list = None):
-        if filters is None:
-            filters = self.last_filters
+    def apply_processes(self, processes: list = None, hidden_processes: list = []):
+        if processes is None:
+            processes = self.last_processes
         dummy_paper = Paper("dummy")
         dummy_paper.setup()
         dummy_paper.__required_attr__ = set()
 
-        # filters.append({"formula": "'LLM' in paper.abstract()"})
+        filters = [x for x in processes if x["type"] == "Filter"]
+        # processes.append({"formula": "'LLM' in paper.abstract()"})
         for f in filters:
             formula = f["formula"]
             try:
@@ -76,17 +77,18 @@ class References(list):
         self.view = []
         for v in collection:
             include_ = True
-            for f in filters:
-                formula = f["formula"]
-                try:
-                    if not eval(formula, {"paper": v}):
+            for f in processes:
+                if f["type"] == "Filter":
+                    formula = f["formula"]
+                    try:
+                        if not eval(formula, {"paper": v}):
+                            include_ = False
+                            break
+                    except Exception as e:
                         include_ = False
                         break
-                except Exception as e:
-                    include_ = False
-                    break
             if include_:
                 v.attributes = {}
                 self.view.append(v)
-        self.last_filters = filters
+        self.last_processes = processes
     

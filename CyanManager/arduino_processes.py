@@ -13,7 +13,7 @@ def initialize(signal):
         if serialPort is None:
             try:
                 serialPort = serial.Serial(
-                    port=ARDUINO_PORT, baudrate=9600, bytesize=8, timeout=1, stopbits=serial.STOPBITS_ONE
+                    port=ARDUINO_PORT, baudrate=115200, bytesize=8, timeout=1, stopbits=serial.STOPBITS_ONE
                 )
             except Exception:
                 print(f"Cannot open port {ARDUINO_PORT}")
@@ -38,22 +38,24 @@ def initialize(signal):
 
 
 def take_action(signal, verb):
-    if verb == "2":
+    if verb == "MONON":
         signal.reg_functions.TURN_ON_MONITORS.run_shortcut()
-    elif verb == "8":
+    elif verb == "MONOFF":
         signal.reg_functions.SHUTDOWN_MONITORS.run_shortcut()
-    elif verb == "6":
+    elif verb == "HOME":
         signal.reg_functions.TV_OK.run_shortcut()
-    elif verb == "UP":
+    elif verb == "+":
         signal.reg_functions.VOLUME_UP.run_shortcut()
-    elif verb == "DOWN":
+    elif verb == "-":
         signal.reg_functions.VOLUME_DOWN.run_shortcut()
-    elif verb == "LEFT":
+    elif verb == "UP":
         signal.reg_functions.LIGHTS_ON.run_shortcut()
-    elif verb == "RIGHT":
+    elif verb == "DOWN":
         signal.reg_functions.LIGHTS_OFF.run_shortcut()
-    elif verb == "OK":
+    elif verb == "PLAY":
         signal.reg_functions.PLAY_PAUSE.run_shortcut()
+    elif verb == "SPECIAL":
+        signal.reg_functions.SPECIAL.run_shortcut()
 
 
 def react_to_commands(thread_manager):

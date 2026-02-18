@@ -13,6 +13,8 @@ PROGRAM_FILES_X86_PATH = os.environ.get("ProgramFiles(x86)", "C:/Program Files (
 PROGRAM_FILES_PATH = os.environ.get("ProgramFiles", "C:/Program Files")
 
 TOOLS_PATH = os.path.join(os.path.dirname(__file__), 'tools')
+EXTRA_PATH = os.path.join(os.path.dirname(__file__), 'extras')
+AUDIO_PATH = os.path.join(EXTRA_PATH, 'audio')
 CYANSYNC_LOGS_PATH = os.path.join(TOOLS_PATH, 'cyanSync', 'logs')
 SV_EXE_PATH = os.path.join(TOOLS_PATH, 'svcl.exe')
 MULTIMONITOR_FOLDER_PATH = os.path.join(TOOLS_PATH, "MultiMonitorTool")
