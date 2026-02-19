@@ -1,0 +1,7 @@
+C:\Users\shape\Documents\codebase\sharedCode\CyanManager\tools\CyanAppLauncher\bin\Release\CyanAppLauncher.exe.config
+C:\Users\shape\Documents\codebase\sharedCode\CyanManager\tools\CyanAppLauncher\bin\Release\CyanAppLauncher.exe
+C:\Users\shape\Documents\codebase\sharedCode\CyanManager\tools\CyanAppLauncher\bin\Release\CyanAppLauncher.pdb
+C:\Users\shape\Documents\codebase\sharedCode\CyanManager\tools\CyanAppLauncher\obj\Release\CyanAppLauncher.csproj.AssemblyReference.cache
+C:\Users\shape\Documents\codebase\sharedCode\CyanManager\tools\CyanAppLauncher\obj\Release\CyanAppLauncher.csproj.CoreCompileInputs.cache
+C:\Users\shape\Documents\codebase\sharedCode\CyanManager\tools\CyanAppLauncher\obj\Release\CyanAppLauncher.exe
+C:\Users\shape\Documents\codebase\sharedCode\CyanManager\tools\CyanAppLauncher\obj\Release\CyanAppLauncher.pdb
