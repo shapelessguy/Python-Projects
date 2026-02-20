@@ -27,6 +27,14 @@ namespace CyanAdminLauncher
                 Console.WriteLine("Another instance is already running.");
                 return;
             }
+            try
+            {
+                if (File.Exists(tempDataPath)) File.Delete(tempDataPath);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Cannot remove the file: " + ex.Message);
+            }
 
 
             while (true)
@@ -35,17 +43,13 @@ namespace CyanAdminLauncher
                 {
                     if (File.Exists(tempDataPath))
                     {
-                        if (key != null)
+                        string launchPath = File.ReadAllText(tempDataPath).Trim();
+                        File.Delete(tempDataPath);
+
+                        if (!string.IsNullOrWhiteSpace(launchPath))
                         {
-                            object value = key.GetValue(REG_VALUE_NAME);
-                            if (value != null && value.ToString() != "")
-                            {
-                                LaunchTarget(value.ToString());
-                                using (RegistryKey writeKey = Registry.CurrentUser.OpenSubKey(REG_PATH, true))
-                                {
-                                    if (writeKey != null) writeKey.DeleteValue(REG_VALUE_NAME, false);
-                                }
-                            }
+                            LaunchTarget(launchPath);
+                            Console.WriteLine("Pending launch processed and flag removed.");
                         }
                     }
                 }
