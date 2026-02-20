@@ -279,25 +279,33 @@ namespace CyanLauncher
                     return;
                 }
 
-                const string REG_PATH = @"SOFTWARE\CyanTools\Launcher";
-                const string REG_VALUE_NAME = "LaunchPending";
+                //const string REG_PATH = @"SOFTWARE\CyanTools\Launcher";
+                //const string REG_VALUE_NAME = "LaunchPending";
                 if (aus)
                 {
                     try
                     {
-                        using (RegistryKey key = Registry.CurrentUser.CreateSubKey(REG_PATH))
-                        {
-                            if (key != null)
-                            {
-                                key.SetValue(REG_VALUE_NAME, exePath);
-                                Console.WriteLine("Launch flag written to registry.");
-                            }
-                        }
+                        if (File.Exists(Program.tempDataPath)) File.WriteAllText(Program.tempDataPath, exePath);
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine("Failed to write registry flag: " + ex.Message);
+                        Console.WriteLine($"Error: {ex.Message}");
                     }
+                    //try
+                    //{
+                    //    using (RegistryKey key = Registry.LocalMachine.CreateSubKey(REG_PATH))
+                    //    {
+                    //        if (key != null)
+                    //        {
+                    //            key.SetValue(REG_VALUE_NAME, exePath);
+                    //            Console.WriteLine("Launch flag written to registry.");
+                    //        }
+                    //    }
+                    //}
+                    //catch (Exception ex)
+                    //{
+                    //    Console.WriteLine("Failed to write registry flag: " + ex.Message);
+                    //}
                 }
                 else { 
                     Console.WriteLine("Executing '" + exePath + "' as invoker");

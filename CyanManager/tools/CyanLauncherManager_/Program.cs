@@ -14,6 +14,8 @@ namespace CyanLauncherManager
     {
         private static string appGuid = "c0a76b5a-12ab-45c5-b9d9-d693faa6e7b9";
         public static bool initial_call = false;
+        static public string tempDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+            "Cyan", "CyanLauncher", "launchFile.txt");
         //static private Timer activation = new Timer() { Interval=20, Enabled=true};
         static bool to_close = false;
         /// <summary>
@@ -47,6 +49,16 @@ namespace CyanLauncherManager
                     WindowStyle = ProcessWindowStyle.Hidden
                 };
                 Process.Start(psi);
+
+                try
+                {
+                    Directory.CreateDirectory(Path.GetDirectoryName(tempDataPath) ?? throw new InvalidOperationException("Invalid path"));
+                    File.WriteAllText(tempDataPath, "");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error: {ex.Message}");
+                }
 
                 //activation.Tick += (o, e) => { };
                 Application.EnableVisualStyles();

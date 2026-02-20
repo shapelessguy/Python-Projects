@@ -14,6 +14,8 @@ namespace CyanLauncher
     static class Program
     {
         static public Frontal frontal;
+        static public string tempDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+            "Cyan", "CyanLauncher", "launchFile.txt");
         static public string iconsFolder = @"";
         static public string programFolder = @"";
         static public List<Info> INFO;
@@ -70,9 +72,15 @@ namespace CyanLauncher
 
         static private void CreateFolders()
         {
-            //if (!System.IO.File.Exists("C://ProgramData//Cyan")) System.IO.Directory.CreateDirectory("C://ProgramData//Cyan");
-            //if (!System.IO.File.Exists("C://ProgramData//Cyan//CyanLauncher")) System.IO.Directory.CreateDirectory("C://ProgramData//Cyan//CyanLauncher");
-            //if (!System.IO.File.Exists(iconsFolder)) System.IO.Directory.CreateDirectory(iconsFolder);
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(tempDataPath) ?? throw new InvalidOperationException("Invalid path"));
+                if (!File.Exists(tempDataPath)) File.WriteAllText(tempDataPath, "");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error: {ex.Message}");
+            }
 
             string icoFolder = Path.Combine(new string[] { programFolder, "Icons" });
             if (!Directory.Exists(icoFolder)) Directory.CreateDirectory(icoFolder);

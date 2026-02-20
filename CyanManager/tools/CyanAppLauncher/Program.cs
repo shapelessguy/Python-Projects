@@ -17,6 +17,8 @@ namespace CyanAdminLauncher
         private static string appGuid = "c0a76b5a-12ab-45c5-b9d9-d693faa6e9b9";
         private const string REG_PATH = @"SOFTWARE\CyanTools\Launcher";
         private const string REG_VALUE_NAME = "LaunchPending";
+        static public string tempDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+            "Cyan", "CyanLauncher", "launchFile.txt");
         static void Main(string[] args)
         {
             string exePath = Assembly.GetEntryAssembly().Location;
@@ -33,25 +35,21 @@ namespace CyanAdminLauncher
             {
                 try
                 {
-                    using (RegistryKey key = Registry.CurrentUser.OpenSubKey(REG_PATH))
+                    if (File.Exists(tempDataPath))
                     {
-                        if (key != null)
+                        string launchPath = File.ReadAllText(tempDataPath).Trim();
+
+                        if (!string.IsNullOrWhiteSpace(launchPath))
                         {
-                            object value = key.GetValue(REG_VALUE_NAME);
-                            if (value != null && value.ToString() != "")
-                            {
-                                LaunchTarget(value.ToString());
-                                using (RegistryKey writeKey = Registry.CurrentUser.OpenSubKey(REG_PATH, true))
-                                {
-                                    if (writeKey != null) writeKey.DeleteValue(REG_VALUE_NAME, false);
-                                }
-                            }
+                            LaunchTarget(launchPath);
+                            File.WriteAllText(tempDataPath, "");
+                            Console.WriteLine("Pending launch processed and flag removed.");
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("Registry poll error: " + ex.Message);
+                    Console.WriteLine("File poll error: " + ex.Message);
                 }
                 Thread.Sleep(100);
             }
