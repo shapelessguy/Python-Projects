@@ -285,7 +285,8 @@ namespace CyanLauncher
                 {
                     try
                     {
-                        if (File.Exists(Program.tempDataPath)) File.WriteAllText(Program.tempDataPath, exePath);
+                        Directory.CreateDirectory(Path.GetDirectoryName(Program.tempDataPath));
+                        File.WriteAllText(Program.tempDataPath, exePath);
                     }
                     catch (Exception ex)
                     {

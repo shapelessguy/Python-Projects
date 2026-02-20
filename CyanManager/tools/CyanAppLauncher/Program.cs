@@ -15,8 +15,6 @@ namespace CyanAdminLauncher
     internal class Program
     {
         private static string appGuid = "c0a76b5a-12ab-45c5-b9d9-d693faa6e9b9";
-        private const string REG_PATH = @"SOFTWARE\CyanTools\Launcher";
-        private const string REG_VALUE_NAME = "LaunchPending";
         static public string tempDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
             "Cyan", "CyanLauncher", "launchFile.txt");
         static void Main(string[] args)
@@ -37,13 +35,17 @@ namespace CyanAdminLauncher
                 {
                     if (File.Exists(tempDataPath))
                     {
-                        string launchPath = File.ReadAllText(tempDataPath).Trim();
-
-                        if (!string.IsNullOrWhiteSpace(launchPath))
+                        if (key != null)
                         {
-                            LaunchTarget(launchPath);
-                            File.WriteAllText(tempDataPath, "");
-                            Console.WriteLine("Pending launch processed and flag removed.");
+                            object value = key.GetValue(REG_VALUE_NAME);
+                            if (value != null && value.ToString() != "")
+                            {
+                                LaunchTarget(value.ToString());
+                                using (RegistryKey writeKey = Registry.CurrentUser.OpenSubKey(REG_PATH, true))
+                                {
+                                    if (writeKey != null) writeKey.DeleteValue(REG_VALUE_NAME, false);
+                                }
+                            }
                         }
                     }
                 }
