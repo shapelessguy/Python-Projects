@@ -14,8 +14,7 @@ namespace CyanLauncher
     static class Program
     {
         static public Frontal frontal;
-        static public string tempDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-            "Cyan", "CyanLauncher", "launchFile.txt");
+        static public string tempDataPath = Path.Combine(@"C:\", "Temp", "launchFile.txt");
         static public string iconsFolder = @"";
         static public string programFolder = @"";
         static public List<Info> INFO;

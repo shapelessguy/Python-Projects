@@ -15,8 +15,7 @@ namespace CyanAdminLauncher
     internal class Program
     {
         private static string appGuid = "c0a76b5a-12ab-45c5-b9d9-d693faa6e9b9";
-        static public string tempDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-            "Cyan", "CyanLauncher", "launchFile.txt");
+        static public string tempDataPath = Path.Combine(@"C:\", "Temp", "launchFile.txt");
         static void Main(string[] args)
         {
             string exePath = Assembly.GetEntryAssembly().Location;
