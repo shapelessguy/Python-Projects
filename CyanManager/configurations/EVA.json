@@ -1,22 +1,4 @@
 {
-    "devices": {
-        "speakers": "SPDIF-Out",
-        "headphones": "Headphones"
-    },
-    "roomserver_settings": {
-        "url": "http://cyanroomserver.duckdns.org",
-        "port": "10004",
-        "auto_from": "09:00",
-        "auto_to": "20:00",
-        "active": true
-    },
-    "restart": {
-        "mouse_jiggle": false,
-        "from": "02:00",
-        "to": "07:00",
-        "inactive_delay": "02:00",
-        "active": false
-    },
     "applications": {
         "AndroidSync": {
             "window_kw": [],
@@ -410,7 +392,7 @@
             "enabled": true,
             "parameters": {
                 "Hostname/port": "http://cyanroomserver.duckdns.org:10004",
-                "Lights from": "07:00",
+                "Lights from": "09:00",
                 "Lights to": "07:02"
             }
         },
