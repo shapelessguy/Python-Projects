@@ -1,69 +1,152 @@
-import ctypes
-import os
-import sys
-import threading
-import json
 import keyring
-from utils import pprint
+from utils import Thread, pprint
 from functools import partial
-from PyQt5.QtWidgets import QWidget, QLabel, QPushButton, QHBoxLayout, QLineEdit
-from PyQt5.QtGui import QColor, QPainter, QIcon, QIntValidator
-from PyQt5.QtCore import Qt, QTime
-from PyQt5.QtWinExtras import QtWin
+from PyQt5.QtCore import QTime, Qt
+from PyQt5.QtWidgets import (
+    QWidget, QVBoxLayout, QHBoxLayout, QTimeEdit, QCheckBox,
+    QLineEdit, QFormLayout, QGroupBox
+)
+suspend_change = True
+
+
+class ServiceItemWidget(QWidget):
+    def __init__(self, thread_manager, threads: list[Thread], parent=None):
+        super().__init__(parent)
+        
+        ui_manager = thread_manager.signal.ui_manager
+        self.setObjectName(f"service_{thread_manager.name.replace(' ', '_')}")
+        
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(12)
+        
+        group = QGroupBox(thread_manager.name)
+        group_layout = QVBoxLayout()
+        group.setLayout(group_layout)
+        main_layout.addWidget(group)
+        
+        header_layout = QHBoxLayout()
+        
+        self.enabled_checkbox = QCheckBox("Enabled")
+        enabled = [x.enabled for x in threads if x.name == thread_manager.name]
+        self.enabled_checkbox.setChecked(enabled[0] if len(enabled) > 0 else True)
+        def isEnabled():
+            return self.enabled_checkbox.isChecked()
+        self.enabled_widget = isEnabled
+        def onEnabling():
+            saveThreads(ui_manager)
+            if self.enabled_checkbox.isChecked() and not thread_manager.is_alive():
+                thread_manager.start()
+            elif not self.enabled_checkbox.isChecked() and thread_manager.is_alive():
+                thread_manager.kill()
+                thread_manager.join()
+        self.enabled_checkbox.toggled.connect(onEnabling)
+        header_layout.addWidget(self.enabled_checkbox)
+        header_layout.addStretch()
+        
+        group_layout.addLayout(header_layout)
+        
+        params_layout = QFormLayout()
+        params_layout.setLabelAlignment(Qt.AlignRight)
+        params_layout.setFormAlignment(Qt.AlignLeft)
+        params_layout.setSpacing(8)
+        
+        self.param_widgets = {}
+        for k, param in thread_manager.parameters.items():
+            param_values = [p_value for x in threads if x.name == thread_manager.name for p_name, p_value in x.parameters.items() if p_name == k]
+            value = param_values[0] if len(param_values) > 0 else param.default
+
+            if param.type == QLineEdit:
+                edit = QLineEdit(value)
+                params_layout.addRow(k.capitalize() + ":", edit)
+                self.param_widgets[k] = lambda edit=edit: edit.text()
+                edit.textChanged.connect(lambda _, ui_manager=ui_manager: saveThreads(ui_manager))
+
+            elif param.type == QTimeEdit:
+                edit = QTimeEdit()
+                if value:
+                    edit.setTime(QTime.fromString(value, "HH:mm"))
+                edit.setDisplayFormat("HH:mm")
+                params_layout.addRow(k.capitalize() + ":", edit)
+                self.param_widgets[k] = lambda edit=edit: edit.time().toString("HH:mm")
+                edit.timeChanged.connect(lambda _, ui_manager=ui_manager: saveThreads(ui_manager))
+            
+            elif param.type == QCheckBox:
+                checkbox = QCheckBox(k.capitalize())
+                checkbox.setChecked(value)
+                params_layout.addRow(checkbox)
+                self.param_widgets[k] = lambda cb=checkbox: cb.isChecked()
+                checkbox.stateChanged.connect(lambda _, ui_manager=ui_manager: saveThreads(ui_manager))
+        
+        group_layout.addLayout(params_layout)
 
 
 def on_profile_change(ui_manager):
     ui_manager.signal.set_profile(ui_manager.ui.profile.currentText())
+    ui_manager.signal.restart_thread_managers()
+    generate_thread_layout(ui_manager)
 
 
-suspend_change = True
-def on_change_ad(ui_manager):
-    global suspend_change
-    if suspend_change:
-        return
-    ad = ui_manager.signal.get_audio_devices()
-    d_str = json.dumps(ad)
-    ad["speakers"] = ui_manager.ui.speakers.text()
-    ad["headphones"] = ui_manager.ui.headphones.text()
-    if d_str != json.dumps(ad):
-        ui_manager.signal.set_audio_devices(ad)
-
-
-def time_to_str(obj):
-    t = obj.time()
-    return f"{t.hour():02d}:{t.minute():02d}"
-
-
-def on_change_rs(ui_manager):
-    global suspend_change
-    if suspend_change:
-        return
-    rs = ui_manager.signal.get_roomserver_settings()
-    d_str = json.dumps(rs)
-    rs["url"] = ui_manager.ui.roomserver_hostname.text()
-    rs["port"] = ui_manager.ui.roomserver_port.text()
-    rs["auto_from"] = time_to_str(ui_manager.ui.auto_from)
-    rs["auto_to"] = time_to_str(ui_manager.ui.auto_to)
-    rs["active"] = ui_manager.ui.roomserver_active.isChecked()
-    if d_str != json.dumps(rs):
-        ui_manager.signal.set_roomserver_settings(rs)
-
-
-def on_change_ro(ui_manager):
-    global suspend_change
-    if suspend_change:
-        return
-    ro = ui_manager.signal.get_restart_options()
-    d_str = json.dumps(ro)
-
+def on_change_password(ui_manager):
     keyring.set_password("CyanManager", ui_manager.signal.profile, ui_manager.ui.password.text())
-    ro["active"] = ui_manager.ui.shutdown_active.isChecked()
-    ro["mouse_jiggle"] = ui_manager.ui.mouse_jiggle.isChecked()
-    ro["from"] = time_to_str(ui_manager.ui.shutdown_from)
-    ro["to"] = time_to_str(ui_manager.ui.shutdown_to)
-    ro["inactive_delay"] = time_to_str(ui_manager.ui.inactivity)
-    if d_str != json.dumps(ro):
-        ui_manager.signal.set_restart_options(ro)
+
+
+def saveThreads(ui_manager):
+    try:
+        new_threads = []
+        for t_name, service_attr in ui_manager.ui.serviceItems.items():
+            new_threads.append(Thread(t_name, enabled=service_attr["enabled"](),
+                                      parameters={k: get_value() for k, get_value in service_attr["params"].items()}))
+        ui_manager.signal.set_threads(new_threads)
+    except:
+        import traceback
+        print(traceback.format_exc())
+
+
+def clear_layout(layout):
+    if layout is None:
+        return
+    while layout.count():
+        item = layout.takeAt(0)
+        if widget := item.widget():
+            widget.deleteLater()
+        elif sub_layout := item.layout():
+            clear_layout(sub_layout)
+            del sub_layout
+        elif item.spacerItem():
+            pass
+
+
+def generate_thread_layout(ui_manager):
+    layout = ui_manager.ui.thread_layout
+    clear_layout(layout)
+    try:
+        current_row_layout = None
+        threads = ui_manager.signal.get_threads()
+        ui_manager.ui.serviceItems = {}
+        managers = list(ui_manager.signal.thread_managers.values())
+        managers.sort(key=lambda tm: len(tm.parameters))
+        ui_manager.ui.password.setText(keyring.get_password("CyanManager", ui_manager.signal.profile))
+
+        for thread_manager in managers:
+            thread_widget = ServiceItemWidget(thread_manager, threads)
+            ui_manager.ui.serviceItems[thread_manager.name] = {"enabled": thread_widget.enabled_widget, "params": thread_widget.param_widgets}
+
+            if current_row_layout is None or current_row_layout.count() == 2:
+                current_row_layout = QHBoxLayout()
+                current_row_layout.setSpacing(16)
+                layout.addLayout(current_row_layout)
+
+            current_row_layout.addWidget(thread_widget)
+
+        if current_row_layout and current_row_layout.count() == 1:
+            current_row_layout.addStretch()
+            current_row_layout.addSpacing(16)
+    except:
+        import traceback
+        print(traceback.format_exc())
+    
+    layout.addStretch()
 
 
 def set_gen_layout(ui_manager):
@@ -74,38 +157,8 @@ def set_gen_layout(ui_manager):
     ui_manager.ui.profile.addItems(all_profiles)
     ui_manager.ui.profile.setCurrentText(cur_profile)
     ui_manager.ui.profile.currentTextChanged.connect(lambda _: on_profile_change(ui_manager))
-    
-    ui_manager.ui.speakers.textChanged.connect(partial(on_change_ad, ui_manager))
-    ui_manager.ui.headphones.textChanged.connect(partial(on_change_ad, ui_manager))
-    ui_manager.ui.roomserver_hostname.textChanged.connect(partial(on_change_rs, ui_manager))
-    ui_manager.ui.roomserver_port.textChanged.connect(partial(on_change_rs, ui_manager))
-    ui_manager.ui.auto_from.timeChanged.connect(partial(on_change_rs, ui_manager))
-    ui_manager.ui.auto_to.timeChanged.connect(partial(on_change_rs, ui_manager))
-    ui_manager.ui.roomserver_active.toggled.connect(partial(on_change_rs, ui_manager))
-    ui_manager.ui.password.textChanged.connect(partial(on_change_ro, ui_manager))
-    ui_manager.ui.shutdown_from.timeChanged.connect(partial(on_change_ro, ui_manager))
-    ui_manager.ui.shutdown_to.timeChanged.connect(partial(on_change_ro, ui_manager))
-    ui_manager.ui.inactivity.timeChanged.connect(partial(on_change_ro, ui_manager))
-    ui_manager.ui.shutdown_active.toggled.connect(partial(on_change_ro, ui_manager))
-    ui_manager.ui.mouse_jiggle.toggled.connect(partial(on_change_ro, ui_manager))
-    
-    ad = ui_manager.signal.get_audio_devices()
-    ui_manager.ui.speakers.setText(ad["speakers"])
-    ui_manager.ui.headphones.setText(ad["headphones"])
-
-    rs = ui_manager.signal.get_roomserver_settings()
-    ui_manager.ui.roomserver_hostname.setText(rs["url"])
-    ui_manager.ui.roomserver_port.setText(str(rs["port"]))
-    ui_manager.ui.auto_from.setTime(QTime(int(rs["auto_from"].split(":")[0]), int(rs["auto_from"].split(":")[1]), 00))
-    ui_manager.ui.auto_to.setTime(QTime(int(rs["auto_to"].split(":")[0]), int(rs["auto_to"].split(":")[1]), 00))
-    ui_manager.ui.roomserver_active.setChecked(rs["active"])
-
-    ro = ui_manager.signal.get_restart_options()
     ui_manager.ui.password.setEchoMode(QLineEdit.Password)
-    ui_manager.ui.password.setText(keyring.get_password("CyanManager", ui_manager.signal.profile))
-    ui_manager.ui.shutdown_from.setTime(QTime(int(ro["from"].split(":")[0]), int(ro["from"].split(":")[1]), 00))
-    ui_manager.ui.shutdown_to.setTime(QTime(int(ro["to"].split(":")[0]), int(ro["to"].split(":")[1]), 00))
-    ui_manager.ui.inactivity.setTime(QTime(int(ro["inactive_delay"].split(":")[0]), int(ro["inactive_delay"].split(":")[1]), 00))
-    ui_manager.ui.shutdown_active.setChecked(ro["active"])
-    ui_manager.ui.mouse_jiggle.setChecked(ro["mouse_jiggle"])
+    ui_manager.ui.password.textChanged.connect(partial(on_change_password, ui_manager))
+    
+    generate_thread_layout(ui_manager)
     suspend_change = False

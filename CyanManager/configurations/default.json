@@ -1,5 +1,5 @@
 {
-    "audio_devices": {
+    "devices": {
         "speakers": "SPDIF-Out",
         "headphones": "Headphones"
     },
@@ -17,5 +17,6 @@
         "inactive_delay": "01:00",
         "active": true
     },
-    "applications": {}
+    "applications": {},
+    "threads": {}
 }

@@ -68,6 +68,14 @@ def pprint(*args, dt_format="%Y-%m-%d %H:%M:%S", **kwargs):
     print(f"[{timestamp}] {message}", **kwargs, flush=True)
 
 
+def manage_exe_execution(thread_manager, exe_path):
+    signal = thread_manager.signal
+    find_process_by_exe(exe_path, kill=False, relaunch=True, args=())
+    while signal.is_alive() and not thread_manager.to_kill:
+        time.sleep(0.1)
+    find_process_by_exe(exe_path, kill=True, relaunch=False, args=())
+
+
 def notify(title, message, icon=None, timeout=2):
     notification.notify(
         title=title,
@@ -76,6 +84,13 @@ def notify(title, message, icon=None, timeout=2):
         app_icon=os.path.join(ICONS_FOLDER_PATH, icon) if icon else None,
         timeout=timeout
     )
+
+
+class Parameter:
+    def __init__(self, default, type, categ=[]):
+        self.default = default
+        self.type = type
+        self.categ = categ
 
 
 class Application:
@@ -126,6 +141,28 @@ class Application:
         return f"Application(name={self.name}, state={'ACTIVE' if self.process or self.window else 'DOWN'})"
 
 
+class Thread:
+    def __init__(self, name, thread_manager=None, enabled=True, parameters=[]):
+        self.name = name
+        self.thread_manager = thread_manager
+        self.enabled = enabled
+        self.parameters = parameters
+    
+    def equals(self, thread):
+        if not thread:
+            return False
+        return json.dumps(self.to_dict()) == json.dumps(thread.to_dict())
+
+    def to_dict(self):
+        return {
+            "enabled": self.enabled,
+            "parameters": self.parameters,
+        }
+
+    def __repr__(self):
+        return f"Thread(name={self.name}, enabled={self.enabled}, state={'ACTIVE' if (self.thread_manager and self.thread_manager.is_alive()) else 'DOWN'})"
+
+
 class Monitor_:
     def __init__(self, screen, device_name, width, height, x, y):
         self.screen = screen
@@ -154,6 +191,8 @@ def find_process_by_exe(exe_path: str, kill: bool=False, relaunch: bool=False, a
                     proc.kill()
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             pass
+    if kill and not relaunch:
+        print(f"Killed {exe_path}")
     if relaunch and not procs:
         print(f"Launching {exe_path}")
         subprocess.Popen([exe_path] + list(args))

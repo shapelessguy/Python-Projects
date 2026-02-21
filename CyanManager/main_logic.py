@@ -6,19 +6,21 @@ import datetime
 import traceback
 import sys
 import ctypes
+import importlib
+import pkgutil
+import thread_collection
 from gui.manage_ui import UI
 from dotenv import dotenv_values
-from registered_functions import register_functions_and_hotkeys, RegisteredFunctions
-from start_and_shutdown import register_start_and_shutdown_tasks
-from arduino_processes import register_arduino_tasks
-from utils import Tee, pprint, notify, Application, ENV_PATH, CONFIGURATIONS_PATH, EXE_MAP_PATH
+from registered_functions import register_functions, RegisteredFunctions
+from utils import Tee, pprint, notify, Application, Thread, ENV_PATH, CONFIGURATIONS_PATH, EXE_MAP_PATH
 
 
 class ThreadManager():
-    def __init__(self, signal, name, target, args):
+    def __init__(self, signal, name, target, parameters, args):
         self.signal = signal
         self.name = name
         self.target = target
+        self.parameters = parameters
         self.args = args
         self.to_kill = False
         self.thread = None
@@ -26,8 +28,20 @@ class ThreadManager():
     def is_alive(self):
         return self.thread and self.thread.is_alive()
     
+    def get_params(self):
+        saved_parameters = {}
+        for t in self.signal.get_threads():
+            if t.name == self.name:
+                saved_parameters = t.parameters
+        parameters = {**{k: v.default for k, v in self.parameters.items()}, **saved_parameters}
+        return parameters
+    
+    def get_param(self, name):
+        return self.get_params()[name]
+    
     def start(self):
         pprint(f"Starting thread: {self.name}")
+        self.to_kill = False
         self.thread = threading.Thread(target=self.target, args=(self, *self.args))
         self.thread.start()
 
@@ -45,7 +59,7 @@ class Signal:
     restart_flag = False
     _preferences: dict
     reg_functions: RegisteredFunctions
-    threads: dict[str, ThreadManager]
+    thread_managers: dict[str, ThreadManager]
     last_interaction: datetime
     ui_manager = None
     profile: str
@@ -59,7 +73,7 @@ class Signal:
         sys.stderr = Tee(self.log_queue, sys.stderr)
         self.load_exe_table()
         self.load_preferences()
-        self.threads = {}
+        self.thread_managers = {}
         self.session_locked = False
         self.kill_flag = False
     
@@ -95,7 +109,7 @@ class Signal:
         with open(ENV_PATH, "w", encoding="utf8") as file:
             file.writelines(new_lines)
         self.load_preferences()
-        self.restart_threads()
+        self.restart_thread_managers()
     
     def load_preferences(self):
         env_vars = dotenv_values(ENV_PATH)
@@ -117,32 +131,16 @@ class Signal:
         applications = json.loads(json.dumps(self._preferences["applications"]))
         return [Application(a_name, **a) for a_name, a in applications.items()]
 
-    def set_applications(self, applications):
+    def set_applications(self, applications: list[Application]):
         self._preferences["applications"] = {a.name: a.to_dict() for a in sorted(applications, key=lambda x: x.name)}
         self.save_preferences()
     
-    def get_restart_options(self):
-        restart_opt = json.loads(json.dumps(self._preferences["restart"]))
-        return restart_opt
-    
-    def set_restart_options(self, ro):
-        self._preferences["restart"] = ro
-        self.save_preferences()
-    
-    def get_roomserver_settings(self):
-        rs_settings = json.loads(json.dumps(self._preferences["roomserver_settings"]))
-        return rs_settings
-    
-    def set_roomserver_settings(self, rs):
-        self._preferences["roomserver_settings"] = rs
-        self.save_preferences()
-    
-    def get_audio_devices(self):
-        devices = json.loads(json.dumps(self._preferences["audio_devices"]))
-        return devices
-    
-    def set_audio_devices(self, ad):
-        self._preferences["audio_devices"] = ad
+    def get_threads(self):
+        threads = json.loads(json.dumps(self._preferences["threads"]))
+        return [Thread(t_name, **t) for t_name, t in threads.items()]
+
+    def set_threads(self, threads: list[Thread]):
+        self._preferences["threads"] = {t.name: t.to_dict() for t in sorted(threads, key=lambda x: x.name)}
         self.save_preferences()
     
     def save_preferences(self):
@@ -153,31 +151,33 @@ class Signal:
     def set_reg_functions(self, reg_functions):
         self.reg_functions = reg_functions
     
-    def register_thread(self, name, target, args: tuple=()):
-        self.threads[name] = ThreadManager(self, name, target, args)
+    def register_thread(self, name, target, parameters, args: tuple=()):
+        self.thread_managers[name] = ThreadManager(self, name, target, parameters, args)
     
-    def start_threads(self):
-        for tm in self.threads.values():
-            if not tm.is_alive():
+    def start_thread_managers(self):
+        threads = {t.name: t for t in self.get_threads()}
+        for tm in self.thread_managers.values():
+            enabled = True if tm.name not in threads else threads[tm.name].enabled
+            if not tm.is_alive() and enabled:
                 tm.start()
     
-    def kill_threads(self):
-        for tm in self.threads.values():
+    def kill_thread_managers(self):
+        for tm in self.thread_managers.values():
             if not tm.is_alive():
                 tm.kill()
     
-    def join_threads(self):
-        for tm in self.threads.values():
+    def join_thread_managers(self):
+        for tm in self.thread_managers.values():
             if tm.is_alive():
                 tm.join()
     
-    def restart_threads(self):
-        for tm in self.threads.values():
+    def restart_thread_managers(self):
+        for tm in self.thread_managers.values():
             if tm.is_alive():
                 tm.kill()
-        for tm in self.threads.values():
+        for tm in self.thread_managers.values():
             tm.join()
-        for tm in self.threads.values():
+        for tm in self.thread_managers.values():
             tm.start()
     
     def kill(self):
@@ -189,6 +189,21 @@ class Signal:
     
     def is_alive(self):
         return not self.kill_flag
+
+
+def register_threads(signal):
+    for _, module_name, _ in pkgutil.iter_modules(thread_collection.__path__):
+        if module_name.startswith('_'):
+            continue
+
+        try:
+            module = importlib.import_module(f"thread_collection.{module_name}")
+            if hasattr(module, 'entrypoint'):
+                signal.register_thread(name=module.NAME, target=module.entrypoint, parameters=module.PARAMETERS)
+            else:
+                print(f"Module {module_name} has no 'entrypoint' function")
+        except Exception as exc:
+            print(f"Failed to load/run {module_name}: {exc.__class__.__name__} - {exc}")
 
 
 def main():
@@ -203,13 +218,11 @@ def main():
         signal = None
         try:
             signal = Signal()
-            
-            register_functions_and_hotkeys(signal)
-            register_arduino_tasks(signal)
-            register_start_and_shutdown_tasks(signal)
+            register_functions(signal)
+            register_threads(signal)
             signal.ui_manager = UI(signal)
 
-            signal.start_threads()
+            signal.start_thread_managers()
             signal.ui_manager.start_gui_tasks()
 
             form_closed = signal.ui_manager.execute("wait_for_close")
@@ -219,7 +232,7 @@ def main():
             pass
         if signal:
             signal.kill()
-            signal.join_threads()
+            signal.join_thread_managers()
         restart = signal.ui_manager.restart
 
         if restart:    

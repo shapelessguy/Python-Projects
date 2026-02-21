@@ -1,5 +1,5 @@
 {
-    "audio_devices": {
+    "devices": {
         "speakers": "Lautsprecher",
         "headphones": "WH-1000XM4"
     },
@@ -182,5 +182,6 @@
             "runas": false,
             "startup": true
         }
-    }
+    },
+    "threads": {}
 }

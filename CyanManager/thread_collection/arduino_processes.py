@@ -1,8 +1,10 @@
 import serial
 import time
-from utils import wait, pprint
+from utils import pprint
 
 
+NAME = "Arduino"
+PARAMETERS = {}
 ARDUINO_PORT = "COM6"
 
 
@@ -58,7 +60,7 @@ def take_action(signal, verb):
         signal.reg_functions.SPECIAL.run_shortcut()
 
 
-def react_to_commands(thread_manager):
+def entrypoint(thread_manager):
     signal = thread_manager.signal
     initialize(signal)
     while signal.is_alive() and not thread_manager.to_kill:
@@ -71,7 +73,3 @@ def react_to_commands(thread_manager):
             except:
                 pass
     pprint(f"{thread_manager.name} thread down..")
-
-
-def register_arduino_tasks(signal):
-    signal.register_thread(name="Arduino", target=react_to_commands)

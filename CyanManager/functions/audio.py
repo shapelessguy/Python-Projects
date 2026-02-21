@@ -144,27 +144,23 @@ def volume_down(signal, verbose=False):
     un_mute_volume(volume, new_vol)
 
 
-def switch_to_headphones(signal, verbose=False):
+def switch_to_audio_device(device_name, icon):
     pythoncom.CoInitialize()
     device = AudioUtilities.GetSpeakers()
     before = device.FriendlyName
-    headphones_name = signal.get_audio_devices()["headphones"]
-    subprocess.run([SV_EXE_PATH, '/SetDefault', headphones_name, '1'])
+    subprocess.run([SV_EXE_PATH, '/SetDefault', device_name, '1'])
     device = AudioUtilities.GetSpeakers()
     after = device.FriendlyName
     if after != before:
         pprint(f"Switch to {after}")
-        notify(title="Default Audio Device", message=f"Switch to: {after}", icon="wh1000.ico")
+        notify(title="Default Audio Device", message=f"Switch to: {after}", icon=icon)
+
+
+def switch_to_headphones(signal, verbose=False):
+    from thread_collection.devices import switch_to_headphones_
+    switch_to_headphones_()
 
 
 def switch_to_speakers(signal, verbose=False):
-    pythoncom.CoInitialize()
-    device = AudioUtilities.GetSpeakers()
-    before = device.FriendlyName
-    speakers_name = signal.get_audio_devices()["speakers"]
-    subprocess.run([SV_EXE_PATH, '/SetDefault', speakers_name, '1'])
-    device = AudioUtilities.GetSpeakers()
-    after = device.FriendlyName
-    if after != before:
-        pprint(f"Switch to {after}")
-        notify(title="Default Audio Device", message=f"Switch to: {after}", icon="logitech.ico")
+    from thread_collection.devices import switch_to_speakers_
+    switch_to_speakers_()

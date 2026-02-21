@@ -2,7 +2,18 @@ import subprocess
 import sys
 import ctypes
 from datetime import datetime, time as dtime
-from utils import wait, pprint
+from PyQt5.QtWidgets import QCheckBox, QTimeEdit
+from utils import wait, pprint, Parameter
+
+
+NAME = "Start&Shutdown"
+PARAMETERS = {
+    "Mouse Jiggle": Parameter(False, QCheckBox),
+    "Inactivity to Shutdown": Parameter("02:00", QTimeEdit),
+    "Shutdown from": Parameter("02:00", QTimeEdit),
+    "Shutdown to": Parameter("08:00", QTimeEdit),
+    "Shutdown": Parameter(False, QCheckBox),
+}
 
 
 def jiggle_mouse():
@@ -32,7 +43,7 @@ def startup(signal):
     signal.reg_functions.ORDER.run_shortcut()
 
 
-def monitor_user_activity(thread_manager):
+def entrypoint(thread_manager):
     signal = thread_manager.signal
     signal.reg_functions.TURN_ON_MONITORS.run_shortcut()
     if "startup" in sys.argv:
@@ -44,10 +55,10 @@ def monitor_user_activity(thread_manager):
     last_pos = (pt.x, pt.y)
     
     while signal.is_alive() and not thread_manager.to_kill:
-        restart_options = signal.get_restart_options()
-        start_hours, start_minutes = map(int, restart_options["from"].split(":"))
-        end_hours, end_minutes = map(int, restart_options["to"].split(":"))
-        inactive_hours, inactive_minutes = map(int, restart_options["inactive_delay"].split(":"))
+        thread_params = thread_manager.get_params()
+        start_hours, start_minutes = map(int, thread_params["Shutdown from"].split(":"))
+        end_hours, end_minutes = map(int, thread_params["Shutdown to"].split(":"))
+        inactive_hours, inactive_minutes = map(int, thread_params["Inactivity to Shutdown"].split(":"))
         start = dtime(start_hours, start_minutes)
         end = dtime(end_hours, end_minutes)
         inactive_time = 60 * 60 * inactive_hours + 60 * inactive_minutes
@@ -61,7 +72,7 @@ def monitor_user_activity(thread_manager):
         else:
             if not (start <= now.time() <= end):
                 funct_interaction = now
-                if restart_options["mouse_jiggle"] and not signal.session_locked:
+                if thread_params["Mouse Jiggle"] and not signal.session_locked:
                     diff = (now - signal.last_interaction).total_seconds()
                     if diff > 60:
                         jiggle_mouse()
@@ -69,7 +80,7 @@ def monitor_user_activity(thread_manager):
                 funct_interaction = signal.last_interaction
 
         diff = (now - funct_interaction).total_seconds()
-        if restart_options["active"] and diff > inactive_time:
+        if thread_params["Shutdown"] and diff > inactive_time:
             pprint("Shutdown triggered!")
             subprocess.run(["shutdown", "/s", "/t", "60"])
             pt_at_shutdown = signal.reg_functions.GET_MOUSE_POS.run()
@@ -83,7 +94,3 @@ def monitor_user_activity(thread_manager):
             funct_interaction = now
         wait(signal, 2000)
     pprint(f"{thread_manager.name} thread down..")
-
-
-def register_start_and_shutdown_tasks(signal):
-    signal.register_thread(name="Start&Shutdown", target=monitor_user_activity)

@@ -1,5 +1,5 @@
 {
-    "audio_devices": {
+    "devices": {
         "speakers": "SPDIF-Out",
         "headphones": "Headphones"
     },
@@ -384,6 +384,49 @@
             "arguments": "",
             "runas": false,
             "startup": true
+        }
+    },
+    "threads": {
+        "3RVX - Volume": {
+            "enabled": true,
+            "parameters": {}
+        },
+        "Arduino": {
+            "enabled": true,
+            "parameters": {}
+        },
+        "Devices": {
+            "enabled": true,
+            "parameters": {
+                "Speakers": "SPDIF-Out",
+                "Headphones": "Headphones"
+            }
+        },
+        "Hotkeys": {
+            "enabled": true,
+            "parameters": {}
+        },
+        "Roomserver": {
+            "enabled": true,
+            "parameters": {
+                "Hostname/port": "http://cyanroomserver.duckdns.org:10004",
+                "Lights from": "07:00",
+                "Lights to": "07:02"
+            }
+        },
+        "Start&Shutdown": {
+            "enabled": true,
+            "parameters": {
+                "Mouse Jiggle": false,
+                "Inactivity to Shutdown": "02:00",
+                "Shutdown from": "02:00",
+                "Shutdown to": "08:00",
+                "Shutdown": true
+            }
+        },
+        "XM4-1000": {
+            "enabled": true,
+            "parameters": {}
         }
     }
 }
