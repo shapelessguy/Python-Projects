@@ -37,14 +37,11 @@ def entrypoint(thread_manager):
 
                 if verbose:
                     print("From RoomServer:", response_text.strip())
-                return True
 
             except requests.exceptions.Timeout as ex:
                 if verbose:
                     print(f"From RoomServer, Request timed out: {ex}")
-                return False
             except Exception as ex:
                 if verbose:
                     print(f"From RoomServer, HTTP request failed: {ex}")
-                return False
         time.sleep(0.1)
