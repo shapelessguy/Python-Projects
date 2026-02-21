@@ -2,7 +2,7 @@ import os
 import subprocess
 import json
 from functions.application import get_uwp_apps, get_corrispondences, find_windows
-from utils import Monitor_, MULTIMONITOR_EXE_PATH, TEMP_MONITOR_CONF_PATH, wait, pprint
+from utils import Monitor_, MULTIMONITOR_EXE_PATH, TEMP_MONITOR_CONF_PATH, wait
 from collections import defaultdict
 from operator import attrgetter
 from screeninfo import get_monitors
@@ -40,12 +40,12 @@ def get_screens(signal, verbose=False):
     try:
         monitor_matches = parse_screen_info(TEMP_MONITOR_CONF_PATH)
     except:
-        pprint("Parsing screen information unsuccessful.")
+        print("Parsing screen information unsuccessful.")
         monitor_matches = previous_matches
 
     if verbose:
         for m in monitor_matches:
-            pprint(f"- _id: {m._id} device_name: {m.device_name} x:{m.x} y:{m.y} width:{m.width} height:{m.height} is_primary:{m.is_primary} name:{m.name}")
+            print(f"- _id: {m._id} device_name: {m.device_name} x:{m.x} y:{m.y} width:{m.width} height:{m.height} is_primary:{m.is_primary} name:{m.name}")
     return monitor_matches
 
 
@@ -183,9 +183,9 @@ def discover_windows(signal, verbose=False, discover_by_win_title=DISCOVER_BY_WI
     if verbose:
         for i, chunk in enumerate([windows_info, windows_info_windowless]):
             if i == 0 and len(chunk):
-                pprint("\n\n BEST MATCHES ---------------------------------- \n")
+                print("\n\n BEST MATCHES ---------------------------------- \n")
             elif i == 1 and len(chunk):
-                pprint("\n\n WINDOWLESS ------------------------------------ \n")
+                print("\n\n WINDOWLESS ------------------------------------ \n")
             for win_info in chunk:
                 clean_name = win_info["proc_name"].lower().replace(".exe", "")
                 uwp_names = []
@@ -204,7 +204,7 @@ def discover_windows(signal, verbose=False, discover_by_win_title=DISCOVER_BY_WI
                 string += f"\tproc_name={win_info['proc_name']}, path={win_info['path']}, \n"
                 uwp_names = '\n\t'.join(json.dumps(uwp_names, indent=2).split('\n'))
                 string += f"\tuwp_names={uwp_names}"
-                pprint(string)
+                print(string)
 
     return windows_info
 
@@ -226,7 +226,7 @@ def get_win_pos(signal, verbose=False):
     if verbose:
         for app_name, win_pos in windows_pos.items():
             if win_pos["width"] > 0 and win_pos["height"] > 0:
-                pprint(f"{app_name}: monitor_id={win_pos['monitor_id']}, x={win_pos['x']}, y={win_pos['y']}, width={win_pos['width']}, height={win_pos['height']}")
+                print(f"{app_name}: monitor_id={win_pos['monitor_id']}, x={win_pos['x']}, y={win_pos['y']}, width={win_pos['width']}, height={win_pos['height']}")
     return windows_pos
 
 
@@ -255,5 +255,5 @@ def order(signal, verbose=False, only_app_names=()):
                     win.maximize()
                 windows_moved.append(app.name)
             except Exception as e:
-                pprint(f"Exception while moving window for {app.name}: {e}")
+                print(f"Exception while moving window for {app.name}: {e}")
     return windows_moved

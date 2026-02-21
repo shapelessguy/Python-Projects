@@ -13,7 +13,7 @@ import traceback
 from ctypes import wintypes
 from datetime import datetime
 from pathlib import Path
-from utils import pprint, CYANSYNC_LOGS_PATH
+from utils import CYANSYNC_LOGS_PATH
 wintypes.HRESULT = ctypes.c_long
 
 
@@ -73,7 +73,7 @@ def get_apps_status(signal, verbose=False):
 
     if verbose:
         for app in applications:
-            pprint(app)
+            print(app)
     return applications
 
 
@@ -115,7 +115,7 @@ def get_uwp_apps(signal, verbose=False):
     apps = json.loads(result.stdout)
     apps = {x["Name"]: resolve_all_guids(x["AppID"]) for x in apps}
     if verbose:
-        pprint(json.dumps(apps, indent=2))
+        print(json.dumps(apps, indent=2))
     return apps
 
 
@@ -124,7 +124,7 @@ def start_app(signal, app, app_name_map=None):
         app_name_map = get_uwp_apps(signal, False)
     
     try:
-        pprint(f"Starting process -> {[app.path] + app.arguments.split()}")
+        print(f"Starting process -> {[app.path] + app.arguments.split()}")
         if app.proc_type == "exe" and app.path.startswith("app:"):
             app_name = "app:".join(app.path.split("app:")[1:])
             app_id = app_name_map[app_name]
@@ -167,7 +167,7 @@ def start_app(signal, app, app_name_map=None):
                 )
         return True
     except:
-        pprint(traceback.format_exc())
+        print(traceback.format_exc())
     return False
 
 
@@ -186,7 +186,7 @@ def startup_applications(signal, verbose=False, app_names=[]):
 
 def kill_application(signal, verbose=False, application=None):
     if verbose:
-        pprint(f"Killing application: {application.name}")
+        print(f"Killing application: {application.name}")
     if application is None:
         return
     applications = [x for x in get_apps_status(signal, False) if (x.process is not None or x.window is not None) and x.name == application.name]
@@ -217,7 +217,7 @@ def get_threads_status(signal, verbose=False):
     status = {name: thread.is_alive() for name, thread in signal.threads.items()}
     if verbose:
         for n, s in status.items():
-            pprint(f"Thread {n}: {'ACTIVE' if s else 'DOWN'}")
+            print(f"Thread {n}: {'ACTIVE' if s else 'DOWN'}")
     return status
 
 
@@ -271,7 +271,7 @@ def find_windows(signal, verbose=False, discover=False):
 
     if verbose:
         for win in found:
-            pprint(win)
+            print(win)
     return found
 
 

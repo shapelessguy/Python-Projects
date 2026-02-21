@@ -1,5 +1,4 @@
 from thread_collection.roomserver import send_to_roomserver
-from utils import pprint, notify
 
 
 def send_light_config(signal, verbose, value, notify_):

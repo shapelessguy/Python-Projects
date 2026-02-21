@@ -6,7 +6,7 @@ from functions.monitors import *
 from functions.generic import *
 from functions.application import *
 from functions.arduino import *
-from utils import find_process_by_exe, KEYBOARD_HOTKEYS_EXE, pprint
+from utils import find_process_by_exe, KEYBOARD_HOTKEYS_EXE
 
 
 NAME = "Hotkeys"
@@ -99,8 +99,9 @@ def entrypoint(thread_manager):
 
 
             if not found:
-                pprint("unrecognized:", v.__name__())
+                print("unrecognized:", v.__name__())
         except FileNotFoundError:
             pass
         wait(signal, 0.05)
-    pprint(f"{thread_manager.name} thread down..")
+    find_process_by_exe(KEYBOARD_HOTKEYS_EXE, kill=True, relaunch=False)
+    print(f"{thread_manager.name} thread down..")

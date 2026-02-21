@@ -96,25 +96,35 @@ QPushButton:pressed {
 }
 
 QCheckBox, QRadioButton {
-    color: #f0f0f0;
+    color: #e0e0e0;
+    spacing: 8px;
+    font-weight: 500;
     qproperty-layoutDirection: RightToLeft;
-    spacing: 5px;
 }
 
 QCheckBox::indicator, QRadioButton::indicator {
-    width: 16px;
-    height: 16px;
+    width: 18px;
+    height: 18px;
+    border: 2px solid #606060;
+    border-radius: 4px;
+    background-color: #2a2a2a;
 }
 
-QCheckBox::indicator:unchecked, QRadioButton::indicator:unchecked {
-    border: 1px solid #555;
-    background-color: #3c3c3c;
-    border-radius: 3px; /* use 8px for radio */
+QCheckBox::indicator:hover, QRadioButton::indicator:hover {
+    border-color: #80b0ff;
+    background-color: #333;
 }
 
 QCheckBox::indicator:checked, QRadioButton::indicator:checked {
-    border: 1px solid #555;
-    background-color: #50a0ff;
+    border: 2px solid #70a0ff;
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                                stop:0 #70a0ff, stop:1 #5080e0);
+}
+
+QCheckBox::indicator:indeterminate {   /* for tristate checkbox */
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                                stop:0 #606060, stop:1 #808080);
+    border: 2px solid #70a0ff;
 }
 
 QScrollBar:vertical, QScrollBar:horizontal {
@@ -159,6 +169,10 @@ QDateTimeEdit:focus {
 
 
 #app_divider {
+    border-right: 1px solid #555;
+}
+
+#line {
     border-right: 1px solid #555;
 }
 

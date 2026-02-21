@@ -1,15 +1,28 @@
+import inspect
 from functions.audio import *
 from functions.monitors import *
 from functions.generic import *
 from functions.application import *
 from functions.arduino import *
-from utils import ERR_FLAG, pprint
+from utils import ERR_FLAG
 
 
 class HandleFunction:
     def __init__(self, function_, verbose_always_off=False):
         self.function_ = function_
         self.verbose_always_off = verbose_always_off
+
+    @property
+    def module_name(self) -> str:
+        """Returns the module/package name where the wrapped function was defined."""
+        if self.function_ is None:
+            return "<no function>"
+        
+        mod = inspect.getmodule(self.function_)
+        if mod is None:
+            return "<unknown>"
+        
+        return mod.__name__.split(".")[-1]
     
     def add_signal(self, signal):
         self.signal = signal
@@ -18,14 +31,14 @@ class HandleFunction:
         result = ERR_FLAG
         try:
             if verbose:
-                pprint(f"RUN FUNCTION: '{self.function_.__name__}'")
+                print(f"RUN FUNCTION: '{self.function_.__name__}'")
             result = self.function_(self.signal, verbose, *args)
         except:
             import traceback
             text = "\n-----------------\n"
             text += traceback.format_exc()
             text += "-----------------\n"
-            pprint(text)
+            print(text)
         return result
     
     def run(self, *args):
@@ -68,7 +81,6 @@ class RegisteredFunctions:
     TV_POWER=HandleFunction(tv_power)
     TV_OK=HandleFunction(tv_ok)
     SPECIAL=HandleFunction(special)
-    
     TYPE_PASSWORD=HandleFunction(type_password)
     PLAY_PAUSE=HandleFunction(play_pause)
 
@@ -76,6 +88,13 @@ class RegisteredFunctions:
         for attr_value in self.__class__.__dict__.values():
             if isinstance(attr_value, HandleFunction):
                 attr_value.add_signal(signal)
+
+    def get_functions(self):
+        functions = {}
+        for f_name, attr_value in self.__class__.__dict__.items():
+            if isinstance(attr_value, HandleFunction):
+                functions[f_name] = attr_value
+        return functions
 
 
 def register_functions(signal):

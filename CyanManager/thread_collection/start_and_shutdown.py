@@ -3,7 +3,7 @@ import sys
 import ctypes
 from datetime import datetime, time as dtime
 from PyQt5.QtWidgets import QCheckBox, QTimeEdit
-from utils import wait, pprint, Parameter
+from utils import wait, Parameter
 
 
 NAME = "Start&Shutdown"
@@ -22,7 +22,7 @@ def jiggle_mouse():
 
 
 def startup(signal):
-    pprint("Startup...")
+    print("Startup...")
     app_names_to_start = []
     for _ in range(3):
         started_apps = set(signal.reg_functions.STARTUP.run(app_names_to_start))
@@ -81,7 +81,7 @@ def entrypoint(thread_manager):
 
         diff = (now - funct_interaction).total_seconds()
         if thread_params["Shutdown"] and diff > inactive_time:
-            pprint("Shutdown triggered!")
+            print("Shutdown triggered!")
             subprocess.run(["shutdown", "/s", "/t", "60"])
             pt_at_shutdown = signal.reg_functions.GET_MOUSE_POS.run()
             for _ in range(59):
@@ -89,8 +89,8 @@ def entrypoint(thread_manager):
                 pt = signal.reg_functions.GET_MOUSE_POS.run()
                 if pt.x != pt_at_shutdown.x or pt.y != pt_at_shutdown.y:
                     subprocess.run(["shutdown", "/a"])
-                    pprint("Shutdown aborted")
+                    print("Shutdown aborted")
                     break
             funct_interaction = now
         wait(signal, 2000)
-    pprint(f"{thread_manager.name} thread down..")
+    print(f"{thread_manager.name} thread down..")

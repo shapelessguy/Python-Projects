@@ -4,7 +4,7 @@ import sys
 import threading
 import json
 from functools import partial
-from utils import pprint, Application
+from utils import Application
 from PyQt5.QtWidgets import QWidget, QLabel, QPushButton, QHBoxLayout, QLineEdit, QComboBox, QCheckBox, QSizePolicy
 from PyQt5.QtGui import QColor, QPainter, QIcon, QIntValidator
 from PyQt5.QtCore import Qt, pyqtSignal
@@ -345,7 +345,30 @@ class ApplicationRow(QWidget):
         combo.blockSignals(False)
 
 
-def clear_layout(layout):
+def clear_layout(ui_manager):
+    buttons = [
+        ui_manager.ui.create_app_btn,
+        ui_manager.ui.add_app_btn,
+        ui_manager.ui.remove_app_btn,
+        ui_manager.ui.save_current_positions,
+        
+        ui_manager.ui.x_plus,
+        ui_manager.ui.x_minus,
+        ui_manager.ui.y_plus,
+        ui_manager.ui.y_minus,
+        ui_manager.ui.width_plus,
+        ui_manager.ui.width_minus,
+        ui_manager.ui.height_plus,
+        ui_manager.ui.height_minus,
+    ]
+
+    for btn in buttons:
+        try:
+            btn.clicked.disconnect()
+        except TypeError:
+            pass
+
+    layout = ui_manager.ui.application_area_layout
     while layout.count():
         item = layout.takeAt(0)
         widget = item.widget()
@@ -369,17 +392,21 @@ def save_app_position(ui_manager):
 
 def build_layout(ui_manager, apps):
     global cur_application
-    pprint("building app layout...")
-    clear_layout(ui_manager.ui.application_area_layout)
+    print("building app layout...")
+    clear_layout(ui_manager)
     def create_app():
         view_application(ui_manager)
     def add_app():
         save_app_settings(ui_manager)
     def remove_app():
         remove_application(ui_manager)
+    def save_app_pos():
+        save_app_position(ui_manager)
+
     ui_manager.ui.create_app_btn.clicked.connect(create_app)
     ui_manager.ui.add_app_btn.clicked.connect(add_app)
     ui_manager.ui.remove_app_btn.clicked.connect(remove_app)
+    ui_manager.ui.save_current_positions.clicked.connect(save_app_pos)
 
     ui_manager.ui.x_plus.clicked.connect(partial(on_change_controls, ui_manager, "x_plus"))
     ui_manager.ui.x_minus.clicked.connect(partial(on_change_controls, ui_manager, "x_minus"))
@@ -389,10 +416,6 @@ def build_layout(ui_manager, apps):
     ui_manager.ui.width_minus.clicked.connect(partial(on_change_controls, ui_manager, "width_minus"))
     ui_manager.ui.height_plus.clicked.connect(partial(on_change_controls, ui_manager, "height_plus"))
     ui_manager.ui.height_minus.clicked.connect(partial(on_change_controls, ui_manager, "height_minus"))
-
-    def save_app_pos():
-        save_app_position(ui_manager)
-    ui_manager.ui.save_current_positions.clicked.connect(save_app_pos)
 
     for application in apps:
         if application.equals(cur_application):

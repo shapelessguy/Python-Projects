@@ -38,11 +38,16 @@ class Tee:
     def __init__(self, log_queue, stream):
         self.log_queue = log_queue
         self.stream = stream
+        self.last_newline = True
 
     def write(self, msg):
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        if msg not in ["", " ", "\n"] and self.last_newline:
+            msg = f"[{timestamp}] {msg}"
         self.stream.write(msg)
         self.stream.flush()
         self.log_queue.put(msg)
+        self.last_newline = msg[-1] == "\n"
 
     def flush(self):
         self.stream.flush()
@@ -65,7 +70,7 @@ def pprint(*args, dt_format="%Y-%m-%d %H:%M:%S", **kwargs):
     timestamp = datetime.now().strftime(dt_format)
     # Join all args with spaces into one string
     message = " ".join(str(arg) for arg in args)
-    print(f"[{timestamp}] {message}", **kwargs, flush=True)
+    # print(f"[{timestamp}] {message}", **kwargs, flush=True)
 
 
 def manage_exe_execution(thread_manager, exe_path):

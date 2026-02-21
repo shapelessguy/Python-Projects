@@ -12,7 +12,7 @@ import thread_collection
 from gui.manage_ui import UI
 from dotenv import dotenv_values
 from registered_functions import register_functions, RegisteredFunctions
-from utils import Tee, pprint, notify, Application, Thread, ENV_PATH, CONFIGURATIONS_PATH, EXE_MAP_PATH
+from utils import Tee, notify, Application, Thread, ENV_PATH, CONFIGURATIONS_PATH, EXE_MAP_PATH
 
 
 class ThreadManager():
@@ -40,13 +40,13 @@ class ThreadManager():
         return self.get_params()[name]
     
     def start(self):
-        pprint(f"Starting thread: {self.name}")
+        print(f"Starting thread: {self.name}")
         self.to_kill = False
         self.thread = threading.Thread(target=self.target, args=(self, *self.args))
         self.thread.start()
 
     def kill(self):
-        pprint(f"Killing thread: {self.name}")
+        print(f"Killing thread: {self.name}")
         self.to_kill = True
 
     def join(self):
@@ -163,7 +163,7 @@ class Signal:
     
     def kill_thread_managers(self):
         for tm in self.thread_managers.values():
-            if not tm.is_alive():
+            if tm.is_alive():
                 tm.kill()
     
     def join_thread_managers(self):
@@ -172,13 +172,9 @@ class Signal:
                 tm.join()
     
     def restart_thread_managers(self):
-        for tm in self.thread_managers.values():
-            if tm.is_alive():
-                tm.kill()
-        for tm in self.thread_managers.values():
-            tm.join()
-        for tm in self.thread_managers.values():
-            tm.start()
+        self.kill_thread_managers()
+        self.join_thread_managers()
+        self.start_thread_managers()
     
     def kill(self):
         self.kill_flag = True
@@ -207,39 +203,31 @@ def register_threads(signal):
 
 
 def main():
-    restart = True
     sys.argv.append('--no-sandbox')
     ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("CyanManager")
     notify(title="CyanManager", message=f"Running", icon="cyan_system_manager.ico")
     
-    while restart:
-        form_closed = 1
-        restart = False
-        signal = None
-        try:
-            signal = Signal()
-            register_functions(signal)
-            register_threads(signal)
-            signal.ui_manager = UI(signal)
+    form_closed = 1
+    signal = None
+    try:
+        signal = Signal()
+        register_functions(signal)
+        register_threads(signal)
+        signal.ui_manager = UI(signal)
 
-            signal.start_thread_managers()
-            signal.ui_manager.start_gui_tasks()
+        signal.start_thread_managers()
+        signal.ui_manager.start_gui_tasks()
 
-            form_closed = signal.ui_manager.execute("wait_for_close")
-        except Exception:
-            pprint(traceback.format_exc())
-        except KeyboardInterrupt:
-            pass
-        if signal:
-            signal.kill()
-            signal.join_thread_managers()
-        restart = signal.ui_manager.restart
+        form_closed = signal.ui_manager.execute("wait_for_close")
+    except Exception:
+        print(traceback.format_exc())
+    except KeyboardInterrupt:
+        pass
+    if signal:
+        signal.kill()
+        signal.join_thread_managers()
 
-        if restart:    
-            pprint("CyanManager restarted")
-            time.sleep(2)
-
-    pprint("CyanManager terminated")
+    print("CyanManager terminated")
     if form_closed == 1:
         sys.exit()
     else:

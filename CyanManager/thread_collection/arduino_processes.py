@@ -1,6 +1,5 @@
 import serial
 import time
-from utils import pprint
 
 
 NAME = "Arduino"
@@ -72,4 +71,4 @@ def entrypoint(thread_manager):
                     take_action(signal, serial_string.split()[1])
             except:
                 pass
-    pprint(f"{thread_manager.name} thread down..")
+    print(f"{thread_manager.name} thread down..")

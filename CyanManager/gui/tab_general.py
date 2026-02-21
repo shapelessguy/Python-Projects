@@ -1,12 +1,42 @@
 import keyring
-from utils import Thread, pprint
+from utils import Thread
 from functools import partial
 from PyQt5.QtCore import QTime, Qt
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QTimeEdit, QCheckBox,
-    QLineEdit, QFormLayout, QGroupBox
+    QLineEdit, QFormLayout, QGroupBox, QPushButton, QLabel, QSizePolicy
 )
 suspend_change = True
+
+
+class FunctionItemWidget(QWidget):
+    def __init__(self, ui_manager, display_name, function, parent=None):
+        super().__init__(parent)
+
+        self.function = function
+        self.ui_manager = ui_manager
+        self.display_text = display_name
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(8, 2, 8, 2)
+        layout.setSpacing(2)
+
+        self.label = QLabel(self.display_text, self)
+        self.label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        self.label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+
+        self.button = QPushButton("Run", self)
+        self.button.setFixedWidth(80)
+        self.button.setToolTip(f"Execute: {self.display_text}")
+
+        layout.addWidget(self.label)
+        layout.addWidget(self.button)
+        self.button.clicked.connect(self._on_run_clicked)
+        self.setMinimumHeight(26)
+        self.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Fixed)
+
+    def _on_run_clicked(self):
+        getattr(self.ui_manager.signal.reg_functions, self.display_text).run_shortcut()
 
 
 class ServiceItemWidget(QWidget):
@@ -26,6 +56,8 @@ class ServiceItemWidget(QWidget):
         main_layout.addWidget(group)
         
         header_layout = QHBoxLayout()
+        self.status_lbl = QLabel("Unkwnown")
+        self.set_status(False)
         
         self.enabled_checkbox = QCheckBox("Enabled")
         enabled = [x.enabled for x in threads if x.name == thread_manager.name]
@@ -41,8 +73,10 @@ class ServiceItemWidget(QWidget):
                 thread_manager.kill()
                 thread_manager.join()
         self.enabled_checkbox.toggled.connect(onEnabling)
+
         header_layout.addWidget(self.enabled_checkbox)
         header_layout.addStretch()
+        header_layout.addWidget(self.status_lbl)
         
         group_layout.addLayout(header_layout)
         
@@ -79,6 +113,14 @@ class ServiceItemWidget(QWidget):
                 checkbox.stateChanged.connect(lambda _, ui_manager=ui_manager: saveThreads(ui_manager))
         
         group_layout.addLayout(params_layout)
+    
+    def set_status(self, active=False):
+        if active:
+            self.status_lbl.setText("Running")
+            self.status_lbl.setStyleSheet("color: green")
+        else:
+            self.status_lbl.setText("Down")
+            self.status_lbl.setStyleSheet("color: red")
 
 
 def on_profile_change(ui_manager):
@@ -95,8 +137,8 @@ def saveThreads(ui_manager):
     try:
         new_threads = []
         for t_name, service_attr in ui_manager.ui.serviceItems.items():
-            new_threads.append(Thread(t_name, enabled=service_attr["enabled"](),
-                                      parameters={k: get_value() for k, get_value in service_attr["params"].items()}))
+            new_threads.append(Thread(t_name, enabled=service_attr.enabled_widget(),
+                                      parameters={k: get_value() for k, get_value in service_attr.param_widgets.items()}))
         ui_manager.signal.set_threads(new_threads)
     except:
         import traceback
@@ -118,9 +160,26 @@ def clear_layout(layout):
 
 
 def generate_thread_layout(ui_manager):
-    layout = ui_manager.ui.thread_layout
-    clear_layout(layout)
+    layout_threads = ui_manager.ui.thread_layout
+    layout_functions = ui_manager.ui.functions_layout
+    clear_layout(layout_threads)
+    clear_layout(layout_functions)
     try:
+        modules = {}
+        for f_name, function in ui_manager.signal.reg_functions.get_functions().items():
+            if function.module_name not in modules:
+                modules[function.module_name] = []
+            modules[function.module_name].append((f_name, function))
+        
+        for module, function_list in modules.items():
+            group = QGroupBox(module.title())
+            group_layout = QVBoxLayout()
+            group.setLayout(group_layout)
+            layout_functions.addWidget(group)
+            for (f_name, f) in function_list:
+                function_widget = FunctionItemWidget(ui_manager, f_name, f)
+                group_layout.addWidget(function_widget)
+
         current_row_layout = None
         threads = ui_manager.signal.get_threads()
         ui_manager.ui.serviceItems = {}
@@ -130,12 +189,12 @@ def generate_thread_layout(ui_manager):
 
         for thread_manager in managers:
             thread_widget = ServiceItemWidget(thread_manager, threads)
-            ui_manager.ui.serviceItems[thread_manager.name] = {"enabled": thread_widget.enabled_widget, "params": thread_widget.param_widgets}
+            ui_manager.ui.serviceItems[thread_manager.name] = thread_widget
 
             if current_row_layout is None or current_row_layout.count() == 2:
                 current_row_layout = QHBoxLayout()
                 current_row_layout.setSpacing(16)
-                layout.addLayout(current_row_layout)
+                layout_threads.addLayout(current_row_layout)
 
             current_row_layout.addWidget(thread_widget)
 
@@ -146,7 +205,7 @@ def generate_thread_layout(ui_manager):
         import traceback
         print(traceback.format_exc())
     
-    layout.addStretch()
+    layout_threads.addStretch()
 
 
 def set_gen_layout(ui_manager):

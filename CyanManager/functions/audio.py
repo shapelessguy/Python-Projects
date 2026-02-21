@@ -4,7 +4,7 @@ import sounddevice as sd
 import numpy as np
 import pygame
 import os
-from utils import SV_EXE_PATH, TIMER_EXE, pprint, notify
+from utils import SV_EXE_PATH, TIMER_EXE, notify
 from pycaw.pycaw import AudioUtilities
 from utils import AUDIO_PATH
 
@@ -101,9 +101,8 @@ def play_audio(audio_path, volume, n_loops=1, start_at=0.0):
         pygame.time.Clock().tick(10)
 
 
-    # volume = get_relative_volume(0.1)
 def ring_alarm(signal, verbose=False):
-    volume = 0.05
+    volume = get_relative_volume(0.15)
     duration = 1.5
     fs = 44100
     t = np.linspace(0, duration, int(fs * duration), False)
@@ -114,7 +113,6 @@ def ring_alarm(signal, verbose=False):
     tone = (wave1 + wave2) / 2
     pulse = 0.35 * (np.sin(2 * np.pi * 5 * t) > 0).astype(float)
     alarm = tone * pulse
-    print(volume)
     alarm = alarm * volume
     sd.play(alarm, fs)
     sd.wait()
@@ -128,7 +126,7 @@ def volume_up(signal, verbose=False):
     new_vol = round(min(current + get_step(current, +1), 1.0), 2)
     volume.SetMasterVolumeLevelScalar(new_vol, None)
     if verbose:
-        pprint("Current volume:", new_vol)
+        print("Current volume:", new_vol)
     un_mute_volume(volume, new_vol)
 
 
@@ -140,7 +138,7 @@ def volume_down(signal, verbose=False):
     new_vol = round(max(current + get_step(current, -1), 0.0), 2)
     volume.SetMasterVolumeLevelScalar(new_vol, None)
     if verbose:
-        pprint("Current volume:", new_vol)
+        print("Current volume:", new_vol)
     un_mute_volume(volume, new_vol)
 
 
@@ -152,7 +150,7 @@ def switch_to_audio_device(device_name, icon):
     device = AudioUtilities.GetSpeakers()
     after = device.FriendlyName
     if after != before:
-        pprint(f"Switch to {after}")
+        print(f"Switch to {after}")
         notify(title="Default Audio Device", message=f"Switch to: {after}", icon=icon)
 
 
