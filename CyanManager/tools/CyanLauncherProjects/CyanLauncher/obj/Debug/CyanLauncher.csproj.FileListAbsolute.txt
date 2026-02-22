@@ -1,0 +1,41 @@
+C:\Users\Claudio\source\repos\CyanLauncher\CyanLauncher\bin\Debug\CyanLauncher.exe.config
+C:\Users\Claudio\source\repos\CyanLauncher\CyanLauncher\bin\Debug\CyanLauncher.exe
+C:\Users\Claudio\source\repos\CyanLauncher\CyanLauncher\bin\Debug\CyanLauncher.pdb
+C:\Users\Claudio\source\repos\CyanLauncher\CyanLauncher\obj\Debug\CyanLauncher.csprojAssemblyReference.cache
+C:\Users\Claudio\source\repos\CyanLauncher\CyanLauncher\obj\Debug\CyanLauncher.Properties.Resources.resources
+C:\Users\Claudio\source\repos\CyanLauncher\CyanLauncher\obj\Debug\CyanLauncher.csproj.GenerateResource.cache
+C:\Users\Claudio\source\repos\CyanLauncher\CyanLauncher\obj\Debug\CyanLauncher.csproj.CoreCompileInputs.cache
+C:\Users\Claudio\source\repos\CyanLauncher\CyanLauncher\obj\Debug\CyanLauncher.exe
+C:\Users\Claudio\source\repos\CyanLauncher\CyanLauncher\obj\Debug\CyanLauncher.pdb
+C:\Users\Claudio\source\repos\CyanLauncher\CyanLauncher\obj\Debug\CyanLauncher.AddIcon.resources
+C:\Users\Claudio\source\repos\CyanLauncher\CyanLauncher\obj\Debug\CyanLauncher.ChangeDimensions.resources
+C:\Users\Claudio\source\repos\CyanLauncher\CyanLauncher\obj\Debug\CyanLauncher.Frontal.resources
+E:\DOCUMENTI\Workspace Visual Studio\CyanLauncher\CyanLauncher\bin\Debug\CyanLauncher.exe.config
+E:\DOCUMENTI\Workspace Visual Studio\CyanLauncher\CyanLauncher\bin\Debug\CyanLauncher.exe
+E:\DOCUMENTI\Workspace Visual Studio\CyanLauncher\CyanLauncher\bin\Debug\CyanLauncher.pdb
+E:\DOCUMENTI\Workspace Visual Studio\CyanLauncher\CyanLauncher\obj\Debug\CyanLauncher.csprojAssemblyReference.cache
+E:\DOCUMENTI\Workspace Visual Studio\CyanLauncher\CyanLauncher\obj\Debug\CyanLauncher.AddIcon.resources
+E:\DOCUMENTI\Workspace Visual Studio\CyanLauncher\CyanLauncher\obj\Debug\CyanLauncher.ChangeDimensions.resources
+E:\DOCUMENTI\Workspace Visual Studio\CyanLauncher\CyanLauncher\obj\Debug\CyanLauncher.Frontal.resources
+E:\DOCUMENTI\Workspace Visual Studio\CyanLauncher\CyanLauncher\obj\Debug\CyanLauncher.Properties.Resources.resources
+E:\DOCUMENTI\Workspace Visual Studio\CyanLauncher\CyanLauncher\obj\Debug\CyanLauncher.csproj.GenerateResource.cache
+E:\DOCUMENTI\Workspace Visual Studio\CyanLauncher\CyanLauncher\obj\Debug\CyanLauncher.csproj.CoreCompileInputs.cache
+E:\DOCUMENTI\Workspace Visual Studio\CyanLauncher\CyanLauncher\obj\Debug\CyanLauncher.exe
+E:\DOCUMENTI\Workspace Visual Studio\CyanLauncher\CyanLauncher\obj\Debug\CyanLauncher.pdb
+E:\DOCUMENTI\Workspace Visual Studio\CyanLauncher\CyanLauncher\bin\Debug\Control.Draggable.dll
+E:\DOCUMENTI\Workspace Visual Studio\CyanLauncher\CyanLauncher\obj\Debug\CyanLauncher.csproj.CopyComplete
+E:\DOCUMENTI\Workspace Visual Studio\CyanLauncherManager\CyanLauncher\CyanLauncher\bin\Debug\CyanLauncher.exe.config
+E:\DOCUMENTI\Workspace Visual Studio\CyanLauncherManager\CyanLauncher\CyanLauncher\bin\Debug\CyanLauncher.exe
+E:\DOCUMENTI\Workspace Visual Studio\CyanLauncherManager\CyanLauncher\CyanLauncher\bin\Debug\CyanLauncher.pdb
+E:\DOCUMENTI\Workspace Visual Studio\CyanLauncherManager\CyanLauncher\CyanLauncher\bin\Debug\Control.Draggable.dll
+E:\DOCUMENTI\Workspace Visual Studio\CyanLauncherManager\CyanLauncher\CyanLauncher\obj\Debug\CyanLauncher.csproj.AssemblyReference.cache
+E:\DOCUMENTI\Workspace Visual Studio\CyanLauncherManager\CyanLauncher\CyanLauncher\obj\Debug\CyanLauncher.csproj.SuggestedBindingRedirects.cache
+E:\DOCUMENTI\Workspace Visual Studio\CyanLauncherManager\CyanLauncher\CyanLauncher\obj\Debug\CyanLauncher.AddIcon.resources
+E:\DOCUMENTI\Workspace Visual Studio\CyanLauncherManager\CyanLauncher\CyanLauncher\obj\Debug\CyanLauncher.ChangeDimensions.resources
+E:\DOCUMENTI\Workspace Visual Studio\CyanLauncherManager\CyanLauncher\CyanLauncher\obj\Debug\CyanLauncher.Frontal.resources
+E:\DOCUMENTI\Workspace Visual Studio\CyanLauncherManager\CyanLauncher\CyanLauncher\obj\Debug\CyanLauncher.Properties.Resources.resources
+E:\DOCUMENTI\Workspace Visual Studio\CyanLauncherManager\CyanLauncher\CyanLauncher\obj\Debug\CyanLauncher.csproj.GenerateResource.cache
+E:\DOCUMENTI\Workspace Visual Studio\CyanLauncherManager\CyanLauncher\CyanLauncher\obj\Debug\CyanLauncher.csproj.CoreCompileInputs.cache
+E:\DOCUMENTI\Workspace Visual Studio\CyanLauncherManager\CyanLauncher\CyanLauncher\obj\Debug\CyanLauncher.csproj.CopyComplete
+E:\DOCUMENTI\Workspace Visual Studio\CyanLauncherManager\CyanLauncher\CyanLauncher\obj\Debug\CyanLauncher.exe
+E:\DOCUMENTI\Workspace Visual Studio\CyanLauncherManager\CyanLauncher\CyanLauncher\obj\Debug\CyanLauncher.pdb

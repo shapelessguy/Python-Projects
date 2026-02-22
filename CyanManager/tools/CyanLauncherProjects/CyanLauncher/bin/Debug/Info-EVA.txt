@@ -1,0 +1,10 @@
+C:\Windows\System32\cmd.exe|^_^|cmd|^_^|\Icons\BDTYD9NJ8I.ico|^_^|true
+C:\Program Files\Oracle\VirtualBox\VirtualBox.exe|^_^|VirtualBox|^_^|\Icons\XBSLTGP106.ico|^_^|true
+C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\IDE\devenv.exe|^_^|Visual Studio 2019|^_^|\Icons\F860U6AZT2.ico|^_^|true
+C:\Program Files\JetBrains\PyCharm Community Edition 2018.3.5\bin\pycharm64.exe|^_^|PyCharm|^_^|\Icons\J2H6E51E2F.ico|^_^|true
+C:\Program Files\Android\Android Studio\bin\studio64.exe|^_^|Android Studio|^_^|\Icons\DRIS87SR25.ico|^_^|true
+C:\Program Files\RStudio\bin\rstudio.exe|^_^|R Studio|^_^|\Icons\OILWMBULT2.ico|^_^|true
+C:\Program Files (x86)\Arduino\arduino.exe|^_^|Arduino|^_^|\Icons\PJE9L4TOYZ.ico|^_^|false
+C:\Program Files\Wireshark\Wireshark.exe|^_^|WireShark|^_^|\Icons\OA0AOCMSVA.ico|^_^|false
+C:\Program Files (x86)\MacroRecorder\MacroRecorder.exe|^_^|Macro Recorder|^_^|\Icons\257P9I4MH9.ico|^_^|true
+C:\Users\shape\OneDrive\Documenti\Workspace Visual Studio\CyanVideos\CyanVideos\bin\Release\CyanVideos.exe|^_^|Videos|^_^|\Icons\KFC0S9A6DN.ico|^_^|true

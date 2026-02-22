@@ -1,0 +1,102 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\shape\\Documents\\codebase\\sharedCode\\CyanManager\\tools\\CyanLauncherManager_\\CyanLauncher\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{004A3BF7-8084-4AD7-B622-473F6D7CE7F5}|CyanLauncher\\CyanLauncher.csproj|c:\\users\\shape\\documents\\codebase\\sharedcode\\cyanmanager\\tools\\cyanlaunchermanager_\\cyanlauncher\\cyanlauncher\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{004A3BF7-8084-4AD7-B622-473F6D7CE7F5}|CyanLauncher\\CyanLauncher.csproj|solutionrelative:cyanlauncher\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{004A3BF7-8084-4AD7-B622-473F6D7CE7F5}|CyanLauncher\\CyanLauncher.csproj|C:\\Users\\shape\\Documents\\codebase\\sharedCode\\CyanManager\\tools\\CyanLauncherManager_\\CyanLauncher\\cyanlauncher\\icon.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{004A3BF7-8084-4AD7-B622-473F6D7CE7F5}|CyanLauncher\\CyanLauncher.csproj|solutionrelative:cyanlauncher\\icon.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{004A3BF7-8084-4AD7-B622-473F6D7CE7F5}|CyanLauncher\\CyanLauncher.csproj|C:\\Users\\shape\\Documents\\codebase\\sharedCode\\CyanManager\\tools\\CyanLauncherManager_\\CyanLauncher\\cyanlauncher\\frontal.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{004A3BF7-8084-4AD7-B622-473F6D7CE7F5}|CyanLauncher\\CyanLauncher.csproj|solutionrelative:cyanlauncher\\frontal.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{004A3BF7-8084-4AD7-B622-473F6D7CE7F5}|CyanLauncher\\CyanLauncher.csproj|C:\\Users\\shape\\Documents\\codebase\\sharedCode\\CyanManager\\tools\\CyanLauncherManager_\\CyanLauncher\\cyanlauncher\\addicon.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{004A3BF7-8084-4AD7-B622-473F6D7CE7F5}|CyanLauncher\\CyanLauncher.csproj|solutionrelative:cyanlauncher\\addicon.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 7,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{3ae79031-e1bc-11d0-8f78-00a0c9110057}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{1c64b9c2-e352-428e-a56d-0ace190b99a6}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:128:0:{1fc202d4-d401-403c-9834-5b218574bb67}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{d78612c7-9962-4b83-95d9-268046dad23a}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "Frontal.cs",
+              "DocumentMoniker": "C:\\Users\\shape\\Documents\\codebase\\sharedCode\\CyanManager\\tools\\CyanLauncherManager_\\CyanLauncher\\CyanLauncher\\Frontal.cs",
+              "RelativeDocumentMoniker": "CyanLauncher\\Frontal.cs",
+              "ToolTip": "C:\\Users\\shape\\Documents\\codebase\\sharedCode\\CyanManager\\tools\\CyanLauncherManager_\\CyanLauncher\\CyanLauncher\\Frontal.cs",
+              "RelativeToolTip": "CyanLauncher\\Frontal.cs",
+              "ViewState": "AgIAALUBAAAAAAAAAADgv3UBAAAbAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-02-18T23:21:28.893Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "AddIcon.cs",
+              "DocumentMoniker": "C:\\Users\\shape\\Documents\\codebase\\sharedCode\\CyanManager\\tools\\CyanLauncherManager_\\CyanLauncher\\CyanLauncher\\AddIcon.cs",
+              "RelativeDocumentMoniker": "CyanLauncher\\AddIcon.cs",
+              "ToolTip": "C:\\Users\\shape\\Documents\\codebase\\sharedCode\\CyanManager\\tools\\CyanLauncherManager_\\CyanLauncher\\CyanLauncher\\AddIcon.cs",
+              "RelativeToolTip": "CyanLauncher\\AddIcon.cs",
+              "ViewState": "AgIAADQAAAAAAAAAAAAtwE8AAAAwAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-12T12:47:55.476Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "Icon.cs",
+              "DocumentMoniker": "C:\\Users\\shape\\Documents\\codebase\\sharedCode\\CyanManager\\tools\\CyanLauncherManager_\\CyanLauncher\\CyanLauncher\\Icon.cs",
+              "RelativeDocumentMoniker": "CyanLauncher\\Icon.cs",
+              "ToolTip": "C:\\Users\\shape\\Documents\\codebase\\sharedCode\\CyanManager\\tools\\CyanLauncherManager_\\CyanLauncher\\CyanLauncher\\Icon.cs",
+              "RelativeToolTip": "CyanLauncher\\Icon.cs",
+              "ViewState": "AgIAAA8BAAAAAAAAAAAWwB4BAAAVAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-12T12:48:10.068Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Program.cs",
+              "DocumentMoniker": "C:\\Users\\shape\\Documents\\codebase\\sharedCode\\CyanManager\\tools\\CyanLauncherManager_\\CyanLauncher\\CyanLauncher\\Program.cs",
+              "RelativeDocumentMoniker": "CyanLauncher\\Program.cs",
+              "ToolTip": "C:\\Users\\shape\\Documents\\codebase\\sharedCode\\CyanManager\\tools\\CyanLauncherManager_\\CyanLauncher\\CyanLauncher\\Program.cs",
+              "RelativeToolTip": "CyanLauncher\\Program.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABAAAABbAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-26T11:00:27.335Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
