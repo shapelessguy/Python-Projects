@@ -151,7 +151,7 @@ def switch_to_audio_device(device_name, icon):
     after = device.FriendlyName
     if after != before:
         print(f"Switch to {after}")
-        notify(title="Default Audio Device", message=f"Switch to: {after}", icon=icon)
+        notify(title="Default Audio Device", message=f"{after}", icon=icon)
 
 
 def switch_to_headphones(signal, verbose=False):

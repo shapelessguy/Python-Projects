@@ -3,7 +3,7 @@ import psutil
 import time
 import subprocess
 import json
-from plyer import notification
+import threading
 from datetime import datetime
 
 
@@ -20,6 +20,7 @@ SV_EXE_PATH = os.path.join(TOOLS_PATH, 'svcl.exe')
 MULTIMONITOR_FOLDER_PATH = os.path.join(TOOLS_PATH, "MultiMonitorTool")
 RVX_EXE_PATH = os.path.join(TOOLS_PATH, "3RVX_portable", "3RVX.exe")
 XM4_EXE_PATH = os.path.join(TOOLS_PATH, "Xm4Battery-5.11.14", "Xm4Battery", "bin", "Release", "net10.0-windows", "Xm4Battery.exe")
+NOTIFICATION_EXE_PATH = os.path.join(TOOLS_PATH, "Notifications", "Notifications", "bin", "Release", "net10.0-windows", "Notifications.exe")
 KEYBOARD_HOTKEYS_EXE = os.path.join(TOOLS_PATH, "KeyboardHotkeys", "KeyboardHotkeys", "bin", "Release", "net10.0-windows", "KeyboardHotkeys.exe")
 TIMER_EXE = os.path.join(TOOLS_PATH, "Timer", "Timer", "bin", "Release", "net10.0-windows", "Timer.exe")
 MULTIMONITOR_EXE_PATH = os.path.join(MULTIMONITOR_FOLDER_PATH, "MultiMonitorTool.exe")
@@ -62,17 +63,6 @@ def wait(signal, ms: int):
         break
 
 
-def pprint(*args, dt_format="%Y-%m-%d %H:%M:%S", **kwargs):
-    """
-    Prints messages with a timestamp.
-    All args are joined into a single string to avoid splitting.
-    """
-    timestamp = datetime.now().strftime(dt_format)
-    # Join all args with spaces into one string
-    message = " ".join(str(arg) for arg in args)
-    # print(f"[{timestamp}] {message}", **kwargs, flush=True)
-
-
 def manage_exe_execution(thread_manager, exe_path):
     signal = thread_manager.signal
     find_process_by_exe(exe_path, kill=False, relaunch=True, args=())
@@ -81,14 +71,13 @@ def manage_exe_execution(thread_manager, exe_path):
     find_process_by_exe(exe_path, kill=True, relaunch=False, args=())
 
 
+def launch_notification(icon_path, title, message, timeout_str):
+    subprocess.run([NOTIFICATION_EXE_PATH, icon_path, title, message, timeout_str], check=False)
+
+
 def notify(title, message, icon=None, timeout=2):
-    notification.notify(
-        title=title,
-        app_name="CyanSystemManager",
-        message=message,
-        app_icon=os.path.join(ICONS_FOLDER_PATH, icon) if icon else None,
-        timeout=timeout
-    )
+    icon_path = "" if not icon else os.path.join(ICONS_FOLDER_PATH, icon)
+    threading.Thread(target=launch_notification, args=(icon_path, title, message, str(timeout))).start()
 
 
 class Parameter:

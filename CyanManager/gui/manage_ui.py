@@ -49,7 +49,6 @@ def get_thread_status(signal):
         if json.dumps(status) != previous_t_state:
             previous_t_state = json.dumps(status)
             signal.ui_manager.execute("set_thread_status", status)
-            print(status)
         wait(signal, 500)
 
 

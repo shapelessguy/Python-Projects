@@ -1,0 +1,17 @@
+C:\Users\shape\Documents\codebase\sharedCode\CyanManager\tools\Notifications\Notifications\bin\Release\net10.0-windows\Notifications.exe
+C:\Users\shape\Documents\codebase\sharedCode\CyanManager\tools\Notifications\Notifications\bin\Release\net10.0-windows\Notifications.deps.json
+C:\Users\shape\Documents\codebase\sharedCode\CyanManager\tools\Notifications\Notifications\bin\Release\net10.0-windows\Notifications.runtimeconfig.json
+C:\Users\shape\Documents\codebase\sharedCode\CyanManager\tools\Notifications\Notifications\bin\Release\net10.0-windows\Notifications.dll
+C:\Users\shape\Documents\codebase\sharedCode\CyanManager\tools\Notifications\Notifications\bin\Release\net10.0-windows\Notifications.pdb
+C:\Users\shape\Documents\codebase\sharedCode\CyanManager\tools\Notifications\Notifications\obj\Release\net10.0-windows\Notifications.NotificationForm.resources
+C:\Users\shape\Documents\codebase\sharedCode\CyanManager\tools\Notifications\Notifications\obj\Release\net10.0-windows\Notifications.csproj.GenerateResource.cache
+C:\Users\shape\Documents\codebase\sharedCode\CyanManager\tools\Notifications\Notifications\obj\Release\net10.0-windows\Notifications.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\shape\Documents\codebase\sharedCode\CyanManager\tools\Notifications\Notifications\obj\Release\net10.0-windows\Notifications.AssemblyInfoInputs.cache
+C:\Users\shape\Documents\codebase\sharedCode\CyanManager\tools\Notifications\Notifications\obj\Release\net10.0-windows\Notifications.AssemblyInfo.cs
+C:\Users\shape\Documents\codebase\sharedCode\CyanManager\tools\Notifications\Notifications\obj\Release\net10.0-windows\Notifications.csproj.CoreCompileInputs.cache
+C:\Users\shape\Documents\codebase\sharedCode\CyanManager\tools\Notifications\Notifications\obj\Release\net10.0-windows\Notifications.sourcelink.json
+C:\Users\shape\Documents\codebase\sharedCode\CyanManager\tools\Notifications\Notifications\obj\Release\net10.0-windows\Notifications.dll
+C:\Users\shape\Documents\codebase\sharedCode\CyanManager\tools\Notifications\Notifications\obj\Release\net10.0-windows\refint\Notifications.dll
+C:\Users\shape\Documents\codebase\sharedCode\CyanManager\tools\Notifications\Notifications\obj\Release\net10.0-windows\Notifications.pdb
+C:\Users\shape\Documents\codebase\sharedCode\CyanManager\tools\Notifications\Notifications\obj\Release\net10.0-windows\Notifications.genruntimeconfig.cache
+C:\Users\shape\Documents\codebase\sharedCode\CyanManager\tools\Notifications\Notifications\obj\Release\net10.0-windows\ref\Notifications.dll
