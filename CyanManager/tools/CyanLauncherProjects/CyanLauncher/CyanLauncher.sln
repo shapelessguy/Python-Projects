@@ -1,9 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28307.779
+# Visual Studio Version 18
+VisualStudioVersion = 18.4.11513.90 insiders
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CyanLauncher", "CyanLauncher\CyanLauncher.csproj", "{004A3BF7-8084-4AD7-B622-473F6D7CE7F5}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CyanLauncher", "CyanLauncher.csproj", "{004A3BF7-8084-4AD7-B622-473F6D7CE7F5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -20,6 +20,6 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {060A1A16-E3FC-4A5F-A43D-5A7F122A5B59}
+		SolutionGuid = {E2954C78-B02C-42C6-8B1E-A4BA94D79FBD}
 	EndGlobalSection
 EndGlobal

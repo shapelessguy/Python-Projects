@@ -1,0 +1,37 @@
+[
+  {
+    "exe_path": "C:\\ProgramData\\Cyan\\CyanLauncher\\Browsers\\Browsers.exe",
+    "arguments": "hhhgh",
+    "name": "sdfdf",
+    "icon": "\\Icons\\0U7O0ZA4NY.ico",
+    "as_admin": false
+  },
+  {
+    "exe_path": "C:\\Users\\shape\\Documents\\Netflix.lnk",
+    "arguments": "",
+    "name": "Netflix",
+    "icon": "\\Icons\\NGYJXY69ZI.png",
+    "as_admin": false
+  },
+  {
+    "exe_path": "C:\\Program Files",
+    "arguments": "",
+    "name": "Program  FIles",
+    "icon": "\\Icons\\N6YO33MO89.png",
+    "as_admin": false
+  },
+  {
+    "exe_path": "python:C:\\Users\\shape\\Documents\\codebase\\sharedCode\\CyanManager\\main_logic.py",
+    "arguments": "",
+    "name": "dfggdfd",
+    "icon": "\\Icons\\WSXFXSLZ0X.png",
+    "as_admin": false
+  },
+  {
+    "exe_path": "chrome:C:\\Program Files\\Google\\Chrome\\Application\\chrome_proxy.exe",
+    "arguments": "--profile-directory=Default --app-id=ggjocahimgaohmigbfhghnlfcnjemagj",
+    "name": "Grok",
+    "icon": "\\Icons\\1IC183EHOH.png",
+    "as_admin": false
+  }
+]

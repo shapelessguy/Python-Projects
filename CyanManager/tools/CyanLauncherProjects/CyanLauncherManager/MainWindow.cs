@@ -2,14 +2,9 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Data;
 using System.Diagnostics;
 using System.Drawing;
-using System.Drawing.Imaging;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace CyanLauncherManager
@@ -17,7 +12,8 @@ namespace CyanLauncherManager
     public partial class MainWindow : Form
     {
         List<LApplication> all_applications = new List<LApplication>();
-        string cyanLauncher_corePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Launcher");
+        string cyanLauncher_mainPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"..\..\..\CyanLauncher");
+        string cyanLauncher_releasePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"..\..\..\CyanLauncher\bin\Release");
         string cyanLauncher_dataPath = "";
         static public NotifyIcon notifyIcon;
         static readonly IContainer componentsNotify = new Container();
@@ -38,8 +34,7 @@ namespace CyanLauncherManager
             if (!Directory.Exists(cyanLauncher_dataPath)) Directory.CreateDirectory(cyanLauncher_dataPath);
 
             string solution_path = getParent(Environment.CurrentDirectory, 2);
-            EmbedCore(Path.Combine(solution_path, "CyanLauncher", "CyanLauncher", "bin", "Release"));
-            if (!Directory.Exists(cyanLauncher_corePath))
+            if (!Directory.Exists(cyanLauncher_releasePath))
             {
                 MessageBox.Show("Launcher folder doesn't exist");
                 return;
@@ -48,7 +43,7 @@ namespace CyanLauncherManager
             if (!Directory.Exists(cyanLauncher_iconsPath))
             {
                 Directory.CreateDirectory(cyanLauncher_iconsPath);
-                File.Copy(Path.Combine(cyanLauncher_corePath, "Icon.ico"), Path.Combine(cyanLauncher_iconsPath, "default.ico"));
+                File.Copy(Path.Combine(cyanLauncher_mainPath, "Icon.ico"), Path.Combine(cyanLauncher_iconsPath, "default.ico"));
             }
             ResetPanel();
             WindowState = FormWindowState.Minimized;
@@ -90,47 +85,6 @@ namespace CyanLauncherManager
                 Visible = false;
                 e.Cancel = true;
             } 
-        }
-
-        private void Copy(string path1, string path2, bool force)
-        {
-            Console.WriteLine("Coping: " + path1 + "  to  " + path2);
-            bool isDir = true;
-            if (File.Exists(path1)) isDir = false;
-            if (force)
-            {
-                if (isDir && Directory.Exists(path2)) Directory.Delete(path2, true);
-                else if (File.Exists(path2)) File.Delete(path2);
-            }
-            Console.WriteLine(path1 + "   " + isDir);
-            if (isDir) CopyFilesRecursively(path1, path2);
-            else File.Copy(path1, path2);
-        }
-        private static void CopyFilesRecursively(string sourcePath, string targetPath)
-        {
-            //Now Create all of the directories
-            Console.WriteLine(sourcePath);
-            foreach (string dirPath in Directory.GetDirectories(sourcePath, "*", SearchOption.AllDirectories))
-            {
-                Directory.CreateDirectory(dirPath.Replace(sourcePath, targetPath));
-            }
-
-            //Copy all the files & Replaces any files with the same name
-            foreach (string newPath in Directory.GetFiles(sourcePath, "*.*", SearchOption.AllDirectories))
-            {
-                File.Copy(newPath, newPath.Replace(sourcePath, targetPath), true);
-            }
-        }
-        private void EmbedCore(string release_path)
-        {
-            string main_dir = Path.GetDirectoryName(Path.GetDirectoryName(release_path));
-            if (Directory.Exists(release_path))
-            {
-                if (!Directory.Exists(cyanLauncher_corePath)) Directory.CreateDirectory(cyanLauncher_corePath);
-                Copy(Path.Combine(release_path, "CyanLauncher.exe"), Path.Combine(cyanLauncher_corePath, "CyanLauncher.exe"), true);
-                Copy(Path.Combine(release_path, "Control.Draggable.dll"), Path.Combine(cyanLauncher_corePath, "Control.Draggable.dll"), true);
-                Copy(Path.Combine(main_dir, "Icon.ico"), Path.Combine(cyanLauncher_corePath, "Icon.ico"), true);
-            }
         }
 
         private void ResetPanel()
@@ -403,12 +357,20 @@ namespace CyanLauncherManager
                 string id = "default";
                 string new_icon_path = Path.Combine(cyanLauncher_dataPath, "__Icons__", id + ".ico");
                 string reference_path = Path.Combine(cyanLauncher_dataPath, newname, newname + ".exe");
-                string dll_reference_path = Path.Combine(cyanLauncher_dataPath, newname, "Control.Draggable.dll");
                 string loc_path = Path.Combine(cyanLauncher_dataPath, newname, newname + ".lnk");
 
                 Directory.CreateDirectory(Path.Combine(cyanLauncher_dataPath, newname));
-                File.Copy(Path.Combine(cyanLauncher_corePath, "CyanLauncher.exe"), reference_path);
-                File.Copy(Path.Combine(cyanLauncher_corePath, "Control.Draggable.dll"), dll_reference_path);
+                File.Copy(Path.Combine(cyanLauncher_releasePath, "CyanLauncher.exe"), reference_path);
+
+                string sourceFolder = cyanLauncher_releasePath;
+                string targetFolder = Path.Combine(cyanLauncher_dataPath, newname);
+                foreach (string dllPath in Directory.GetFiles(sourceFolder, "*.dll"))
+                {
+                    string fileName = Path.GetFileName(dllPath);
+                    string destPath = Path.Combine(targetFolder, fileName);
+                    File.Copy(dllPath, destPath, overwrite: true);
+                }
+
                 using (StreamWriter stream = new StreamWriter(Path.Combine(cyanLauncher_dataPath, newname, "id.txt"))) stream.Write(id);
                 new CreateLink(reference_path, loc_path, new_icon_path);
 
@@ -422,8 +384,17 @@ namespace CyanLauncherManager
             {
                 Program.KillProc(directory);
                 File.Delete(Path.Combine(cyanLauncher_dataPath, directory, directory + ".exe"));
-                File.Copy(Path.Combine(cyanLauncher_corePath, "CyanLauncher.exe"), 
+                File.Copy(Path.Combine(cyanLauncher_releasePath, "CyanLauncher.exe"), 
                     Path.Combine(cyanLauncher_dataPath, directory, directory + ".exe"));
+
+                string sourceFolder = cyanLauncher_releasePath;
+                string targetFolder = Path.Combine(cyanLauncher_dataPath, directory);
+                foreach (string dllPath in Directory.GetFiles(sourceFolder, "*.dll"))
+                {
+                    string fileName = Path.GetFileName(dllPath);
+                    string destPath = Path.Combine(targetFolder, fileName);
+                    File.Copy(dllPath, destPath, overwrite: true);
+                }
                 Console.WriteLine("File " + Path.Combine(cyanLauncher_dataPath, directory, directory + ".exe") + " updated.");
             }
             MessageBox.Show("Launchers have been updated!");

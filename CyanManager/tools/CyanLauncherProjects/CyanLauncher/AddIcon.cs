@@ -73,9 +73,9 @@ namespace CyanLauncher
                 imagePath = destFile;
             }
 
-            string as_admin = "true";
-            if (!checkBox1.Checked && checkBox1.AutoCheck) as_admin = "false";
-            Icon icon = new Icon(textBox1.Text, textBox2.Text, imagePath, as_admin);
+            bool as_admin = true;
+            if (!checkBox1.Checked && checkBox1.AutoCheck) as_admin = false;
+            Icon icon = new Icon(textBox1.Text, textBox3.Text, textBox2.Text, imagePath, as_admin);
             Program.frontal.AddIcon_(icon, edit);
             Console.WriteLine("New icon added");
             try
@@ -89,7 +89,7 @@ namespace CyanLauncher
         {
             OpenFileDialog dialog = new OpenFileDialog();
             dialog.InitialDirectory = Directory.GetParent(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86)).FullName;
-            string filter = "All Files|*.*|File (.exe)|*.exe";
+            string filter = "All Files|*.*|File (.exe)|*.exe|File (.py)|*.py";
             dialog.Filter = filter;
             dialog.DereferenceLinks = false;
 
@@ -97,13 +97,13 @@ namespace CyanLauncher
             dialog.Multiselect = false;
             if (dialog.ShowDialog() == DialogResult.OK)
             {
-                if(Path.GetExtension(dialog.FileName) == ".exe" || Path.GetExtension(dialog.FileName).Equals(".lnk"))
+                if (Path.GetExtension(dialog.FileName) == ".exe" || Path.GetExtension(dialog.FileName).Equals(".lnk"))
                 {
-                    try
-                    {
-                        textBox1.Text = dialog.FileName;
-                    }
-                    catch (Exception) { }
+                    textBox1.Text = dialog.FileName;
+                }
+                else if (Path.GetExtension(dialog.FileName) == ".py")
+                {
+                    textBox1.Text = "python:" + dialog.FileName;
                 }
             }
         }
@@ -117,6 +117,7 @@ namespace CyanLauncher
         {
             bool output = true;
             string errors = "";
+            string exeText = Program.GetExeText(textBox1.Text);
             if (textBox2.Text.Length > 23)
             {
                 string message = "The application/folder name must contain less then 24 characters";
@@ -124,14 +125,14 @@ namespace CyanLauncher
                 errors += message + ", ";
                 output = false;
             }
-            if (!File.Exists(textBox1.Text) && !Directory.Exists(textBox1.Text))
+            if (!File.Exists(exeText) && !Directory.Exists(exeText))
             {
-                string message = textBox1.Text + " application/folder doesn't exist!";
+                string message = exeText + " application/folder doesn't exist!";
                 if (showMessage) MessageBox.Show(message);
                 errors += message + ", ";
                 output = false;
             }
-            if (textBox1.Text == "" || textBox2.Text == "" || imagePath == "")
+            if (exeText == "" || textBox2.Text == "" || imagePath == "")
             {
                 string message = "Please fill out every field in this form.";
                 if (showMessage) MessageBox.Show(message);
@@ -181,13 +182,14 @@ namespace CyanLauncher
 
         private void changePathColor()
         {
-            if (File.Exists(textBox1.Text) || Directory.Exists(textBox1.Text))
+            string exeText = Program.GetExeText(textBox1.Text);
+
+            if (File.Exists(exeText) || Directory.Exists(exeText))
             {
                 label1.ForeColor = Color.Green;
-                if (Path.GetExtension(textBox1.Text) == ".lnk") { setCheckBox(false); }
-                else setCheckBox(true);
+                setCheckBox(true);
             }
-            else if (textBox1.Text == "")
+            else if (exeText == "")
             {
                 label1.ForeColor = Color.LightSeaGreen;
                 setCheckBox(true);

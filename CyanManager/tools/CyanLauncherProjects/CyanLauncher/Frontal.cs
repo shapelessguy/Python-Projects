@@ -18,7 +18,7 @@ namespace CyanLauncher
         private int maxIcon_on_row = 0;
         private int maxIcon_on_col = 0;
         private int offsetX = 10;
-        public ChangeDimensions change_dim_window = null;
+        public Options change_dim_window = null;
         public AddIcon add_icon_window = null;
         private ContextMenuStrip contextMenuStrip;
         private ToolStripMenuItem addIcon;
@@ -124,12 +124,6 @@ namespace CyanLauncher
             ContextMenuStrip = contextMenuStrip;
             CreateIcons();
 
-            cleaner = new Timer()
-            {
-                Enabled = true,
-                Interval = 5000,
-            };
-            cleaner.Tick += Clean;
             calls = new Timer() { Enabled = true, Interval = 60 };
             calls.Tick += (o, e) =>
             {
@@ -165,12 +159,12 @@ namespace CyanLauncher
             slow = new Timer() { Enabled = true, Interval = 200 };
             slow.Tick += (o, e) =>
             {
-                if (!AddIcon.active && !ChangeDimensions.active && !TopMost) { TopMost = true; }
-                else if ((AddIcon.active && !add_icon_window.TopMost) || (ChangeDimensions.active && !change_dim_window.TopMost))
+                if (!AddIcon.active && !Options.active && !TopMost) { TopMost = true; }
+                else if ((AddIcon.active && !add_icon_window.TopMost) || (Options.active && !change_dim_window.TopMost))
                 {
                     TopMost = false;
                     if (AddIcon.active) { SetForegroundWindow(add_icon_window.Handle); add_icon_window.TopMost = true; }
-                    if (ChangeDimensions.active) { SetForegroundWindow(change_dim_window.Handle); change_dim_window.TopMost = true; }
+                    if (Options.active) { SetForegroundWindow(change_dim_window.Handle); change_dim_window.TopMost = true; }
                 }
 
                 if (Program.current_location != Location && WindowState != FormWindowState.Minimized)
@@ -194,16 +188,6 @@ namespace CyanLauncher
             int values_window = 20;  // percentage
             Opacity = (double)((float)(level + 1) / 1000) * values_window + (double)(100 - values_window) / 100;
         }
-
-        private bool isLink(string file)
-        {
-            if (file.Contains(".lnk")) return true;
-            return false;
-        }
-        /*protected override void SetVisibleCore(bool value)
-        {
-            base.SetVisibleCore(allowshowdisplay ? value : allowshowdisplay);
-        }*/
 
         public void SetDimensions(Size dim)
         {
@@ -231,44 +215,9 @@ namespace CyanLauncher
 
         private void changeDimension_Click(object sender, EventArgs e)
         {
-            if (ChangeDimensions.active) return;
-            change_dim_window = new ChangeDimensions(this);
+            if (Options.active) return;
+            change_dim_window = new Options(this);
             change_dim_window.Show();
-        }
-
-        private void Clean(object sender, EventArgs e)
-        {
-            return;
-            int iconsRemoved = 0;
-            for (int i = 0; i < Program.INFO.Count; i++)
-            {
-                if(!System.IO.File.Exists(Program.INFO[i].exepath) && !System.IO.Directory.Exists(Program.INFO[i].exepath))
-                {
-                    if(Program.INFO[i].exepath == "")
-                    {
-                        Program.INFO.RemoveAt(i);
-                        Program.Save();
-                    }
-                    else
-                    {
-                        iconsRemoved += 1;
-                        foreach (Icon ico in iconList)
-                        {
-                            if (ico.exePath == Program.INFO[i].exepath)
-                            {
-                                panel1.Controls.Remove(ico);
-                                iconList.Remove(ico);
-                                Program.INFO.RemoveAt(i);
-                                Program.Save();
-                                break;
-                            }
-
-                        }
-                    }
-
-                }
-            }
-            if(iconsRemoved != 0) IconResize();
         }
 
         private void CreateIcons()
@@ -277,9 +226,7 @@ namespace CyanLauncher
             {
                 try
                 {
-                    iconList.Add(new Icon(Program.INFO[i].exepath, Program.INFO[i].name,
-                        Program.INFO[i].imgpath, Program.INFO[i].as_admin));
-
+                    iconList.Add(new Icon(Program.INFO[i].exepath, Program.INFO[i].arguments, Program.INFO[i].name, Program.INFO[i].imgpath, Program.INFO[i].as_admin));
                 }
                 catch (Exception e) { Console.WriteLine("EXCEPTION: "+ e.Message); }
             }
@@ -308,7 +255,8 @@ namespace CyanLauncher
             add_icon_window.imagePath = icon.imgPath;
             add_icon_window.textBox1.Text = icon.exePath;
             add_icon_window.textBox2.Text = icon.name;
-            add_icon_window.checkBox1.Checked = icon.as_admin_bool;
+            add_icon_window.textBox3.Text = icon.arguments;
+            add_icon_window.checkBox1.Checked = icon.as_admin;
             add_icon_window.Show();
         }
 
@@ -370,7 +318,7 @@ namespace CyanLauncher
                 }
                 index += 1;
             }
-            Program.INFO.Insert(index, new Info(icon.exePath, icon.name, icon.imgPath, icon.as_admin));
+            Program.INFO.Insert(index, new Info(icon.exePath, icon.arguments, icon.name, icon.imgPath, icon.as_admin));
             Program.Save();
             iconList.Insert(index, icon);
             panel1.Controls.Add(icon);
@@ -406,6 +354,7 @@ namespace CyanLauncher
             {
                 Icon icon = SortedIcon[i];
                 Program.INFO[i].exepath = icon.exePath;
+                Program.INFO[i].arguments = icon.arguments;
                 Program.INFO[i].name = icon.name;
                 Program.INFO[i].imgpath = icon.imgPath;
                 Program.INFO[i].as_admin = icon.as_admin;
@@ -445,10 +394,6 @@ namespace CyanLauncher
             }
             disableResizing = false;
         }
-
-        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
-        static extern uint RegisterWindowMessage(string lpString);
-        static uint MESSAGE_ID = RegisterWindowMessage("MyUniqueMessageIdentifier");
 
         protected override void WndProc(ref Message message)
         {

@@ -6,20 +6,18 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Runtime.Remoting.Messaging;
 using System.Windows.Forms;
 
 namespace CyanLauncherManager
 {
     static class Program
     {
-        private static string appGuid = "c0a76b5a-12ab-45c5-b9d9-d693faa6e7b9";
         public static bool initial_call = false;
+        private static string appGuid = "c0a76b5a-12ab-45c5-b9d9-d693faa6e7b9";
+        static public string tempDataPathAdmin = Path.Combine(@"C:\", "Temp", "launchFileAdmin.txt");
         static public string tempDataPath = Path.Combine(@"C:\", "Temp", "launchFile.txt");
-        //static private Timer activation = new Timer() { Interval=20, Enabled=true};
-        static bool to_close = false;
-        /// <summary>
-        /// Punto di ingresso principale dell'applicazione.
-        /// </summary>
+
         [STAThread]
         static void Main()
         {
@@ -34,15 +32,27 @@ namespace CyanLauncherManager
                 string targetExe = Path.GetFullPath(relativePath);
                 if (!File.Exists(targetExe))
                 {
-                    Debug.WriteLine($"Target not found: {targetExe}");
-                    Debug.WriteLine("Checked path: " + relativePath);
+                    Console.WriteLine($"Target not found: {targetExe}");
                     return;
                 }
 
+                string app_id_admin = "c0a76b5a-12ab-45c5-b9d9-d693faa6e9b9";
+                var psi_admin = new ProcessStartInfo
+                {
+                    FileName = targetExe,
+                    Arguments = $"\"{app_id_admin}\" \"{tempDataPathAdmin}\"",
+                    Verb = "runas",
+                    UseShellExecute = true,
+                    CreateNoWindow = true,
+                    WindowStyle = ProcessWindowStyle.Hidden
+                };
+                Process.Start(psi_admin);
+
+                string app_id = "c0a76b5a-12ab-45c5-b9d9-d693faa6e9a9";
                 var psi = new ProcessStartInfo
                 {
                     FileName = targetExe,
-                    Verb = "runas",
+                    Arguments = $"\"{app_id}\" \"{tempDataPath}\"",
                     UseShellExecute = true,
                     CreateNoWindow = true,
                     WindowStyle = ProcessWindowStyle.Hidden
@@ -58,10 +68,16 @@ namespace CyanLauncherManager
                     Console.WriteLine($"Error: {ex.Message}");
                 }
 
-                //activation.Tick += (o, e) => { };
-                Application.EnableVisualStyles();
-                Application.SetCompatibleTextRenderingDefault(false);
-                Application.Run(new MainWindow());
+                try
+                {
+                    Application.EnableVisualStyles();
+                    Application.SetCompatibleTextRenderingDefault(false);
+                    Application.Run(new MainWindow());
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine($"Application crashed: {e}");
+                }
             }
         }
 

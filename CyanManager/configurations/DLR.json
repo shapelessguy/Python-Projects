@@ -12,9 +12,9 @@
                 "win_state": "normal",
                 "order": false
             },
-            "proc_name": "CyanLauncherManagerAdmin.exe",
+            "proc_name": "CyanLauncherManager.exe",
             "proc_type": "exe",
-            "path": "C:/Users/cian_cl/Documents/TOPICS/shapeCode/clm_admin/CyanLauncherManagerAdmin.exe",
+            "path": "C:/Users/cian_cl/Documents/TOPICS/sharedCode/CyanManagerProjects/CyanLauncherManager/bin/Release/CyanLauncherManager.exe",
             "arguments": "",
             "runas": true,
             "startup": true

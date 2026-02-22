@@ -1,23 +1,21 @@
-﻿using Microsoft.Win32;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Reflection;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace CyanAdminLauncher
 {
     internal class Program
     {
-        private static string appGuid = "c0a76b5a-12ab-45c5-b9d9-d693faa6e9b9";
-        static public string tempDataPath = Path.Combine(@"C:\", "Temp", "launchFile.txt");
+        private static string appGuid = "";
+        static public string tempDataPath = "";
         static void Main(string[] args)
         {
+            if (args.Length > 0) appGuid = args[0];
+            if (args.Length > 1) tempDataPath = args[1];
+            if (appGuid == "" || tempDataPath == "") return;
+
             string exePath = Assembly.GetEntryAssembly().Location;
             bool createdNew;
             new Mutex(true, "Global\\" + appGuid, out createdNew);
@@ -42,12 +40,12 @@ namespace CyanAdminLauncher
                 {
                     if (File.Exists(tempDataPath))
                     {
-                        string launchPath = File.ReadAllText(tempDataPath).Trim();
+                        string commandLine = File.ReadAllText(tempDataPath).Trim();
                         File.Delete(tempDataPath);
 
-                        if (!string.IsNullOrWhiteSpace(launchPath))
+                        if (!string.IsNullOrWhiteSpace(commandLine))
                         {
-                            LaunchTarget(launchPath);
+                            LaunchTarget(commandLine);
                             Console.WriteLine("Pending launch processed and flag removed.");
                         }
                     }
@@ -60,32 +58,43 @@ namespace CyanAdminLauncher
             }
         }
 
-        private static void LaunchTarget(string exePath)
+        private static void LaunchTarget(string commandLine)
         {
-            if (!File.Exists(exePath))
-            {
-                Console.WriteLine("Target not found: " + exePath);
-                return;
-            }
+            string trimmed = commandLine.Trim();
+            string exe;
+            string args = null;
 
-            Console.WriteLine("Launching target: " + exePath);
+            if (trimmed.StartsWith("\""))
+            {
+                int closingQuote = trimmed.IndexOf('"', 1);
+                if (closingQuote == -1)
+                {
+                    exe = trimmed;
+                }
+                else
+                {
+                    exe = trimmed.Substring(1, closingQuote - 1);
+                    string rest = trimmed.Substring(closingQuote + 1).Trim();
+                    if (!string.IsNullOrEmpty(rest))
+                        args = rest;
+                }
+            }
+            else
+            {
+                var parts = trimmed.Split(new[] { ' ' }, 2, StringSplitOptions.RemoveEmptyEntries);
+                exe = parts[0];
+                if (parts.Length > 1) args = parts[1];
+            }
 
             var psi = new ProcessStartInfo
             {
-                FileName = exePath,
+                FileName = exe,
+                Arguments = args,
                 UseShellExecute = true,
-                WorkingDirectory = Path.GetDirectoryName(exePath),
-                WindowStyle = ProcessWindowStyle.Normal
+                CreateNoWindow = true,
             };
 
-            try
-            {
-                Process.Start(psi);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Launch failed: " + ex.Message);
-            }
+            Process.Start(psi);
         }
     }
 }

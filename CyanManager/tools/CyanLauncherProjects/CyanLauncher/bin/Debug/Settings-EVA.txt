@@ -1,8 +1,0 @@
-dimensions|^_^|5;2
-iconSize|^_^|260;260
-location|^_^|-1653;477
-opacity|^_^|8
-allowsDrag|^_^|True
-centerSpawn|^_^|True
-vanish|^_^|True
-canMove|^_^|False

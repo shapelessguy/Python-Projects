@@ -1,16 +1,9 @@
-﻿using Microsoft.Win32;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
+﻿using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.Drawing.Text;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace CyanLauncher
@@ -18,16 +11,15 @@ namespace CyanLauncher
     public class Icon : Panel
     {
         public string exePath = "";
+        public string arguments = "";
         public string name = "";
         public string imgPath = "";
-        public string as_admin = "false";
-        public bool as_admin_bool = false;
+        public bool as_admin = false;
         public bool notFound = false;
         public string currentSizeStr = "small";
         public PictureBox picture;
         public Bitmap pic;
-        Bitmap pic_big;
-        //ToolTip tooltip = new ToolTip();
+        public Bitmap pic_big;
         private ContextMenuStrip contextMenuStrip;
         private ToolStripMenuItem editIcon;
         private ToolStripMenuItem removeIcon;
@@ -54,7 +46,7 @@ namespace CyanLauncher
             }
         }
 
-        public Icon(string exePath, string name, string imgPath, string as_admin)
+        public Icon(string exePath, string arguments, string name, string imgPath, bool as_admin)
         {
             if (mouseTracker == null)
             {
@@ -64,11 +56,12 @@ namespace CyanLauncher
                 mouseTracker.Start();
             }
             this.exePath = exePath;
+            this.arguments = arguments;
             this.name = name;
             this.imgPath = imgPath;
             this.as_admin = as_admin;
-            if (as_admin == "true") this.as_admin_bool = true;
-            if (!File.Exists(exePath) && !Directory.Exists(exePath)) notFound = true;
+            string exeText = Program.GetExeText(exePath);
+            if (!File.Exists(exeText) && !Directory.Exists(exeText)) notFound = true;
             RefreshImg();
             BackgroundImageLayout = ImageLayout.Center;
             picture = new PictureBox()
@@ -76,12 +69,9 @@ namespace CyanLauncher
                 Image = System.Drawing.Bitmap.FromFile(imgPath),
                 SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage,
             };
-            //tooltip.Active = true;
-            //tooltip.SetToolTip(this, name);
             SizeChanged += (o, e) => {
                 picture.Size = Size;
             };
-            //Controls.Add(picture);
             MouseDown += (o, e) => {
                 BringToFront();
                 prevPos = Program.frontal.PointToClient(MousePosition);
@@ -123,24 +113,17 @@ namespace CyanLauncher
             };
             removeIcon.Click += new System.EventHandler(RemoveIcon_Click);
 
-            if (Path.GetExtension(exePath) != ".lnk")
+            Image admin_image = Properties.Resources.admin;
+            if (as_admin) admin_image = Properties.Resources.admin_no;
+            run_otherWay = new ToolStripMenuItem
             {
-                Image admin_image = Properties.Resources.admin;
-                if (as_admin_bool) admin_image = Properties.Resources.admin_no;
-                run_otherWay = new ToolStripMenuItem
-                {
-                    Size = new System.Drawing.Size(140, 30),
-                    Text = "Run as administrator",
-                    Image = admin_image
-                };
-                if (as_admin_bool) run_otherWay.Text = "Run without admin privileges";
-                run_otherWay.Click += new EventHandler(Run_otherWay_Click);
-                contextMenuStrip.Items.AddRange(new ToolStripItem[] { editIcon, run_otherWay, removeIcon });
-            }
-            else
-            {
-                contextMenuStrip.Items.AddRange(new ToolStripItem[] { editIcon, removeIcon });
-            }
+                Size = new System.Drawing.Size(140, 30),
+                Text = "Run as administrator",
+                Image = admin_image
+            };
+            if (as_admin) run_otherWay.Text = "Run without admin privileges";
+            run_otherWay.Click += new EventHandler(Run_otherWay_Click);
+            contextMenuStrip.Items.AddRange(new ToolStripItem[] { editIcon, run_otherWay, removeIcon });
             ContextMenuStrip = contextMenuStrip;
         }
 
@@ -167,12 +150,12 @@ namespace CyanLauncher
             format.Alignment = StringAlignment.Center;
             format.LineAlignment = StringAlignment.Far;
             p.AddString(
-                "-NotFound-",             // text to draw
-                FontFamily.GenericSansSerif,  // or any other font family
-                (int)FontStyle.Bold,      // font style (bold, italic, etc.)
-                fontSize,       // em size
+                "-NotFound-",
+                FontFamily.GenericSansSerif,
+                (int)FontStyle.Bold,
+                fontSize,
                 new Rectangle(0, (int)((float)height / 100 * 30), width, (int)((float)height / 100 * 40)),
-                format);          // set options here (e.g. center alignment)
+                format);
             g.InterpolationMode = InterpolationMode.High;
             g.SmoothingMode = SmoothingMode.HighQuality;
             g.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
@@ -180,15 +163,29 @@ namespace CyanLauncher
             Pen pen = new Pen(Brushes.White);
             pen.Width = 5.0f;
             g.DrawPath(pen, p);
-            g.FillPath(Brushes.Red, p); //if you want it filled as well
+            g.FillPath(Brushes.Red, p);
+        }
+
+        
+        private void addFlags(Graphics g, int width, int height)
+        {
+            int flag_length = (int)((float)width * 0.2);
+            Image image = null;
+            if (Path.GetExtension(exePath) == ".lnk") image = Properties.Resources.link;
+            else if (Directory.Exists(exePath)) image = Properties.Resources.folder;
+            else if (exePath.StartsWith("python:")) image = Properties.Resources.python;
+            else if (exePath.StartsWith("chrome:")) image = Properties.Resources.chrome;
+            if (image != null)
+            {
+                g.DrawImage(image, 0, height - flag_length, flag_length, flag_length);
+            }
         }
 
         private void addAdmin(Graphics g, int width, int height)
         {
-            int admin_lenght = (int)((float)width * 0.4);
+            int flag_length = (int)((float)width * 0.4);
             Image image = Properties.Resources.admin;
-            if (Path.GetExtension(exePath) == ".lnk") image = Properties.Resources.link;
-            g.DrawImage(image, width - admin_lenght, 0, admin_lenght, admin_lenght);
+            g.DrawImage(image, width - flag_length, 0, flag_length, flag_length);
         }
 
         public void SetSize(string size)
@@ -205,17 +202,21 @@ namespace CyanLauncher
                 BackgroundImage = pic_big;
                 using (Graphics g = Graphics.FromImage(BackgroundImage))
                 {
+                    addFlags(g, new_width, new_height);
+                    if (as_admin) addAdmin(g, new_width, new_height);
+                    if (notFound) addNotFound(g, new_width, new_height);
+
                     GraphicsPath p = new GraphicsPath();
                     StringFormat format = new StringFormat(StringFormatFlags.FitBlackBox);
                     format.Alignment = StringAlignment.Center;
                     format.LineAlignment = StringAlignment.Far;
                     p.AddString(
-                        name,             // text to draw
-                        FontFamily.GenericSansSerif,  // or any other font family
-                        (int)FontStyle.Bold,      // font style (bold, italic, etc.)
-                        fontSize,       // em size
-                        new Rectangle(0, (int)((float)new_height / 100 * 70), new_width, (int)((float)new_height / 100 * 30)),  // location where to draw text
-                        format);          // set options here (e.g. center alignment)
+                        name,
+                        FontFamily.GenericSansSerif,
+                        (int)FontStyle.Bold,
+                        fontSize,
+                        new Rectangle(0, (int)((float)new_height / 100 * 70), new_width, (int)((float)new_height / 100 * 30)),
+                        format);
                     g.InterpolationMode = InterpolationMode.High;
                     g.SmoothingMode = SmoothingMode.HighQuality;
                     g.TextRenderingHint = TextRenderingHint.AntiAliasGridFit; 
@@ -223,10 +224,7 @@ namespace CyanLauncher
                     Pen pen = new Pen(Brushes.Black);
                     pen.Width = 4.0f;
                     g.DrawPath(pen, p);
-                    g.FillPath(Brushes.White, p); //if you want it filled as well
-
-                    if (as_admin_bool) addAdmin(g, new_width, new_height);
-                    if (notFound) addNotFound(g, new_width, new_height);
+                    g.FillPath(Brushes.White, p);
                 }
             }
             else
@@ -238,7 +236,8 @@ namespace CyanLauncher
                 BackgroundImage = pic;
                 using (Graphics g = Graphics.FromImage(BackgroundImage))
                 {
-                    if (as_admin_bool) addAdmin(g, Program.iconSize.Width, Program.iconSize.Height);
+                    addFlags(g, Program.iconSize.Width, Program.iconSize.Height);
+                    if (as_admin) addAdmin(g, Program.iconSize.Width, Program.iconSize.Height);
                     if (notFound) addNotFound(g, Program.iconSize.Width, Program.iconSize.Height);
                 }
             }
@@ -259,67 +258,39 @@ namespace CyanLauncher
             Mouse_Click(false);
         }
 
+        private void SendToLauncher(string executableString, bool as_admin)
+        {
+            string folder = Program.tempDataPath;
+            if (as_admin) folder = Program.tempDataPathAdmin;
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(folder));
+                File.WriteAllText(folder, executableString);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error: {ex.Message}");
+            }
+
+        }
+
         private void Mouse_Click(bool left)
         {
-            if (Directory.Exists(exePath))
-            {
-                Console.WriteLine("Executing '" + exePath + "' from explorer.exe");
-                Process.Start("explorer.exe", exePath);
-            }
+            string exeText = Program.GetExeText(exePath);
+            string exeType = Program.GetExeType(exePath);
+            if (exeType == "folder") SendToLauncher($"explorer.exe \"{exeText}\"", false);
             else
             {
-                bool aus = as_admin_bool;
-                if (!left)
-                {
-                    if (aus == true) aus = false; else aus = true;
-                }
-                if (!File.Exists(exePath))
+                bool ad = as_admin;
+                if (!left) ad = !ad;
+                if (!File.Exists(exeText))
                 {
                     MessageBox.Show("File or directory not found!");
                     return;
                 }
 
-                //const string REG_PATH = @"SOFTWARE\CyanTools\Launcher";
-                //const string REG_VALUE_NAME = "LaunchPending";
-                if (aus)
-                {
-                    try
-                    {
-                        Directory.CreateDirectory(Path.GetDirectoryName(Program.tempDataPath));
-                        File.WriteAllText(Program.tempDataPath, exePath);
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Error: {ex.Message}");
-                    }
-                    //try
-                    //{
-                    //    using (RegistryKey key = Registry.LocalMachine.CreateSubKey(REG_PATH))
-                    //    {
-                    //        if (key != null)
-                    //        {
-                    //            key.SetValue(REG_VALUE_NAME, exePath);
-                    //            Console.WriteLine("Launch flag written to registry.");
-                    //        }
-                    //    }
-                    //}
-                    //catch (Exception ex)
-                    //{
-                    //    Console.WriteLine("Failed to write registry flag: " + ex.Message);
-                    //}
-                }
-                else { 
-                    Console.WriteLine("Executing '" + exePath + "' as invoker");
-                    Process process = new Process()
-                    {
-                        StartInfo = new ProcessStartInfo(exePath)
-                        {
-                            WindowStyle = ProcessWindowStyle.Normal,
-                            WorkingDirectory = Path.GetDirectoryName(exePath)
-                        }
-                    };
-                    process.Start();
-                }
+                if (exeType == "exe") SendToLauncher($"\"{exeText}\" " + arguments, ad);
+                else if (exeType == "python") SendToLauncher($"python \"{exeText}\" " + arguments, ad);
             }
 
             try
@@ -336,11 +307,7 @@ namespace CyanLauncher
             try
             {
                 if (dest_path == "") dest_path = image_path;
-                //StreamReader streamReader = new StreamReader(image_path);
-                //Bitmap btm = (Bitmap)Bitmap.FromStream(streamReader.BaseStream);
-                //streamReader.Close();
                 Bitmap btm = new Bitmap(image_path);
-
                 btm = new Bitmap(btm, new Size(width, height));
                 btm.Save(dest_path, ImageFormat.Icon);
             }
@@ -349,7 +316,7 @@ namespace CyanLauncher
 
         public void Print()
         {
-            Console.WriteLine("Path: " + exePath + ", name: " + name + ", imgPath: " + imgPath);
+            Console.WriteLine("Path: " + exePath + ", args: " + arguments + ", name: " + name + ", imgPath: " + imgPath);
         }
     }
 }

@@ -52,7 +52,7 @@
             },
             "proc_name": "CyanLauncherManager.exe",
             "proc_type": "exe",
-            "path": "c:/Users/shape/Documents/codebase/sharedCode/CyanManager/tools/CyanLauncherManager/bin/Release/CyanLauncherManager.exe",
+            "path": "c:/Users/shape/Documents/codebase/sharedCode/CyanManager/tools/CyanLauncherProjects/CyanLauncherManager/bin/Release/CyanLauncherManager.exe",
             "arguments": "",
             "runas": false,
             "startup": true

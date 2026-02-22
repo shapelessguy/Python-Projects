@@ -5,8 +5,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
-using System.Threading.Tasks;
+using System.Text.Json;
 using System.Windows.Forms;
 
 namespace CyanLauncher
@@ -14,6 +13,7 @@ namespace CyanLauncher
     static class Program
     {
         static public Frontal frontal;
+        static public string tempDataPathAdmin = Path.Combine(@"C:\", "Temp", "launchFileAdmin.txt");
         static public string tempDataPath = Path.Combine(@"C:\", "Temp", "launchFile.txt");
         static public string iconsFolder = @"";
         static public string programFolder = @"";
@@ -31,16 +31,6 @@ namespace CyanLauncher
         static public bool initial_call = true;
 
 
-        [DllImport("user32.dll")]
-        public static extern IntPtr FindWindow(string lpClassName, String lpWindowName);
-        [DllImport("user32.dll")]
-        public static extern int SendMessage(IntPtr hWnd, uint wMsg, IntPtr wParam, IntPtr lParam);
-        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
-        static extern uint RegisterWindowMessage(string lpString);
-
-        /// <summary>
-        /// Punto di ingresso principale dell'applicazione.
-        /// </summary>
         [STAThread]
 
         static void Main(string[] args)
@@ -66,46 +56,45 @@ namespace CyanLauncher
             Load();
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(frontal = new Frontal()); //{ allowshowdisplay = true });
+            Application.Run(frontal = new Frontal());
         }
 
         static private void CreateFolders()
         {
             try
             {
-                Directory.CreateDirectory(Path.GetDirectoryName(tempDataPath) ?? throw new InvalidOperationException("Invalid path"));
-                if (!File.Exists(tempDataPath)) File.WriteAllText(tempDataPath, "");
+                Directory.CreateDirectory(Path.GetDirectoryName(tempDataPathAdmin) ?? throw new InvalidOperationException("Invalid path"));
+                if (!File.Exists(tempDataPathAdmin)) File.WriteAllText(tempDataPathAdmin, "");
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error: {ex.Message}");
             }
 
-            string icoFolder = Path.Combine(new string[] { programFolder, "Icons" });
+            string icoFolder = Path.Combine(programFolder, "Icons");
             if (!Directory.Exists(icoFolder)) Directory.CreateDirectory(icoFolder);
             iconsFolder = icoFolder;
 
         }
         static public void Load()
         {
-            if (!File.Exists(Path.Combine(new string[] { programFolder, "Info.txt" })))
-            {
-                saveInfo();
-            }
-            if (!File.Exists(Path.Combine(new string[] { programFolder, "Settings.txt" })))
-            {
-                saveSettings();
-            }
+            if (!File.Exists(Path.Combine(programFolder, "info.json"))) saveInfo();
+            if (!File.Exists(Path.Combine(programFolder, "Settings.txt"))) saveSettings();
+
             try
             {
-                foreach (string stringa in File.ReadAllLines(Path.Combine(new string[] { programFolder, "Info.txt" })))
+                string jsonPath = Path.Combine(programFolder, "info.json");
+                string json = File.ReadAllText(jsonPath);
+                List<Dictionary<string, object>> entries = JsonSerializer.Deserialize<List<Dictionary<string, object>>>(json);
+
+                foreach (var dict in entries)
                 {
-                    string[] segments = stringa.Split(new string[] { "|^_^|" }, StringSplitOptions.RemoveEmptyEntries);
-                    try
-                    {
-                        INFO.Add(new Info(segments[0], segments[1], segments[2], segments[3]));
-                    }
-                    catch (Exception) { Console.WriteLine("EXCEPTION IN LOAD"); }
+                    string exe = dict.TryGetValue("exe_path", out var v1) ? v1?.ToString() : "";
+                    string arguments = dict.TryGetValue("arguments", out var v2) ? v2?.ToString() : "";
+                    string name = dict.TryGetValue("name", out var v3) ? v3?.ToString() : "";
+                    string icon = dict.TryGetValue("icon", out var v4) ? v4?.ToString() : "";
+                    bool admin = dict.TryGetValue("as_admin", out var v5) && v5 is bool b ? b : false;
+                    INFO.Add(new Info(exe, arguments, name, icon, admin));
                 }
             }
             catch (Exception e) { MessageBox.Show("Error is occured while trying to load Info. Exception: " + e.Message); }
@@ -141,17 +130,15 @@ namespace CyanLauncher
                 }
             }
             catch (Exception e) { MessageBox.Show("Error is occured while trying to load Settings. Exception: " + e.Message); }
-            Console.WriteLine(dimensions);
         }
 
         static private void saveInfo()
         {
             try
             {
-                List<string> strings = new List<string>();
-                foreach (Info inf in INFO) strings.Add(inf.Serialize());
-
-                File.WriteAllLines(Path.Combine(new string[] { programFolder, "Info.txt" }), strings.ToArray());
+                List<Dictionary<string, object>> serializable = INFO.Select(inf => inf.Serialize()).ToList();
+                string json = JsonSerializer.Serialize(serializable, new JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText(Path.Combine(programFolder, "info.json"), json);
             }
             catch (Exception e) { MessageBox.Show("Error is occured while trying to save info. Exception: " + e.Message); }
         }
@@ -179,30 +166,49 @@ namespace CyanLauncher
             saveInfo();
             saveSettings();
         }
+
+        static public string GetExeText(string exeText)
+        {
+            if (exeText.StartsWith("python:")) exeText = exeText.Substring(7);
+            else if (exeText.StartsWith("chrome:")) exeText = exeText.Substring(7);
+            return exeText;
+        }
+        static public string GetExeType(string exeText)
+        {
+            string exeType = "exe";
+            if (exeText.StartsWith("python:")) exeType = "python";
+            else if (exeText.StartsWith("chrome:")) exeType = "chrome";
+            else if (Directory.Exists(exeText)) exeType = "folder";
+            return exeType;
+        }
     }
 
     public class Info
     {
         public string exepath = "";
+        public string arguments = "";
         public string name = "";
         public string imgpath = "";
-        public string as_admin = "";
-        public Info(string exepath, string name, string imgpath, string as_admin)
+        public bool as_admin = false;
+        public Info(string exepath, string arguments, string name, string imgpath, bool as_admin)
         {
             this.exepath = exepath;
+            this.arguments = arguments;
             this.name = name;
             if (imgpath.Substring(0, 1) == @"\") imgpath = Program.programFolder + imgpath;
             this.imgpath = imgpath;
             this.as_admin = as_admin;
         }
-        public string Serialize()
+        public Dictionary<string, object> Serialize()
         {
-            string output = "";
-            output += exepath + "|^_^|";
-            output += name + "|^_^|";
-            output += imgpath.Replace(Program.programFolder, "") + "|^_^|";
-            output += as_admin;
-            return output;
+            return new Dictionary<string, object>
+            {
+                ["exe_path"] = exepath ?? "",
+                ["arguments"] = arguments ?? "",
+                ["name"] = name ?? "",
+                ["icon"] = imgpath?.Replace(Program.programFolder, "") ?? "",
+                ["as_admin"] = as_admin
+            };
         }
     }
 }
