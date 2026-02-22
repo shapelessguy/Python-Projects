@@ -14,9 +14,9 @@
             },
             "proc_name": "CyanLauncherManager.exe",
             "proc_type": "exe",
-            "path": "C:/Users/cian_cl/Documents/TOPICS/sharedCode/CyanManagerProjects/CyanLauncherManager/bin/Release/CyanLauncherManager.exe",
+            "path": "C:/Users/cian_cl/Documents/TOPICS/sharedCode/CyanManager/tools/CyanLauncherProjects/CyanLauncherManager/bin/Release/CyanLauncherManager.exe",
             "arguments": "",
-            "runas": true,
+            "runas": false,
             "startup": true
         },
         "Mattermost": {

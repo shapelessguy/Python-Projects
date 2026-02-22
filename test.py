@@ -1,39 +1,26 @@
-import win32api
-import win32con
-import pywintypes
+import os
+import json
+folder = r"C:\ProgramData\Cyan\CyanLauncher"
 
-def set_resolution(width: int, height: int) -> bool:
-    """
-    Change primary display resolution.
-    Returns True if successful, False otherwise.
-    """
-    try:
-        devmode = pywintypes.DEVMODEType()
-
-        # Only changing width & height (refresh rate stays as is)
-        devmode.PelsWidth  = width
-        devmode.PelsHeight = height
-        devmode.Fields     = win32con.DM_PELSWIDTH | win32con.DM_PELSHEIGHT
-
-        # 0 = change on primary display + update registry (persistent)
-        result = win32api.ChangeDisplaySettings(devmode, 0)
-
-        if result == win32con.DISP_CHANGE_SUCCESSFUL:
-            print(f"Resolution changed to {width}×{height}")
-            return True
-        else:
-            print(f"ChangeDisplaySettings failed: {result}")
-            # Common codes: -1 = bad mode, -2 = not supported, -3 = bad flags, -4 = bad param, -5 = driver failed, etc.
-            return False
-
-    except Exception as e:
-        print(f"Error: {e}")
-        return False
-
-
-# ────────────────────────────────────────────────
-if __name__ == "__main__":
-    # Examples
-    set_resolution(1920, 1200)     # Full HD
-    # set_resolution(2560, 1440)   # 1440p
-    # set_resolution(3840, 2160)   # 4K (if monitor supports it)
+for f in os.listdir(folder):
+    file_path = os.path.join(folder, f, "Info.txt")
+    output_path = os.path.join(folder, f, "info.json")
+    if os.path.exists(file_path):
+        with open(file_path, "r") as file:
+            text = file.read()
+        
+        new_content = []
+        for line in text.split("\n"):
+            if line != "":
+                segments = line.split("|^_^|")
+                exe, name, icon, as_admin = segments
+                new_content.append({
+                    "exe_path": exe,
+                    "name": name,
+                    "icon": icon,
+                    "as_admin": as_admin == "true",
+                })
+        json_ = json.dumps(new_content, indent=2)
+        if not os.path.exists(output_path):
+            with open(output_path, "w") as file:
+                json.dump(new_content, file, indent=2)
