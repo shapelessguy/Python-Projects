@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Windows.Forms;
+using System.Xml.Linq;
 
 namespace CyanLauncher
 {
@@ -93,7 +94,7 @@ namespace CyanLauncher
                     string arguments = dict.TryGetValue("arguments", out var v2) ? v2?.ToString() : "";
                     string name = dict.TryGetValue("name", out var v3) ? v3?.ToString() : "";
                     string icon = dict.TryGetValue("icon", out var v4) ? v4?.ToString() : "";
-                    bool admin = dict.TryGetValue("as_admin", out var v5) && v5 is bool b ? b : false;
+                    bool admin = dict.TryGetValue("as_admin", out var v5) ? ((JsonElement)v5).ValueKind == JsonValueKind.True : false;
                     INFO.Add(new Info(exe, arguments, name, icon, admin));
                 }
             }
