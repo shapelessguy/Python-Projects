@@ -1,24 +1,5 @@
 {
     "applications": {
-        "CyanLauncherManager": {
-            "window_kw": [],
-            "excluded_kw": [],
-            "window_props": {
-                "monitor_id": "BOE09E9",
-                "x": 0,
-                "y": 0,
-                "width": 0,
-                "height": 0,
-                "win_state": "normal",
-                "order": false
-            },
-            "proc_name": "CyanLauncherManager.exe",
-            "proc_type": "exe",
-            "path": "C:/Users/cian_cl/Documents/TOPICS/sharedCode/CyanManager/tools/CyanLauncherProjects/CyanLauncherManager/bin/Release/CyanLauncherManager.exe",
-            "arguments": "",
-            "runas": false,
-            "startup": true
-        },
         "Mattermost": {
             "window_kw": [
                 "Mattermost Desktop App"
@@ -172,6 +153,10 @@
         },
         "Arduino": {
             "enabled": false,
+            "parameters": {}
+        },
+        "Cyan Launcher Manager": {
+            "enabled": true,
             "parameters": {}
         },
         "Devices": {

@@ -38,25 +38,6 @@
             "runas": false,
             "startup": false
         },
-        "CyanLauncherManager": {
-            "window_kw": [],
-            "excluded_kw": [],
-            "window_props": {
-                "monitor_id": "HKC2413",
-                "x": 0,
-                "y": 0,
-                "width": 0,
-                "height": 0,
-                "win_state": "normal",
-                "order": false
-            },
-            "proc_name": "CyanLauncherManager.exe",
-            "proc_type": "exe",
-            "path": "c:/Users/shape/Documents/codebase/sharedCode/CyanManager/tools/CyanLauncherProjects/CyanLauncherManager/bin/Release/CyanLauncherManager.exe",
-            "arguments": "",
-            "runas": false,
-            "startup": true
-        },
         "Discord": {
             "window_kw": [
                 "Discord"
@@ -374,6 +355,10 @@
             "parameters": {}
         },
         "Arduino": {
+            "enabled": true,
+            "parameters": {}
+        },
+        "Cyan Launcher Manager": {
             "enabled": true,
             "parameters": {}
         },
