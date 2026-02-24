@@ -4,7 +4,7 @@ import ctypes
 from queue import Queue
 from gui.manage_ui import UI_Manager
 from gui.db_api import MongoDB
-from utils import Tee, pprint
+from utils_old import Tee, pprint
 
 
 class Signal:

@@ -1,6 +1,6 @@
 import requests
 import json
-from gui.utils import matching_string, SEARCH_REQ_TIMEOUT
+from utils import matching_string, SEARCH_REQ_TIMEOUT
 
 
 def from_openalex(work):

@@ -388,7 +388,7 @@
                 "Inactivity to Shutdown": "02:00",
                 "Shutdown from": "02:00",
                 "Shutdown to": "08:00",
-                "Shutdown": true
+                "Shutdown": false
             }
         },
         "XM4-1000": {

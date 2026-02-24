@@ -2,7 +2,7 @@ import requests
 import os
 import json
 import dotenv
-from gui.utils import matching_string, SEARCH_REQ_TIMEOUT
+from utils import matching_string, SEARCH_REQ_TIMEOUT
 SEMANTIC_SCHOLAR_KEY = dotenv.get_key(os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env"), "GOOGLE_SEMANTIC_SCHOLAR")
 
 

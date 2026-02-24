@@ -10,7 +10,7 @@ from PyQt5.QtCore import QObject, Qt
 from PyQt5.QtWidgets import QMainWindow, QApplication, QStyleFactory, QSystemTrayIcon, QMenu, QDialog, QPushButton, QProgressBar
 from PyQt5.QtCore import QObject, pyqtSignal, QSize
 from PyQt5.QtGui import QIcon, QPixmap, QFont
-from gui.utils import ICONS_FOLDER_PATH, wait, Operation, StopOp
+from utils import ICONS_FOLDER_PATH, wait, Operation, StopOp
 
 
 class OpState:

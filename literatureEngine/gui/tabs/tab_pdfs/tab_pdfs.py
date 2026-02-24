@@ -1,12 +1,12 @@
 import os
 import json
-from utils import ICONS_FOLDER_PATH
+from utils_old import ICONS_FOLDER_PATH
 from fetch_papers.fetch import fetch_metadata
 from PyQt5.QtWidgets import QWidget, QDialog, QPushButton, QListWidget, QListWidgetItem, QSizePolicy, QStyledItemDelegate, QStyleOptionViewItem, QStyle
 from PyQt5.QtGui import QFont, QIcon, QColor, QBrush, QPainter
 from PyQt5.QtCore import QThread, pyqtSignal, Qt, QSize
 from gui.tabs.tab_context.tab_contexts import reload_context, set_paper_props, disable_boxes
-from gui.utils import pprint, Operation, OpClass, VENUE_TYPES, READONLY_TYPES
+from utils import pprint, Operation, OpClass, VENUE_TYPES, READONLY_TYPES
 
 
 class SavePDF(OpClass):

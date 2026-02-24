@@ -5,7 +5,7 @@ import time
 import os
 from pybliometrics.scopus import ScopusSearch, init
 from requests.exceptions import HTTPError
-from utils import get_raw_paper_headers, encode_name
+from utils_old import get_raw_paper_headers, encode_name
 
 
 init()

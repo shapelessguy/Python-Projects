@@ -10,7 +10,7 @@ import tempfile
 import sys
 import threading
 from datetime import datetime
-from utils import get_queries_path, get_responses_path, WORKSPACES_PATH
+from utils_old import get_queries_path, get_responses_path, WORKSPACES_PATH
 from ai_billing import get_costs
 from pathlib import Path
 from google import genai

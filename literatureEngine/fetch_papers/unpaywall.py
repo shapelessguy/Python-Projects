@@ -2,7 +2,7 @@ import requests
 import json
 import os
 import dotenv
-from gui.utils import SEARCH_REQ_TIMEOUT
+from utils import SEARCH_REQ_TIMEOUT
 EMAIL = dotenv.get_key(os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env"), "EMAIL")
 
 

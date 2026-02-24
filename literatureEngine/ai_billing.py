@@ -1,7 +1,7 @@
 import os
 import json
 import requests
-from utils import get_responses_path, WORKSPACES_PATH
+from utils_old import get_responses_path, WORKSPACES_PATH
 rate = None
 
 

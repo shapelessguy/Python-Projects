@@ -10,10 +10,10 @@ import shutil
 import re
 import inspect
 from ai_queries import CONTENT_TAG, SCOPE_QUERY_GENERATOR_TITLES, execute_simple_request
-from utils import PAPER_LOCATION_MAP_PATH, FAILED_PDF_RETRIEVAL_PATH, SAVED_RESPONSES_PATH
-from utils import CUSTOM_TEXT_PATH_TEMPLATE, AI_TASKS, query_to_hash, clean_pdf_name
-from utils import get_pdfs_path, get_extracted_path, get_user_pdfs_path, decode_name
-from utils import get_saved_pdfs_path, get_raw_paper_headers, get_responses_path, get_user_pdf_map
+from utils_old import PAPER_LOCATION_MAP_PATH, FAILED_PDF_RETRIEVAL_PATH, SAVED_RESPONSES_PATH
+from utils_old import CUSTOM_TEXT_PATH_TEMPLATE, AI_TASKS, query_to_hash, clean_pdf_name
+from utils_old import get_pdfs_path, get_extracted_path, get_user_pdfs_path, decode_name
+from utils_old import get_saved_pdfs_path, get_raw_paper_headers, get_responses_path, get_user_pdf_map
 from scraping_bulk import scrape, simple_scrape
 from ai_queries import execute_ai
 from pdfminer.high_level import extract_text

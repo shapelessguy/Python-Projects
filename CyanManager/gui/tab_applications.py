@@ -253,6 +253,7 @@ class ApplicationRow(QWidget):
         ui_manager.ui.runas.toggled.connect(partial(on_change, ui_manager))
         ui_manager.ui.startup.toggled.connect(partial(on_change, ui_manager))
 
+        self.monitor_ids = set()
         self.set_monitors()
         self.set_values()
         self.win_state_combobox.addItems(["normal", "minimized", "maximized", "hidden"])
@@ -333,11 +334,18 @@ class ApplicationRow(QWidget):
     
     def set_monitors(self, monitors: list=[]):
         combo = self.screen_combobox
-
         monitor_ids = {m._id for m in monitors}
         monitor_ids.add(self.application.window_props["monitor_id"])
-        ordered = sorted(monitor_ids, key=str)
+        if len(monitor_ids) == len(self.monitor_ids):
+            equal = True
+            for mid in monitor_ids:
+                if mid not in self.monitor_ids:
+                    equal = False
+            if equal:
+                return
+        self.monitor_ids = monitor_ids
 
+        ordered = sorted(monitor_ids, key=str)
         combo.blockSignals(True)
         combo.clear()
         combo.addItems(ordered)
@@ -439,7 +447,11 @@ def set_values(ui_manager, apps):
                     widget.set_values()
 
 
+prev_state_widgets = {}
 def change_states(ui_manager, apps, monitors):
+    global prev_state_widgets
+    state_widgets = {}
+
     for i in range(ui_manager.ui.application_area_layout.count()):
         item = ui_manager.ui.application_area_layout.itemAt(i)
         widget = item.widget()
@@ -448,9 +460,13 @@ def change_states(ui_manager, apps, monitors):
             for app in apps:
                 if widget.application.name == app.name:
                     widget.application = app
+                    color = "green" if (app.process or app.window) else "red"
                     widget.set_monitors(monitors)
-                    widget.dot.setColor("green" if (app.process or app.window) else "red")
+                    if color != prev_state_widgets.get(app.name, ""):
+                        widget.dot.setColor(color)
+                    state_widgets[app.name] = color
                     break
+    prev_state_widgets = state_widgets
 
 
 def set_dark_background_recursive(w, color):

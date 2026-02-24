@@ -4,7 +4,7 @@ import hashlib
 import tempfile
 import platform
 import subprocess
-from gui.utils import pprint, create_paper_id
+from utils import pprint, create_paper_id
 from pymongo import MongoClient, errors, ReturnDocument
 from bson.objectid import ObjectId
 

@@ -1,12 +1,12 @@
 import os
 import json
 from bson import json_util
-from utils import ICONS_FOLDER_PATH
+from utils_old import ICONS_FOLDER_PATH
 from fetch_papers.fetch import fetch_metadata, expand_dois
 from PyQt5.QtWidgets import QApplication, QShortcut, QDialog, QPushButton, QListWidget, QListWidgetItem, QTableView, QWidget, QAbstractItemView
 from PyQt5.QtGui import QFont, QIcon, QColor, QBrush, QStandardItemModel, QStandardItem, QKeySequence
 from PyQt5.QtCore import QThread, pyqtSignal, Qt, QSize
-from gui.utils import pprint, Operation, OpClass, StopOp, VENUE_TYPES, READONLY_TYPES, objectid_decoder
+from utils import pprint, Operation, OpClass, StopOp, VENUE_TYPES, READONLY_TYPES, objectid_decoder
 from gui.tabs.tab_context.processes_handler import setup_processes, reload_processes
 from gui.paper_tools import References
 

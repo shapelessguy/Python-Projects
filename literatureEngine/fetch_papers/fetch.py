@@ -1,7 +1,7 @@
 import traceback
 import time
 from bs4 import BeautifulSoup
-from gui.utils import pprint, wait
+from utils import pprint, wait
 from fetch_papers.crossref import fetch_from_crossref
 from fetch_papers.openalex import fetch_from_openalex
 from fetch_papers.datacite import fetch_from_datacite
