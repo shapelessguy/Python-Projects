@@ -1,32 +1,45 @@
 from gen_ai.batch_manager import BatchManager, Request
-from gen_ai.models import ModelClass
+from gen_ai import models
 
-
-bm = BatchManager("localhost", 8001, "mongodb", "mongodb", "LiteratureReview", "ai_test")
+bm = BatchManager(ip="localhost", port=8001, username="mongodb", password="mongodb", db_name="AiRequests", collection_name="ai_test")
 
 request = Request(
-    model_class=ModelClass.GEMINI,
-    model_name="gemini-3-flash-preview",
+    model=models.gemini.gemini_2_5_flash,
     generationConfig={
         "temperature": 0.0,
-        "maxOutputTokens": 10000,
+        "maxOutputTokens": 10,
         "thinking_config": {
-            "include_thoughts": True,
-            "thinking_budget": 1500
+            "include_thoughts": False,
+            "thinking_budget": 0
         }
     },
-    task_id="fetch_overview_methodologies",
-    prompt_structure="You are an expert researcher and you have to answer: __X__",
-    req_content_list=["Who am I?", "How old are you?"],
-    instant=True
+    task_id="fetch_overview_methodologiesssss",
+    prompt_structure="You are an expert researcher and you have to answers: __X__",
+    req_content_list=[f"Who am I??? {i}" for i in range(20)],
+    batch=False,
+    update=True,
 )
+import time
+import json
 
 
 # Prompt user to some actions here
 directives = bm.get_directives(request)
-print(directives)
+expected_request_info = directives.estimate_costs(expected_output_tokens_per_request=10)
+print(json.dumps(expected_request_info, indent=2))
+msg = bm.send_request(directives)
 
-# Show user a preview of the request
-adj_request = bm.request_preview(directives, update=True)
+# time.sleep(1)
+# bm.cancel_instant_requests()
 
-bm.send_request(directives, adj_request)
+
+try:
+    while True:
+        time.sleep(0.1)
+except KeyboardInterrupt:
+    pass
+except:
+    import traceback
+    print(traceback.format_exc())
+print("Closing")
+bm.close()
