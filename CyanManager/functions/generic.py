@@ -17,6 +17,14 @@ def play_pause(signal, verbose=False):
     keyboard.press_and_release('play/pause')
 
 
+def next_multimedia(signal, verbose=False):
+    keyboard.press_and_release('next track')
+
+
+def prev_multimedia(signal, verbose=False):
+    keyboard.press_and_release('previous track')
+
+
 def type_password(signal, verbose=False):
     password = keyring.get_password("CyanManager", signal.profile)
     keyboard.write(password)

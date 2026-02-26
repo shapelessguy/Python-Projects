@@ -61,6 +61,19 @@ long comAudio(String c){
   return 0;
 }
 
+long comTop(String c){
+  if (c == "W") return 0x02;
+  else if (c == "RGB") return 0x03;
+  else if (c == "BRIGHT+") return 0x09;
+  else if (c == "BRIGHT-") return 0x11;
+  else if (c == "COLD+") return 0xE;
+  else if (c == "COLD-") return 0xC;
+  else if (c == "COL_LOOP") return 0xB;
+  else if (c == "COL_CHANGE") return 0x7;
+  else if (c == "HEART") return 0x14;
+  return 0;
+}
+
 int repeatAudio(String c){
   if (c.substring(0, 3) == "VOL") {
     String repeat = c.substring(4, c.length());
@@ -106,6 +119,11 @@ void sendAudio(String c){
   }
 }
 
+void sendTop(String c){
+  Serial.println("Top command: " + c);
+  IrSender.sendNEC(0xEF00, comTop(c), 2);
+}
+
 void loop() {
   if (Serial.available()) {
     command = Serial.readStringUntil('\n');
@@ -116,6 +134,7 @@ void loop() {
 
     else if (command.substring(0, 2) == "TV") sendHisense(command.substring(2, command.length()));
     else if (command.substring(0, 5) == "AUDIO") sendAudio(command.substring(5, command.length()));
+    else if (command.substring(0, 3) == "TOP") sendTop(command.substring(3, command.length()));
 
     else { Serial.println("bad command"); }
   }

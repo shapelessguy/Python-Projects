@@ -18,3 +18,10 @@ def count_tokens(text):
         return len(encoder.encode(text))
     else:
         return int(len(text) / 4)
+
+
+def construct_prompt(prompt_structure, request_content):
+    prompt = prompt_structure
+    for key, value in request_content["content_vars"].items():
+        prompt = prompt.replace("{{" + key + "}}", value)
+    return prompt

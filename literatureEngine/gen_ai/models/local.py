@@ -16,11 +16,11 @@ class LocalFamily(Model):
     def is_initialized(self):
         return True
     
-    def send_batch(self, request, text_list):
+    def send_batch(self, request):
         status = JobStatus.JOB_STATE_FAILED
         if not self.is_initialized():
             return status, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
-        super().send_batch(request, text_list)
+        super().send_batch(request)
 
         status = JobStatus.JOB_STATE_SUCCEEDED
         return status, {}
@@ -31,7 +31,7 @@ class LocalFamily(Model):
     def fetch_batch_results(self, request):
         status = JobStatus.JOB_STATE_FAILED
         if not self.is_initialized():
-            return status, [], ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
+            return status, {}, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
         super().fetch_batch_results(request)
 
         status = JobStatus.JOB_STATE_SUCCEEDED
@@ -53,7 +53,10 @@ class LocalFamily(Model):
         total_tokens = 0
         self.add_cost(request, prompt_tokens, total_tokens - prompt_tokens)
         return status, self.format_response(response_text, 0, 0, 0, 0), None
+    
+    def stream_request(self, request, text, on_stream_cb):
+        return JobStatus.JOB_STATE_FAILED, {}, ErrorMsg(ErrorType.NOT_SUPPORTED)
 
 
-class gpt_4_1(LocalFamily):
+class gemma3(LocalFamily):
     name = "gemma3"

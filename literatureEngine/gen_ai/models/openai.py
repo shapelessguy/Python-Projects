@@ -1,9 +1,9 @@
 import dotenv
-import time
 import os
 import tempfile
 import json
 from openai import OpenAI
+from gen_ai.utils import count_tokens, construct_prompt
 from gen_ai.model import Model, JobStatus, ErrorMsg, ErrorType
 
 
@@ -25,7 +25,7 @@ class OpenAiFamily(Model):
         self.init_err = None
         try:
             client_ = OpenAI(api_key=API_KEY) if client is None else client
-            client_.list_models()
+            client_.models.list()
             client = client_
         except Exception as e:
             self.init_err = e
@@ -33,27 +33,27 @@ class OpenAiFamily(Model):
     def is_initialized(self):
         return client is not None
     
-    def send_batch(self, request, text_list):
+    def send_batch(self, request):
         status = JobStatus.JOB_STATE_FAILED
         if not self.is_initialized():
             return status, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
     
         requests = []
-        for idx, text in enumerate(text_list):
+        for req_id, text in request.get_full_requests().items():
             body = {
                 "model": request.model.name,
                 "messages": [
-                    {"role": "system", "content": "You are a helpful assistant"},
+                    {"role": "system", "content": request.generationConfig.get("systemPrompt", "")},
                     {"role": "user", "content": text},
                 ],
-                "max_completion_tokens": request.generationConfig.get("maxOutputTokens", 1024)
+                "max_completion_tokens": request.generationConfig.get("maxOutputTokens", 999999)
             }
             is_reasoning_model = any(prefix in request.model.name.lower() for prefix in ["o1", "o3", "o4", "gpt-5", "reasoning"])
             if not is_reasoning_model:
-                body["temperature"] = request.generationConfig["temperature"]
+                body["temperature"] = request.generationConfig.get("temperature", 0)
 
             batch_line = {
-                "custom_id": f"request-{idx}",
+                "custom_id": req_id,
                 "method": "POST",
                 "url": "/v1/chat/completions",
                 "body": body
@@ -85,7 +85,7 @@ class OpenAiFamily(Model):
                     )
                     print(f"Batch created: {batch_job.id}")
                     status = JobStatus.JOB_STATE_SUCCEEDED
-                    super().send_batch(request, text_list)
+                    super().send_batch(request)
                     return status, {"uploadedFileId": uploaded_file.id, "batchJobId": batch_job.id}
                 except Exception as e:
                     return status, ErrorMsg(ErrorType.BATCH_REQUEST, e)
@@ -111,7 +111,7 @@ class OpenAiFamily(Model):
         if not self.is_initialized():
             return status, [], ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
 
-        responses = []
+        responses = {}
         batch_id = request.operational["batchJobId"]
 
         try:
@@ -127,7 +127,7 @@ class OpenAiFamily(Model):
             "in_progress": JobStatus.JOB_STATE_RUNNING,
             "validating": JobStatus.JOB_STATE_PENDING,
         }
-        status = status_map[batch_job.status]
+        status = status_map.get(batch_job.status, request.status)
         
         if status == JobStatus.JOB_STATE_SUCCEEDED:
             if not batch_job.output_file_id:
@@ -135,6 +135,7 @@ class OpenAiFamily(Model):
             try:
                 file_response = client.files.content(batch_job.output_file_id)
                 output_text = file_response.text
+
 
                 for line in output_text.splitlines():
                     if not line.strip():
@@ -145,6 +146,7 @@ class OpenAiFamily(Model):
                         continue
 
                     body = result["response"]["body"]
+                    req_id = result["custom_id"]
                     usage = body.get("usage", {})
                     choices = body.get("choices", [])
                     response_text = ""
@@ -160,11 +162,11 @@ class OpenAiFamily(Model):
                     if "completion_tokens_details" in usage:
                         thoughts_tokens = usage["completion_tokens_details"].get("reasoning_tokens", 0)
                     self.add_cost(request, prompt_tokens, total_tokens - prompt_tokens)
-                    responses.append((response_text, prompt_tokens, candidates_tokens, thoughts_tokens, total_tokens))
+                    responses[req_id] = (response_text, prompt_tokens, candidates_tokens, thoughts_tokens, total_tokens)
 
                 super().fetch_batch_results(request)
                 status = JobStatus.JOB_STATE_SUCCEEDED
-                return status, [self.format_response(*r) for r in responses], None
+                return status, {_id: self.format_response(*r) for _id, r in responses.items()}, None
 
             except Exception as e:
                 return JobStatus.JOB_STATE_FAILED, [], ErrorMsg(ErrorType.BATCH_PARSING, f"Failed to parse output: {e}")
@@ -182,11 +184,11 @@ class OpenAiFamily(Model):
                     {"role": "system", "content": "You are a helpful assistant"},
                     {"role": "user", "content": text},
                 ],
-                "max_completion_tokens": request.generationConfig["maxOutputTokens"]
+                "max_completion_tokens": request.generationConfig.get("maxOutputTokens", 999999)
             }
             is_reasoning_model = any(prefix in request.model.name.lower() for prefix in ["o1", "o3", "o4", "gpt-5", "reasoning"])
             if not is_reasoning_model:
-                api_params["temperature"] = request.generationConfig["temperature"]
+                api_params["temperature"] = request.generationConfig.get("temperature", 0)
             response = client.chat.completions.create(**api_params)
         except Exception as e:
             return JobStatus.JOB_STATE_FAILED, {}, ErrorMsg(ErrorType.SIMPLE_REQUEST, e)
@@ -204,6 +206,47 @@ class OpenAiFamily(Model):
         self.add_cost(request, prompt_tokens, total_tokens - prompt_tokens)
         super().send_simple_request(request, text)
         return JobStatus.JOB_STATE_SUCCEEDED, self.format_response(response_text, prompt_tokens, candidates_tokens, thoughts_tokens, total_tokens), None
+    
+    def stream_request(self, request, text, on_stream_cb):
+        status = JobStatus.JOB_STATE_FAILED
+        if not self.is_initialized():
+            return status, {}, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
+
+        try:
+            messages=[
+                {"role": "system", "content": request.generationConfig.get("systemPrompt", "")}
+            ]
+            for content in request.contents:
+                if content["response"] != {}:
+                    messages.append({"role": "user", "content": construct_prompt(request.prompt_structure, content["request"])})
+                    messages.append({"role": "assistant", "content": content["response"]["text"]})
+            messages.append({"role": "user", "content": text})
+                
+            response = client.chat.completions.create(
+                model=request.model.name,
+                messages=messages,
+                stream=True
+            )
+
+            response_text = ""
+            for chunk in response:
+                segment = chunk.choices[0].delta.content
+                if type(segment) is not str:
+                    break
+                if on_stream_cb:
+                    try:
+                        on_stream_cb(request.req_id, segment)
+                    except:
+                        pass
+                response_text += segment
+        except Exception as e:
+            return JobStatus.JOB_STATE_FAILED, {}, ErrorMsg(ErrorType.SIMPLE_REQUEST, e)
+        
+        prompt_tokens = count_tokens(json.dumps(messages))
+        total_tokens = prompt_tokens + count_tokens(response_text)
+        self.add_cost(request, prompt_tokens, total_tokens - prompt_tokens)
+        super().stream_request(request, text, on_stream_cb)
+        return JobStatus.JOB_STATE_SUCCEEDED, self.format_response(response_text, prompt_tokens, total_tokens - prompt_tokens, 0, total_tokens), None
 
 
 class gpt_5_2(OpenAiFamily):

@@ -50,7 +50,7 @@ class Model:
     def is_initialized(self):
         pass
     
-    def send_batch(self, request, text_list):
+    def send_batch(self, request):
         # Returns a dictionary for operational variables that will be saved into the request
         print(f"Batch sent via model family {self.__class__.__name__}")
         pass
@@ -65,6 +65,10 @@ class Model:
     
     def send_simple_request(self, request, text):
         print(f"Simple request sent via model family {self.__class__.__name__}")
+        pass
+    
+    def stream_request(self, request, text, on_stream_cb):
+        print(f"Stream request sent via model family {self.__class__.__name__}")
         pass
     
     def add_cost(self, request, input_tokens, output_tokens):

@@ -1,8 +1,9 @@
 import dotenv
 import os
+import json
 from openai import OpenAI
 from gen_ai.model import Model, JobStatus, ErrorMsg, ErrorType
-from gen_ai.utils import count_tokens
+from gen_ai.utils import count_tokens, construct_prompt
 
 
 API_KEY = dotenv.get_key(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".env"), "DEEPSEEK")
@@ -23,7 +24,7 @@ class DeepSeekFamily(Model):
         self.init_err = None
         try:
             client_ = OpenAI(api_key=API_KEY, base_url="https://api.deepseek.com") if client is None else client
-            client_.list_models()
+            client_.models.list()
             client = client_
         except Exception as e:
             self.init_err = e
@@ -31,14 +32,14 @@ class DeepSeekFamily(Model):
     def is_initialized(self):
         return client is not None
     
-    def send_batch(self, request, text_list):
+    def send_batch(self, request):
         return JobStatus.JOB_STATE_FAILED, ErrorMsg(ErrorType.NOT_SUPPORTED)
     
     def cancel_batch(self, request, text_list):
         return JobStatus.JOB_STATE_FAILED, ErrorMsg(ErrorType.NOT_SUPPORTED)
     
     def fetch_batch_results(self, request):
-        return JobStatus.JOB_STATE_FAILED, [], ErrorMsg(ErrorType.NOT_SUPPORTED)
+        return JobStatus.JOB_STATE_FAILED, {}, ErrorMsg(ErrorType.NOT_SUPPORTED)
     
     def send_simple_request(self, request, text):
         status = JobStatus.JOB_STATE_FAILED
@@ -46,17 +47,18 @@ class DeepSeekFamily(Model):
             return status, {}, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
 
         try:
+            messages=[
+                {"role": "system", "content": request.generationConfig.get("systemPrompt", "")},
+                {"role": "user", "content": text},
+            ]
             response = client.chat.completions.create(
-                model=request.model_name,
-                messages=[
-                    {"role": "system", "content": "You are a helpful assistant"},
-                    {"role": "user", "content": text},
-                ],
-                max_tokens=request.generationConfig["maxOutputTokens"],
-                temperature=request.generationConfig["temperature"],
+                model=request.model.name,
+                messages=messages,
+                max_tokens=request.generationConfig.get("maxOutputTokens", 999999),
+                temperature=request.generationConfig.get("temperature", 0),
                 extra_body={
                     "thinking": {
-                        "type": "enabled" if request.generationConfig["thinking_config"]["include_thoughts"] else "disabled"
+                        "type": "enabled" if request.generationConfig.get("thinking_config", {"include_thoughts": False})["include_thoughts"] else "disabled"
                     }
                 }
             )
@@ -78,6 +80,47 @@ class DeepSeekFamily(Model):
         self.add_cost(request, prompt_tokens, total_tokens - prompt_tokens)
         super().send_simple_request(request, text)
         return JobStatus.JOB_STATE_SUCCEEDED, self.format_response(response_text, prompt_tokens, candidates_tokens, thoughts_tokens, total_tokens), None
+    
+    def stream_request(self, request, text, on_stream_cb):
+        status = JobStatus.JOB_STATE_FAILED
+        if not self.is_initialized():
+            return status, {}, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
+
+        try:
+            messages=[
+                {"role": "system", "content": request.generationConfig.get("systemPrompt", "")}
+            ]
+            for content in request.contents:
+                if content["response"] != {}:
+                    messages.append({"role": "user", "content": construct_prompt(request.prompt_structure, content["request"])})
+                    messages.append({"role": "assistant", "content": content["response"]["text"]})
+            messages.append({"role": "user", "content": text})
+                
+            response = client.chat.completions.create(
+                model=request.model.name,
+                messages=messages,
+                stream=True
+            )
+
+            response_text = ""
+            for chunk in response:
+                segment = chunk.choices[0].delta.content
+                if type(segment) is not str:
+                    break
+                if on_stream_cb:
+                    try:
+                        on_stream_cb(request.req_id, segment)
+                    except:
+                        pass
+                response_text += segment
+        except Exception as e:
+            return JobStatus.JOB_STATE_FAILED, {}, ErrorMsg(ErrorType.SIMPLE_REQUEST, e)
+        
+        prompt_tokens = count_tokens(json.dumps(messages))
+        total_tokens = prompt_tokens + count_tokens(response_text)
+        self.add_cost(request, prompt_tokens, total_tokens - prompt_tokens)
+        super().stream_request(request, text, on_stream_cb)
+        return JobStatus.JOB_STATE_SUCCEEDED, self.format_response(response_text, prompt_tokens, total_tokens - prompt_tokens, 0, total_tokens), None
 
 
 class deepseek_reasoner(DeepSeekFamily):

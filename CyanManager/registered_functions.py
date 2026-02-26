@@ -57,6 +57,8 @@ class RegisteredFunctions:
     SPEAKERS=HandleFunction(switch_to_speakers)
     VOLUME_UP=HandleFunction(volume_up, verbose_always_off=True)
     VOLUME_DOWN=HandleFunction(volume_down, verbose_always_off=True)
+    PREV=HandleFunction(prev_multimedia)
+    NEXT=HandleFunction(next_multimedia)
     FIND_WINDOWS=HandleFunction(find_windows)
     GET_SCREENS=HandleFunction(get_screens)
     ORDER=HandleFunction(order)

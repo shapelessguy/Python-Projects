@@ -1,36 +1,61 @@
 from gen_ai.batch_manager import BatchManager, Request
 from gen_ai import models
+from bson import ObjectId
+import time
+import json
 
-bm = BatchManager(ip="localhost", port=8001, username="mongodb", password="mongodb", db_name="AiRequests", collection_name="ai_test")
+bm = BatchManager(
+    ip="localhost",
+    port=8001,
+    username="mongodb",
+    password="mongodb",
+    db_name="AiRequests",
+    collection_name="ai_test"
+)
+
+print(json.dumps(bm.get_consumption(), indent=2))
 
 request = Request(
-    model=models.gemini.gemini_2_5_flash,
+    # model=models.gemini.gemini_2_5_flash_lite,
+    # model=models.openai.gpt_4_1_mini,
+    model=models.gemini.gemini_2_5_flash_lite,
     generationConfig={
+        "systemPrompt": "You are an expert and you have to answers concisely.",
         "temperature": 0.0,
-        "maxOutputTokens": 10,
+        "maxOutputTokens": 25,
         "thinking_config": {
             "include_thoughts": False,
             "thinking_budget": 0
         }
     },
-    task_id="fetch_overview_methodologiesssss",
-    prompt_structure="You are an expert researcher and you have to answers: __X__",
-    req_content_list=[f"Who am I??? {i}" for i in range(20)],
+    task_id=ObjectId("c075d8eda2fa9d0b4dc73376"),
+    prompt_structure="Tell me something about me: My name is {{NAME}} I am {{YEARS}} years old and I live in {{LOCATION}}",
+    text_variables=[
+        {"NAME": "Claudio", "YEARS": "32", "LOCATION": "Braunschweig"},
+        {"NAME": "Mara", "YEARS": "30", "LOCATION": "Braunschweig"},
+        {"NAME": "ShittyPuppy", "YEARS": "2", "LOCATION": "FUCKland"},
+    ],
+    chat=False,
+    stream=False,
     batch=False,
-    update=True,
+    update=False,
 )
-import time
-import json
 
-
-# Prompt user to some actions here
-directives = bm.get_directives(request)
-expected_request_info = directives.estimate_costs(expected_output_tokens_per_request=10)
+request.get_directives(bm)
+expected_request_info = request.estimate_costs()
 print(json.dumps(expected_request_info, indent=2))
-msg = bm.send_request(directives)
 
-# time.sleep(1)
-# bm.cancel_instant_requests()
+def on_complete(request: Request):
+    print(request)
+
+def on_stream(request_id, text):
+    print(request_id, text)
+
+bm.register_on_complete_callback(on_complete)
+bm.register_on_stream_callback(on_stream)
+request, msg = request.send_request()
+
+# bm.send_cancellation(ObjectId("699f3e179087600c0630e1b0"))
 
 
 try:

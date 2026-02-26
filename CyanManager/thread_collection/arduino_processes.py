@@ -38,13 +38,23 @@ def initialize(signal):
     print('Arduino found!')
 
 
+last_action = time.time()
 def take_action(signal, verb):
-    if verb == "MONON":
+    global last_action
+    if verb == "POWER":
+        if time.time() - last_action > 0.8:
+            last_action = time.time()
+            signal.reg_functions.TV_POWER.run_shortcut()
+    elif verb == "MONON":
         signal.reg_functions.TURN_ON_MONITORS.run_shortcut()
     elif verb == "MONOFF":
         signal.reg_functions.SHUTDOWN_MONITORS.run_shortcut()
-    elif verb == "HOME":
-        signal.reg_functions.TV_OK.run_shortcut()
+    
+    elif verb == "DIR_RIGHT":
+        signal.reg_functions.NEXT.run_shortcut()
+    elif verb == "DIR_LEFT":
+        signal.reg_functions.PREV.run_shortcut()
+
     elif verb == "+":
         signal.reg_functions.VOLUME_UP.run_shortcut()
     elif verb == "-":
@@ -53,9 +63,12 @@ def take_action(signal, verb):
         signal.reg_functions.LIGHTS_ON.run_shortcut()
     elif verb == "DOWN":
         signal.reg_functions.LIGHTS_OFF.run_shortcut()
+    
+    elif verb == "HOME":
+        signal.reg_functions.TV_OK.run_shortcut()
     elif verb == "PLAY":
         signal.reg_functions.PLAY_PAUSE.run_shortcut()
-    elif verb == "SPECIAL":
+    elif verb == "Netflix":
         signal.reg_functions.SPECIAL.run_shortcut()
 
 

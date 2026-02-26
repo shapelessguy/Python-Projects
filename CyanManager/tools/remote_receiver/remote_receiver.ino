@@ -26,6 +26,50 @@ void executeAction(uint8_t cmd) {
 
   switch (cmd) {  
 
+    case 0xE6:
+      Serial.println("→ POWER pressed");
+      break;
+
+    case 0xD2:
+      Serial.println("→ MONOFF pressed");
+      break;
+
+    case 0xCE:
+      Serial.println("→ MONON pressed");
+      break;
+
+    case 0x60:
+      Serial.println("→ DIR_UP pressed");
+      break;
+
+    case 0x62:
+      Serial.println("→ DIR_RIGHT pressed");
+      break;
+
+    case 0x61:
+      Serial.println("→ DIR_DOWN pressed");
+      break;
+
+    case 0x65:
+      Serial.println("→ DIR_LEFT pressed");
+      break;
+
+    case 0x68:
+      Serial.println("→ DIR_CENTER pressed");
+      break;
+
+    case 0x58:
+      Serial.println("→ BACK pressed");
+      break;
+
+    case 0x79:
+      Serial.println("→ HOME pressed");
+      break;
+
+    case 0xB9:
+      Serial.println("→ PLAY pressed");
+      break;
+
     case 0x07:
       Serial.println("→ + pressed");
       break;
@@ -42,24 +86,16 @@ void executeAction(uint8_t cmd) {
       Serial.println("→ DOWN pressed");
       break;
 
-    case 0xB9:
-      Serial.println("→ PLAY pressed");
-      break;
-
-    case 0x79:
-      Serial.println("→ HOME pressed");
-      break;
-
-    case 0xCE:
-      Serial.println("→ MONON pressed");
-      break;
-
-    case 0xD2:
-      Serial.println("→ MONOFF pressed");
-      break;
-
     case 0xF3:
-      Serial.println("→ SPECIAL pressed");
+      Serial.println("→ Netflix pressed");
+      break;
+
+    case 0xF4:
+      Serial.println("→ PrimeVideo pressed");
+      break;
+
+    case 0xB4:
+      Serial.println("→ SamsungTv pressed");
       break;
 
     default:
