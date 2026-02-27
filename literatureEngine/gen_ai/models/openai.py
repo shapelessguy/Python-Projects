@@ -4,7 +4,7 @@ import tempfile
 import json
 from openai import OpenAI
 from gen_ai.utils import count_tokens, construct_prompt
-from gen_ai.model import Model, JobStatus, ErrorMsg, ErrorType
+from gen_ai.model import Model, JobStatus, RequestStatus, ErrorMsg, ErrorType
 
 
 API_KEY = dotenv.get_key(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".env"), "OPENAI")
@@ -34,9 +34,9 @@ class OpenAiFamily(Model):
         return client is not None
     
     def send_batch(self, request):
-        status = JobStatus.JOB_STATE_FAILED
+        req_status = RequestStatus.FAILED
         if not self.is_initialized():
-            return status, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
+            return req_status, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
     
         requests = []
         for req_id, text in request.get_full_requests().items():
@@ -75,7 +75,7 @@ class OpenAiFamily(Model):
                     )
                     print(f"Uploaded file: {uploaded_file.id} ({uploaded_file.filename})")
                 except Exception as e:
-                    return status, ErrorMsg(ErrorType.BATCH_REQUEST, e)
+                    return req_status, ErrorMsg(ErrorType.BATCH_REQUEST, e)
 
                 try:
                     batch_job = client.batches.create(
@@ -84,41 +84,29 @@ class OpenAiFamily(Model):
                         completion_window="24h",
                     )
                     print(f"Batch created: {batch_job.id}")
-                    status = JobStatus.JOB_STATE_SUCCEEDED
+                    req_status = RequestStatus.SUCCEEDED
                     super().send_batch(request)
-                    return status, {"uploadedFileId": uploaded_file.id, "batchJobId": batch_job.id}
+                    return req_status, {"uploadedFileId": uploaded_file.id, "batchJobId": batch_job.id}
                 except Exception as e:
-                    return status, ErrorMsg(ErrorType.BATCH_REQUEST, e)
+                    return req_status, ErrorMsg(ErrorType.BATCH_REQUEST, e)
         except:
             pass
         if batch_job:
-            return status, {"uploadedFileId": uploaded_file.id, "batchJobId": batch_job.id}
-        return status, ErrorMsg(ErrorType.BATCH_REQUEST, e)
+            return req_status, {"uploadedFileId": uploaded_file.id, "batchJobId": batch_job.id}
+        return req_status, ErrorMsg(ErrorType.BATCH_REQUEST, e)
     
     def cancel_batch(self, request):
         if not self.is_initialized():
-            return JobStatus.JOB_STATE_FAILED, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
+            return RequestStatus.FAILED, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
         try:
             client.batches.cancel(name=request.operational["batchJobId"])
             print(f"Cancel requested for batch: {request.operational['batchJobId']}")
             super().cancel_batch(request)
         except Exception as e:
-            return JobStatus.JOB_STATE_FAILED, ErrorMsg(ErrorType.BATCH_CANCEL, e)
-        return JobStatus.JOB_STATE_SUCCEEDED, None
+            return RequestStatus.FAILED, ErrorMsg(ErrorType.BATCH_CANCEL, e)
+        return RequestStatus.SUCCEEDED, None
     
     def fetch_batch_results(self, request):
-        status = JobStatus.JOB_STATE_FAILED
-        if not self.is_initialized():
-            return status, [], ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
-
-        responses = {}
-        batch_id = request.operational["batchJobId"]
-
-        try:
-            batch_job = client.batches.retrieve(batch_id)
-        except Exception as e:
-            return status, [], ErrorMsg(ErrorType.BATCH_REQUEST, f"Failed to retrieve batch: {e}")
-
         status_map = {
             "failed": JobStatus.JOB_STATE_FAILED,
             "cancelled": JobStatus.JOB_STATE_CANCELLED,
@@ -127,9 +115,20 @@ class OpenAiFamily(Model):
             "in_progress": JobStatus.JOB_STATE_RUNNING,
             "validating": JobStatus.JOB_STATE_PENDING,
         }
-        status = status_map.get(batch_job.status, request.status)
+        job_status = status_map.get(batch_job.status, request.status)
+
+        if not self.is_initialized():
+            return job_status, [], ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
+
+        responses = {}
+        batch_id = request.operational["batchJobId"]
+
+        try:
+            batch_job = client.batches.retrieve(batch_id)
+        except Exception as e:
+            return job_status, [], ErrorMsg(ErrorType.BATCH_REQUEST, f"Failed to retrieve batch: {e}")
         
-        if status == JobStatus.JOB_STATE_SUCCEEDED:
+        if job_status == JobStatus.JOB_STATE_SUCCEEDED:
             if not batch_job.output_file_id:
                 return JobStatus.JOB_STATE_FAILED, [], ErrorMsg(ErrorType.BATCH_PARSING, "Completed but no output_file_id")
             try:
@@ -165,17 +164,17 @@ class OpenAiFamily(Model):
                     responses[req_id] = (response_text, prompt_tokens, candidates_tokens, thoughts_tokens, total_tokens)
 
                 super().fetch_batch_results(request)
-                status = JobStatus.JOB_STATE_SUCCEEDED
-                return status, {_id: self.format_response(*r) for _id, r in responses.items()}, None
+                job_status = JobStatus.JOB_STATE_SUCCEEDED
+                return job_status, {_id: self.format_response(*r) for _id, r in responses.items()}, None
 
             except Exception as e:
-                return JobStatus.JOB_STATE_FAILED, [], ErrorMsg(ErrorType.BATCH_PARSING, f"Failed to parse output: {e}")
-        return status, [], ErrorMsg(ErrorType.BATCH_NOT_READY)
+                return request.status, [], ErrorMsg(ErrorType.BATCH_PARSING, f"Failed to parse output: {e}")
+        return job_status, [], ErrorMsg(ErrorType.BATCH_NOT_READY)
     
     def send_simple_request(self, request, text):
-        status = JobStatus.JOB_STATE_FAILED
+        req_status = RequestStatus.FAILED
         if not self.is_initialized():
-            return status, {}, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
+            return req_status, {}, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
 
         try:
             api_params = {
@@ -191,7 +190,7 @@ class OpenAiFamily(Model):
                 api_params["temperature"] = request.generationConfig.get("temperature", 0)
             response = client.chat.completions.create(**api_params)
         except Exception as e:
-            return JobStatus.JOB_STATE_FAILED, {}, ErrorMsg(ErrorType.SIMPLE_REQUEST, e)
+            return RequestStatus.FAILED, {}, ErrorMsg(ErrorType.SIMPLE_REQUEST, e)
 
         usage = response.usage
         prompt_tokens = usage.prompt_tokens
@@ -205,12 +204,12 @@ class OpenAiFamily(Model):
         
         self.add_cost(request, prompt_tokens, total_tokens - prompt_tokens)
         super().send_simple_request(request, text)
-        return JobStatus.JOB_STATE_SUCCEEDED, self.format_response(response_text, prompt_tokens, candidates_tokens, thoughts_tokens, total_tokens), None
+        return RequestStatus.SUCCEEDED, self.format_response(response_text, prompt_tokens, candidates_tokens, thoughts_tokens, total_tokens), None
     
     def stream_request(self, request, text, on_stream_cb):
-        status = JobStatus.JOB_STATE_FAILED
+        req_status = RequestStatus.FAILED
         if not self.is_initialized():
-            return status, {}, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
+            return req_status, {}, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
 
         try:
             messages=[
@@ -240,13 +239,13 @@ class OpenAiFamily(Model):
                         pass
                 response_text += segment
         except Exception as e:
-            return JobStatus.JOB_STATE_FAILED, {}, ErrorMsg(ErrorType.SIMPLE_REQUEST, e)
+            return RequestStatus.FAILED, {}, ErrorMsg(ErrorType.SIMPLE_REQUEST, e)
         
         prompt_tokens = count_tokens(json.dumps(messages))
         total_tokens = prompt_tokens + count_tokens(response_text)
         self.add_cost(request, prompt_tokens, total_tokens - prompt_tokens)
         super().stream_request(request, text, on_stream_cb)
-        return JobStatus.JOB_STATE_SUCCEEDED, self.format_response(response_text, prompt_tokens, total_tokens - prompt_tokens, 0, total_tokens), None
+        return RequestStatus.SUCCEEDED, self.format_response(response_text, prompt_tokens, total_tokens - prompt_tokens, 0, total_tokens), None
 
 
 class gpt_5_2(OpenAiFamily):

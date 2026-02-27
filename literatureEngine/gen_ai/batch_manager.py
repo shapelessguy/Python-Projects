@@ -12,8 +12,9 @@ from pymongo import MongoClient, errors, IndexModel
 from pymongo.errors import DuplicateKeyError
 from bson.objectid import ObjectId
 from gen_ai.models import local
-from gen_ai.model import JobStatus, ErrorMsg, ErrorType
+from gen_ai.model import JobStatus, RequestStatus, ErrorMsg, ErrorType
 from gen_ai.utils import count_tokens, query_to_hash, construct_prompt, MODELS_PATH
+DEFAULT_CONTENT_TAG = "DEFAULT_CONTENT_TAG"
 
 
 class Directives:
@@ -160,7 +161,6 @@ class Request:
     def __init__(self, from_entry: dict={}, model: Model|str=None, generationConfig: dict={}, task_id: ObjectId|str="",
                  prompt_structure: str="", text_variables: list[dict]|str="", contents: list[dict]=[],
                  chat: bool=False, stream: bool=False, batch: bool=False, update: bool=False):
-        DEFAULT_CONTENT_TAG = "DEFAULT_CONTENT_TAG"
         self.directives: Directives = None
         self.eur_usd_rate = 1
         if from_entry:
@@ -239,7 +239,7 @@ class Request:
         # computed_task - computed_prompt = request has been already computed
         req_ids = {content["request"]["request_id"] for content in self.contents}
         if self.chat:
-            assert len(req_ids) == 1
+            assert len(req_ids) < 2
             to_be_computed, to_be_copied, to_be_updated, to_be_dropped = req_ids, set(), set(), set()
         else:
             if len(req_ids) != len(self.contents):
@@ -250,9 +250,9 @@ class Request:
                 JobStatus.JOB_STATE_RUNNING,
                 JobStatus.JOB_STATE_SUCCEEDED
             ] 
-            new_task, computed_task = bm.get_req_id_by_query(req_ids, {"taskId": self.task_id, "status": {"$in": states}, "chat": False})
-            new_prompt, computed_prompt = bm.get_req_id_by_query(req_ids, {"requestHash": self.request_hash, "status": {"$in": states}, "chat": False})
-            _, computed_totally = bm.get_req_id_by_query(req_ids, {"taskId": self.task_id, "requestHash": self.request_hash, "status": {"$in": states}, "chat": False})
+            new_task, computed_task = bm.__get_req_id_by_query(req_ids, {"taskId": self.task_id, "status": {"$in": states}, "chat": False})
+            new_prompt, computed_prompt = bm.__get_req_id_by_query(req_ids, {"requestHash": self.request_hash, "status": {"$in": states}, "chat": False})
+            _, computed_totally = bm.__get_req_id_by_query(req_ids, {"taskId": self.task_id, "requestHash": self.request_hash, "status": {"$in": states}, "chat": False})
             to_be_computed, to_be_copied, to_be_updated, to_be_dropped = set(), set(), set(), set()
             for req_id in req_ids:
                 if req_id in new_task and req_id in new_prompt:
@@ -276,6 +276,9 @@ class Request:
         if not self.directives:
             raise Exception("Directives needed: did you forget to call 'request.get_directives(BatchManager)'?")
         return self.directives.bm.send_request(self)
+    
+    def send_chat(self, task_id, content_vars, stream):
+        return self.directives.bm.send_chat(task_id, content_vars, stream)
 
     def create_record(self):
         entry = {
@@ -331,13 +334,13 @@ class BatchManager:
         self.__registered_cb_on_batch__ = None
         self.__registered_cb_on_complete__ = None
         self.__registered_cb_on_stream__ = None
-        self.connect()
-        self.load_initial_state()
+        self.__connect()
+        self.__load_initial_state()
         # self.cancel_instant_requests()
-        self.start_background()
-        threading.Thread(target=self.background_task, daemon=True).start()
+        self.__start_background()
+        threading.Thread(target=self.__background_task, daemon=True).start()
 
-    def connect(self):
+    def __connect(self):
         try:
             self.client = MongoClient(self.connection_url, serverSelectionTimeoutMS=400)
             self.client.admin.command('ping')
@@ -347,6 +350,314 @@ class BatchManager:
             print("Could not connect to MongoDB. Server not available.")
         else:
             self.connected = True
+    
+    def __get_collection(self):
+        return self.client[self.db_name][self.collection_name]
+    
+    def __load_initial_state(self):
+        self.__get_collection().create_indexes([
+            IndexModel("status"),
+            IndexModel("requestHash"),
+            IndexModel("chat"),
+            IndexModel("taskId")
+        ])
+        results = self.__get_collection().find({ "status": {"$in": [
+            JobStatus.JOB_STATE_CREATED,
+            JobStatus.JOB_STATE_PENDING,
+            JobStatus.JOB_STATE_RUNNING
+        ]}}, {"_id": 1, "batch": 1, "chat": 1})
+        for r in results:
+            if r["batch"]:
+                self.batch_requests.append(r["_id"])
+            else:
+                if r["chat"]:
+                    self.chat_requests.append(r["_id"])
+                else:
+                    self.instant_requests.append(r["_id"])
+    
+    def __create_request_entry(self, request_entry):
+        while True:
+            request_entry["_id"] = ObjectId()
+            try:
+                self.__get_collection().insert_one(request_entry)
+                return request_entry
+            except DuplicateKeyError:
+                continue
+
+    def __update_request_entry(self, request_entry):
+        self.__get_collection().find_one_and_update({"_id": request_entry["_id"]}, {"$set": request_entry}, upsert=True)
+
+    def __get_content_by_query(self, req_ids: set[str], query: dict):
+        contents = {content["request"]["request_id"]: content
+                    for doc in self.__get_collection().find(query)
+                    for content in doc["contents"]
+                    if content["request"]["request_id"] in req_ids and content["response"] != {}}
+        return contents
+
+    def __delete_content_by_query(self, req_ids: set[str], query: dict):
+        base_filter = {
+            **query,
+            "contents.request.request_id": {"$in": list(req_ids)}
+        }
+        update = {
+            "$pull": {
+                "contents": {
+                    "request.request_id": {"$in": list(req_ids)}
+                }
+            }
+        }
+        self.__get_collection().update_many(filter=base_filter, update=update)
+
+    def __get_req_id_by_query(self, req_ids: set[str], query: dict):
+        pipeline = [
+            {"$match": {
+                **query
+            }},
+            {"$unwind": "$contents"},
+            {"$group": {
+                "_id": None,
+                "req_ids": {"$addToSet": "$contents.request.request_id"}
+            }}
+        ]
+        result = self.__get_collection().aggregate(pipeline)
+        doc = next(result, None)
+        stored_req_ids = set(doc["req_ids"]) if doc else set()
+        fresh_ids = {rid for rid in req_ids if rid not in stored_req_ids}
+        computed_ids = {rid for rid in req_ids if rid in stored_req_ids}
+        return fresh_ids, computed_ids
+
+    def __sanitize_request_content(self, directives: Directives):
+        request: Request = directives.request
+        request.contents = [content for content in request.contents if content["request"]["request_id"] not in directives.to_be_dropped]
+        if not directives.request.update:
+            request.contents = [content for content in request.contents if content["request"]["request_id"] not in directives.to_be_updated]
+        
+        states = [
+            JobStatus.JOB_STATE_CREATED,
+            JobStatus.JOB_STATE_PENDING,
+            JobStatus.JOB_STATE_RUNNING,
+            JobStatus.JOB_STATE_CANCELLED,
+            JobStatus.JOB_STATE_SUCCEEDED
+        ]
+        source_contents = self.__get_content_by_query(directives.to_be_copied, {"requestHash": request.request_hash, "status": {"$in": states}, "chat": False})
+        request.contents = [source_contents.get(content["request"]["request_id"], content) for content in request.contents]
+        return request
+
+    def __finalize_request_content(self, request: Request):
+        final_req_ids = set()
+        final_contents = []
+        for content in request.contents:
+            if content["request"]["request_id"] not in final_req_ids:
+                full_req_hash = ObjectId(query_to_hash(construct_prompt(request.prompt_structure, content["request"])))
+                content["request"]["full_request_hash"] = full_req_hash
+                final_contents.append(content)
+        request.contents = final_contents
+        return request
+    
+    def __interrupt_background(self):
+        self.interrupt_backgroud_flag = True
+        while self.on_background:
+            time.sleep(0.05)
+        self.interrupt_backgroud_flag = False
+    
+    def __start_background(self):
+        while self.on_background:
+            time.sleep(0.05)
+        self.start_background_flag = True
+
+    def __on_complete(self, request: Request):
+        if self.__registered_cb_on_complete__:
+            try:
+                self.__registered_cb_on_complete__(request)
+            except:
+                import traceback
+                print(traceback.format_exc())
+                pass
+        else:
+            print("no callback")
+    
+    def __cancel_instant_requests(self):
+        requests_ = list(self.__get_collection().find({ "_id": {"$in": self.instant_requests}}))[::-1]
+        for i in range(len(requests_) - 1, -1, -1):
+            request = Request(from_entry=requests_[i])
+            request.cancellation_requested = True
+            request.status = JobStatus.JOB_STATE_CANCELLED
+            self.__update_request_entry(request.create_record())
+            self.instant_requests.pop(0)
+    
+    def __handle_simple_requests(self, req_ids: list[ObjectId], chat=False):
+        """
+        Computes the next instant request.
+        
+        Returns:
+            - Data (dict):
+                - request (Request): Request object
+                - content (dict): Content in form of a dict of the current generated request
+                - computed (int): Current number of elements computed
+                - tot_count (int): Current number of elements to be computed + already computed
+                OR
+                - None if error occurred
+            - ErrorMsg (INITIALIZATION|SIMPLE_REQUEST) if an error occurred. None otherwise
+        """
+        requests_ = list(self.__get_collection().find({ "_id": {"$in": req_ids}}))[::-1]
+        tot_count = sum([len(req["contents"]) for req in requests_])
+        computed_count = sum([len([1 for content in req["contents"] if content["response"] != {}]) for req in requests_])
+
+        next_content = None
+        request = None
+
+        for i in range(len(requests_) - 1, -1, -1):
+            try:
+                request = Request(from_entry=requests_[i])
+            except:
+                req_ids.pop(0)
+                continue
+            request.eur_usd_rate = self.eur_usd_rate
+            for content in request.contents:
+                if content["response"] == {}:
+                    next_content = content
+                    break
+            if next_content is not None:
+                break
+            else:
+                request.status = JobStatus.JOB_STATE_SUCCEEDED
+                self.__update_request_entry(request.create_record())
+                self.__on_complete(request)
+                req_ids.pop(0)
+
+        try:
+            if next_content is not None:
+                next_req_text = construct_prompt(request.prompt_structure, next_content["request"])
+                model = request.model() if not chat else resolve_model(model_class=next_content["request"]["modelFamily"],
+                                                                        model_name=next_content["request"]["modelName"])()
+                if request.stream:
+                    req_status, data, error = model.stream_request(request, next_req_text, self.__registered_cb_on_stream__)
+                else:
+                    req_status, data, error = model.send_simple_request(request, next_req_text)
+                
+                if req_status == RequestStatus.SUCCEEDED:
+                    response = data
+                    next_content["response"] = response
+                    self.__update_request_entry(request.create_record())
+                    return {"request": request, "content": next_content, "computed": computed_count + 1, "tot_count": tot_count}, None
+                else:
+                    return None, error
+            return None, ErrorMsg(ErrorType.NO_REQUEST)
+        except Exception as e:
+            return None, ErrorMsg(ErrorType.UNKNOWN, e)
+
+    def __fetch_batch_at(self, index):
+        """
+        Fetches the batch request at a specified index.
+        
+        Returns:
+            Data (dict):
+                - request (Request): Batch request just computed or None if an error occurred.
+                OR None if an error occurred
+            - ErrorMsg (INITIALIZATION|BATCH_PARSING|BATCH_NOT_READY) if an error occurred, None otherwise
+        """
+        if not len(self.batch_requests):
+            return None, ErrorMsg(ErrorType.NO_REQUEST)
+        if index >= len(self.batch_requests) or index < 0:
+            return None, ErrorMsg(ErrorType.NO_REQUEST)
+        
+        try:
+            batch_request = Request(from_entry=self.__get_collection().find_one({ "_id": self.batch_requests[index]}))
+        except Exception as e:
+            self.batch_requests.pop(index)
+            return None, ErrorMsg(ErrorType.UNKNOWN, e)
+        batch_request.eur_usd_rate = self.eur_usd_rate
+        
+        if batch_request.is_complete():
+            batch_request.status = JobStatus.JOB_STATE_SUCCEEDED
+            self.batch_requests.pop(index)
+            self.__on_complete(batch_request)
+            self.__update_request_entry(batch_request.create_record())
+            return {"request": batch_request}, None
+        try:
+            job_status, data, error = batch_request.model().fetch_batch_results(batch_request)
+            if job_status != batch_request.status:
+                batch_request.status = job_status
+                if job_status != JobStatus.JOB_STATE_SUCCEEDED:
+                    self.__update_request_entry(batch_request.create_record())
+            
+            if job_status in [JobStatus.JOB_STATE_CANCELLED, JobStatus.JOB_STATE_EXPIRED, JobStatus.JOB_STATE_FAILED, JobStatus.JOB_STATE_SUCCEEDED]:
+                responses = data
+                self.batch_requests.pop(index)
+                if job_status == JobStatus.JOB_STATE_SUCCEEDED:
+                    for content in batch_request.contents:
+                        response = responses.get(content["request"]["request_id"], None)
+                        if response:
+                            content["response"] = response
+                    self.__on_complete(batch_request)
+                    self.__update_request_entry(batch_request.create_record())
+
+            return ({"request": batch_request}, None) if job_status == JobStatus.JOB_STATE_SUCCEEDED else (None, error)
+        except Exception as e:
+            return None, ErrorMsg(ErrorType.UNKNOWN, e)
+    
+    def __wait(self, sec: int):
+        for _ in range(int(20 * sec)):
+            if self.interrupt_backgroud_flag or self.close_flag:
+                return
+            time.sleep(0.05)
+
+    def __background_task(self):
+        POLLING_INTERVAL = 5
+        backoff_values = [0, 0.1, 0.5, 2, 5]
+        delay_idx = {"chat": 0, "instant": 0}
+        print("Monitoring AI requests...")
+        while not self.close_flag:
+            self.on_background = True
+            self.start_background_flag = False
+            while not self.interrupt_backgroud_flag and not self.close_flag:
+                while len(self.chat_requests) and not self.interrupt_backgroud_flag and not self.close_flag:
+                    instant_data, errorMsg = self.__handle_simple_requests(self.chat_requests, chat=True)
+                    if not errorMsg:
+                        if self.__registered_cb_on_chat__:
+                            try:
+                                self.__registered_cb_on_chat__(*list(instant_data.values()))
+                            except:
+                                print(f"Error while processing callback {self.__registered_cb_on_chat__.__name__}")
+                    elif errorMsg.error_type not in {ErrorType.NO_REQUEST}:
+                        print(errorMsg)
+                        delay_idx["chat"] = min(delay_idx["chat"] + 1, len(backoff_values) - 1)
+                        self.__wait(backoff_values[delay_idx["chat"]])
+                while len(self.instant_requests) and not len(self.chat_requests) and not self.interrupt_backgroud_flag and not self.close_flag:
+                    instant_data, errorMsg = self.__handle_simple_requests(self.instant_requests, chat=False)
+                    if not errorMsg:
+                        if self.__registered_cb_on_instant__:
+                            try:
+                                self.__registered_cb_on_instant__(*list(instant_data.values()))
+                            except:
+                                print(f"Error while processing callback {self.__registered_cb_on_instant__.__name__}")
+                    elif errorMsg.error_type not in {ErrorType.NO_REQUEST}:
+                        print(errorMsg)
+                        delay_idx["instant"] = min(delay_idx["instant"] + 1, len(backoff_values) - 1)
+                        self.__wait(backoff_values[delay_idx["instant"]])
+                for i in range(len(self.batch_requests)-1, -1, -1):
+                    if len(self.chat_requests) or self.interrupt_backgroud_flag or self.close_flag:
+                        break
+                    batch_data, errorMsg = self.__fetch_batch_at(i)
+                    if errorMsg is None:
+                        if self.__registered_cb_on_batch__:
+                            try:
+                                self.__registered_cb_on_batch__(*list(batch_data.values()))
+                            except:
+                                print(f"Error while processing callback {self.__registered_cb_on_batch__.__name__}")
+                    elif errorMsg.error_type not in {ErrorType.BATCH_NOT_READY}:
+                        print(errorMsg)
+
+                for _ in range(10 * POLLING_INTERVAL):
+                    if len(self.chat_requests) or len(self.instant_requests) or self.interrupt_backgroud_flag or self.close_flag:
+                        break
+                    time.sleep(0.1)
+            self.on_background = False
+
+            while not self.start_background_flag and not self.close_flag:
+                time.sleep(0.1)
+    
+    # ------------------------------------------------------------------------------------------------------------
     
     def get_consumption(self):
         coll = self.client[self.db_name][self.collection_name]
@@ -388,9 +699,6 @@ class BatchManager:
         computed_costs["parallel"] = parallel
         return computed_costs
     
-    def get_collection(self):
-        return self.client[self.db_name][self.collection_name]
-    
     def register_instant_callback(self, function):
         self.__registered_cb_on_instant__ = function
     
@@ -406,155 +714,72 @@ class BatchManager:
     def close(self):
         self.close_flag = True
     
-    def load_initial_state(self):
-        self.get_collection().create_indexes([
-            IndexModel("status"),
-            IndexModel("requestHash"),
-            IndexModel("chat"),
-            IndexModel("taskId")
-        ])
-        results = self.get_collection().find({ "status": {"$in": [
-            JobStatus.JOB_STATE_CREATED,
-            JobStatus.JOB_STATE_PENDING,
-            JobStatus.JOB_STATE_RUNNING
-        ]}}, {"_id": 1, "batch": 1, "chat": 1})
-        for r in results:
-            if r["batch"]:
-                self.batch_requests.append(r["_id"])
-            else:
-                if r["chat"]:
-                    self.chat_requests.append(r["_id"])
-                else:
-                    self.instant_requests.append(r["_id"])
-    
-    def create_request_entry(self, request_entry):
-        while True:
-            request_entry["_id"] = ObjectId()
-            try:
-                self.get_collection().insert_one(request_entry)
-                return request_entry
-            except DuplicateKeyError:
-                continue
+    def send_chat(self, task_id: ObjectId|str, content_vars: dict|str, stream: bool=False):
+        assert type(task_id) is ObjectId or type(task_id) is str
+        assert type(content_vars) is str or type(content_vars) is dict
+        assert type(stream) is bool
+        if type(content_vars) is dict:
+            assert all(isinstance(k, str) and isinstance(v, str) for k, v in content_vars.items())
+        else:
+            content_vars = {DEFAULT_CONTENT_TAG: content_vars}
 
-    def update_request_entry(self, request_entry):
-        self.get_collection().find_one_and_update({"_id": request_entry["_id"]}, {"$set": request_entry}, upsert=True)
-
-    def get_request_entry(self, _id):
-        return self.get_collection().find_one({"_id": _id})
-
-    def get_content_by_query(self, req_ids: set[str], query: dict):
-        contents = {content["request"]["request_id"]: content
-                    for doc in self.get_collection().find(query)
-                    for content in doc["contents"]
-                    if content["request"]["request_id"] in req_ids and content["response"] != {}}
-        return contents
-
-    def delete_content_by_query(self, req_ids: set[str], query: dict):
-        base_filter = {
-            **query,
-            "contents.request.request_id": {"$in": list(req_ids)}
+        chat_obj = self.__get_collection().find_one({"chat": True, "taskId": task_id})
+        if not chat_obj:
+            return None, ErrorMsg(ErrorType.CHAT_NOT_FOUND)
+        request = Request(from_entry=chat_obj)
+        additional_body = {
+            "modelFamily": request.model.__bases__[0].__name__,
+            "modelName": request.model.__name__,
+            "generationConfig": request.generationConfig
         }
-        update = {
-            "$pull": {
-                "contents": {
-                    "request.request_id": {"$in": list(req_ids)}
-                }
-            }
+        new_content = {
+            "request": {
+                "request_id": len(request.contents),
+                "content_vars": content_vars,
+                **additional_body
+            },
+            "response": {}
         }
-        self.get_collection().update_many(filter=base_filter, update=update)
-
-    def get_req_id_by_query(self, req_ids: set[str], query: dict):
-        pipeline = [
-            {"$match": {
-                **query
-            }},
-            {"$unwind": "$contents"},
-            {"$group": {
-                "_id": None,
-                "req_ids": {"$addToSet": "$contents.request.request_id"}
-            }}
-        ]
-        result = self.get_collection().aggregate(pipeline)
-        doc = next(result, None)
-        stored_req_ids = set(doc["req_ids"]) if doc else set()
-        fresh_ids = {rid for rid in req_ids if rid not in stored_req_ids}
-        computed_ids = {rid for rid in req_ids if rid in stored_req_ids}
-        return fresh_ids, computed_ids
-
-    def sanitize_request_content(self, directives: Directives):
-        request: Request = directives.request
-        request.contents = [content for content in request.contents if content["request"]["request_id"] not in directives.to_be_dropped]
-        if not directives.request.update:
-            request.contents = [content for content in request.contents if content["request"]["request_id"] not in directives.to_be_updated]
-        
-        states = [
-            JobStatus.JOB_STATE_CREATED,
-            JobStatus.JOB_STATE_PENDING,
-            JobStatus.JOB_STATE_RUNNING,
-            JobStatus.JOB_STATE_CANCELLED,
-            JobStatus.JOB_STATE_SUCCEEDED
-        ]
-        source_contents = self.get_content_by_query(directives.to_be_copied, {"requestHash": request.request_hash, "status": {"$in": states}, "chat": False})
-        request.contents = [source_contents.get(content["request"]["request_id"], content) for content in request.contents]
-        return request
-
-    def finalize_request_content(self, request: Request):
-        final_req_ids = set()
-        final_contents = []
-        for content in request.contents:
-            if content["request"]["request_id"] not in final_req_ids:
-                full_req_hash = ObjectId(query_to_hash(construct_prompt(request.prompt_structure, content["request"])))
-                content["request"]["full_request_hash"] = full_req_hash
-                final_contents.append(content)
-        request.contents = final_contents
-        return request
-    
-    def interrupt_background(self):
-        self.interrupt_backgroud_flag = True
-        while self.on_background:
-            time.sleep(0.05)
-        self.interrupt_backgroud_flag = False
-    
-    def start_background(self):
-        while self.on_background:
-            time.sleep(0.05)
-        self.start_background_flag = True
+        request.contents = [new_content]
+        request.stream = stream
+        request.get_directives(self)
+        return self.send_request(request)
 
     def send_request(self, request: Request):
         """
         Send a request to the provider.
         
         Returns:
-            - Sanitized request (Request)
+            - Sanitized request (Request) if no error occurred, None otherwise.
             - message (ErrorMsg|None):
                 - ErrorMsg (NO_REQUEST|INITIALIZATION|SIMPLE_REQUEST) if an error occurred
                 - None if requests have been sent
         """
-        self.interrupt_background()
-        sanitized_request = request if request.chat else self.sanitize_request_content(request.directives)
-        sanitized_request = self.finalize_request_content(request)
+        self.__interrupt_background()
+        sanitized_request = request if request.chat else self.__sanitize_request_content(request.directives)
+        sanitized_request = self.__finalize_request_content(request)
         sanitized_request.eur_usd_rate = self.eur_usd_rate
         
-        if len(sanitized_request.contents) == 0:
-            self.start_background()
+        if not sanitized_request.chat and len(sanitized_request.contents) == 0:
+            self.__start_background()
             return sanitized_request, ErrorMsg(ErrorType.NO_REQUEST)
 
         error = None
         if len(sanitized_request.get_full_requests()) == 0:
-            stored_request = Request(from_entry=self.create_request_entry(sanitized_request.create_record()))
+            stored_request = Request(from_entry=self.__create_request_entry(sanitized_request.create_record()))
             reqs = self.batch_requests if stored_request.batch else self.instant_requests
             reqs.append(stored_request.req_id)
         else:
             model = sanitized_request.model()
             if not sanitized_request.batch:
                 if not model.is_initialized():
-                    self.start_background()
+                    self.__start_background()
                     stored_request = sanitized_request
                     error = ErrorMsg(ErrorType.INITIALIZATION, model.init_err)
                 else:
                     chat_obj = None
                     if sanitized_request.chat:
-                        chat_obj = self.get_collection().find_one({"taskId": sanitized_request.task_id})
+                        chat_obj = self.__get_collection().find_one({"chat": True, "taskId": sanitized_request.task_id})
                         if chat_obj:
                             chat_request = Request(from_entry=chat_obj)
                             stored_request = sanitized_request
@@ -562,18 +787,18 @@ class BatchManager:
                             stored_request.req_id = chat_request.req_id
                             stored_request.contents[0]["request"]["request_id"] = len(chat_request.contents)
                             stored_request.contents = chat_request.contents + stored_request.contents
-                            self.update_request_entry(stored_request.create_record())
+                            self.__update_request_entry(stored_request.create_record())
                         else:
-                            stored_request = Request(from_entry=self.create_request_entry(sanitized_request.create_record()))
+                            stored_request = Request(from_entry=self.__create_request_entry(sanitized_request.create_record()))
                         self.chat_requests.append(stored_request.req_id)
                     else:
-                        stored_request = Request(from_entry=self.create_request_entry(sanitized_request.create_record()))
+                        stored_request = Request(from_entry=self.__create_request_entry(sanitized_request.create_record()))
                         self.instant_requests.append(stored_request.req_id)
             else:
-                status, message = model.send_batch(sanitized_request)
-                if status == JobStatus.JOB_STATE_SUCCEEDED:
+                req_status, message = model.send_batch(sanitized_request)
+                if req_status == RequestStatus.SUCCEEDED:
                     sanitized_request.operational = message
-                    stored_request = Request(from_entry=self.create_request_entry(sanitized_request.create_record()))
+                    stored_request = Request(from_entry=self.__create_request_entry(sanitized_request.create_record()))
                     self.batch_requests.append(stored_request.req_id)
                 else:
                     stored_request = sanitized_request
@@ -586,219 +811,37 @@ class BatchManager:
                     JobStatus.JOB_STATE_RUNNING,
                     JobStatus.JOB_STATE_SUCCEEDED
                 ]
-            self.delete_content_by_query(request.directives.to_be_updated, {"taskId": request.directives.request.task_id, "status": {"$in": states}, "chat": False})
+            self.__delete_content_by_query(request.directives.to_be_updated, {"taskId": request.directives.request.task_id, "status": {"$in": states}, "chat": False})
         else:
             print(error)
-        self.start_background()
-        return stored_request, error
+        self.__start_background()
+        return stored_request if not error else None, error
     
-    def send_cancellation(self, batch_id: ObjectId):
-        entry = self.get_collection().find_one({ "_id": batch_id})
+    def cancel_request(self, request_id: ObjectId):
+        entry = self.__get_collection().find_one({ "_id": request_id})
         if not entry:
-            return JobStatus.JOB_STATE_FAILED
-        self.interrupt_background()
-        batch_request = Request(from_entry=entry)
-        status = batch_request.model().cancel_batch(batch_request)
-        if status == JobStatus.JOB_STATE_SUCCEEDED:
-            batch_request.cancellation_requested = True
-            self.update_request_entry(batch_request.create_record())
-        self.start_background()
-        return status
-
-    def on_complete(self, request: Request):
-        if self.__registered_cb_on_complete__:
-            try:
-                self.__registered_cb_on_complete__(request)
-            except:
-                import traceback
-                print(traceback.format_exc())
-                pass
+            return RequestStatus.FAILED
+        self.__interrupt_background()
+        request = Request(from_entry=entry)
+        if request.batch:
+            req_status = request.model().cancel_batch(request)
+            if req_status == RequestStatus.SUCCEEDED:
+                request.cancellation_requested = True
+                self.__update_request_entry(request.create_record())
         else:
-            print("no callback")
+            if request.status != JobStatus.JOB_STATE_SUCCEEDED:
+                request.cancellation_requested = True
+                request.status == JobStatus.JOB_STATE_CANCELLED
+                for i in range(len(self.instant_requests)):
+                    if self.instant_requests[i] == request.req_id:
+                        self.instant_requests.pop(i)
+                        break
+            self.__update_request_entry(request.create_record())
+        self.__start_background()
+        return req_status
     
     def cancel_instant_requests(self):
-        self.interrupt_background()
-        self.__cancel_instant_requests__()
-        self.start_background()
-    
-    def __cancel_instant_requests__(self):
-        requests_ = list(self.get_collection().find({ "_id": {"$in": self.instant_requests}}))[::-1]
-        for i in range(len(requests_) - 1, -1, -1):
-            request = Request(from_entry=requests_[i])
-            request.cancellation_requested = True
-            request.status = JobStatus.JOB_STATE_CANCELLED
-            self.update_request_entry(request.create_record())
-            self.instant_requests.pop(0)
-    
-    def __handle_simple_requests__(self, req_ids: list[ObjectId], chat=False):
-        """
-        Computes the next instant request.
-        
-        Returns:
-            - Data (dict):
-                - request (Request): Request object
-                - content (dict): Content in form of a dict of the current generated request
-                - computed (int): Current number of elements computed
-                - tot_count (int): Current number of elements to be computed + already computed
-                OR
-                - None if error occurred
-            - ErrorMsg (INITIALIZATION|SIMPLE_REQUEST) if an error occurred. None otherwise
-        """
-        requests_ = list(self.get_collection().find({ "_id": {"$in": req_ids}}))[::-1]
-        tot_count = sum([len(req["contents"]) for req in requests_])
-        computed_count = sum([len([1 for content in req["contents"] if content["response"] != {}]) for req in requests_])
-
-        next_content = None
-        request = None
-
-        for i in range(len(requests_) - 1, -1, -1):
-            try:
-                request = Request(from_entry=requests_[i])
-            except:
-                req_ids.pop(0)
-                continue
-            request.eur_usd_rate = self.eur_usd_rate
-            for content in request.contents:
-                if content["response"] == {}:
-                    next_content = content
-                    break
-            if next_content is not None:
-                break
-            else:
-                request.status = JobStatus.JOB_STATE_SUCCEEDED
-                self.update_request_entry(request.create_record())
-                self.on_complete(request)
-                req_ids.pop(0)
-
-        try:
-            if next_content is not None:
-                next_req_text = construct_prompt(request.prompt_structure, next_content["request"])
-                model = request.model() if not chat else resolve_model(model_class=next_content["request"]["modelFamily"],
-                                                                        model_name=next_content["request"]["modelName"])()
-                if request.stream:
-                    status, data, error = model.stream_request(request, next_req_text, self.__registered_cb_on_stream__)
-                else:
-                    status, data, error = model.send_simple_request(request, next_req_text)
-                
-                if status == JobStatus.JOB_STATE_SUCCEEDED:
-                    response = data
-                    next_content["response"] = response
-                    self.update_request_entry(request.create_record())
-                    return {"request": request, "content": next_content, "computed": computed_count + 1, "tot_count": tot_count}, None
-                else:
-                    return None, error
-            return None, ErrorMsg(ErrorType.NO_REQUEST)
-        except Exception as e:
-            return None, ErrorMsg(ErrorType.UNKNOWN, e)
-
-    def __fetch_batch_at__(self, index):
-        """
-        Fetches the batch request at a specified index.
-        
-        Returns:
-            Data (dict):
-                - request (Request): Batch request just computed or None if an error occurred.
-                OR None if an error occurred
-            - ErrorMsg (INITIALIZATION|BATCH_PARSING|BATCH_NOT_READY) if an error occurred, None otherwise
-        """
-        if not len(self.batch_requests):
-            return None, ErrorMsg(ErrorType.NO_REQUEST)
-        if index >= len(self.batch_requests) or index < 0:
-            return None, ErrorMsg(ErrorType.NO_REQUEST)
-        
-        try:
-            batch_request = Request(from_entry=self.get_collection().find_one({ "_id": self.batch_requests[index]}))
-        except Exception as e:
-            self.batch_requests.pop(index)
-            return None, ErrorMsg(ErrorType.UNKNOWN, e)
-        batch_request.eur_usd_rate = self.eur_usd_rate
-        
-        if batch_request.is_complete():
-            batch_request.status = JobStatus.JOB_STATE_SUCCEEDED
-            self.batch_requests.pop(index)
-            self.on_complete(batch_request)
-            self.update_request_entry(batch_request.create_record())
-            return {"request": batch_request}, None
-        try:
-            status, data, error = batch_request.model().fetch_batch_results(batch_request)
-            if status != batch_request.status:
-                batch_request.status = status
-                if status != JobStatus.JOB_STATE_SUCCEEDED:
-                    self.update_request_entry(batch_request.create_record())
-            
-            if status in [JobStatus.JOB_STATE_CANCELLED, JobStatus.JOB_STATE_EXPIRED, JobStatus.JOB_STATE_FAILED, JobStatus.JOB_STATE_SUCCEEDED]:
-                responses = data
-                self.batch_requests.pop(index)
-                if status == JobStatus.JOB_STATE_SUCCEEDED:
-                    for content in batch_request.contents:
-                        response = responses.get(content["request"]["request_id"], None)
-                        if response:
-                            content["response"] = response
-                    self.on_complete(batch_request)
-                    self.update_request_entry(batch_request.create_record())
-
-            return ({"request": batch_request}, None) if status == JobStatus.JOB_STATE_SUCCEEDED else (None, error)
-        except Exception as e:
-            return None, ErrorMsg(ErrorType.UNKNOWN, e)
-    
-    def wait(self, sec: int):
-        for _ in range(int(20 * sec)):
-            if self.interrupt_backgroud_flag or self.close_flag:
-                return
-            time.sleep(0.05)
-
-    def background_task(self):
-        POLLING_INTERVAL = 5
-        backoff_values = [0, 0.1, 0.5, 2, 5]
-        delay_idx = {"chat": 0, "instant": 0}
-        print("Monitoring AI requests...")
-        while not self.close_flag:
-            self.on_background = True
-            self.start_background_flag = False
-            while not self.interrupt_backgroud_flag and not self.close_flag:
-                while len(self.chat_requests) and not self.interrupt_backgroud_flag and not self.close_flag:
-                    instant_data, errorMsg = self.__handle_simple_requests__(self.chat_requests, chat=True)
-                    if not errorMsg:
-                        if self.__registered_cb_on_chat__:
-                            try:
-                                self.__registered_cb_on_chat__(*list(instant_data.values()))
-                            except:
-                                print(f"Error while processing callback {self.__registered_cb_on_chat__.__name__}")
-                    elif errorMsg.error_type not in {ErrorType.NO_REQUEST}:
-                        print(errorMsg)
-                        delay_idx["chat"] = min(delay_idx["chat"] + 1, len(backoff_values) - 1)
-                        self.wait(backoff_values[delay_idx["chat"]])
-                while len(self.instant_requests) and not len(self.chat_requests) and not self.interrupt_backgroud_flag and not self.close_flag:
-                    instant_data, errorMsg = self.__handle_simple_requests__(self.instant_requests, chat=False)
-                    if not errorMsg:
-                        if self.__registered_cb_on_instant__:
-                            try:
-                                self.__registered_cb_on_instant__(*list(instant_data.values()))
-                            except:
-                                print(f"Error while processing callback {self.__registered_cb_on_instant__.__name__}")
-                    elif errorMsg.error_type not in {ErrorType.NO_REQUEST}:
-                        print(errorMsg)
-                        delay_idx["instant"] = min(delay_idx["instant"] + 1, len(backoff_values) - 1)
-                        self.wait(backoff_values[delay_idx["instant"]])
-                for i in range(len(self.batch_requests)-1, -1, -1):
-                    if len(self.chat_requests) or self.interrupt_backgroud_flag or self.close_flag:
-                        break
-                    batch_data, errorMsg = self.__fetch_batch_at__(i)
-                    if errorMsg is None:
-                        if self.__registered_cb_on_batch__:
-                            try:
-                                self.__registered_cb_on_batch__(*list(batch_data.values()))
-                            except:
-                                print(f"Error while processing callback {self.__registered_cb_on_batch__.__name__}")
-                    elif errorMsg.error_type not in {ErrorType.BATCH_NOT_READY}:
-                        print(errorMsg)
-
-                for _ in range(10 * POLLING_INTERVAL):
-                    if len(self.chat_requests) or len(self.instant_requests) or self.interrupt_backgroud_flag or self.close_flag:
-                        break
-                    time.sleep(0.1)
-            self.on_background = False
-
-            while not self.start_background_flag and not self.close_flag:
-                time.sleep(0.1)
+        self.__interrupt_background()
+        self.__cancel_instant_requests()
+        self.__start_background()
 

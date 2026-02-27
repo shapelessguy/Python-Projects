@@ -26,13 +26,13 @@ def send_tv(signal, verbose, value, notify_):
 
 
 def lights_on(signal, verbose=False, notify_=True):
-    send_top(signal, verbose, "W", notify_)
-    # send_light_config(signal, verbose, "on", notify_)
+    # send_top(signal, verbose, "W", notify_)
+    send_light_config(signal, verbose, "on", notify_)
 
 
 def lights_off(signal, verbose=False, notify_=True):
-    send_top(signal, verbose, "RGB", notify_)
-    # send_light_config(signal, verbose, "off", notify_)
+    # send_top(signal, verbose, "RGB", notify_)
+    send_light_config(signal, verbose, "off", notify_)
 
 
 def lights_auto(signal, verbose=False, notify_=True):

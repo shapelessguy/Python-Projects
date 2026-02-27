@@ -1,6 +1,11 @@
 from datetime import datetime, timezone
 
 
+class RequestStatus:
+    FAILED =      'REQUEST_FAILED'
+    SUCCEEDED =   'REQUEST_SUCCEEDED'
+
+
 class JobStatus:
     JOB_STATE_FAILED =      'JOB_STATE_FAILED'
     JOB_STATE_CANCELLED =   'JOB_STATE_CANCELLED'
@@ -18,6 +23,7 @@ class JobStatus:
 
 class ErrorType:
     NO_REQUEST =            "No request to be computed"
+    CHAT_NOT_FOUND =        "No chat with requested task_id found"
     INITIALIZATION =        "Model client not initialized"
     BATCH_REQUEST =         "Error on batch request"
     BATCH_CANCEL =          "Error on batch cancellation"

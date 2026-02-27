@@ -28,14 +28,14 @@ request = Request(
             "thinking_budget": 0
         }
     },
-    task_id=ObjectId("c075d8eda2fa9d0b4dc73376"),
+    task_id=ObjectId("c075d7eda2fa9d0b4dc73376"),
     prompt_structure="Tell me something about me: My name is {{NAME}} I am {{YEARS}} years old and I live in {{LOCATION}}",
     text_variables=[
-        {"NAME": "Claudio", "YEARS": "32", "LOCATION": "Braunschweig"},
-        {"NAME": "Mara", "YEARS": "30", "LOCATION": "Braunschweig"},
-        {"NAME": "ShittyPuppy", "YEARS": "2", "LOCATION": "FUCKland"},
+        # {"NAME": "Claudio", "YEARS": "32", "LOCATION": "Braunschweig"},
+        # {"NAME": "Mara", "YEARS": "30", "LOCATION": "Braunschweig"},
+        # {"NAME": "ShittyPuppy", "YEARS": "2", "LOCATION": "FUCKland"},
     ],
-    chat=False,
+    chat=True,
     stream=False,
     batch=False,
     update=False,
@@ -53,9 +53,11 @@ def on_stream(request_id, text):
 
 bm.register_on_complete_callback(on_complete)
 bm.register_on_stream_callback(on_stream)
-request, msg = request.send_request()
+# request, msg = request.send_request()
+request, msg = request.send_chat(task_id=request.task_id, content_vars={"NAME": "Claudio", "YEARS": "32", "LOCATION": "Braunschweig"}, stream=True)
+print(msg)
 
-# bm.send_cancellation(ObjectId("699f3e179087600c0630e1b0"))
+# bm.send_batch_cancellation(ObjectId("699f3e179087600c0630e1b0"))
 
 
 try:

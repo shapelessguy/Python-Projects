@@ -2,7 +2,7 @@ import dotenv
 import os
 import json
 from openai import OpenAI
-from gen_ai.model import Model, JobStatus, ErrorMsg, ErrorType
+from gen_ai.model import Model, JobStatus, RequestStatus, ErrorMsg, ErrorType
 from gen_ai.utils import count_tokens, construct_prompt
 
 
@@ -33,18 +33,18 @@ class DeepSeekFamily(Model):
         return client is not None
     
     def send_batch(self, request):
-        return JobStatus.JOB_STATE_FAILED, ErrorMsg(ErrorType.NOT_SUPPORTED)
+        return RequestStatus.FAILED, ErrorMsg(ErrorType.NOT_SUPPORTED)
     
     def cancel_batch(self, request, text_list):
-        return JobStatus.JOB_STATE_FAILED, ErrorMsg(ErrorType.NOT_SUPPORTED)
+        return RequestStatus.FAILED, ErrorMsg(ErrorType.NOT_SUPPORTED)
     
     def fetch_batch_results(self, request):
         return JobStatus.JOB_STATE_FAILED, {}, ErrorMsg(ErrorType.NOT_SUPPORTED)
     
     def send_simple_request(self, request, text):
-        status = JobStatus.JOB_STATE_FAILED
+        req_status = RequestStatus.FAILED
         if not self.is_initialized():
-            return status, {}, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
+            return req_status, {}, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
 
         try:
             messages=[
@@ -63,7 +63,7 @@ class DeepSeekFamily(Model):
                 }
             )
         except Exception as e:
-            return JobStatus.JOB_STATE_FAILED, {}, ErrorMsg(ErrorType.SIMPLE_REQUEST, e)
+            return RequestStatus.FAILED, {}, ErrorMsg(ErrorType.SIMPLE_REQUEST, e)
 
         usage = response.usage
         prompt_tokens = usage.prompt_tokens
@@ -79,12 +79,12 @@ class DeepSeekFamily(Model):
 
         self.add_cost(request, prompt_tokens, total_tokens - prompt_tokens)
         super().send_simple_request(request, text)
-        return JobStatus.JOB_STATE_SUCCEEDED, self.format_response(response_text, prompt_tokens, candidates_tokens, thoughts_tokens, total_tokens), None
+        return RequestStatus.SUCCEEDED, self.format_response(response_text, prompt_tokens, candidates_tokens, thoughts_tokens, total_tokens), None
     
     def stream_request(self, request, text, on_stream_cb):
-        status = JobStatus.JOB_STATE_FAILED
+        req_status = RequestStatus.FAILED
         if not self.is_initialized():
-            return status, {}, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
+            return req_status, {}, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
 
         try:
             messages=[
@@ -114,13 +114,13 @@ class DeepSeekFamily(Model):
                         pass
                 response_text += segment
         except Exception as e:
-            return JobStatus.JOB_STATE_FAILED, {}, ErrorMsg(ErrorType.SIMPLE_REQUEST, e)
+            return RequestStatus.FAILED, {}, ErrorMsg(ErrorType.SIMPLE_REQUEST, e)
         
         prompt_tokens = count_tokens(json.dumps(messages))
         total_tokens = prompt_tokens + count_tokens(response_text)
         self.add_cost(request, prompt_tokens, total_tokens - prompt_tokens)
         super().stream_request(request, text, on_stream_cb)
-        return JobStatus.JOB_STATE_SUCCEEDED, self.format_response(response_text, prompt_tokens, total_tokens - prompt_tokens, 0, total_tokens), None
+        return RequestStatus.SUCCEEDED, self.format_response(response_text, prompt_tokens, total_tokens - prompt_tokens, 0, total_tokens), None
 
 
 class deepseek_reasoner(DeepSeekFamily):

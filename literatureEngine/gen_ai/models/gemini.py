@@ -6,7 +6,7 @@ from gen_ai.utils import count_tokens, construct_prompt
 from openai import OpenAI
 from google import genai
 from google.genai import types
-from gen_ai.model import Model, JobStatus, ErrorMsg, ErrorType
+from gen_ai.model import Model, JobStatus, RequestStatus, ErrorMsg, ErrorType
 
 
 API_KEY = dotenv.get_key(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".env"), "GEMINI")
@@ -40,9 +40,9 @@ class GeminiFamily(Model):
         return google_client is not None and client is not None
     
     def send_batch(self, request):
-        status = JobStatus.JOB_STATE_FAILED
+        req_status = RequestStatus.FAILED
         if not self.is_initialized():
-            return status, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
+            return req_status, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
         
         requests = [{
             "key": req_id,
@@ -61,7 +61,7 @@ class GeminiFamily(Model):
             )
             print(f"Uploaded file: {uploaded_file.name}")
         except Exception as e:
-            return status, ErrorMsg(ErrorType.BATCH_REQUEST, e)
+            return req_status, ErrorMsg(ErrorType.BATCH_REQUEST, e)
         finally:
             try:
                 os.remove(tmp.name)
@@ -77,37 +77,37 @@ class GeminiFamily(Model):
             )
             print(f"Batch created: {batch_job.name}")
             super().send_batch(request)
-            status = JobStatus.JOB_STATE_SUCCEEDED
-            return status, {"uploadedFileName": uploaded_file.name, "uploadedBatchName": batch_job.name}
+            req_status = RequestStatus.SUCCEEDED
+            return req_status, {"uploadedFileName": uploaded_file.name, "uploadedBatchName": batch_job.name}
         except Exception as e:
             import traceback
             print(traceback.format_exc())
-            return status, ErrorMsg(ErrorType.BATCH_REQUEST, e)
+            return req_status, ErrorMsg(ErrorType.BATCH_REQUEST, e)
     
     def cancel_batch(self, request):
         if not self.is_initialized():
-            return JobStatus.JOB_STATE_FAILED, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
+            return RequestStatus.FAILED, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
         try:
             google_client.batches.cancel(name=request.operational["uploadedBatchName"])
             print(f"Cancel requested for batch: {request.operational['uploadedBatchName']}")
             super().cancel_batch(request)
         except Exception as e:
-            return JobStatus.JOB_STATE_FAILED, ErrorMsg(ErrorType.BATCH_CANCEL, e)
-        return JobStatus.JOB_STATE_SUCCEEDED, None
+            return RequestStatus.FAILED, ErrorMsg(ErrorType.BATCH_CANCEL, e)
+        return RequestStatus.SUCCEEDED, None
     
     def fetch_batch_results(self, request):
-        status = JobStatus.JOB_STATE_FAILED
+        job_status = request.status
         if not self.is_initialized():
-            return status, [], ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
+            return job_status, [], ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
 
         responses = {}
         batch_name = request.operational["uploadedBatchName"]
         batch_job = google_client.batches.get(name=batch_name)
 
         if batch_job.state.name in JobStatus.get_all_states():
-            status = batch_job.state.name
+            job_status = batch_job.state.name
             if batch_job.state.name == JobStatus.JOB_STATE_SUCCEEDED:
-                status = JobStatus.JOB_STATE_RUNNING
+                job_status = JobStatus.JOB_STATE_RUNNING
                 try:
                     file_content = google_client.files.download(file=batch_job.dest.file_name)
                     text = file_content.decode('utf-8')
@@ -129,15 +129,15 @@ class GeminiFamily(Model):
                         responses[req_id] = (response_text, prompt_tokens, candidates_tokens, thoughts_tokens, total_tokens)
                     super().fetch_batch_results(request)
                 except Exception as e:
-                    return status, [], ErrorMsg(ErrorType.BATCH_PARSING, e)
-                return status, {_id: self.format_response(*r) for _id, r in responses.items()}, None
+                    return job_status, [], ErrorMsg(ErrorType.BATCH_PARSING, e)
+                return job_status, {_id: self.format_response(*r) for _id, r in responses.items()}, None
 
-        return status, [], ErrorMsg(ErrorType.BATCH_NOT_READY)
+        return job_status, [], ErrorMsg(ErrorType.BATCH_NOT_READY)
     
     def send_simple_request(self, request, text):
-        status = JobStatus.JOB_STATE_FAILED
+        req_status = RequestStatus.FAILED
         if not self.is_initialized():
-            return status, {}, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
+            return req_status, {}, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
 
         try:
             response_obj = google_client.models.generate_content(
@@ -151,7 +151,7 @@ class GeminiFamily(Model):
                 )
             )
         except Exception as e:
-            return JobStatus.JOB_STATE_FAILED, {}, ErrorMsg(ErrorType.SIMPLE_REQUEST, e)
+            return RequestStatus.FAILED, {}, ErrorMsg(ErrorType.SIMPLE_REQUEST, e)
 
         usage = response_obj.usage_metadata
         prompt_tokens = usage.prompt_token_count
@@ -164,12 +164,12 @@ class GeminiFamily(Model):
                 response_text += part.text
         self.add_cost(request, prompt_tokens, total_tokens - prompt_tokens)
         super().send_simple_request(request, text)
-        return JobStatus.JOB_STATE_SUCCEEDED, self.format_response(response_text, prompt_tokens, candidates_tokens, thoughts_tokens, total_tokens), None
+        return RequestStatus.SUCCEEDED, self.format_response(response_text, prompt_tokens, candidates_tokens, thoughts_tokens, total_tokens), None
     
     def stream_request(self, request, text, on_stream_cb):
-        status = JobStatus.JOB_STATE_FAILED
+        req_status = RequestStatus.FAILED
         if not self.is_initialized():
-            return status, {}, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
+            return req_status, {}, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
 
         try:
             messages=[
@@ -199,13 +199,13 @@ class GeminiFamily(Model):
                         pass
                 response_text += segment
         except Exception as e:
-            return JobStatus.JOB_STATE_FAILED, {}, ErrorMsg(ErrorType.SIMPLE_REQUEST, e)
+            return RequestStatus.FAILED, {}, ErrorMsg(ErrorType.SIMPLE_REQUEST, e)
         
         prompt_tokens = count_tokens(json.dumps(messages))
         total_tokens = prompt_tokens + count_tokens(response_text)
         self.add_cost(request, prompt_tokens, total_tokens - prompt_tokens)
         super().stream_request(request, text, on_stream_cb)
-        return JobStatus.JOB_STATE_SUCCEEDED, self.format_response(response_text, prompt_tokens, total_tokens - prompt_tokens, 0, total_tokens), None
+        return RequestStatus.SUCCEEDED, self.format_response(response_text, prompt_tokens, total_tokens - prompt_tokens, 0, total_tokens), None
 
 
 class gemini_3_pro_preview(GeminiFamily):
