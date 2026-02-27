@@ -1,4 +1,3 @@
-import dotenv
 import os
 import json
 from openai import OpenAI
@@ -6,7 +5,6 @@ from gen_ai.model import Model, JobStatus, RequestStatus, ErrorMsg, ErrorType
 from gen_ai.utils import count_tokens, construct_prompt
 
 
-API_KEY = dotenv.get_key(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".env"), "DEEPSEEK")
 client = None
 
 
@@ -18,12 +16,12 @@ class DeepSeekFamily(Model):
         "control_thoughts_tokens": False
     }
 
-    def __init__(self):
+    def __init__(self, api_key):
         global client
-        super().__init__()
+        super().__init__(api_key)
         self.init_err = None
         try:
-            client_ = OpenAI(api_key=API_KEY, base_url="https://api.deepseek.com") if client is None else client
+            client_ = OpenAI(api_key=api_key, base_url="https://api.deepseek.com") if client is None else client
             client_.models.list()
             client = client_
         except Exception as e:
@@ -42,9 +40,8 @@ class DeepSeekFamily(Model):
         return JobStatus.JOB_STATE_FAILED, {}, ErrorMsg(ErrorType.NOT_SUPPORTED)
     
     def send_simple_request(self, request, text):
-        req_status = RequestStatus.FAILED
         if not self.is_initialized():
-            return req_status, {}, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
+            return RequestStatus.FAILED, {}, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
 
         try:
             messages=[
@@ -82,9 +79,8 @@ class DeepSeekFamily(Model):
         return RequestStatus.SUCCEEDED, self.format_response(response_text, prompt_tokens, candidates_tokens, thoughts_tokens, total_tokens), None
     
     def stream_request(self, request, text, on_stream_cb):
-        req_status = RequestStatus.FAILED
         if not self.is_initialized():
-            return req_status, {}, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
+            return RequestStatus.FAILED, {}, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
 
         try:
             messages=[

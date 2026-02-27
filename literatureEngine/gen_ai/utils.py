@@ -4,6 +4,7 @@ import hashlib
 
 
 MODELS_PATH = os.path.join(os.path.dirname(__file__), "models")
+CACHE_FOLDER_PATH = os.path.join(os.path.dirname(__file__), "cache")
 
 
 def query_to_hash(query: str, algo="sha1", length=24):

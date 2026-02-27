@@ -50,7 +50,7 @@ class ErrorMsg:
 class Model:
     pricing = {"input": 0, "output": 0}
 
-    def __init__(self):
+    def __init__(self, api_key):
         pass
     
     def is_initialized(self):

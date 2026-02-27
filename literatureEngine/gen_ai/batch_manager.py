@@ -5,16 +5,19 @@ import requests
 import inspect
 import importlib
 import json
+import shutil
 from pathlib import Path
 from gen_ai.model import Model
 from datetime import datetime, timezone
 from pymongo import MongoClient, errors, IndexModel
 from pymongo.errors import DuplicateKeyError
 from bson.objectid import ObjectId
+from gen_ai import models
 from gen_ai.models import local
 from gen_ai.model import JobStatus, RequestStatus, ErrorMsg, ErrorType
-from gen_ai.utils import count_tokens, query_to_hash, construct_prompt, MODELS_PATH
+from gen_ai.utils import count_tokens, query_to_hash, construct_prompt, MODELS_PATH, CACHE_FOLDER_PATH
 DEFAULT_CONTENT_TAG = "DEFAULT_CONTENT_TAG"
+DEFAULT_API_KEY = "000000000000000000"
 
 
 class Directives:
@@ -32,8 +35,10 @@ class Directives:
     
     def get_input_tokens_count(self, req_ids: set[str]):
         input_tokens_count = 0
+        dupl_ids = set()
         for content in self.request.contents:
-            if content["request"]["request_id"] in req_ids:
+            if content["request"]["request_id"] in req_ids and content["request"]["request_id"] not in dupl_ids:
+                dupl_ids.add(content["request"]["request_id"])
                 input_tokens_count += count_tokens(construct_prompt(self.request.prompt_structure, content["request"]))
         return input_tokens_count
     
@@ -93,12 +98,12 @@ class Directives:
         return output
 
 
-def collect_all_model_classes():
+def get_model_modules():
     if not os.path.exists(MODELS_PATH):
         raise Exception("Model path not found!")
     folder = Path(MODELS_PATH).resolve()
-    model_classes = {}
 
+    modules = set()
     for filepath in folder.glob("*.py"):
         if filepath.name == "__init__.py":
             continue
@@ -111,7 +116,13 @@ def collect_all_model_classes():
         except Exception as e:
             print(f"Failed to load {filepath.name}: {e}")
             continue
-        
+        modules.add(module)
+    return modules
+
+
+def collect_all_model_classes():
+    model_classes = {}
+    for module in get_model_modules():
         class_name = None
         for _, attr_value in inspect.getmembers(module, inspect.isclass):
             if hasattr(attr_value, "__bases__") and attr_value.__bases__[0] == Model:
@@ -131,9 +142,17 @@ def resolve_model(module="_", model_class="_", model_name="_"):
             if (n.__name__ == model_class if model_class != "_" else n.__module__ == module) and m.__name__ == model_name:
                 model = m
                 break
-    if not model:
-        raise Exception(f"Model {model_class}.{model_name} not recognized.")
     return model
+
+
+def resolve_model_class(model_class):
+    for module in get_model_modules():
+        if module.__name__ == model_class:
+            return module
+
+
+def get_model_fullname(model: Model):
+    return model.__bases__[0].__name__ + "." + model.__name__
 
 
 def verify_inputs(model, generationConfig, task_id, prompt_structure, text_variables, chat, stream, batch, update):
@@ -166,6 +185,8 @@ class Request:
         if from_entry:
             self.req_id = from_entry["_id"]
             self.model = resolve_model(model_class=from_entry["model_info"]["modelFamily"], model_name=from_entry["model_info"]["modelName"])
+            if not self.model:
+                raise Exception(f'Model {from_entry["model_info"]["modelFamily"]}.{from_entry["model_info"]["modelName"]} not recognized.')
             self.price_usd = from_entry["priceUSD"]
             self.price_eur = from_entry["priceEUR"]
             self.date = from_entry["date"]
@@ -191,6 +212,8 @@ class Request:
             verify_inputs(model, generationConfig, task_id, prompt_structure, text_variables, chat, stream, batch, update)
             self.req_id = None
             self.model = resolve_model(**{k: m for k, m in zip(("module", "model_name"), model.split(".")[-2:])}) if type(model) == str else model
+            if not self.model:
+                raise Exception(f"Model not recognized.")
             self.generationConfig = generationConfig if generationConfig else {}
             self.price_usd = 0
             self.price_eur = 0
@@ -198,7 +221,7 @@ class Request:
             self.operational = {}
             self.task_id = task_id
             self.prompt_structure = prompt_structure
-            self.request_hash = ObjectId(query_to_hash(prompt_structure + self.model.__name__ + json.dumps(self.generationConfig))) if not chat else None
+            self.request_hash = ObjectId(query_to_hash(prompt_structure + get_model_fullname(model) + json.dumps(self.generationConfig))) if not chat else None
             if type(text_variables) is str:
                 text_variables = [{DEFAULT_CONTENT_TAG: text_variables}]
             additional_body = {
@@ -242,17 +265,15 @@ class Request:
             assert len(req_ids) < 2
             to_be_computed, to_be_copied, to_be_updated, to_be_dropped = req_ids, set(), set(), set()
         else:
-            if len(req_ids) != len(self.contents):
-                raise Exception("Duplicated content in the request!")
             states = [
                 JobStatus.JOB_STATE_CREATED,
                 JobStatus.JOB_STATE_PENDING,
                 JobStatus.JOB_STATE_RUNNING,
                 JobStatus.JOB_STATE_SUCCEEDED
             ] 
-            new_task, computed_task = bm.__get_req_id_by_query(req_ids, {"taskId": self.task_id, "status": {"$in": states}, "chat": False})
-            new_prompt, computed_prompt = bm.__get_req_id_by_query(req_ids, {"requestHash": self.request_hash, "status": {"$in": states}, "chat": False})
-            _, computed_totally = bm.__get_req_id_by_query(req_ids, {"taskId": self.task_id, "requestHash": self.request_hash, "status": {"$in": states}, "chat": False})
+            new_task, computed_task = bm.__get_req_id_by_query__(req_ids, {"taskId": self.task_id, "status": {"$in": states}, "chat": False})
+            new_prompt, computed_prompt = bm.__get_req_id_by_query__(req_ids, {"requestHash": self.request_hash, "status": {"$in": states}, "chat": False})
+            _, computed_totally = bm.__get_req_id_by_query__(req_ids, {"taskId": self.task_id, "requestHash": self.request_hash, "status": {"$in": states}, "chat": False})
             to_be_computed, to_be_copied, to_be_updated, to_be_dropped = set(), set(), set(), set()
             for req_id in req_ids:
                 if req_id in new_task and req_id in new_prompt:
@@ -307,43 +328,65 @@ class Request:
 
 
 class BatchManager:
-    def __init__(self, ip, port, username, password, db_name, collection_name):
+    def __init__(self, ip: str, port: int|str, db_name: str, username: str = "", password: str = "", space: str|None=None):
         self.eur_usd_rate = 1
         try:
             self.eur_usd_rate = requests.get("https://api.frankfurter.app/latest", params={"from": "EUR", "to": "USD"}).json()["rates"]["USD"]
         except:
             pass
-        self.ip = ip
-        self.port = port
-        self.username = username
-        self.password = password
-        self.db_name = db_name
-        self.collection_name = collection_name
-        self.connection_url = f"mongodb://{self.username}:{self.password}@{self.ip}:{self.port}/?authSource=admin" \
-            if (username and password) else f"mongodb://{self.ip}:{self.port}"
-        self.client = None
-        self.chat_requests: list[ObjectId] = []
-        self.instant_requests: list[ObjectId] = []
-        self.batch_requests: list[ObjectId] = []
-        self.on_background = False
-        self.interrupt_backgroud_flag = False
-        self.close_flag = False
-        self.start_background_flag = False
+        
+        assert type(ip) is str and len(ip)
+        assert (type(port) is str and len(port)) or type(port) is int
+        assert type(db_name) is str and len(db_name)
+        assert type(username) is str
+        assert type(password) is str
+        assert type(space) is str or space is None
+        self.__ip = ip
+        self.__port = port
+        self.__username = username
+        self.__password = password
+        self.__db_name = db_name
+        self.__space = space
+        self.__connection_url = f"mongodb://{self.__username}:{self.__password}@{self.__ip}:{self.__port}/?authSource=admin" \
+            if (username and password) else f"mongodb://{self.__ip}:{self.__port}"
+        self.__client = None
+        self.__chat_requests: list[ObjectId]
+        self.__instant_requests: list[ObjectId]
+        self.__batch_requests: list[ObjectId]
+        self.__api_keys = {}
+        self.__on_background = False
+        self.__interrupt_backgroud_flag = True
+        self.__close_flag = False
+        self.__start_background_flag = False
         self.__registered_cb_on_chat__ = None
         self.__registered_cb_on_instant__ = None
         self.__registered_cb_on_batch__ = None
         self.__registered_cb_on_complete__ = None
         self.__registered_cb_on_stream__ = None
+        self.__clear_cache_folder()
         self.__connect()
-        self.__load_initial_state()
-        # self.cancel_instant_requests()
-        self.__start_background()
         threading.Thread(target=self.__background_task, daemon=True).start()
+        if space:
+            self.set_space(space)
+    
+    def __clear_cache_folder(self):
+        folder = CACHE_FOLDER_PATH
+        if not os.path.exists(folder):
+            os.mkdir(folder)
+        for item in os.listdir(folder):
+            path = os.path.join(folder, item)
+            try:
+                if os.path.isfile(path) or os.path.islink(path):
+                    os.unlink(path)
+                elif os.path.isdir(path):
+                    shutil.rmtree(path)
+            except Exception as e:
+                print(f"Failed to delete {path}: {e}")
 
     def __connect(self):
         try:
-            self.client = MongoClient(self.connection_url, serverSelectionTimeoutMS=400)
-            self.client.admin.command('ping')
+            self.__client = MongoClient(self.__connection_url, serverSelectionTimeoutMS=400)
+            self.__client.admin.command('ping')
             print(f'BatchManager connected to MongoDB')
         except errors.ServerSelectionTimeoutError:
             self.connected = False
@@ -352,9 +395,17 @@ class BatchManager:
             self.connected = True
     
     def __get_collection(self):
-        return self.client[self.db_name][self.collection_name]
+        if not self.__space:
+            raise Exception("You have to set a space for this operation.")
+        return self.__client[self.__db_name][self.__space]
+    
+    def __get_api_key(self, model: Model):
+        return self.__api_keys.get(model.__module__.split(".")[-1], DEFAULT_API_KEY)
     
     def __load_initial_state(self):
+        self.__chat_requests: list[ObjectId] = []
+        self.__instant_requests: list[ObjectId] = []
+        self.__batch_requests: list[ObjectId] = []
         self.__get_collection().create_indexes([
             IndexModel("status"),
             IndexModel("requestHash"),
@@ -368,12 +419,12 @@ class BatchManager:
         ]}}, {"_id": 1, "batch": 1, "chat": 1})
         for r in results:
             if r["batch"]:
-                self.batch_requests.append(r["_id"])
+                self.__batch_requests.append(r["_id"])
             else:
                 if r["chat"]:
-                    self.chat_requests.append(r["_id"])
+                    self.__chat_requests.append(r["_id"])
                 else:
-                    self.instant_requests.append(r["_id"])
+                    self.__instant_requests.append(r["_id"])
     
     def __create_request_entry(self, request_entry):
         while True:
@@ -408,7 +459,7 @@ class BatchManager:
         }
         self.__get_collection().update_many(filter=base_filter, update=update)
 
-    def __get_req_id_by_query(self, req_ids: set[str], query: dict):
+    def __get_req_id_by_query__(self, req_ids: set[str], query: dict):
         pipeline = [
             {"$match": {
                 **query
@@ -444,26 +495,26 @@ class BatchManager:
         return request
 
     def __finalize_request_content(self, request: Request):
-        final_req_ids = set()
         final_contents = []
         for content in request.contents:
-            if content["request"]["request_id"] not in final_req_ids:
-                full_req_hash = ObjectId(query_to_hash(construct_prompt(request.prompt_structure, content["request"])))
-                content["request"]["full_request_hash"] = full_req_hash
-                final_contents.append(content)
+            full_req_hash = ObjectId(query_to_hash(construct_prompt(request.prompt_structure, content["request"])))
+            content["request"]["full_request_hash"] = full_req_hash
+            final_contents.append(content)
         request.contents = final_contents
         return request
     
     def __interrupt_background(self):
-        self.interrupt_backgroud_flag = True
-        while self.on_background:
+        self.__interrupt_backgroud_flag = True
+        while self.__on_background:
             time.sleep(0.05)
-        self.interrupt_backgroud_flag = False
+        self.__interrupt_backgroud_flag = False
     
     def __start_background(self):
-        while self.on_background:
+        self.__interrupt_background()
+        while self.__on_background:
             time.sleep(0.05)
-        self.start_background_flag = True
+        if self.__space:
+            self.__start_background_flag = True
 
     def __on_complete(self, request: Request):
         if self.__registered_cb_on_complete__:
@@ -477,13 +528,13 @@ class BatchManager:
             print("no callback")
     
     def __cancel_instant_requests(self):
-        requests_ = list(self.__get_collection().find({ "_id": {"$in": self.instant_requests}}))[::-1]
+        requests_ = list(self.__get_collection().find({ "_id": {"$in": self.__instant_requests}}))[::-1]
         for i in range(len(requests_) - 1, -1, -1):
             request = Request(from_entry=requests_[i])
             request.cancellation_requested = True
             request.status = JobStatus.JOB_STATE_CANCELLED
             self.__update_request_entry(request.create_record())
-            self.instant_requests.pop(0)
+            self.__instant_requests.pop(0)
     
     def __handle_simple_requests(self, req_ids: list[ObjectId], chat=False):
         """
@@ -503,7 +554,7 @@ class BatchManager:
         tot_count = sum([len(req["contents"]) for req in requests_])
         computed_count = sum([len([1 for content in req["contents"] if content["response"] != {}]) for req in requests_])
 
-        next_content = None
+        cur_content = None
         request = None
 
         for i in range(len(requests_) - 1, -1, -1):
@@ -515,9 +566,9 @@ class BatchManager:
             request.eur_usd_rate = self.eur_usd_rate
             for content in request.contents:
                 if content["response"] == {}:
-                    next_content = content
+                    cur_content = content
                     break
-            if next_content is not None:
+            if cur_content is not None:
                 break
             else:
                 request.status = JobStatus.JOB_STATE_SUCCEEDED
@@ -526,20 +577,28 @@ class BatchManager:
                 req_ids.pop(0)
 
         try:
-            if next_content is not None:
-                next_req_text = construct_prompt(request.prompt_structure, next_content["request"])
-                model = request.model() if not chat else resolve_model(model_class=next_content["request"]["modelFamily"],
-                                                                        model_name=next_content["request"]["modelName"])()
+            if cur_content is not None:
+                next_req_text = construct_prompt(request.prompt_structure, cur_content["request"])
+                model = request.model if not chat else resolve_model(model_class=cur_content["request"]["modelFamily"], model_name=cur_content["request"]["modelName"])
+                if not model:
+                    raise Exception(f'Model {cur_content["request"]["modelFamily"]}.{cur_content["request"]["modelName"]} not recognized.')
+                model_instance = model(self.__get_api_key(request.model), DEFAULT_API_KEY)
+                if not model_instance.is_initialized():
+                    return None, ErrorMsg(ErrorType.INITIALIZATION, model_instance.init_err)
                 if request.stream:
-                    req_status, data, error = model.stream_request(request, next_req_text, self.__registered_cb_on_stream__)
+                    req_status, data, error = model_instance.stream_request(request, next_req_text, self.__registered_cb_on_stream__)
                 else:
-                    req_status, data, error = model.send_simple_request(request, next_req_text)
+                    req_status, data, error = model_instance.send_simple_request(request, next_req_text)
                 
                 if req_status == RequestStatus.SUCCEEDED:
                     response = data
-                    next_content["response"] = response
+                    computed = 0
+                    for content in request.contents:
+                        if cur_content["request"]["request_id"] == content["request"]["request_id"]:
+                            computed += 1
+                            content["response"] = response
                     self.__update_request_entry(request.create_record())
-                    return {"request": request, "content": next_content, "computed": computed_count + 1, "tot_count": tot_count}, None
+                    return {"request": request, "content": cur_content, "computed": computed_count + computed, "tot_count": tot_count}, None
                 else:
                     return None, error
             return None, ErrorMsg(ErrorType.NO_REQUEST)
@@ -556,26 +615,29 @@ class BatchManager:
                 OR None if an error occurred
             - ErrorMsg (INITIALIZATION|BATCH_PARSING|BATCH_NOT_READY) if an error occurred, None otherwise
         """
-        if not len(self.batch_requests):
+        if not len(self.__batch_requests):
             return None, ErrorMsg(ErrorType.NO_REQUEST)
-        if index >= len(self.batch_requests) or index < 0:
+        if index >= len(self.__batch_requests) or index < 0:
             return None, ErrorMsg(ErrorType.NO_REQUEST)
         
         try:
-            batch_request = Request(from_entry=self.__get_collection().find_one({ "_id": self.batch_requests[index]}))
+            batch_request = Request(from_entry=self.__get_collection().find_one({ "_id": self.__batch_requests[index]}))
         except Exception as e:
-            self.batch_requests.pop(index)
+            self.__batch_requests.pop(index)
             return None, ErrorMsg(ErrorType.UNKNOWN, e)
         batch_request.eur_usd_rate = self.eur_usd_rate
         
         if batch_request.is_complete():
             batch_request.status = JobStatus.JOB_STATE_SUCCEEDED
-            self.batch_requests.pop(index)
+            self.__batch_requests.pop(index)
             self.__on_complete(batch_request)
             self.__update_request_entry(batch_request.create_record())
             return {"request": batch_request}, None
         try:
-            job_status, data, error = batch_request.model().fetch_batch_results(batch_request)
+            model_instance = batch_request.model(self.__get_api_key(batch_request.model))
+            if not model_instance.is_initialized():
+                return None, ErrorMsg(ErrorType.INITIALIZATION, model_instance.init_err)
+            job_status, data, error = model_instance.fetch_batch_results(batch_request)
             if job_status != batch_request.status:
                 batch_request.status = job_status
                 if job_status != JobStatus.JOB_STATE_SUCCEEDED:
@@ -583,7 +645,7 @@ class BatchManager:
             
             if job_status in [JobStatus.JOB_STATE_CANCELLED, JobStatus.JOB_STATE_EXPIRED, JobStatus.JOB_STATE_FAILED, JobStatus.JOB_STATE_SUCCEEDED]:
                 responses = data
-                self.batch_requests.pop(index)
+                self.__batch_requests.pop(index)
                 if job_status == JobStatus.JOB_STATE_SUCCEEDED:
                     for content in batch_request.contents:
                         response = responses.get(content["request"]["request_id"], None)
@@ -598,7 +660,7 @@ class BatchManager:
     
     def __wait(self, sec: int):
         for _ in range(int(20 * sec)):
-            if self.interrupt_backgroud_flag or self.close_flag:
+            if self.__interrupt_backgroud_flag or self.__close_flag:
                 return
             time.sleep(0.05)
 
@@ -607,12 +669,12 @@ class BatchManager:
         backoff_values = [0, 0.1, 0.5, 2, 5]
         delay_idx = {"chat": 0, "instant": 0}
         print("Monitoring AI requests...")
-        while not self.close_flag:
-            self.on_background = True
-            self.start_background_flag = False
-            while not self.interrupt_backgroud_flag and not self.close_flag:
-                while len(self.chat_requests) and not self.interrupt_backgroud_flag and not self.close_flag:
-                    instant_data, errorMsg = self.__handle_simple_requests(self.chat_requests, chat=True)
+        while not self.__close_flag:
+            self.__on_background = True
+            self.__start_background_flag = False
+            while not self.__interrupt_backgroud_flag and not self.__close_flag:
+                while len(self.__chat_requests) and not self.__interrupt_backgroud_flag and not self.__close_flag:
+                    instant_data, errorMsg = self.__handle_simple_requests(self.__chat_requests, chat=True)
                     if not errorMsg:
                         if self.__registered_cb_on_chat__:
                             try:
@@ -620,11 +682,10 @@ class BatchManager:
                             except:
                                 print(f"Error while processing callback {self.__registered_cb_on_chat__.__name__}")
                     elif errorMsg.error_type not in {ErrorType.NO_REQUEST}:
-                        print(errorMsg)
                         delay_idx["chat"] = min(delay_idx["chat"] + 1, len(backoff_values) - 1)
                         self.__wait(backoff_values[delay_idx["chat"]])
-                while len(self.instant_requests) and not len(self.chat_requests) and not self.interrupt_backgroud_flag and not self.close_flag:
-                    instant_data, errorMsg = self.__handle_simple_requests(self.instant_requests, chat=False)
+                while len(self.__instant_requests) and not len(self.__chat_requests) and not self.__interrupt_backgroud_flag and not self.__close_flag:
+                    instant_data, errorMsg = self.__handle_simple_requests(self.__instant_requests, chat=False)
                     if not errorMsg:
                         if self.__registered_cb_on_instant__:
                             try:
@@ -635,8 +696,8 @@ class BatchManager:
                         print(errorMsg)
                         delay_idx["instant"] = min(delay_idx["instant"] + 1, len(backoff_values) - 1)
                         self.__wait(backoff_values[delay_idx["instant"]])
-                for i in range(len(self.batch_requests)-1, -1, -1):
-                    if len(self.chat_requests) or self.interrupt_backgroud_flag or self.close_flag:
+                for i in range(len(self.__batch_requests)-1, -1, -1):
+                    if len(self.__chat_requests) or self.__interrupt_backgroud_flag or self.__close_flag:
                         break
                     batch_data, errorMsg = self.__fetch_batch_at(i)
                     if errorMsg is None:
@@ -649,18 +710,18 @@ class BatchManager:
                         print(errorMsg)
 
                 for _ in range(10 * POLLING_INTERVAL):
-                    if len(self.chat_requests) or len(self.instant_requests) or self.interrupt_backgroud_flag or self.close_flag:
+                    if len(self.__chat_requests) or len(self.__instant_requests) or self.__interrupt_backgroud_flag or self.__close_flag:
                         break
                     time.sleep(0.1)
-            self.on_background = False
+            self.__on_background = False
 
-            while not self.start_background_flag and not self.close_flag:
+            while not self.__start_background_flag and not self.__close_flag:
                 time.sleep(0.1)
     
     # ------------------------------------------------------------------------------------------------------------
     
     def get_consumption(self):
-        coll = self.client[self.db_name][self.collection_name]
+        coll = self.__get_collection()
         computation_price_aggr = list(coll.aggregate([
             {"$match": {"chat": {"$ne": True}}},
             {
@@ -698,6 +759,26 @@ class BatchManager:
                     parallel[k] = {x["_id"]["name"]: {"usd": x["usd"], "eur": x["eur"]}}
         computed_costs["parallel"] = parallel
         return computed_costs
+
+    def set_space(self, space: str):
+        self.__interrupt_background()
+        assert type(space) is str or space is None
+        self.__space = space
+        self.__load_initial_state()
+        self.__start_background()
+    
+    def set_api_keys(self, api_keys: dict[str|Model, str]):
+        clean_api_keys = {}
+        assert type(api_keys) is dict
+        for model_family, api_key in api_keys.items():
+            assert type(model_family) is str or (hasattr(model_family, "__package__") and model_family.__package__ == models.__name__)
+            if type(model_family) is str:
+                model_family = model_family.split(".")[-1]
+                model_family = resolve_model_class(model_family)
+                assert model_family is not None
+            assert type(api_key) is str
+            clean_api_keys[model_family.__name__.split(".")[-1]] = api_key
+        self.__api_keys = clean_api_keys
     
     def register_instant_callback(self, function):
         self.__registered_cb_on_instant__ = function
@@ -712,7 +793,7 @@ class BatchManager:
         self.__registered_cb_on_stream__ = function
     
     def close(self):
-        self.close_flag = True
+        self.__close_flag = True
     
     def send_chat(self, task_id: ObjectId|str, content_vars: dict|str, stream: bool=False):
         assert type(task_id) is ObjectId or type(task_id) is str
@@ -767,16 +848,15 @@ class BatchManager:
         error = None
         if len(sanitized_request.get_full_requests()) == 0:
             stored_request = Request(from_entry=self.__create_request_entry(sanitized_request.create_record()))
-            reqs = self.batch_requests if stored_request.batch else self.instant_requests
+            reqs = self.__batch_requests if stored_request.batch else self.__instant_requests
             reqs.append(stored_request.req_id)
         else:
-            model = sanitized_request.model()
-            if not sanitized_request.batch:
-                if not model.is_initialized():
-                    self.__start_background()
-                    stored_request = sanitized_request
-                    error = ErrorMsg(ErrorType.INITIALIZATION, model.init_err)
-                else:
+            model_instance = sanitized_request.model(self.__get_api_key(request.model))
+            if not model_instance.is_initialized():
+                stored_request = sanitized_request
+                error = ErrorMsg(ErrorType.INITIALIZATION, model_instance.init_err)
+            else:
+                if not sanitized_request.batch:
                     chat_obj = None
                     if sanitized_request.chat:
                         chat_obj = self.__get_collection().find_one({"chat": True, "taskId": sanitized_request.task_id})
@@ -790,19 +870,19 @@ class BatchManager:
                             self.__update_request_entry(stored_request.create_record())
                         else:
                             stored_request = Request(from_entry=self.__create_request_entry(sanitized_request.create_record()))
-                        self.chat_requests.append(stored_request.req_id)
+                        self.__chat_requests.append(stored_request.req_id)
                     else:
                         stored_request = Request(from_entry=self.__create_request_entry(sanitized_request.create_record()))
-                        self.instant_requests.append(stored_request.req_id)
-            else:
-                req_status, message = model.send_batch(sanitized_request)
-                if req_status == RequestStatus.SUCCEEDED:
-                    sanitized_request.operational = message
-                    stored_request = Request(from_entry=self.__create_request_entry(sanitized_request.create_record()))
-                    self.batch_requests.append(stored_request.req_id)
+                        self.__instant_requests.append(stored_request.req_id)
                 else:
-                    stored_request = sanitized_request
-                    error = message
+                    req_status, message = model_instance.send_batch(sanitized_request)
+                    if req_status == RequestStatus.SUCCEEDED:
+                        sanitized_request.operational = message
+                        stored_request = Request(from_entry=self.__create_request_entry(sanitized_request.create_record()))
+                        self.__batch_requests.append(stored_request.req_id)
+                    else:
+                        stored_request = sanitized_request
+                        error = message
 
         if error is None:
             states = [
@@ -815,7 +895,7 @@ class BatchManager:
         else:
             print(error)
         self.__start_background()
-        return stored_request if not error else None, error
+        return (stored_request, None) if not error else (None, error)
     
     def cancel_request(self, request_id: ObjectId):
         entry = self.__get_collection().find_one({ "_id": request_id})
@@ -823,8 +903,13 @@ class BatchManager:
             return RequestStatus.FAILED
         self.__interrupt_background()
         request = Request(from_entry=entry)
+        
         if request.batch:
-            req_status = request.model().cancel_batch(request)
+            model_instance = request.model(self.__get_api_key(request.model))
+            if not model_instance.is_initialized():
+                self.__start_background()
+                return ErrorMsg(ErrorType.INITIALIZATION, model_instance.init_err)
+            req_status = model_instance.cancel_batch(request)
             if req_status == RequestStatus.SUCCEEDED:
                 request.cancellation_requested = True
                 self.__update_request_entry(request.create_record())
@@ -832,9 +917,9 @@ class BatchManager:
             if request.status != JobStatus.JOB_STATE_SUCCEEDED:
                 request.cancellation_requested = True
                 request.status == JobStatus.JOB_STATE_CANCELLED
-                for i in range(len(self.instant_requests)):
-                    if self.instant_requests[i] == request.req_id:
-                        self.instant_requests.pop(i)
+                for i in range(len(self.__instant_requests)):
+                    if self.__instant_requests[i] == request.req_id:
+                        self.__instant_requests.pop(i)
                         break
             self.__update_request_entry(request.create_record())
         self.__start_background()

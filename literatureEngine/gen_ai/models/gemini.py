@@ -1,15 +1,12 @@
-import dotenv
 import json
 import os
-import tempfile
-from gen_ai.utils import count_tokens, construct_prompt
+from gen_ai.utils import count_tokens, construct_prompt, CACHE_FOLDER_PATH
 from openai import OpenAI
 from google import genai
 from google.genai import types
 from gen_ai.model import Model, JobStatus, RequestStatus, ErrorMsg, ErrorType
 
 
-API_KEY = dotenv.get_key(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".env"), "GEMINI")
 google_client = None
 client = None
 
@@ -22,15 +19,15 @@ class GeminiFamily(Model):
         "control_thoughts_tokens": True
     }
 
-    def __init__(self):
+    def __init__(self, api_key):
         global google_client, client
-        super().__init__()
+        super().__init__(api_key)
         self.init_err = None
         try:
-            client_ = genai.Client(api_key=API_KEY) if google_client is None else google_client
+            client_ = genai.Client(api_key=api_key) if google_client is None else google_client
             client_.models.list()
             google_client = client_
-            client_ = OpenAI(api_key=API_KEY, base_url="https://generativelanguage.googleapis.com/v1beta/openai/")
+            client_ = OpenAI(api_key=api_key, base_url="https://generativelanguage.googleapis.com/v1beta/openai/")
             client_.models.list()
             client = client_
         except Exception as e:
@@ -40,9 +37,8 @@ class GeminiFamily(Model):
         return google_client is not None and client is not None
     
     def send_batch(self, request):
-        req_status = RequestStatus.FAILED
         if not self.is_initialized():
-            return req_status, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
+            return RequestStatus.FAILED, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
         
         requests = [{
             "key": req_id,
@@ -50,25 +46,18 @@ class GeminiFamily(Model):
             "generationConfig": request.generationConfig
         } for req_id, text in request.get_full_requests().items()]
         
-        tmp = tempfile.NamedTemporaryFile(mode="w+", suffix=".jsonl", delete=False)
         try:
-            for req in requests:
-                tmp.write(json.dumps(req) + "\n")
-            tmp.close()
+            tmp_path = os.path.join(CACHE_FOLDER_PATH, f"{request.req_id}.jsonl")
+            with open(tmp_path, "w+") as file:
+                for req in requests:
+                    file.write(json.dumps(req) + "\n")
             uploaded_file = google_client.files.upload(
-                file=tmp.name,
+                file=open(tmp_path, "rb"),
                 config=types.UploadFileConfig(mime_type="jsonl")
             )
             print(f"Uploaded file: {uploaded_file.name}")
         except Exception as e:
-            return req_status, ErrorMsg(ErrorType.BATCH_REQUEST, e)
-        finally:
-            try:
-                os.remove(tmp.name)
-            except:
-                import traceback
-                print(traceback.format_exc())
-                pass
+            return RequestStatus.FAILED, ErrorMsg(ErrorType.BATCH_REQUEST, e)
 
         try:
             batch_job = google_client.batches.create(
@@ -77,12 +66,9 @@ class GeminiFamily(Model):
             )
             print(f"Batch created: {batch_job.name}")
             super().send_batch(request)
-            req_status = RequestStatus.SUCCEEDED
-            return req_status, {"uploadedFileName": uploaded_file.name, "uploadedBatchName": batch_job.name}
+            return RequestStatus.SUCCEEDED, {"uploadedFileName": uploaded_file.name, "uploadedBatchName": batch_job.name}
         except Exception as e:
-            import traceback
-            print(traceback.format_exc())
-            return req_status, ErrorMsg(ErrorType.BATCH_REQUEST, e)
+            return RequestStatus.FAILED, ErrorMsg(ErrorType.BATCH_REQUEST, e)
     
     def cancel_batch(self, request):
         if not self.is_initialized():
@@ -96,48 +82,45 @@ class GeminiFamily(Model):
         return RequestStatus.SUCCEEDED, None
     
     def fetch_batch_results(self, request):
-        job_status = request.status
+        prev_job_status = request.status
         if not self.is_initialized():
-            return job_status, [], ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
+            return prev_job_status, [], ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
 
         responses = {}
         batch_name = request.operational["uploadedBatchName"]
-        batch_job = google_client.batches.get(name=batch_name)
+        try:
+            batch_job = google_client.batches.get(name=batch_name)
+        except Exception as e:
+            return prev_job_status, [], ErrorMsg(ErrorType.BATCH_REQUEST, f"Failed to retrieve batch: {e}")
 
-        if batch_job.state.name in JobStatus.get_all_states():
-            job_status = batch_job.state.name
-            if batch_job.state.name == JobStatus.JOB_STATE_SUCCEEDED:
-                job_status = JobStatus.JOB_STATE_RUNNING
-                try:
-                    file_content = google_client.files.download(file=batch_job.dest.file_name)
-                    text = file_content.decode('utf-8')
-                    for line in text.splitlines():
-                        out_json = json.loads(line)
-                        req_id = out_json["key"]
-                        raise
-                        response_obj = json.loads(line)["response"]
-                        usage = response_obj["usageMetadata"]
-                        response_text = ""
-                        prompt_tokens = usage["promptTokenCount"]
-                        candidates_tokens = usage["candidatesTokenCount"]
-                        thoughts_tokens = usage.get("thoughtsTokenCount", None)
-                        total_tokens = usage["totalTokenCount"]
-                        for candidate in response_obj["candidates"]:
-                            for part in candidate["content"]["parts"]:
-                                response_text += part["text"]
-                        self.add_cost(request, prompt_tokens, total_tokens - prompt_tokens)
-                        responses[req_id] = (response_text, prompt_tokens, candidates_tokens, thoughts_tokens, total_tokens)
-                    super().fetch_batch_results(request)
-                except Exception as e:
-                    return job_status, [], ErrorMsg(ErrorType.BATCH_PARSING, e)
-                return job_status, {_id: self.format_response(*r) for _id, r in responses.items()}, None
-
-        return job_status, [], ErrorMsg(ErrorType.BATCH_NOT_READY)
+        if batch_job.state.name == JobStatus.JOB_STATE_SUCCEEDED:
+            try:
+                file_content = google_client.files.download(file=batch_job.dest.file_name)
+                text = file_content.decode('utf-8')
+                for line in text.splitlines():
+                    out_json = json.loads(line)
+                    req_id = out_json["key"]
+                    response_obj = out_json["response"]
+                    usage = response_obj["usageMetadata"]
+                    response_text = ""
+                    prompt_tokens = usage["promptTokenCount"]
+                    candidates_tokens = usage["candidatesTokenCount"]
+                    thoughts_tokens = usage.get("thoughtsTokenCount", None)
+                    total_tokens = usage["totalTokenCount"]
+                    for candidate in response_obj["candidates"]:
+                        for part in candidate["content"]["parts"]:
+                            response_text += part["text"]
+                    self.add_cost(request, prompt_tokens, total_tokens - prompt_tokens)
+                    responses[req_id] = (response_text, prompt_tokens, candidates_tokens, thoughts_tokens, total_tokens)
+                super().fetch_batch_results(request)
+                return JobStatus.JOB_STATE_SUCCEEDED, {_id: self.format_response(*r) for _id, r in responses.items()}, None
+            except Exception as e:
+                return prev_job_status, [], ErrorMsg(ErrorType.BATCH_PARSING, e)
+        return prev_job_status, [], ErrorMsg(ErrorType.BATCH_NOT_READY)
     
     def send_simple_request(self, request, text):
-        req_status = RequestStatus.FAILED
         if not self.is_initialized():
-            return req_status, {}, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
+            return RequestStatus.FAILED, {}, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
 
         try:
             response_obj = google_client.models.generate_content(
@@ -167,9 +150,8 @@ class GeminiFamily(Model):
         return RequestStatus.SUCCEEDED, self.format_response(response_text, prompt_tokens, candidates_tokens, thoughts_tokens, total_tokens), None
     
     def stream_request(self, request, text, on_stream_cb):
-        req_status = RequestStatus.FAILED
         if not self.is_initialized():
-            return req_status, {}, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
+            return RequestStatus.FAILED, {}, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
 
         try:
             messages=[

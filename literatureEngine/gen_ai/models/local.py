@@ -9,21 +9,18 @@ class LocalFamily(Model):
         "control_thoughts_tokens": False
     }
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, api_key):
+        super().__init__(api_key)
         self.init_err = None
     
     def is_initialized(self):
         return True
     
     def send_batch(self, request):
-        req_status = RequestStatus.FAILED
         if not self.is_initialized():
-            return req_status, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
+            return RequestStatus.FAILED, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
         super().send_batch(request)
-
-        req_status = RequestStatus.SUCCEEDED
-        return req_status, {}
+        return RequestStatus.SUCCEEDED, {}
     
     def cancel_batch(self, request):
         return RequestStatus.FAILED, ErrorMsg(ErrorType.BATCH_CANCEL)
@@ -42,17 +39,14 @@ class LocalFamily(Model):
         return job_status, [self.format_response(r, 0, 0, 0, 0) for r in responses]
     
     def send_simple_request(self, request, text):
-        req_status = RequestStatus.FAILED
         if not self.is_initialized():
-            return req_status, {}, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
+            return RequestStatus.FAILED, {}, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
         super().send_simple_request(request, text)
-
-        req_status = RequestStatus.SUCCEEDED
         response_text = "Ok it works"
         prompt_tokens = 0
         total_tokens = 0
         self.add_cost(request, prompt_tokens, total_tokens - prompt_tokens)
-        return req_status, self.format_response(response_text, 0, 0, 0, 0), None
+        return RequestStatus.SUCCEEDED, self.format_response(response_text, 0, 0, 0, 0), None
     
     def stream_request(self, request, text, on_stream_cb):
         return RequestStatus.FAILED, {}, ErrorMsg(ErrorType.NOT_SUPPORTED)

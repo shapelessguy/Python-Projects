@@ -1,13 +1,11 @@
-import dotenv
 import os
 import tempfile
 import json
 from openai import OpenAI
-from gen_ai.utils import count_tokens, construct_prompt
+from gen_ai.utils import count_tokens, construct_prompt, CACHE_FOLDER_PATH
 from gen_ai.model import Model, JobStatus, RequestStatus, ErrorMsg, ErrorType
 
 
-API_KEY = dotenv.get_key(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".env"), "OPENAI")
 client = None
 
 
@@ -19,12 +17,12 @@ class OpenAiFamily(Model):
         "control_thoughts_tokens": False
     }
 
-    def __init__(self):
+    def __init__(self, api_key):
         global client
-        super().__init__()
+        super().__init__(api_key)
         self.init_err = None
         try:
-            client_ = OpenAI(api_key=API_KEY) if client is None else client
+            client_ = OpenAI(api_key=api_key) if client is None else client
             client_.models.list()
             client = client_
         except Exception as e:
@@ -34,9 +32,8 @@ class OpenAiFamily(Model):
         return client is not None
     
     def send_batch(self, request):
-        req_status = RequestStatus.FAILED
         if not self.is_initialized():
-            return req_status, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
+            return RequestStatus.FAILED, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
     
         requests = []
         for req_id, text in request.get_full_requests().items():
@@ -60,40 +57,30 @@ class OpenAiFamily(Model):
             }
             requests.append(batch_line)
 
-        batch_job = None
         try:
-            with tempfile.TemporaryDirectory() as tmp_dir:
-                tmp_path = os.path.join(tmp_dir, "batch_requests.jsonl")
-                try:
-                    with open(tmp_path, "w", encoding="utf-8") as f:
-                        for req in requests:
-                            f.write(json.dumps(req) + "\n")
+            tmp_path = os.path.join(CACHE_FOLDER_PATH, f"{request.req_id}.jsonl")
+            with open(tmp_path, "w+") as file:
+                for req in requests:
+                    file.write(json.dumps(req) + "\n")
+            uploaded_file = client.files.create(
+                file=open(tmp_path, "rb"),
+                purpose="batch"
+            )
+            print(f"Uploaded file: {uploaded_file.id}")
+        except Exception as e:
+            return RequestStatus.FAILED, ErrorMsg(ErrorType.BATCH_REQUEST, e)
 
-                    uploaded_file = client.files.create(
-                        file=open(tmp_path, "rb"),
-                        purpose="batch"
-                    )
-                    print(f"Uploaded file: {uploaded_file.id} ({uploaded_file.filename})")
-                except Exception as e:
-                    return req_status, ErrorMsg(ErrorType.BATCH_REQUEST, e)
-
-                try:
-                    batch_job = client.batches.create(
-                        input_file_id=uploaded_file.id,
-                        endpoint="/v1/chat/completions",
-                        completion_window="24h",
-                    )
-                    print(f"Batch created: {batch_job.id}")
-                    req_status = RequestStatus.SUCCEEDED
-                    super().send_batch(request)
-                    return req_status, {"uploadedFileId": uploaded_file.id, "batchJobId": batch_job.id}
-                except Exception as e:
-                    return req_status, ErrorMsg(ErrorType.BATCH_REQUEST, e)
-        except:
-            pass
-        if batch_job:
-            return req_status, {"uploadedFileId": uploaded_file.id, "batchJobId": batch_job.id}
-        return req_status, ErrorMsg(ErrorType.BATCH_REQUEST, e)
+        try:
+            batch_job = client.batches.create(
+                input_file_id=uploaded_file.id,
+                endpoint="/v1/chat/completions",
+                completion_window="24h",
+            )
+            print(f"Batch created: {batch_job.id}")
+            super().send_batch(request)
+            return RequestStatus.SUCCEEDED, {"uploadedFileId": uploaded_file.id, "batchJobId": batch_job.id}
+        except Exception as e:
+            return RequestStatus.FAILED, ErrorMsg(ErrorType.BATCH_REQUEST, e)
     
     def cancel_batch(self, request):
         if not self.is_initialized():
@@ -115,19 +102,18 @@ class OpenAiFamily(Model):
             "in_progress": JobStatus.JOB_STATE_RUNNING,
             "validating": JobStatus.JOB_STATE_PENDING,
         }
-        job_status = status_map.get(batch_job.status, request.status)
-
+        prev_job_status = request.status
         if not self.is_initialized():
-            return job_status, [], ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
+            return prev_job_status, [], ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
 
         responses = {}
         batch_id = request.operational["batchJobId"]
-
         try:
             batch_job = client.batches.retrieve(batch_id)
         except Exception as e:
-            return job_status, [], ErrorMsg(ErrorType.BATCH_REQUEST, f"Failed to retrieve batch: {e}")
+            return prev_job_status, [], ErrorMsg(ErrorType.BATCH_REQUEST, f"Failed to retrieve batch: {e}")
         
+        job_status = status_map.get(batch_job.status, prev_job_status)
         if job_status == JobStatus.JOB_STATE_SUCCEEDED:
             if not batch_job.output_file_id:
                 return JobStatus.JOB_STATE_FAILED, [], ErrorMsg(ErrorType.BATCH_PARSING, "Completed but no output_file_id")
@@ -135,15 +121,8 @@ class OpenAiFamily(Model):
                 file_response = client.files.content(batch_job.output_file_id)
                 output_text = file_response.text
 
-
                 for line in output_text.splitlines():
-                    if not line.strip():
-                        continue
-                    try:
-                        result = json.loads(line)
-                    except json.JSONDecodeError:
-                        continue
-
+                    result = json.loads(line)
                     body = result["response"]["body"]
                     req_id = result["custom_id"]
                     usage = body.get("usage", {})
@@ -164,17 +143,15 @@ class OpenAiFamily(Model):
                     responses[req_id] = (response_text, prompt_tokens, candidates_tokens, thoughts_tokens, total_tokens)
 
                 super().fetch_batch_results(request)
-                job_status = JobStatus.JOB_STATE_SUCCEEDED
-                return job_status, {_id: self.format_response(*r) for _id, r in responses.items()}, None
+                return JobStatus.JOB_STATE_SUCCEEDED, {_id: self.format_response(*r) for _id, r in responses.items()}, None
 
             except Exception as e:
                 return request.status, [], ErrorMsg(ErrorType.BATCH_PARSING, f"Failed to parse output: {e}")
-        return job_status, [], ErrorMsg(ErrorType.BATCH_NOT_READY)
+        return prev_job_status, [], ErrorMsg(ErrorType.BATCH_NOT_READY)
     
     def send_simple_request(self, request, text):
-        req_status = RequestStatus.FAILED
         if not self.is_initialized():
-            return req_status, {}, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
+            return RequestStatus.FAILED, {}, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
 
         try:
             api_params = {
@@ -207,9 +184,8 @@ class OpenAiFamily(Model):
         return RequestStatus.SUCCEEDED, self.format_response(response_text, prompt_tokens, candidates_tokens, thoughts_tokens, total_tokens), None
     
     def stream_request(self, request, text, on_stream_cb):
-        req_status = RequestStatus.FAILED
         if not self.is_initialized():
-            return req_status, {}, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
+            return RequestStatus.FAILED, {}, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
 
         try:
             messages=[
