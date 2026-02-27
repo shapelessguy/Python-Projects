@@ -144,6 +144,9 @@ def actuator(signal):
                 elif command[:2] == 'TV':
                     write(command)
                     reply = f'Command {command} sent'
+                elif command[:3] == 'TOP':
+                    reply = f'Command {command} sent'
+                    write(command)
                 elif command[:5] == 'STRIP':
                     reply = f'Command {command} sent'
                     sequences.handle_strip_com(command[5:], write)
