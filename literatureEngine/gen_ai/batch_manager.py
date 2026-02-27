@@ -6,6 +6,7 @@ import inspect
 import importlib
 import json
 import shutil
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from gen_ai.model import Model
 from datetime import datetime, timezone
@@ -297,9 +298,6 @@ class Request:
         if not self.directives:
             raise Exception("Directives needed: did you forget to call 'request.get_directives(BatchManager)'?")
         return self.directives.bm.send_request(self)
-    
-    def send_chat(self, task_id, content_vars, stream):
-        return self.directives.bm.send_chat(task_id, content_vars, stream)
 
     def create_record(self):
         entry = {
@@ -582,15 +580,16 @@ class BatchManager:
                 model = request.model if not chat else resolve_model(model_class=cur_content["request"]["modelFamily"], model_name=cur_content["request"]["modelName"])
                 if not model:
                     raise Exception(f'Model {cur_content["request"]["modelFamily"]}.{cur_content["request"]["modelName"]} not recognized.')
-                model_instance = model(self.__get_api_key(request.model), DEFAULT_API_KEY)
+                model_instance = model(self.__get_api_key(request.model))
                 if not model_instance.is_initialized():
                     return None, ErrorMsg(ErrorType.INITIALIZATION, model_instance.init_err)
-                if request.stream:
-                    req_status, data, error = model_instance.stream_request(request, next_req_text, self.__registered_cb_on_stream__)
-                else:
-                    req_status, data, error = model_instance.send_simple_request(request, next_req_text)
                 
-                if req_status == RequestStatus.SUCCEEDED:
+                if request.stream:
+                    data, error = model_instance.stream_request(request, next_req_text, self.__registered_cb_on_stream__)
+                else:
+                    data, error = model_instance.send_simple_request(request, next_req_text)
+                
+                if not error:
                     response = data
                     computed = 0
                     for content in request.contents:
@@ -603,6 +602,8 @@ class BatchManager:
                     return None, error
             return None, ErrorMsg(ErrorType.NO_REQUEST)
         except Exception as e:
+            import traceback
+            print(traceback.format_exc())
             return None, ErrorMsg(ErrorType.UNKNOWN, e)
 
     def __fetch_batch_at(self, index):
@@ -780,6 +781,30 @@ class BatchManager:
             clean_api_keys[model_family.__name__.split(".")[-1]] = api_key
         self.__api_keys = clean_api_keys
     
+    def get_active_api_keys(self):
+        api_keys = {}
+
+        def check_model(class_):
+            module_name = class_.__module__
+            api_key = self.__api_keys.get(module_name)
+            if not api_key:
+                return module_name, False
+            try:
+                model = class_(api_key)
+                return module_name, model.is_initialized()
+            except:
+                return module_name, False
+
+        with ThreadPoolExecutor(max_workers=8) as executor:
+            future_to_module = {
+                executor.submit(check_model, cls): cls.__module__
+                for cls in collect_all_model_classes()
+            }
+            for future in as_completed(future_to_module):
+                module_name, initialized = future.result()
+                api_keys[module_name] = initialized
+        return api_keys
+    
     def register_instant_callback(self, function):
         self.__registered_cb_on_instant__ = function
     
@@ -875,14 +900,14 @@ class BatchManager:
                         stored_request = Request(from_entry=self.__create_request_entry(sanitized_request.create_record()))
                         self.__instant_requests.append(stored_request.req_id)
                 else:
-                    req_status, message = model_instance.send_batch(sanitized_request)
-                    if req_status == RequestStatus.SUCCEEDED:
-                        sanitized_request.operational = message
+                    artifacts = model_instance.send_batch(sanitized_request)
+                    if type(artifacts) is dict:
+                        sanitized_request.operational = artifacts
                         stored_request = Request(from_entry=self.__create_request_entry(sanitized_request.create_record()))
                         self.__batch_requests.append(stored_request.req_id)
                     else:
                         stored_request = sanitized_request
-                        error = message
+                        error = artifacts
 
         if error is None:
             states = [
@@ -900,7 +925,7 @@ class BatchManager:
     def cancel_request(self, request_id: ObjectId):
         entry = self.__get_collection().find_one({ "_id": request_id})
         if not entry:
-            return RequestStatus.FAILED
+            return ErrorMsg(ErrorType.BATCH_CANCEL, "Id for the request not found")
         self.__interrupt_background()
         request = Request(from_entry=entry)
         
@@ -909,10 +934,12 @@ class BatchManager:
             if not model_instance.is_initialized():
                 self.__start_background()
                 return ErrorMsg(ErrorType.INITIALIZATION, model_instance.init_err)
-            req_status = model_instance.cancel_batch(request)
-            if req_status == RequestStatus.SUCCEEDED:
+            error = model_instance.cancel_batch(request)
+            if not error:
                 request.cancellation_requested = True
                 self.__update_request_entry(request.create_record())
+            else:
+                return error
         else:
             if request.status != JobStatus.JOB_STATE_SUCCEEDED:
                 request.cancellation_requested = True
@@ -923,7 +950,7 @@ class BatchManager:
                         break
             self.__update_request_entry(request.create_record())
         self.__start_background()
-        return req_status
+        return None
     
     def cancel_instant_requests(self):
         self.__interrupt_background()

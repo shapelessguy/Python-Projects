@@ -38,7 +38,7 @@ class GeminiFamily(Model):
     
     def send_batch(self, request):
         if not self.is_initialized():
-            return RequestStatus.FAILED, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
+            return ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
         
         requests = [{
             "key": req_id,
@@ -57,7 +57,7 @@ class GeminiFamily(Model):
             )
             print(f"Uploaded file: {uploaded_file.name}")
         except Exception as e:
-            return RequestStatus.FAILED, ErrorMsg(ErrorType.BATCH_REQUEST, e)
+            return ErrorMsg(ErrorType.BATCH_REQUEST, e)
 
         try:
             batch_job = google_client.batches.create(
@@ -66,20 +66,19 @@ class GeminiFamily(Model):
             )
             print(f"Batch created: {batch_job.name}")
             super().send_batch(request)
-            return RequestStatus.SUCCEEDED, {"uploadedFileName": uploaded_file.name, "uploadedBatchName": batch_job.name}
+            return {"uploadedFileName": uploaded_file.name, "uploadedBatchName": batch_job.name}
         except Exception as e:
-            return RequestStatus.FAILED, ErrorMsg(ErrorType.BATCH_REQUEST, e)
+            return ErrorMsg(ErrorType.BATCH_REQUEST, e)
     
     def cancel_batch(self, request):
         if not self.is_initialized():
-            return RequestStatus.FAILED, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
+            return ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
         try:
             google_client.batches.cancel(name=request.operational["uploadedBatchName"])
             print(f"Cancel requested for batch: {request.operational['uploadedBatchName']}")
             super().cancel_batch(request)
         except Exception as e:
-            return RequestStatus.FAILED, ErrorMsg(ErrorType.BATCH_CANCEL, e)
-        return RequestStatus.SUCCEEDED, None
+            return ErrorMsg(ErrorType.BATCH_CANCEL, e)
     
     def fetch_batch_results(self, request):
         prev_job_status = request.status
@@ -120,7 +119,7 @@ class GeminiFamily(Model):
     
     def send_simple_request(self, request, text):
         if not self.is_initialized():
-            return RequestStatus.FAILED, {}, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
+            return {}, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
 
         try:
             response_obj = google_client.models.generate_content(
@@ -134,7 +133,7 @@ class GeminiFamily(Model):
                 )
             )
         except Exception as e:
-            return RequestStatus.FAILED, {}, ErrorMsg(ErrorType.SIMPLE_REQUEST, e)
+            return {}, ErrorMsg(ErrorType.SIMPLE_REQUEST, e)
 
         usage = response_obj.usage_metadata
         prompt_tokens = usage.prompt_token_count
@@ -147,11 +146,11 @@ class GeminiFamily(Model):
                 response_text += part.text
         self.add_cost(request, prompt_tokens, total_tokens - prompt_tokens)
         super().send_simple_request(request, text)
-        return RequestStatus.SUCCEEDED, self.format_response(response_text, prompt_tokens, candidates_tokens, thoughts_tokens, total_tokens), None
+        return self.format_response(response_text, prompt_tokens, candidates_tokens, thoughts_tokens, total_tokens), None
     
     def stream_request(self, request, text, on_stream_cb):
         if not self.is_initialized():
-            return RequestStatus.FAILED, {}, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
+            return {}, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
 
         try:
             messages=[
@@ -181,13 +180,13 @@ class GeminiFamily(Model):
                         pass
                 response_text += segment
         except Exception as e:
-            return RequestStatus.FAILED, {}, ErrorMsg(ErrorType.SIMPLE_REQUEST, e)
+            return {}, ErrorMsg(ErrorType.SIMPLE_REQUEST, e)
         
         prompt_tokens = count_tokens(json.dumps(messages))
         total_tokens = prompt_tokens + count_tokens(response_text)
         self.add_cost(request, prompt_tokens, total_tokens - prompt_tokens)
         super().stream_request(request, text, on_stream_cb)
-        return RequestStatus.SUCCEEDED, self.format_response(response_text, prompt_tokens, total_tokens - prompt_tokens, 0, total_tokens), None
+        return self.format_response(response_text, prompt_tokens, total_tokens - prompt_tokens, 0, total_tokens), None
 
 
 class gemini_3_pro_preview(GeminiFamily):

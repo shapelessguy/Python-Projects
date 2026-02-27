@@ -33,7 +33,7 @@ class OpenAiFamily(Model):
     
     def send_batch(self, request):
         if not self.is_initialized():
-            return RequestStatus.FAILED, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
+            return ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
     
         requests = []
         for req_id, text in request.get_full_requests().items():
@@ -68,7 +68,7 @@ class OpenAiFamily(Model):
             )
             print(f"Uploaded file: {uploaded_file.id}")
         except Exception as e:
-            return RequestStatus.FAILED, ErrorMsg(ErrorType.BATCH_REQUEST, e)
+            return ErrorMsg(ErrorType.BATCH_REQUEST, e)
 
         try:
             batch_job = client.batches.create(
@@ -78,20 +78,19 @@ class OpenAiFamily(Model):
             )
             print(f"Batch created: {batch_job.id}")
             super().send_batch(request)
-            return RequestStatus.SUCCEEDED, {"uploadedFileId": uploaded_file.id, "batchJobId": batch_job.id}
+            return {"uploadedFileId": uploaded_file.id, "batchJobId": batch_job.id}
         except Exception as e:
-            return RequestStatus.FAILED, ErrorMsg(ErrorType.BATCH_REQUEST, e)
+            return ErrorMsg(ErrorType.BATCH_REQUEST, e)
     
     def cancel_batch(self, request):
         if not self.is_initialized():
-            return RequestStatus.FAILED, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
+            return ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
         try:
             client.batches.cancel(name=request.operational["batchJobId"])
             print(f"Cancel requested for batch: {request.operational['batchJobId']}")
             super().cancel_batch(request)
         except Exception as e:
-            return RequestStatus.FAILED, ErrorMsg(ErrorType.BATCH_CANCEL, e)
-        return RequestStatus.SUCCEEDED, None
+            return ErrorMsg(ErrorType.BATCH_CANCEL, e)
     
     def fetch_batch_results(self, request):
         status_map = {
@@ -151,7 +150,7 @@ class OpenAiFamily(Model):
     
     def send_simple_request(self, request, text):
         if not self.is_initialized():
-            return RequestStatus.FAILED, {}, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
+            return {}, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
 
         try:
             api_params = {
@@ -167,7 +166,7 @@ class OpenAiFamily(Model):
                 api_params["temperature"] = request.generationConfig.get("temperature", 0)
             response = client.chat.completions.create(**api_params)
         except Exception as e:
-            return RequestStatus.FAILED, {}, ErrorMsg(ErrorType.SIMPLE_REQUEST, e)
+            return {}, ErrorMsg(ErrorType.SIMPLE_REQUEST, e)
 
         usage = response.usage
         prompt_tokens = usage.prompt_tokens
@@ -181,11 +180,11 @@ class OpenAiFamily(Model):
         
         self.add_cost(request, prompt_tokens, total_tokens - prompt_tokens)
         super().send_simple_request(request, text)
-        return RequestStatus.SUCCEEDED, self.format_response(response_text, prompt_tokens, candidates_tokens, thoughts_tokens, total_tokens), None
+        return self.format_response(response_text, prompt_tokens, candidates_tokens, thoughts_tokens, total_tokens), None
     
     def stream_request(self, request, text, on_stream_cb):
         if not self.is_initialized():
-            return RequestStatus.FAILED, {}, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
+            return {}, ErrorMsg(ErrorType.INITIALIZATION, self.init_err)
 
         try:
             messages=[
@@ -215,13 +214,13 @@ class OpenAiFamily(Model):
                         pass
                 response_text += segment
         except Exception as e:
-            return RequestStatus.FAILED, {}, ErrorMsg(ErrorType.SIMPLE_REQUEST, e)
+            return {}, ErrorMsg(ErrorType.SIMPLE_REQUEST, e)
         
         prompt_tokens = count_tokens(json.dumps(messages))
         total_tokens = prompt_tokens + count_tokens(response_text)
         self.add_cost(request, prompt_tokens, total_tokens - prompt_tokens)
         super().stream_request(request, text, on_stream_cb)
-        return RequestStatus.SUCCEEDED, self.format_response(response_text, prompt_tokens, total_tokens - prompt_tokens, 0, total_tokens), None
+        return self.format_response(response_text, prompt_tokens, total_tokens - prompt_tokens, 0, total_tokens), None
 
 
 class gpt_5_2(OpenAiFamily):
