@@ -79,6 +79,8 @@ class RegisteredFunctions:
     LIGHTS_ON=HandleFunction(lights_on)
     LIGHTS_OFF=HandleFunction(lights_off)
     LIGHTS_AUTO=HandleFunction(lights_auto)
+    TOP_POWER=HandleFunction(top_power)
+    TOP_RGB=HandleFunction(top_leds)
     AUDIO_POWER=HandleFunction(audio_power)
     TV_POWER=HandleFunction(tv_power)
     TV_OK=HandleFunction(tv_ok)

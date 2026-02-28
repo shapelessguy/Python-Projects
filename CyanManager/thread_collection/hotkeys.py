@@ -35,6 +35,8 @@ def hotkeys_setup(signal):
         (97, 2): reg_functions.LIGHTS_ON,                   # CTRL + NUMPAD1
         (98, 2): reg_functions.LIGHTS_OFF,                  # CTRL + NUMPAD2
         (99, 2): reg_functions.LIGHTS_AUTO,                 # CTRL + NUMPAD3
+        (103, 2): reg_functions.TOP_POWER,                  # CTRL + NUMPAD7
+        (104, 2): reg_functions.TOP_RGB,                    # CTRL + NUMPAD8
         (102, 0): reg_functions.AUDIO_POWER,                # NUMPAD6
         (102, 2): reg_functions.TV_POWER,                   # CTRL + NUMPAD6
         (102, 1): reg_functions.TV_OK,                      # ALT + NUMPAD6

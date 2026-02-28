@@ -27,7 +27,7 @@ def entrypoint(thread_manager):
             try:
                 verbose, topic, arg = pending_message
                 pending_message = None
-                values = {topic: arg}
+                values = {"command": arg}
                 json_content = json.dumps(values)
                 params = [x for x in signal.get_threads() if x.name == NAME][0].parameters
                 url = f"{params.get('Hostname/port', '')}/{topic}"

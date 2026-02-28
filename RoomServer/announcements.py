@@ -142,7 +142,7 @@ def get_last_announcement():
     return last_announcement, get_week_number(last_announcement)
 
 
-def spawn_monitoring(signal_):
+def spawn_telegram_chatbot(signal_):
     global bh, bot_history
     try:
         bac.initialize_repo()
@@ -206,4 +206,4 @@ def save_history():
 
 
 if __name__ == '__main__':
-    spawn_monitoring({'kill': False})
+    spawn_telegram_chatbot({'kill': False})

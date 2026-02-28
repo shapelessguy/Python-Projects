@@ -1,10 +1,16 @@
 import time
 import sys
 import multiprocessing
-from flask import Flask, request, jsonify
 import multiprocessing
 import logging
+import uuid
+from flask import Flask, request, jsonify
 from utils import TeeOutput, HOSTNAME
+from actuators import endpoints as actuators_endpoints
+
+
+def random_id():
+    return uuid.uuid4().hex[:12]
 
 
 def start_flask_server(signal):
@@ -13,7 +19,7 @@ def start_flask_server(signal):
     app = Flask(__name__)
     log = logging.getLogger('werkzeug')
     log.setLevel(logging.ERROR)
-    endpoints = ['lights', 'strip', 'tv', 'audio', 'announce']
+    endpoints = actuators_endpoints
 
     @app.route("/")
     def ping_callback():
@@ -30,22 +36,29 @@ def start_flask_server(signal):
                         print("No JSON data in request.")
                         return jsonify({'error': "Request must include JSON data"}), 400
 
-                    if ep not in data:
-                        print(f"Missing '{ep}' field in request.")
-                        return jsonify({'error': f"Missing '{ep}' field"}), 400
-
-                    if 'audio' not in data or data['audio'] != "pingvol":
-                        print(f"{ep.upper()}: {data}")
-                    command = ep.upper() + data[ep].upper()
-                    signal['data']['commands'].append(command)
-
-                    return jsonify({'status': 'success', 'command': command}), 200
-                except Exception as e:
-                    print(f"Error processing request: {e}")
+                    req_id = random_id()
+                    reply = None
+                    signal['data']['commands'].append({"endpoint": ep, "req_id": req_id, **data})
+                    while not signal["kill"]:
+                        found = False
+                        for i in range(len(signal["data"]["replies"])):
+                            if signal["data"]["replies"][i]["req_id"] == req_id:
+                                reply = signal["data"]["replies"].pop(i)
+                                found = True
+                                break
+                        if found:
+                            break
+                        time.sleep(0.1)
+                    status, code = ('success', 200) if "error" not in reply else ('error', 500)
+                    return jsonify({'status': status, 'command': {"endpoint": ep, **data}, 'reply': reply}), code
+                except Exception:
+                    import traceback
+                    print(f"Error processing request: \n{traceback.format_exc()}")
                     return jsonify({'error': "Internal server error"}), 500
         
         create_route(endpoint)
 
+    print(f"Server bound to port {HOSTNAME['server_port']}")
     app.run(host='0.0.0.0', port=HOSTNAME['server_port'])
 
 

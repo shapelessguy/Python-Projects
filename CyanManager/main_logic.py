@@ -222,7 +222,10 @@ def main():
     except Exception:
         print(traceback.format_exc())
     except KeyboardInterrupt:
-        pass
+        print("Keyboard interrupt")
+        signal.ui_manager.execute("quit_app")
+
+    print("Terminating CyanManager...")
     if signal:
         signal.kill()
         signal.join_thread_managers()

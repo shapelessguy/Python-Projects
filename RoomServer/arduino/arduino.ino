@@ -41,46 +41,43 @@ void change_lights(){
   }
 }
 
-
-
-long comTv(String c){
-  if (c == "ON") return 0xE0E09966;
-  else if (c == "OFF") return 0xE0E019E6;
-  else if (c == "PC") return 0xE0E09768;
-  return 0;
-}
-
 long comAudio(String c){
-  if (c == "ON/OFF") return 0x80;
-  else if (c.substring(0, 4) == "VOL+") return 0xAA;
-  else if (c.substring(0, 4) == "VOL-") return 0x6A;
-  else if (c == "MUTE") return 0xEA;
-  else if (c == "LEVEL") return 0xA;
-  else if (c == "EFFECT") return 0xE;
-  else if (c == "INPUT") return 0x8;
+  if (c == "on/off") return 0x80;
+  else if (c.substring(0, 4) == "vol+") return 0xAA;
+  else if (c.substring(0, 4) == "vol-") return 0x6A;
+  else if (c.equals("mute")) return 0xEA;
+  else if (c.equals("level")) return 0xA;
+  else if (c.equals("effect")) return 0xE;
+  else if (c.equals("input")) return 0x8;
   return 0;
 }
 
 long comTop(String c){
-  if (c == "W") return 0x02;
-  else if (c == "RGB") return 0x03;
-  else if (c == "BRIGHT+") return 0x09;
-  else if (c == "BRIGHT-") return 0x11;
-  else if (c == "COLD+") return 0xE;
-  else if (c == "COLD-") return 0xC;
-  else if (c == "COL_LOOP") return 0xB;
-  else if (c == "COL_CHANGE") return 0x7;
-  else if (c == "HEART") return 0x14;
+  if (c.equals("w")) return 0x02;
+  else if (c.equals("rgb")) return 0x03;
+  else if (c.equals("bright+")) return 0x09;
+  else if (c.equals("bright-")) return 0x11;
+  else if (c.equals("cold+")) return 0xE;
+  else if (c.equals("cold-")) return 0xC;
+  else if (c.equals("col_loop")) return 0xB;
+  else if (c.equals("col_change")) return 0x7;
+  else if (c.equals("heart")) return 0x14;
   return 0;
 }
 
 int repeatAudio(String c){
-  if (c.substring(0, 3) == "VOL") {
+  if (c.substring(0, 3) == "vol") {
     String repeat = c.substring(4, c.length());
     int_fast8_t repeat_int = repeat.toInt();
     return repeat_int;
   }
   return 0;
+}
+
+void sendPlantLights(String c) {
+  Serial.println("Sending Plant lights...");
+  if (c.equals("on")) turn_on_lights();
+  else if (c.equals("off")) turn_off_lights();
 }
 
 void sendHisense(String c) {
@@ -89,11 +86,11 @@ void sendHisense(String c) {
   uint8_t  command;
   int      repetitions = 1;
 
-  if (c.substring(0, 2) == "OK"){
+  if (c.substring(0, 2) == "ok"){
     command = 0x15;
     repetitions = 1;
   }
-  else if (c.substring(0, 5) == "POWER"){
+  else if (c.substring(0, 5) == "power"){
     command = 0x0D;
     repetitions = 6;
   }
@@ -106,13 +103,13 @@ void sendHisense(String c) {
 
 void sendAudio(String c){
   Serial.println("Audio command: " + c);
-  if (c.substring(0, 6) == "SETVOL"){
-    IrSender.sendNEC(0xA002, comAudio("VOL-"), 43);
-    IrSender.sendNEC(0xA002, comAudio("VOL+"), c.substring(6, c.length()).toInt());
+  if (c.substring(0, 6) == "setvol"){
+    IrSender.sendNEC(0xA002, comAudio("vol-"), 43);
+    IrSender.sendNEC(0xA002, comAudio("vol+"), c.substring(6, c.length()).toInt());
   }
-  else if (c.substring(0, 7) == "PINGVOL"){
-    IrSender.sendNEC(0xA002, comAudio("VOL-"), 1);
-    IrSender.sendNEC(0xA002, comAudio("VOL+"), 1);
+  else if (c.substring(0, 7) == "pingvol"){
+    IrSender.sendNEC(0xA002, comAudio("vol-"), 1);
+    IrSender.sendNEC(0xA002, comAudio("vol+"), 1);
   }
   else{
     IrSender.sendNEC(0xA002, comAudio(c), repeatAudio(c));
@@ -128,13 +125,11 @@ void loop() {
   if (Serial.available()) {
     command = Serial.readStringUntil('\n');
     command.trim();
-    
-    if (command.equals("LIGHTSON")) { turn_on_lights(); }
-    else if (command.equals("LIGHTSOFF")) { turn_off_lights(); }
 
-    else if (command.substring(0, 2) == "TV") sendHisense(command.substring(2, command.length()));
-    else if (command.substring(0, 5) == "AUDIO") sendAudio(command.substring(5, command.length()));
-    else if (command.substring(0, 3) == "TOP") sendTop(command.substring(3, command.length()));
+    if (command.substring(0, 6) == "lights") { sendPlantLights(command.substring(6, command.length())); }
+    else if (command.substring(0, 3) == "top") sendTop(command.substring(3, command.length()));
+    else if (command.substring(0, 2) == "tv") sendHisense(command.substring(2, command.length()));
+    else if (command.substring(0, 5) == "audio") sendAudio(command.substring(5, command.length()));
 
     else { Serial.println("bad command"); }
   }
