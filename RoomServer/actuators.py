@@ -147,7 +147,7 @@ def actuator(signal):
     lights_to = datetime.strptime(lights_auto.get("Lights to", "20:00"), "%H:%M").time()
     while not signal['kill']:
         try:
-            now = datetime.now()
+            now = datetime.now().time()
             # --- Independent processing
 
             if auto_active:
