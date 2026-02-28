@@ -25,11 +25,11 @@ class State:
     def __init__(self):
         self.main_path = os.path.dirname(__file__)
         self.path = os.path.join(self.main_path, 'state.json')
-        self.state = {'audio': False}
+        self.state = {}
         if os.path.exists(self.path):
             with open(self.path, 'r') as file:
                 self.state = json.load(file)
-        print(self.state)
+        self.state["lights_auto"] = self.state.get("lights_auto", {"Lights from": "09:00", "Lights to": "20:00"})
     
     def get_param(self, param):
         output = None

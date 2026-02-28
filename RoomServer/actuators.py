@@ -1,52 +1,25 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from utils import HOSTNAME
 import announcements
 import serial
 import time
-import sequences
+from main import State
 
 
 serialPort: serial.Serial
 lights = False
-auto_time = None
+auto_active = False
+prev_light_state = ""
 initialized = False
 active_times = [('9:00', '19:59')]
 signal = None
 
 
-# class Command:
-#     class_name = ""
-#     cmd_type = ""
-#     types = []
-
-#     def __init__(self, cmd_type):
-#         assert cmd_type.lower() in [x.lower() for x in self.types]
-#         self.cmd_type = cmd_type.lower()
-
-#     def arduino_cmd(self):
-#         cmd = (self.class_name + self.cmd_type).upper()
-#         print(cmd)
-#         return cmd
-    
-#     def send(self):
-#         write(self.arduino_cmd())
-
-
-# class LightCommand(Command):
-#     class_name = "lights"
-#     types = [
-#         "on",
-#         "off",
-#         "auto"
-#     ]
-
-
 def initialize(signal_):
-    global serialPort, initialized, lights, auto_time, signal
+    global serialPort, initialized, lights, signal
     signal = signal_
     serialPort = None
     lights = False
-    auto_time = None
     initialized = False
     while not signal['kill']:
         if serialPort is None:
@@ -99,16 +72,34 @@ def write(text, tries=0):
 
 
 def lights_cb(data):
+    global signal, auto_active, prev_light_state
     command = data.get("command", None)
+    set_auto_time = data.get("set_auto_time", None)
     if command in ["on", "off", "auto"]:
-        write(data["endpoint"] + command)
+        prev_light_state = command
+        if command == "auto":
+            auto_active = True
+        else:
+            auto_active = False
+            write(data["endpoint"] + command)
+
+        if set_auto_time:
+            try:
+                from_ = set_auto_time["from"]
+                to_ = set_auto_time["to"]
+                datetime.strptime(from_, "%H:%M")
+                datetime.strptime(to_, "%H:%M")
+                signal["state"].set_param("lights_auto", {"Lights from": from_, "Lights to": to_})
+                signal["state"].save()
+            except:
+                return {"error": f'set_auto_time {set_auto_time} improper syntax.'}
         return {"msg": f'Lights [value={command}] sent to arduino.'}
     return {"error": f'Command {command} not recognized.'}
 
 
 def tob_cb(data):
     command = data.get("command", None)
-    if command in ["w", "rgb"]:
+    if command in ["w", "rgb", "bright+", "bright-", "cold+", "cold-", "col_loop", "col_change", "heart"]:
         write(data["endpoint"] + command)
         return {"msg": f'TopLights [value={command}] sent to arduino.'}
     return {"error": f'Command {command} not recognized.'}
@@ -151,16 +142,23 @@ endpoints = {
 # noinspection PyBroadException
 def actuator(signal):
     print('Actuator running.')
-    global auto_time
+    global auto_active
+    lights_auto = signal["state"].get_param("lights_auto")
+    lights_from = datetime.strptime(lights_auto.get("Lights from", "9:00"), "%H:%M").time()
+    lights_to = datetime.strptime(lights_auto.get("Lights to", "20:00"), "%H:%M").time()
     while not signal['kill']:
         try:
-            cur_time = datetime.now()
-            # ---------------------------- Independent processing
+            now = datetime.now()
+            # --- Independent processing
 
-            time_list = [cur_time.hour, cur_time.minute]
-            if auto_time is not None and time_list[0] == auto_time[0] and time_list[1] == auto_time[1]:
-                # signal['data']['commands'].append('LIGHTSAUTO')
-                auto_time = None
+            if auto_active:
+                if lights_from <= lights_to:
+                    lights_active = lights_from <= now <= lights_to
+                else:
+                    lights_active = now >= lights_from or now <= lights_to
+                if lights_active and lights_active != prev_light_state:
+                    prev_light_state = "on" if lights_active else "off"
+                    write("lights" + prev_light_state)
 
             # ----------------------------
 
@@ -199,5 +197,5 @@ if __name__ == "__main__":
     commands = []
     replies = []
     signal = {'kill': False, 'restart_server': False, 'restart_websocket': False, 'termination': False,
-              'data': {'commands': commands, 'replies': replies}, 'log_file_name': None}
+              'data': {'commands': commands, 'replies': replies}, 'state': State(), 'log_file_name': None}
     launch_actuator(signal)
