@@ -7,8 +7,8 @@ import time
 
 serialPort: serial.Serial
 lights = False
-auto_active = False
-prev_light_state = "auto"
+auto_active = True
+prev_light_state = "off"
 lights_from, lights_to = None, None
 initialized = False
 active_times = [('9:00', '19:59')]
@@ -148,7 +148,6 @@ def actuator(signal):
     lights_auto = signal["state"].get_param("lights_auto")
     lights_from = datetime.strptime(lights_auto.get("Lights from", "9:00"), "%H:%M").time()
     lights_to = datetime.strptime(lights_auto.get("Lights to", "20:00"), "%H:%M").time()
-    write("lights" + prev_light_state)
     while not signal['kill']:
         try:
             now = datetime.now().time()
