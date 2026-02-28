@@ -6,6 +6,9 @@
 #define LIGHT_PIN 2
 // IR_PIN = 3 from PinDefinitions
 
+// To compile on Roomserver:
+// arduino-cli compile --fqbn arduino:avr:uno --upload --port /dev/ttyUSB0 /home/claudio/Python-Projects/RoomServer/arduino
+
 String command;
 int DELAY = 100;
 char deviceCode = '_';
