@@ -165,7 +165,6 @@ def actuator(signal):
             # ----------------------------
 
             if len(signal['data']['commands']) > 0:
-                print(len(signal['data']['commands']))
                 reply = None
                 data = signal['data']['commands'].pop(0)
                 ep = data.get("endpoint", None)

@@ -376,7 +376,7 @@
         "Roomserver": {
             "enabled": true,
             "parameters": {
-                "Hostname/port": "http://localhost:10001",
+                "Hostname/port": "http://cyanroomserver.duckdns.org:10004",
                 "Lights from": "09:00",
                 "Lights to": "07:02"
             }
