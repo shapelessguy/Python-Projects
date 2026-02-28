@@ -9,6 +9,7 @@ serialPort: serial.Serial
 lights = False
 auto_active = False
 prev_light_state = ""
+lights_from, lights_to = None, None
 initialized = False
 active_times = [('9:00', '19:59')]
 signal = None
@@ -71,7 +72,7 @@ def write(text, tries=0):
 
 
 def lights_cb(data):
-    global signal, auto_active, prev_light_state
+    global signal, auto_active, prev_light_state, lights_from, lights_to
     command = data.get("command", None)
     set_auto_time = data.get("set_auto_time", None)
     if command in ["on", "off", "auto"]:
@@ -90,6 +91,8 @@ def lights_cb(data):
                 datetime.strptime(to_, "%H:%M")
                 signal["state"].set_param("lights_auto", {"Lights from": from_, "Lights to": to_})
                 signal["state"].save()
+                lights_from = datetime.strptime(from_, "%H:%M").time()
+                lights_to = datetime.strptime(to_, "%H:%M").time()
             except:
                 return {"error": f'set_auto_time {set_auto_time} improper syntax.'}
         return {"msg": f'Lights [value={command}] sent to arduino.'}
@@ -141,7 +144,7 @@ endpoints = {
 # noinspection PyBroadException
 def actuator(signal):
     print('Actuator running.')
-    global auto_active, prev_light_state
+    global auto_active, prev_light_state, lights_from, lights_to
     lights_auto = signal["state"].get_param("lights_auto")
     lights_from = datetime.strptime(lights_auto.get("Lights from", "9:00"), "%H:%M").time()
     lights_to = datetime.strptime(lights_auto.get("Lights to", "20:00"), "%H:%M").time()

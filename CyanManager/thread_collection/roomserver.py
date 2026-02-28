@@ -25,11 +25,13 @@ def entrypoint(thread_manager):
     while thread_manager.signal.is_alive() and not thread_manager.to_kill:
         if pending_message:
             try:
+                params = [x for x in signal.get_threads() if x.name == NAME][0].parameters
                 verbose, topic, arg = pending_message
                 pending_message = None
                 values = {"command": arg}
+                if topic == "lights":
+                    values["set_auto_time"] = {"from": params.get('Lights from', ''), "to": params.get('Lights to', '')}
                 json_content = json.dumps(values)
-                params = [x for x in signal.get_threads() if x.name == NAME][0].parameters
                 url = f"{params.get('Hostname/port', '')}/{topic}"
                 response = requests.post(url, data=json_content, headers={'Content-Type': 'application/json'}, timeout=5)
                 response.encoding = 'iso-8859-1'
