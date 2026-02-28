@@ -3,7 +3,6 @@ from utils import HOSTNAME
 import announcements
 import serial
 import time
-from main import State
 
 
 serialPort: serial.Serial
@@ -194,6 +193,7 @@ def launch_actuator(signal):
     actuator(signal)
 
 if __name__ == "__main__":
+    from main import State
     commands = []
     replies = []
     signal = {'kill': False, 'restart_server': False, 'restart_websocket': False, 'termination': False,
