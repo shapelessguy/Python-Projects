@@ -141,7 +141,7 @@ endpoints = {
 # noinspection PyBroadException
 def actuator(signal):
     print('Actuator running.')
-    global auto_active
+    global auto_active, prev_light_state
     lights_auto = signal["state"].get_param("lights_auto")
     lights_from = datetime.strptime(lights_auto.get("Lights from", "9:00"), "%H:%M").time()
     lights_to = datetime.strptime(lights_auto.get("Lights to", "20:00"), "%H:%M").time()
