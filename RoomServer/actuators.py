@@ -155,8 +155,10 @@ def actuator(signal):
                     lights_active = lights_from <= now <= lights_to
                 else:
                     lights_active = now >= lights_from or now <= lights_to
-                if lights_active and lights_active != prev_light_state:
-                    prev_light_state = "on" if lights_active else "off"
+
+                lights_active_str = "on" if lights_active else "off"
+                if lights_active and lights_active_str != prev_light_state:
+                    prev_light_state = lights_active_str
                     write("lights" + prev_light_state)
 
             # ----------------------------
