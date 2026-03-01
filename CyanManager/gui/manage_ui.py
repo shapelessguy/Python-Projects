@@ -86,29 +86,27 @@ def create_notification_form():
         color: white;
         text-align: center;
     """
-    ui.title.setStyleSheet(lbl_stylesheet + "padding: 20 20px 0px 20px;")
-    ui.message.setStyleSheet(lbl_stylesheet + "padding: 0 20px 20px 20px;")
-
-    ui.graphicsView.setStyleSheet("background: transparent;")
-    ui.title.adjustSize()
-    ui.message.adjustSize()
+    ui.title.setStyleSheet(lbl_stylesheet + "padding: 0 20px 0 20px;")
+    ui.message.setStyleSheet(lbl_stylesheet + "padding: 0 20px 0 20px;")
+    ui.icon_path = None
 
     scene = QGraphicsScene()
+    ui.graphicsView.setStyleSheet("background: transparent;")
     ui.graphicsView.setScene(scene)
-    ui.graphicsView.fitInView(scene.sceneRect(), Qt.KeepAspectRatioByExpanding)
-    ui.graphicsView.centerOn(scene.sceneRect().center())
     ui.graphicsView.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
     ui.graphicsView.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
     def set_data(title, message, icon_path):
         ui.title.setText(f"{title}")
         ui.message.setText(f"{message}")
-        if icon_path:
+        if icon_path and ui.icon_path != icon_path:
+            ui.icon_path = icon_path
             pixmap = QPixmap(icon_path)
             scene.clear()
-            scene.addPixmap(pixmap)
-            ui.graphicsView.setScene(scene)
-            ui.graphicsView.fitInView(scene.sceneRect(), Qt.KeepAspectRatioByExpanding)
+            item = scene.addPixmap(pixmap)
+            scene.setSceneRect(item.boundingRect())
+            ui.graphicsView.resetTransform()
+            ui.graphicsView.fitInView(scene.sceneRect(), Qt.KeepAspectRatio)
             ui.graphicsView.centerOn(scene.sceneRect().center())
 
     ui.set_data = set_data

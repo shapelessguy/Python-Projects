@@ -13,12 +13,12 @@ PARAMETERS = {
 
 def switch_to_headphones_():
     global pending_message
-    pending_message = ("Audio", "Headphones", "wh1000.png")
+    pending_message = ("Audio", "Headphones", "headset.png")
 
 
 def switch_to_speakers_():
     global pending_message
-    pending_message = ("Audio", "Speakers", "logitech.png")
+    pending_message = ("Audio", "Speakers", "speakers.png")
 
 
 def entrypoint(thread_manager):
