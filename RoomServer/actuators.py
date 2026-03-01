@@ -117,7 +117,7 @@ def tv_cb(data):
 
 def audio_cb(data):
     command = data.get("command", None)
-    if command in ["on/off"]:
+    if command in ["on/off", "vol+", "vol-", "mute", "level", "effect", "input"]:
         write(data["endpoint"] + command)
         return {"msg": f'AudioSystem [value={command}] sent to arduino.'}
     return {"error": f'Command {command} not recognized.'}

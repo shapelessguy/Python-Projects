@@ -69,7 +69,7 @@ void sendAudio(String c){
 }
 
 long comAudio(String c){
-  if (c == "on/off") return 0x80;
+  if (c.equals("on/off")) return 0x80;
   else if (c.substring(0, 4) == "vol+") return 0xAA;
   else if (c.substring(0, 4) == "vol-") return 0x6A;
   else if (c.equals("mute")) return 0xEA;

@@ -25,7 +25,7 @@ def hotkeys_setup(signal):
         (97, 0): reg_functions.HEADPHONES,                  # NUMPAD1
         (99, 0): reg_functions.SPEAKERS,                    # NUMPAD3
         (105, 0): reg_functions.SNAPSHOT,                   # NUMPAD9
-        (105, 2): reg_functions.WIN_SNAPSHOT,               # CTRL + NUMPAD9
+        # (105, 2): reg_functions.WIN_SNAPSHOT,               # CTRL + NUMPAD9
         (104, 0): reg_functions.TURN_ON_MONITORS,           # NUMPAD8
         (98, 0): reg_functions.SHUTDOWN_MONITORS,           # NUMPAD2
         (109, 0): reg_functions.SHOW_ALARM,                 # NUMPAD -
@@ -35,10 +35,16 @@ def hotkeys_setup(signal):
         (97, 2): reg_functions.LIGHTS_ON,                   # CTRL + NUMPAD1
         (98, 2): reg_functions.LIGHTS_OFF,                  # CTRL + NUMPAD2
         (99, 2): reg_functions.LIGHTS_AUTO,                 # CTRL + NUMPAD3
+
+        (100, 2): reg_functions.TOP_RGB,                    # CTRL + NUMPAD4
+        (101, 2): reg_functions.TOP_COL_CHANGE,             # CTRL + NUMPAD5
+        (102, 2): reg_functions.TOP_HEART,                  # CTRL + NUMPAD6
         (103, 2): reg_functions.TOP_POWER,                  # CTRL + NUMPAD7
-        (104, 2): reg_functions.TOP_RGB,                    # CTRL + NUMPAD8
+        (104, 2): reg_functions.TOP_BRIGHT_PLUS,            # CTRL + NUMPAD8
+        (105, 2): reg_functions.TOP_BRIGHT_MINUS,           # CTRL + NUMPAD9
+
         (102, 0): reg_functions.AUDIO_POWER,                # NUMPAD6
-        (102, 2): reg_functions.TV_POWER,                   # CTRL + NUMPAD6
+        (102, 3): reg_functions.TV_POWER,                   # CTRL + ALT + NUMPAD6
         (102, 1): reg_functions.TV_OK,                      # ALT + NUMPAD6
 
         # DEBUG PURPOSE

@@ -1,16 +1,22 @@
 #include <IRremote.hpp>
 
 const int IR_RECEIVE_PIN      = 2;
+const int GREEN_LED_PIN        = 4;
+const int RED_LED_PIN        = 5;
+const int BLUE_LED_PIN        = 6;
 uint16_t currentAddress       = 0;
 uint8_t  currentHeldCommand   = 0;
 unsigned long lastActionTime  = 0;
-const unsigned long REPEAT_INTERVAL = 150;
+const unsigned long REPEAT_INTERVAL = 50;
 
 
 void setup() {
   Serial.begin(115200);
   Serial.println(F("IR Receiver ready - pin 2"));
   IrReceiver.begin(IR_RECEIVE_PIN, ENABLE_LED_FEEDBACK);
+  pinMode(BLUE_LED_PIN, OUTPUT);
+  pinMode(RED_LED_PIN, OUTPUT);
+  pinMode(GREEN_LED_PIN, OUTPUT);
 }
 
 
@@ -87,15 +93,15 @@ void executeAction(uint8_t cmd) {
       break;
 
     case 0xF3:
-      Serial.println("→ Netflix pressed");
+      Serial.println("→ GREEN pressed");
       break;
 
     case 0xF4:
-      Serial.println("→ PrimeVideo pressed");
+      Serial.println("→ RED pressed");
       break;
 
     case 0xB4:
-      Serial.println("→ SamsungTv pressed");
+      Serial.println("→ BLUE pressed");
       break;
 
     default:
@@ -107,6 +113,17 @@ void executeAction(uint8_t cmd) {
 
 
 void loop() {
+  if (Serial.available()) {
+    String command = Serial.readStringUntil('\n');
+    command.trim();
+
+    if (command.equals("BLUE_ON")) { digitalWrite(BLUE_LED_PIN, HIGH); }
+    else if (command.equals("BLUE_OFF")) { digitalWrite(BLUE_LED_PIN, LOW); }
+    else if (command.equals("RED_ON")) { digitalWrite(RED_LED_PIN, HIGH); }
+    else if (command.equals("RED_OFF")) { digitalWrite(RED_LED_PIN, LOW); }
+    else if (command.equals("GREEN_ON")) { digitalWrite(GREEN_LED_PIN, HIGH); }
+    else if (command.equals("GREEN_OFF")) { digitalWrite(GREEN_LED_PIN, LOW); }
+  }
   if (IrReceiver.decode()) {
 
     uint16_t addr = IrReceiver.decodedIRData.address;
@@ -119,30 +136,15 @@ void loop() {
         if (now - lastActionTime >= REPEAT_INTERVAL && shouldRepeat(currentHeldCommand)) {
           lastActionTime = now;
           executeAction(currentHeldCommand);
-          // Serial.print(" → REPEATED action: ");
-          // Serial.print(currentAddress, HEX);
-          // Serial.print(", ");
-          // Serial.println(currentHeldCommand, HEX);
-        } else {
-          // Serial.println(" → too soon or not repeatable");
         }
-      } else {
-        // Serial.println(" → ignored (no valid prior command)");
       }
     } 
     else {
       if (cmd != 0) {
-        Serial.print(" → NEW/VALID");
         currentAddress      = addr;
         currentHeldCommand  = cmd;
         lastActionTime      = millis();
         executeAction(cmd);
-        // Serial.print(" → executed: ");
-        // Serial.print(currentAddress, HEX);
-        // Serial.print(", ");
-        // Serial.println(currentHeldCommand, HEX);
-      } else {
-        // Serial.println(" → ignored (cmd=0)");
       }
     }
     Serial.println();
