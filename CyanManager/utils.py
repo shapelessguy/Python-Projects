@@ -77,9 +77,9 @@ def launch_notification(icon_path, title, message, timeout_str):
     subprocess.run([NOTIFICATION_EXE_PATH, icon_path, title, message, timeout_str], check=False)
 
 
-def notify(title, message, icon=None, timeout=2):
-    icon_path = "" if not icon else os.path.join(ICONS_FOLDER_PATH, icon)
-    threading.Thread(target=launch_notification, args=(icon_path, title, message, str(timeout))).start()
+def notify(signal, title, message, icon=None, timeout=2):
+    icon_path = None if not icon else os.path.join(ICONS_FOLDER_PATH, icon)
+    signal.ui_manager.execute("show_notification", title, message, icon_path, timeout)
 
 
 class Parameter:

@@ -142,7 +142,7 @@ def volume_down(signal, verbose=False):
     un_mute_volume(volume, new_vol)
 
 
-def switch_to_audio_device(device_name, icon):
+def switch_to_audio_device(signal, device_name, icon):
     pythoncom.CoInitialize()
     device = AudioUtilities.GetSpeakers()
     before = device.FriendlyName
@@ -151,7 +151,7 @@ def switch_to_audio_device(device_name, icon):
     after = device.FriendlyName
     if after != before:
         print(f"Switch to {after}")
-        notify(title="Default Audio Device", message=f"{after}", icon=icon)
+        notify(signal, title="Default Audio Device", message=f"{after}", icon=icon)
 
 
 def switch_to_headphones(signal, verbose=False):

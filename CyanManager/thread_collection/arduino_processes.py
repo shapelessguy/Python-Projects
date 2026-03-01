@@ -63,7 +63,6 @@ class Mode:
             if serialPort is None:
                 raise Exception()
             else:
-                print(f'To Arduino: {text}')
                 serialPort.write(f"{text}\r\n".encode("Ascii"))
         except Exception:
             print('Trying to initiate connection to COM..')
@@ -121,31 +120,35 @@ def resolve_green_mode(verb):
     elif verb == "MONOFF":
         signal.reg_functions.SHUTDOWN_MONITORS.run_shortcut()
 
+    if verb == "DIR_RIGHT":
+        signal.reg_functions.NEXT.run_shortcut()
+    elif verb == "DIR_LEFT":
+        signal.reg_functions.PREV.run_shortcut()
+
     elif verb == "+":
         signal.reg_functions.VOLUME_UP.run_shortcut()
     elif verb == "-":
         signal.reg_functions.VOLUME_DOWN.run_shortcut()
     
-    elif verb == "DIR_RIGHT":
-        signal.reg_functions.SPEAKERS.run_shortcut()
-    elif verb == "DIR_LEFT":
-        signal.reg_functions.HEADPHONES.run_shortcut()
-    elif verb == "DIR_UP":
-        signal.reg_functions.AUDIO_PLUS.run_shortcut()
-    elif verb == "DIR_DOWN":
-        signal.reg_functions.AUDIO_MINUS.run_shortcut()
-    elif verb == "DIR_CENTER":
-        signal.reg_functions.PLAY_PAUSE.run_shortcut()
     elif verb == "PLAY":
         signal.reg_functions.TV_OK.run_shortcut()
 
 
 def resolve_red_mode(verb):
     global current_mode
-    if verb == "DIR_RIGHT":
-        signal.reg_functions.NEXT.run_shortcut()
+    if verb == "POWER":
+        if time.time() - current_mode.set_mode_at > 0.8:
+            signal.reg_functions.AUDIO_POWER.run_shortcut()
+    elif verb == "DIR_RIGHT":
+        signal.reg_functions.SPEAKERS.run_shortcut()
     elif verb == "DIR_LEFT":
-        signal.reg_functions.PREV.run_shortcut()
+        signal.reg_functions.HEADPHONES.run_shortcut()
+    elif verb == "DIR_UP":
+        signal.reg_functions.AUDIO_LEVEL.run_shortcut()
+    elif verb == "DIR_DOWN":
+        signal.reg_functions.AUDIO_EFFECT.run_shortcut()
+    elif verb == "DIR_CENTER":
+        signal.reg_functions.PLAY_PAUSE.run_shortcut()
 
     elif verb == "+":
         signal.reg_functions.VOLUME_UP.run_shortcut()
@@ -157,9 +160,30 @@ def resolve_red_mode(verb):
 
 def resolve_blue_mode(verb):
     global current_mode
-    if verb == "UP":
+    
+    if verb == "POWER":
+        if time.time() - current_mode.set_mode_at > 0.8:
+            signal.reg_functions.TOP_POWER.run_shortcut()
+    elif verb == "MONON":
+        signal.reg_functions.TOP_COL_CHANGE.run_shortcut()
+    elif verb == "MONOFF":
+        signal.reg_functions.TOP_RGB.run_shortcut()
+    elif verb == "DIR_RIGHT":
+        signal.reg_functions.TOP_COLD_PLUS.run_shortcut()
+    elif verb == "DIR_LEFT":
+        signal.reg_functions.TOP_COLD_LESS.run_shortcut()
+    elif verb == "DIR_UP":
+        signal.reg_functions.TOP_BRIGHT_PLUS.run_shortcut()
+    elif verb == "DIR_DOWN":
+        signal.reg_functions.TOP_BRIGHT_MINUS.run_shortcut()
+    elif verb == "DIR_CENTER":
+        signal.reg_functions.TOP_HEART.run_shortcut()
+    
+    elif verb == "HOME":
+        signal.reg_functions.LIGHTS_AUTO.run_shortcut()
+    elif verb == "PLAY":
         signal.reg_functions.LIGHTS_ON.run_shortcut()
-    elif verb == "DOWN":
+    elif verb == "BACK":
         signal.reg_functions.LIGHTS_OFF.run_shortcut()
 
 

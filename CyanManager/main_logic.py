@@ -205,7 +205,6 @@ def register_threads(signal):
 def main():
     sys.argv.append('--no-sandbox')
     ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("CyanManager")
-    notify(title="CyanManager", message=f"Running", icon="cyan_system_manager.png")
     
     form_closed = 1
     signal = None
@@ -214,6 +213,7 @@ def main():
         register_functions(signal)
         register_threads(signal)
         signal.ui_manager = UI(signal)
+        notify(signal, title="CyanManager", message=f"Running", icon="cyan_system_manager.png")
 
         signal.start_thread_managers()
         signal.ui_manager.start_gui_tasks()

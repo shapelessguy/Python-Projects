@@ -2,11 +2,14 @@ import os
 import sys
 import threading
 import json
+import random
+import time
+from screeninfo import get_monitors
 from gui.theme import dark_stylesheet
 from gui.tab_general import set_gen_layout
 from gui.tab_applications import set_apps_layout
 from PyQt5.QtCore import QObject, pyqtSignal, Qt, QSize
-from PyQt5.QtWidgets import QMainWindow, QApplication, QSystemTrayIcon, QMenu, QWidget, QTextEdit, QVBoxLayout, QPushButton
+from PyQt5.QtWidgets import QMainWindow, QApplication, QSystemTrayIcon, QMenu, QWidget, QTextEdit, QVBoxLayout, QPushButton, QGraphicsScene
 from PyQt5.QtGui import QIcon, QPixmap
 from utils import ICONS_FOLDER_PATH, wait
 
@@ -59,6 +62,59 @@ def terminal_loop(signal):
         wait(signal, 50)
 
 
+def create_notification_form():
+    from gui import notifications
+    Form = QWidget()
+    
+    Form.setWindowFlags(
+        Qt.FramelessWindowHint |
+        Qt.WindowStaysOnTopHint |
+        Qt.Tool
+    )
+    Form.setAttribute(Qt.WA_TranslucentBackground)
+    Form.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+    
+    ui = notifications.Ui_Form()
+    ui.form = Form
+    ui.setupUi(Form)
+    Form.setStyleSheet("""
+        background: rgba(0, 0, 0, 180);
+        border-radius: 20px;
+    """)
+    lbl_stylesheet = """
+        background: transparent;
+        color: white;
+        text-align: center;
+    """
+    ui.title.setStyleSheet(lbl_stylesheet + "padding: 20 20px 0px 20px;")
+    ui.message.setStyleSheet(lbl_stylesheet + "padding: 0 20px 20px 20px;")
+
+    ui.graphicsView.setStyleSheet("background: transparent;")
+    ui.title.adjustSize()
+    ui.message.adjustSize()
+
+    scene = QGraphicsScene()
+    ui.graphicsView.setScene(scene)
+    ui.graphicsView.fitInView(scene.sceneRect(), Qt.KeepAspectRatioByExpanding)
+    ui.graphicsView.centerOn(scene.sceneRect().center())
+    ui.graphicsView.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+    ui.graphicsView.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+
+    def set_data(title, message, icon_path):
+        ui.title.setText(f"{title}")
+        ui.message.setText(f"{message}")
+        if icon_path:
+            pixmap = QPixmap(icon_path)
+            scene.clear()
+            scene.addPixmap(pixmap)
+            ui.graphicsView.setScene(scene)
+            ui.graphicsView.fitInView(scene.sceneRect(), Qt.KeepAspectRatioByExpanding)
+            ui.graphicsView.centerOn(scene.sceneRect().center())
+
+    ui.set_data = set_data
+    return ui
+
+
 class UIThreadBridge(QObject):
     show_window = pyqtSignal()
     hide_window = pyqtSignal()
@@ -68,6 +124,8 @@ class UIThreadBridge(QObject):
     set_general = pyqtSignal(object)
     push_to_terminal = pyqtSignal(str)
     set_thread_status = pyqtSignal(object)
+    show_notification = pyqtSignal(str, str, str, int)
+    hide_notification = pyqtSignal()
     set_apps = pyqtSignal(object, bool, list, list)
 
 
@@ -145,7 +203,7 @@ class TerminalWindow(QWidget):
 class UI:
     def __init__(self, signal):
         self.signal = signal
-        ui_files = ['main_interface']
+        ui_files = ['main_interface', 'notifications']
         ui_paths = [os.path.join(os.path.dirname(os.path.realpath(__file__)), x + '.ui') for x in ui_files]
         py_paths = [os.path.join(os.path.dirname(os.path.realpath(__file__)), x + '.py') for x in ui_files]
         for i in range(len(ui_paths)):
@@ -180,6 +238,8 @@ class UI:
         self.bridge.set_apps.connect(set_apps_layout)
         self.bridge.set_thread_status.connect(self._set_thread_status)
         self.bridge.push_to_terminal.connect(self._push_to_terminal)
+        self.bridge.show_notification.connect(self._show_notification)
+        self.bridge.hide_notification.connect(self._hide_notification)
         self.ui = ui
 
         self.tray = QSystemTrayIcon(QIcon(os.path.join(os.path.dirname(os.path.dirname(__file__)), "icons", "cyan_system_manager.ico")), app)
@@ -192,6 +252,7 @@ class UI:
         self.tray.setToolTip("CyanManager")
         self.tray.show()
         self.setup_ui()
+        self.notification_pool = []
         self.uwp_map = self.signal.reg_functions.SHOW_UWP_APP_NAMES.run()
     
     def execute(self, function_, *args, **kwargs):
@@ -239,6 +300,33 @@ class UI:
         if line == "":
             return
         self.terminal_window.text_edit.insertPlainText(f"{line}\n")
+    
+    def notif_timout(self, timeout, notification_id):
+        time.sleep(timeout)
+        if self.ui.follow_notif_id == notification_id:
+            self.execute("hide_notification")
+    
+    def _show_notification(self, title, message, icon_path, timeout):
+        random_id = ''.join(random.choices('abcdefghijklmnopqrstuvwxyz0123456789', k=10))
+        monitors = get_monitors()
+
+        if len(monitors) > len(self.notification_pool):
+            for _ in range(len(monitors) - len(self.notification_pool)):
+                self.notification_pool.append(create_notification_form())
+
+        for notif in self.notification_pool:
+            notif.set_data(title, message, icon_path)
+
+        for i, notif in enumerate(self.notification_pool):
+            screen = monitors[i % len(monitors)]
+            notif.form.move(screen.x + 10, screen.y + 10)
+            notif.form.show()
+        self.ui.follow_notif_id = random_id
+        threading.Thread(target=self.notif_timout, args=(timeout, random_id)).start()
+    
+    def _hide_notification(self):
+        for notif in self.notification_pool:
+            notif.form.hide()
     
     def _set_thread_status(self, status):
         if hasattr(self.ui, "serviceItems"):

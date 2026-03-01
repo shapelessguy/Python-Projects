@@ -5,24 +5,24 @@ from utils import notify
 def send_light_config(signal, verbose, value, notify_):
     send_to_roomserver(signal, verbose, "lights", value)
     if notify_:
-        notify(title="Room Server", message=f"Lights {value}", icon="server.png")
+        notify(signal, title="Room Server", message=f"Lights {value}", icon="server.png")
 
 # ---------------------------------------------------------
 
 def send_audio(signal, verbose, value, notify_):
     send_to_roomserver(signal, verbose, "audio", value)
     if notify_:
-        notify(title="Room Server", message=f"Audio System {value}", icon="logitech.png")
+        notify(signal, title="Room Server", message=f"Audio System {value}", icon="logitech.png")
 
 def send_top(signal, verbose, value, notify_):
     send_to_roomserver(signal, verbose, "top", value)
     if notify_:
-        notify(title="Room Server", message=f"Top light {value}", icon="logitech.png")
+        notify(signal, title="Room Server", message=f"Top light {value}", icon="logitech.png")
 
 def send_tv(signal, verbose, value, notify_):
     send_to_roomserver(signal, verbose, "tv", value)
     if notify_:
-        notify(title="Room Server", message=f"TV {value}", icon="tv.png")
+        notify(signal, title="Room Server", message=f"TV {value}", icon="tv.png")
 
 # ---------------------------------------------------------
 
@@ -74,6 +74,12 @@ def audio_plus(signal, verbose=False, notify_=True):
 
 def audio_minus(signal, verbose=False, notify_=True):
     send_audio(signal, verbose, "vol-", notify_)
+
+def audio_level(signal, verbose=False, notify_=True):
+    send_audio(signal, verbose, "level", notify_)
+
+def audio_effect(signal, verbose=False, notify_=True):
+    send_audio(signal, verbose, "effect", notify_)
 
 # ---------------------------------------------------------
 

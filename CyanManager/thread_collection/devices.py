@@ -31,7 +31,7 @@ def entrypoint(thread_manager):
                 pending_message = None
                 device_name = thread_manager.get_param(device_spec)
                 if device_type == "Audio":
-                    switch_to_audio_device(device_name, icon)
+                    switch_to_audio_device(thread_manager.signal, device_name, icon)
             except:
                 pass
         time.sleep(0.1)
