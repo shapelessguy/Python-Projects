@@ -56,36 +56,21 @@ void sendAudio(String c){
   uint16_t address = 0xA002;
 
   if (c.substring(0, 6) == "setvol"){
-    IrSender.sendNEC(address, comAudio("vol-"), 43);
-    IrSender.sendNEC(address, comAudio("vol+"), c.substring(6, c.length()).toInt());
+    IrSender.sendNEC(address, 0x6A, 43);
+    IrSender.sendNEC(address, 0xAA, c.substring(6, c.length()).toInt());
   }
   else if (c.substring(0, 7) == "pingvol"){
-    IrSender.sendNEC(address, comAudio("vol-"), 1);
-    IrSender.sendNEC(address, comAudio("vol+"), 1);
+    IrSender.sendNEC(address, 0x6A, 1);
+    IrSender.sendNEC(address, 0xAA, 1);
   }
-  else{
-    IrSender.sendNEC(address, comAudio(c), repeatAudio(c));
-  }
-}
-
-long comAudio(String c){
-  if (c.equals("on/off")) return 0x80;
-  else if (c.substring(0, 4) == "vol+") return 0xAA;
-  else if (c.substring(0, 4) == "vol-") return 0x6A;
-  else if (c.equals("mute")) return 0xEA;
-  else if (c.equals("level")) return 0xA;
-  else if (c.equals("effect")) return 0xE;
-  else if (c.equals("input")) return 0x8;
-  return 0;
-}
-
-int repeatAudio(String c){
-  if (c.substring(0, 3) == "vol") {
-    String repeat = c.substring(4, c.length());
-    int_fast8_t repeat_int = repeat.toInt();
-    return repeat_int;
-  }
-  return 0;
+  else if (c.equals("on/off")) IrSender.sendNEC(address, 0x80, 2);
+  else if (c.equals("vol+")) IrSender.sendNEC(address, 0xAA, 1);
+  else if (c.equals("vol-")) IrSender.sendNEC(address, 0x6A, 1);
+  else if (c.equals("mute")) IrSender.sendNEC(address, 0xEA, 2);
+  else if (c.equals("level")) IrSender.sendNEC(address, 0xA, 2);
+  else if (c.equals("effect")) IrSender.sendNEC(address, 0xE, 2);
+  else if (c.equals("input")) IrSender.sendNEC(address, 0x8, 2);
+  else { Serial.println("bad command"); }
 }
 
 void sendTop(String c){
@@ -93,13 +78,13 @@ void sendTop(String c){
   uint16_t address = 0xEF00;
   
   if (c.equals("w")) IrSender.sendNEC(address, 0x02, 2);
-  else if (c.equals("rgb")) IrSender.sendNEC(address, 0x03, 2);
-  else if (c.equals("bright+")) IrSender.sendNEC(address, 0x09, 2);
-  else if (c.equals("bright-")) IrSender.sendNEC(address, 0x11, 2);
-  else if (c.equals("cold+")) IrSender.sendNEC(address, 0xE, 2);
-  else if (c.equals("cold-")) IrSender.sendNEC(address, 0xC, 2);
-  else if (c.equals("col_loop")) IrSender.sendNEC(address, 0xB, 2);
-  else if (c.equals("col_change")) IrSender.sendNEC(address, 0x7, 2);
+  else if (c.equals("rgb")) IrSender.sendNEC(address, 0x03, 1);
+  else if (c.equals("bright+")) IrSender.sendNEC(address, 0x09, 1);
+  else if (c.equals("bright-")) IrSender.sendNEC(address, 0x11, 1);
+  else if (c.equals("cold+")) IrSender.sendNEC(address, 0xE, 1);
+  else if (c.equals("cold-")) IrSender.sendNEC(address, 0xC, 1);
+  else if (c.equals("col_loop")) IrSender.sendNEC(address, 0xB, 1);
+  else if (c.equals("col_change")) IrSender.sendNEC(address, 0x7, 1);
   else if (c.equals("heart")) IrSender.sendNEC(address, 0x14, 2);
   else { Serial.println("bad command"); }
 }
