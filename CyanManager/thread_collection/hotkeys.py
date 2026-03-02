@@ -40,8 +40,8 @@ def hotkeys_setup(signal):
         (101, 2): reg_functions.TOP_COL_CHANGE,             # CTRL + NUMPAD5
         (102, 2): reg_functions.TOP_HEART,                  # CTRL + NUMPAD6
         (103, 2): reg_functions.TOP_POWER,                  # CTRL + NUMPAD7
-        (104, 2): reg_functions.TOP_BRIGHT_PLUS,            # CTRL + NUMPAD8
-        (105, 2): reg_functions.TOP_BRIGHT_MINUS,           # CTRL + NUMPAD9
+        (104, 2): reg_functions.TOP_BRIGHT_MINUS,           # CTRL + NUMPAD8
+        (105, 2): reg_functions.TOP_BRIGHT_PLUS,            # CTRL + NUMPAD9
 
         (102, 0): reg_functions.AUDIO_POWER,                # NUMPAD6
         (102, 3): reg_functions.TV_POWER,                   # CTRL + ALT + NUMPAD6
