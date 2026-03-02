@@ -76,10 +76,10 @@ def lights_cb(data):
     command = data.get("command", None)
     set_auto_time = data.get("set_auto_time", None)
     if command in ["on", "off", "auto"]:
-        prev_light_state = command
         if command == "auto":
             auto_active = True
         else:
+            prev_light_state = command
             auto_active = False
             write(data["endpoint"] + command)
 
@@ -162,7 +162,7 @@ def actuator(signal):
                 lights_active_str = "on" if lights_active else "off"
                 if lights_active and lights_active_str != prev_light_state:
                     prev_light_state = lights_active_str
-                    write("lights" + prev_light_state)
+                    write("lights" + lights_active_str)
 
             # ----------------------------
 
