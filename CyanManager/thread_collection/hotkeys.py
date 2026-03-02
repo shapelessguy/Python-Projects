@@ -47,6 +47,9 @@ def hotkeys_setup(signal):
         (102, 3): reg_functions.TV_POWER,                   # CTRL + ALT + NUMPAD6
         (102, 1): reg_functions.TV_OK,                      # ALT + NUMPAD6
 
+        (97, 3): reg_functions.TURN_ON_MOUSEPAD,            # CTRL + ALT + NUMPAD1
+        (98, 3): reg_functions.TURN_OFF_MOUSEPAD,           # CTRL + ALT + NUMPAD2
+
         # DEBUG PURPOSE
         # (100, 0): reg_functions.DISCOVER_WIN,
         # (100, 0): reg_functions.GET_WIN_POSITIONS,

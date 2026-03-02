@@ -39,7 +39,7 @@ def lights_auto(signal, verbose=False, notify_=True):
 
 def top_power(signal, verbose=False, notify_=True):
     send_top(signal, verbose, "w", notify_)
-5
+
 def top_leds(signal, verbose=False, notify_=True):
     send_top(signal, verbose, "rgb", notify_)
 

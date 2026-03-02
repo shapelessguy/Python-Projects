@@ -96,6 +96,8 @@ class RegisteredFunctions:
     SPECIAL=HandleFunction(special)
     TYPE_PASSWORD=HandleFunction(type_password)
     PLAY_PAUSE=HandleFunction(play_pause)
+    TURN_ON_MOUSEPAD = HandleFunction(turn_on_mousepad)
+    TURN_OFF_MOUSEPAD = HandleFunction(turn_off_mousepad)
 
     def __init__(self, signal):
         for attr_value in self.__class__.__dict__.values():

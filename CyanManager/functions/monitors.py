@@ -1,11 +1,14 @@
 import os
 import subprocess
 import json
+import time
 from functions.application import get_uwp_apps, get_corrispondences, find_windows
 from utils import Monitor_, MULTIMONITOR_EXE_PATH, TEMP_MONITOR_CONF_PATH, wait
 from collections import defaultdict
 from operator import attrgetter
 from screeninfo import get_monitors
+from functions.generic import turn_on_mousepad, turn_off_mousepad
+from functions.arduino import top_heart, top_leds
 
 
 EXCLUDE_FROM_DISCOVERY = [
@@ -120,7 +123,11 @@ def shutdown_monitors(signal, verbose=False):
     monitor_names = []
     for s in screens:
         monitor_names.append(s.name)
+    turn_off_mousepad(signal, verbose)
     subprocess.run([MULTIMONITOR_EXE_PATH, "/TurnOff"] + monitor_names)
+    top_heart(signal, verbose)
+    time.sleep(1)
+    top_leds(signal, verbose)
 
 
 def turn_on_monitors(signal, verbose=False):
@@ -128,7 +135,9 @@ def turn_on_monitors(signal, verbose=False):
     monitor_names = []
     for s in screens:
         monitor_names.append(s.name)
+    turn_on_mousepad(signal, verbose)
     subprocess.run([MULTIMONITOR_EXE_PATH, "/TurnOn"] + monitor_names)
+    top_heart(signal, verbose)
 
 
 def point_in_rect(px, py, rx, ry, width, height):

@@ -3,6 +3,7 @@ import threading
 import keyring
 import ctypes
 from functions.audio import play_audio
+from thread_collection.leds import set_mousepad_color
 
 
 def get_snapshot(signal, verbose=False):
@@ -32,6 +33,14 @@ def type_password(signal, verbose=False):
 
 def special(signal, verbose=False):
     threading.Thread(target=play_audio, args=("shocking.mp3", 0.1)).start()
+
+
+def turn_on_mousepad(signal, verbose=False):
+    set_mousepad_color((0, 255, 255))
+
+
+def turn_off_mousepad(signal, verbose=False):
+    set_mousepad_color((0, 0, 0))
 
 
 class POINT(ctypes.Structure):
