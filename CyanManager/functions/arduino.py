@@ -12,12 +12,12 @@ def send_light_config(signal, verbose, value, notify_):
 def send_audio(signal, verbose, value, notify_):
     send_to_roomserver(signal, verbose, "audio", value)
     if notify_:
-        notify(signal, title="Room Server", message=f"Audio System {value}", icon="logitech.png")
+        notify(signal, title="Room Server", message=f"Audio System {value}", icon="audio_system.png")
 
 def send_top(signal, verbose, value, notify_):
     send_to_roomserver(signal, verbose, "top", value)
     if notify_:
-        notify(signal, title="Room Server", message=f"Top light {value}", icon="logitech.png")
+        notify(signal, title="Room Server", message=f"Top light {value}", icon="lights.png")
 
 def send_tv(signal, verbose, value, notify_):
     send_to_roomserver(signal, verbose, "tv", value)
@@ -39,7 +39,7 @@ def lights_auto(signal, verbose=False, notify_=True):
 
 def top_power(signal, verbose=False, notify_=True):
     send_top(signal, verbose, "w", notify_)
-
+5
 def top_leds(signal, verbose=False, notify_=True):
     send_top(signal, verbose, "rgb", notify_)
 
