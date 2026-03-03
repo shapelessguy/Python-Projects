@@ -49,13 +49,27 @@ reg add "%REG_PATH%" /f
 reg add "%REG_PATH%" /v "MUIVerb" /d "Prepare Plex" /f
 reg add "%REG_PATH%" /v "Icon" /d "%~dp0film.ico" /f
 reg add "%REG_PATH%\command" /f
-reg add "%REG_PATH%\command" /ve /d "\"%~dp0launch_prepareForPlex.bat\" %%V" /f
+reg add "%REG_PATH%\command" /ve /d "\"%~dp0launch_prepareForPlex.bat\"" /f
 
 set "REG_PATH=HKCR\Directory\Background\shell\preparePlex"
 reg add "%REG_PATH%" /f
 reg add "%REG_PATH%" /v "MUIVerb" /d "Prepare Plex" /f
 reg add "%REG_PATH%" /v "Icon" /d "%~dp0film.ico" /f
 reg add "%REG_PATH%\command" /f
-reg add "%REG_PATH%\command" /ve /d "\"%~dp0launch_prepareForPlex.bat\" %%V" /f
+reg add "%REG_PATH%\command" /ve /d "\"%~dp0launch_prepareForPlex.bat\"" /f
+
+set "REG_PATH=HKCU\Software\Classes\*\shell\sendToPurgatory"
+reg add "%REG_PATH%" /f
+reg add "%REG_PATH%" /v "MUIVerb" /d "Send to Purgatory" /f
+reg add "%REG_PATH%" /v "Icon" /d "%~dp0purgatory.ico" /f
+reg add "%REG_PATH%\command" /f
+reg add "%REG_PATH%\command" /ve /d "wscript.exe \"%~dp0moveToPurgatory.vbs\" \"%%1\"" /f
+
+set "REG_PATH=HKCR\Directory\shell\sendToPurgatory"
+reg add "%REG_PATH%" /f
+reg add "%REG_PATH%" /v "MUIVerb" /d "Send to Purgatory" /f
+reg add "%REG_PATH%" /v "Icon" /d "%~dp0purgatory.ico" /f
+reg add "%REG_PATH%\command" /f
+reg add "%REG_PATH%\command" /ve /d "wscript.exe \"%~dp0moveToPurgatory.vbs\" \"%%1\"" /f
 
 powershell -Command "Write-Host 'Context menu preparePlex created successfully!' -ForegroundColor Green"

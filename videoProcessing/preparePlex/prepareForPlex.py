@@ -232,23 +232,15 @@ def clean_dirs(path):
 
 
 file_uploaded = 0
-def prepare_plex(purgatory_path):
+def prepare_plex():
     global file_uploaded
+    purgatory_path = Path(PURGATORY_FOLDER)
     initialize_sftp()
     
     if "@" in FINAL_MOVIE_HOLDER_PATH:
         sftp_mkdir_p(FINAL_MOVIE_HOLDER_PATH.split(":")[1])
     else:
         os.makedirs(FINAL_MOVIE_HOLDER_PATH, exist_ok=True)
-
-    while purgatory_path != Path(PURGATORY_FOLDER):
-        if purgatory_path == purgatory_path.parent:
-            break
-        purgatory_path = Path(purgatory_path.parent)
-
-    if purgatory_path != Path(PURGATORY_FOLDER):
-        print_console(f"You must be on the predefined location: {str(PURGATORY_FOLDER)}\n\nPress Enter to exit", Fore.RED)
-        return
 
     # Setting up the environment
     main_folder = Folder(purgatory_path)
@@ -348,13 +340,9 @@ def prepare_plex(purgatory_path):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        target_path = Path(sys.argv[1].replace("\n", ""))
-        if not os.path.exists(VLC_PATH):
-            print_console("VLC not found!\n\nPress Enter to exit", Fore.RED)
-        else:
-            if len(sys.argv) > 2:
-                autoready = bool(sys.argv[2])
-            prepare_plex(target_path)
+    if not os.path.exists(VLC_PATH):
+        print_console("VLC not found!\n\nPress Enter to exit", Fore.RED)
     else:
-        print_console("No path target\n\nPress Enter to exit", Fore.RED)
+        if len(sys.argv) > 1:
+            autoready = bool(sys.argv[1])
+        prepare_plex()
