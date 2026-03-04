@@ -107,6 +107,14 @@ def tob_cb(data):
     return {"error": f'Command {command} not recognized.'}
 
 
+def strip_cb(data):
+    command = data.get("command", None)
+    if command in ["on", "off"]:
+        write(data["endpoint"] + command)
+        return {"msg": f'StripLights [value={command}] sent to arduino.'}
+    return {"error": f'Command {command} not recognized.'}
+
+
 def tv_cb(data):
     command = data.get("command", None)
     if command in ["power", "ok"]:
@@ -135,6 +143,7 @@ def announce_cb(data):
 endpoints = {
     'lights': lights_cb,
     'top': tob_cb,
+    'strip': strip_cb,
     'tv': tv_cb,
     'audio': audio_cb,
     'announce': announce_cb

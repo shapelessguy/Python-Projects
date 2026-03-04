@@ -373,6 +373,10 @@
             "enabled": true,
             "parameters": {}
         },
+        "LEDS": {
+            "enabled": true,
+            "parameters": {}
+        },
         "Roomserver": {
             "enabled": true,
             "parameters": {

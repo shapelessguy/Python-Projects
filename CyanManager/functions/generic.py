@@ -4,6 +4,7 @@ import keyring
 import ctypes
 from functions.audio import play_audio
 from thread_collection.leds import set_mousepad_color
+from functions.arduino import strips_on, strips_off
 
 
 def get_snapshot(signal, verbose=False):
@@ -37,10 +38,12 @@ def special(signal, verbose=False):
 
 def turn_on_mousepad(signal, verbose=False):
     set_mousepad_color((0, 255, 255))
+    strips_on(signal, verbose)
 
 
 def turn_off_mousepad(signal, verbose=False):
     set_mousepad_color((0, 0, 0))
+    strips_off(signal, verbose)
 
 
 class POINT(ctypes.Structure):

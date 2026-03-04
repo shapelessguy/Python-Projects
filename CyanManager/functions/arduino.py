@@ -14,6 +14,11 @@ def send_audio(signal, verbose, value, notify_):
     if notify_:
         notify(signal, title="Room Server", message=f"Audio System {value}", icon="audio_system.png")
 
+def send_strips(signal, verbose, value, notify_):
+    send_to_roomserver(signal, verbose, "strip", value)
+    if notify_:
+        notify(signal, title="Room Server", message=f"Strip lights {value}", icon="lights.png")
+
 def send_top(signal, verbose, value, notify_):
     send_to_roomserver(signal, verbose, "top", value)
     if notify_:
@@ -63,6 +68,14 @@ def top_col_change(signal, verbose=False, notify_=True):
 
 def top_heart(signal, verbose=False, notify_=True):
     send_top(signal, verbose, "heart", notify_)
+
+# ---------------------------------------------------------
+
+def strips_on(signal, verbose=False, notify_=True):
+    send_strips(signal, verbose, "on", notify_)
+
+def strips_off(signal, verbose=False, notify_=True):
+    send_strips(signal, verbose, "off", notify_)
 
 # ---------------------------------------------------------
 

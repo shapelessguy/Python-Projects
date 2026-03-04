@@ -89,6 +89,15 @@ void sendTop(String c){
   else { Serial.println("bad command"); }
 }
 
+void sendStrip(String c){
+  Serial.println("Strip command: " + c);
+  uint16_t address = 0x0;
+  
+  if (c.equals("on")) IrSender.sendNEC(address, 0x40, 2);
+  else if (c.equals("off")) IrSender.sendNEC(address, 0x41, 2);
+  else { Serial.println("bad command"); }
+}
+
 void loop() {
   if (Serial.available()) {
     command = Serial.readStringUntil('\n');
@@ -96,6 +105,7 @@ void loop() {
 
     if (command.substring(0, 6) == "lights") { sendPlantLights(command.substring(6, command.length())); }
     else if (command.substring(0, 3) == "top") sendTop(command.substring(3, command.length()));
+    else if (command.substring(0, 5) == "strip") sendStrip(command.substring(5, command.length()));
     else if (command.substring(0, 2) == "tv") sendHisense(command.substring(2, command.length()));
     else if (command.substring(0, 5) == "audio") sendAudio(command.substring(5, command.length()));
 
