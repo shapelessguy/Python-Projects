@@ -1,4 +1,5 @@
 from thread_collection.roomserver import send_to_roomserver
+from thread_collection.arduino_processes import send_to_arduino_receiver
 from utils import notify
 
 
@@ -15,7 +16,7 @@ def send_audio(signal, verbose, value, notify_):
         notify(signal, title="Room Server", message=f"Audio System {value}", icon="audio_system.png")
 
 def send_strips(signal, verbose, value, notify_):
-    send_to_roomserver(signal, verbose, "strip", value)
+    send_to_arduino_receiver(signal, verbose, "strip", value)
     if notify_:
         notify(signal, title="Room Server", message=f"Strip lights {value}", icon="lights.png")
 
@@ -76,6 +77,39 @@ def strips_on(signal, verbose=False, notify_=True):
 
 def strips_off(signal, verbose=False, notify_=True):
     send_strips(signal, verbose, "off", notify_)
+
+def strips_intensity_up(signal, verbose=False, notify_=True):
+    send_strips(signal, verbose, "intensity+", notify_)
+
+def strips_intensity_down(signal, verbose=False, notify_=True):
+    send_strips(signal, verbose, "intensity-", notify_)
+
+def strips_color_loop(signal, verbose=False, notify_=True):
+    send_strips(signal, verbose, "col_loop", notify_)
+
+def strips_color_loop_intensity(signal, verbose=False, notify_=True):
+    send_strips(signal, verbose, "col_loop_intensity", notify_)
+
+def strips_cyan(signal, verbose=False, notify_=True):
+    send_strips(signal, verbose, "cyan", notify_)
+
+def strips_violet(signal, verbose=False, notify_=True):
+    send_strips(signal, verbose, "violet", notify_)
+
+def strips_lilac(signal, verbose=False, notify_=True):
+    send_strips(signal, verbose, "lilac", notify_)
+
+def strips_orange(signal, verbose=False, notify_=True):
+    send_strips(signal, verbose, "orange", notify_)
+
+def strips_aqua(signal, verbose=False, notify_=True):
+    send_strips(signal, verbose, "aqua", notify_)
+
+def strips_blue(signal, verbose=False, notify_=True):
+    send_strips(signal, verbose, "blue", notify_)
+
+def strips_white(signal, verbose=False, notify_=True):
+    send_strips(signal, verbose, "white", notify_)
 
 # ---------------------------------------------------------
 

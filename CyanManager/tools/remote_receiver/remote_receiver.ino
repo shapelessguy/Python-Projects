@@ -1,9 +1,10 @@
 #include <IRremote.hpp>
 
 const int IR_RECEIVE_PIN      = 2;
-const int GREEN_LED_PIN        = 4;
-const int RED_LED_PIN        = 5;
+const int GREEN_LED_PIN       = 4;
+const int RED_LED_PIN         = 5;
 const int BLUE_LED_PIN        = 6;
+const int IR_PIN              = 7;
 uint16_t currentAddress       = 0;
 uint8_t  currentHeldCommand   = 0;
 unsigned long lastActionTime  = 0;
@@ -14,9 +15,34 @@ void setup() {
   Serial.begin(115200);
   Serial.println(F("IR Receiver ready - pin 2"));
   IrReceiver.begin(IR_RECEIVE_PIN, ENABLE_LED_FEEDBACK);
+
+  IrSender.begin(IR_PIN);
+  IrSender.enableIROut(38);
+
   pinMode(BLUE_LED_PIN, OUTPUT);
   pinMode(RED_LED_PIN, OUTPUT);
   pinMode(GREEN_LED_PIN, OUTPUT);
+}
+
+
+void sendStrip(String c){
+  Serial.println("Strip command: " + c);
+  uint16_t address = 0x0;
+  
+  if (c.equals("on")) IrSender.sendNEC(address, 0x40, 2);
+  else if (c.equals("off")) IrSender.sendNEC(address, 0x41, 2);
+  else if (c.equals("intensity+")) IrSender.sendNEC(address, 0x04, 2);
+  else if (c.equals("intensity-")) IrSender.sendNEC(address, 0x05, 2);
+  else if (c.equals("col_loop")) IrSender.sendNEC(address, 0x0B, 2);
+  else if (c.equals("col_loop_intensity")) IrSender.sendNEC(address, 0x0D, 2);
+  else if (c.equals("cyan")) IrSender.sendNEC(address, 0x11, 2);
+  else if (c.equals("violet")) IrSender.sendNEC(address, 0x1A, 2);
+  else if (c.equals("lilac")) IrSender.sendNEC(address, 0x1B, 2);
+  else if (c.equals("orange")) IrSender.sendNEC(address, 0x1B, 2);
+  else if (c.equals("aqua")) IrSender.sendNEC(address, 0x1D, 2);
+  else if (c.equals("blue")) IrSender.sendNEC(address, 0x1E, 2);
+  else if (c.equals("white")) IrSender.sendNEC(address, 0x1F, 2);
+  else { Serial.println("bad command"); }
 }
 
 
@@ -123,6 +149,7 @@ void loop() {
     else if (command.equals("RED_OFF")) { digitalWrite(RED_LED_PIN, LOW); }
     else if (command.equals("GREEN_ON")) { digitalWrite(GREEN_LED_PIN, HIGH); }
     else if (command.equals("GREEN_OFF")) { digitalWrite(GREEN_LED_PIN, LOW); }
+    else if (command.substring(0, 5) == "strip") { sendStrip(command.substring(5, command.length())); }
   }
   if (IrReceiver.decode()) {
 

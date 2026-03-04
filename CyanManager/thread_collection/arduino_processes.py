@@ -79,6 +79,11 @@ PARAMETERS = {}
 ARDUINO_PORT = "COM6"
 
 
+def send_to_arduino_receiver(signal, verbose, topic, arg):
+    global pending_message
+    pending_message = verbose, topic, arg
+
+
 def initialize(signal):
     global serialPort, mode
     serialPort = None
@@ -210,10 +215,16 @@ def take_action(signal, verb):
 
 
 def entrypoint(thread_manager):
-    global signal, current_mode
+    global signal, current_mode, pending_message, serialPort
     signal = thread_manager.signal
+    pending_message = None
     initialize(signal)
     while signal.is_alive() and not thread_manager.to_kill:
+        if pending_message:
+            verbose, topic, arg = pending_message
+            pending_message = None
+            serialPort.write(f"{topic}{arg}\r\n".encode("Ascii"))
+
         time.sleep(0.05)
         if time.time() - current_mode.set_mode_at > Mode.tollerance and any(current_mode.led_states.values()):
             current_mode.hide_leds()

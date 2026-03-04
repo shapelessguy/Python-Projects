@@ -2,9 +2,10 @@ import keyboard
 import threading
 import keyring
 import ctypes
+import time
 from functions.audio import play_audio
 from thread_collection.leds import set_mousepad_color
-from functions.arduino import strips_on, strips_off
+from functions.arduino import strips_on, strips_off, strips_on, strips_cyan, strips_off
 
 
 def get_snapshot(signal, verbose=False):
@@ -37,11 +38,15 @@ def special(signal, verbose=False):
 
 
 def turn_on_mousepad(signal, verbose=False):
+    strips_on(signal, verbose)
+    time.sleep(0.2)
+    strips_cyan(signal, verbose)
     set_mousepad_color((0, 255, 255))
     strips_on(signal, verbose)
 
 
 def turn_off_mousepad(signal, verbose=False):
+    strips_off(signal, verbose)
     set_mousepad_color((0, 0, 0))
     strips_off(signal, verbose)
 
