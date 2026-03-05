@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 
 
 PERFORM_OPERATIONS = True
+SYNC_AFTER = 120  # Synchronization after N seconds of inactivity
 
 
 class OpType:
@@ -40,6 +41,7 @@ class Signal:
     sync_flag = False
     collections = []
     id_map_path = os.path.join(os.path.dirname(__file__), "id_map.json")
+    last_sync = time.time()
 
     id_map = {}
     outlook_events = {}
@@ -120,6 +122,7 @@ class Signal:
         self.id_map = new_map
         if PERFORM_OPERATIONS:
             self.save_map()
+        self.last_sync = time.time()
     
     def cmd_thread(self):
         while self.is_alive():
@@ -146,13 +149,14 @@ class Signal:
         print("Detecting updates...")
         while self.is_alive():
             pythoncom.PumpWaitingMessages()
+            now = time.time()
             if self.sync_flag:
                 prepare_to_sync = True
                 self.sync_flag = False
                 idx = 0
             if prepare_to_sync:
                 idx += 1
-            if idx >= buffer_n:
+            if idx >= buffer_n or now - self.last_sync > SYNC_AFTER:
                 self.get_events()
                 self.sync()
                 idx = 0

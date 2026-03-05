@@ -73,7 +73,7 @@ def to_gmail_event(data):
 
 
 def get_gmail_events(signal):
-    from_ = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=90)).isoformat().replace('+00:00', 'Z')
+    from_ = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=0)).isoformat().replace('+00:00', 'Z')
     events_result = signal.service.events().list(calendarId=work_calendar_id, timeMin=from_, maxResults=999999,
                                           singleEvents=True, orderBy='startTime').execute()
     events = events_result.get('items', [])
