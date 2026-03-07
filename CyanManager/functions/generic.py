@@ -41,7 +41,7 @@ def turn_on_mousepad(signal, verbose=False):
     strips_on(signal, verbose)
     time.sleep(0.2)
     strips_cyan(signal, verbose)
-    set_mousepad_color((0, 255, 255))
+    set_mousepad_color((0, 180, 255))
     strips_on(signal, verbose)
 
 
