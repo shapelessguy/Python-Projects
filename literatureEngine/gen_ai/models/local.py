@@ -1,4 +1,4 @@
-from gen_ai.model import Model, JobStatus, RequestStatus, ErrorMsg, ErrorType
+from gen_ai.model import Model, JobStatus, ErrorMsg, ErrorType
 
 
 class LocalFamily(Model):

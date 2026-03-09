@@ -4,7 +4,7 @@ from gen_ai.utils import count_tokens, construct_prompt, CACHE_FOLDER_PATH
 from openai import OpenAI
 from google import genai
 from google.genai import types
-from gen_ai.model import Model, JobStatus, RequestStatus, ErrorMsg, ErrorType
+from gen_ai.model import Model, JobStatus, ErrorMsg, ErrorType
 
 
 google_client = None
@@ -43,7 +43,7 @@ class GeminiFamily(Model):
         requests = [{
             "key": req_id,
             "request": {"contents": [{"parts": [{"text": text}]}]},
-            "generationConfig": request.generationConfig
+            "generationConfig": request.gen_config
         } for req_id, text in request.get_full_requests().items()]
         
         try:
@@ -126,9 +126,9 @@ class GeminiFamily(Model):
                 model=request.model.name,
                 contents=text,
                 config=types.GenerateContentConfig(
-                    max_output_tokens=request.generationConfig.get("maxOutputTokens", 999999),
-                    temperature=request.generationConfig.get("temperature", 0),
-                    thinking_config=types.ThinkingConfig(thinking_budget=request.generationConfig.get("thinking_config",
+                    max_output_tokens=request.gen_config.get("maxOutputTokens", 999999),
+                    temperature=request.gen_config.get("temperature", 0),
+                    thinking_config=types.ThinkingConfig(thinking_budget=request.gen_config.get("thinking_config",
                                                                                                       {"thinking_budget": {"include_thoughts": False}})["thinking_budget"])
                 )
             )
@@ -154,7 +154,7 @@ class GeminiFamily(Model):
 
         try:
             messages=[
-                {"role": "system", "content": request.generationConfig.get("systemPrompt", "")}
+                {"role": "system", "content": request.gen_config.get("systemPrompt", "")}
             ]
             for content in request.contents:
                 if content["response"] != {}:
