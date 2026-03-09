@@ -162,11 +162,15 @@
         "Devices": {
             "enabled": true,
             "parameters": {
-                "Speakers": "5- Realtek(R) Audio",
+                "Speakers": "Lautsprecher",
                 "Headphones": "WH-1000XM4"
             }
         },
         "Hotkeys": {
+            "enabled": true,
+            "parameters": {}
+        },
+        "LEDS": {
             "enabled": true,
             "parameters": {}
         },
