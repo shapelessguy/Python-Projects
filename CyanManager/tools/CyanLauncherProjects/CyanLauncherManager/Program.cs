@@ -7,16 +7,19 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Runtime.Remoting.Messaging;
+using System.Security.Principal;
 using System.Windows.Forms;
 
 namespace CyanLauncherManager
 {
+
     static class Program
     {
         public static bool initial_call = false;
         private static string appGuid = "c0a76b5a-12ab-45c5-b9d9-d693faa6e7b9";
         static public string tempDataPathAdmin = Path.Combine(@"C:\", "Temp", "launchFileAdmin.txt");
         static public string tempDataPath = Path.Combine(@"C:\", "Temp", "launchFile.txt");
+
 
         [STAThread]
         static void Main()
@@ -48,16 +51,19 @@ namespace CyanLauncherManager
                 };
                 Process.Start(psi_admin);
 
-                string app_id = "c0a76b5a-12ab-45c5-b9d9-d693faa6e9a9";
-                var psi = new ProcessStartInfo
+                if (!new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator))
                 {
-                    FileName = targetExe,
-                    Arguments = $"\"{app_id}\" \"{tempDataPath}\"",
-                    UseShellExecute = true,
-                    CreateNoWindow = true,
-                    WindowStyle = ProcessWindowStyle.Hidden
-                };
-                Process.Start(psi);
+                    string app_id = "c0a76b5a-12ab-45c5-b9d9-d693faa6e9a9";
+                    var psi = new ProcessStartInfo
+                    {
+                        FileName = targetExe,
+                        Arguments = $"\"{app_id}\" \"{tempDataPath}\"",
+                        UseShellExecute = true,
+                        CreateNoWindow = true,
+                        WindowStyle = ProcessWindowStyle.Hidden
+                    };
+                    Process.Start(psi);
+                }
 
                 try
                 {
