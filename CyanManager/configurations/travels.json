@@ -1,0 +1,54 @@
+{
+    "applications": {},
+    "threads": {
+        "3RVX - Volume": {
+            "enabled": true,
+            "parameters": {}
+        },
+        "Arduino": {
+            "enabled": false,
+            "parameters": {}
+        },
+        "Cyan Launcher Manager": {
+            "enabled": true,
+            "parameters": {}
+        },
+        "Devices": {
+            "enabled": true,
+            "parameters": {
+                "Speakers": "Speakers",
+                "Headphones": "Headphones"
+            }
+        },
+        "Hotkeys": {
+            "enabled": true,
+            "parameters": {}
+        },
+        "LEDS": {
+            "enabled": false,
+            "parameters": {}
+        },
+        "Roomserver": {
+            "enabled": false,
+            "parameters": {
+                "Hostname/port": "http://cyanroomserver.duckdns.org:10004",
+                "Lights from": "09:00",
+                "Lights to": "20:00"
+            }
+        },
+        "Start&Shutdown": {
+            "enabled": true,
+            "parameters": {
+                "Mouse Jiggle": false,
+                "Inactivity to Shutdown": "02:00",
+                "Shutdown from": "00:00",
+                "Shutdown to": "08:00",
+                "Shutdown": false
+            }
+        },
+        "XM4-1000": {
+            "enabled": false,
+            "parameters": {}
+        }
+    }
+}
