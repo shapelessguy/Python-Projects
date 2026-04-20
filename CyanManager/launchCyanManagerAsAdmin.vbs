@@ -20,7 +20,7 @@ logFile = logDir & "\CyanManager_" & curYear & "-" & curMonth & "-" & curDay & "
 scriptPath = scriptDir & "\main_logic.py"
 installDepPath = scriptDir & "\install_dependencies.bat"
 requirementsPath = scriptDir & "\requirements.txt"
-pythonPath = "C:\Python310\python.exe"
+pythonPath = "C:\Users\shape\AppData\Local\Programs\Python\Python310\python.exe"
 
 Dim tempDataPath
 Dim app_id
@@ -49,7 +49,6 @@ If exitCode <> 0 Then
 End If
 
 cmd = "/c " & pythonPath & " -u """ & scriptPath & """ startup > """ & logFile & """ 2>&1"
-MsgBox cmd
 objShell.ShellExecute "cmd.exe", cmd, "", "runas", 0
 
 

@@ -1,5 +1,6 @@
 import subprocess
 import sys
+import os
 import ctypes
 from datetime import datetime, time as dtime
 from PyQt5.QtWidgets import QCheckBox, QTimeEdit
@@ -41,6 +42,15 @@ def startup(signal):
         if len(app_names_to_start) == 0:
             break
     signal.reg_functions.ORDER.run_shortcut()
+
+
+def wake_up_hhd():
+    directory = "E:/Backup"
+    if os.path.exists("E:/Backup"):
+        filepath = os.path.join(directory, "wake_up.txt")
+        with open(filepath, "w") as f:
+            f.write(" ")
+        os.remove(filepath)
 
 
 def entrypoint(thread_manager):
@@ -92,5 +102,6 @@ def entrypoint(thread_manager):
                     print("Shutdown aborted")
                     break
             funct_interaction = now
+        wake_up_hhd()
         wait(signal, 2000)
     print(f"{thread_manager.name} thread down..")
