@@ -5,30 +5,34 @@ from gen_ai.batch_manager import BatchManager
 from gen_ai import models
 import time
 import dotenv
+import json
 
 
 try:
+
+    # Setup the manager with static information
     bm = BatchManager(
+        # Database related settings
         ip="localhost",
         port=8001,
         db_name="AiRequests",
         username="mongodb",
         password="mongodb",
         space="chat_test",
+
+        # Responses's interaction related settings
         api_keys={
             models.gemini: dotenv.get_key(os.path.join(os.path.dirname(__file__), ".env"), "GEMINI"),
             models.deepseek: dotenv.get_key(os.path.join(os.path.dirname(__file__), ".env"), "DEEPSEEK"),
             models.openai: dotenv.get_key(os.path.join(os.path.dirname(__file__), ".env"), "OPENAI"),
         },
-        cb_on_complete=lambda request: print("\n", request),
-        cb_on_stream=lambda request_id, text: print(text, end="", flush=True)
+        cb_on_complete=lambda request: print(request)
     )
 
-    # Create an empty chat with basic configuration
-    bm.create_chat(
-        model=models.openai.gpt_4_1_mini,
+    # Creation of the request's bucket
+    request = bm.create_single_request(
+        model=models.openai.gpt_4o_mini,
         gen_config={
-            "systemPrompt": "You are a clever and concise investigator.",
             "temperature": 0.0,
             "maxOutputTokens": 60,
             "thinking_config": {
@@ -36,24 +40,19 @@ try:
                 "thinking_budget": 0
             }
         },
-        task_id="casual_chat2"
+        task_id="single_request",  # Identifier of the requests' family. Multiple buckets can have the same 'task_id'
+
+        # You can use a simple string, or a dictionary of values together with an adequate prompt_structure
+        message="Hi, how are you?",
+
+        update=False,   # True if profiles of the same task_id that have been previously computed under different configuration, must be updated
     )
 
-    # Create the first message
-    chat_request, error = bm.send_chat(
-        task_id="casual_chat2",
-        message="Don't you think I am a bit suspicious?",
-        stream=True
-    )
+    # Print cost estimation (eventually, user's prompts is required)
+    print(json.dumps(request.estimate_costs(100), indent=2))
 
-    time.sleep(2)
-
-    # Create the second message
-    chat_request, error = bm.send_chat(
-        task_id="casual_chat2",
-        message="But I know I am not the bad guy!",
-        stream=False
-    )
+    # Register the request on the manager
+    req, msg = request.send_request()
 
     while True:
         time.sleep(0.1)

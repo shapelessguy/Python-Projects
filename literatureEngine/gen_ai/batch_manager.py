@@ -6,6 +6,7 @@ import inspect
 import importlib
 import json
 import shutil
+from collections.abc import Iterable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from gen_ai.model import Model
@@ -15,7 +16,7 @@ from pymongo.errors import DuplicateKeyError
 from bson.objectid import ObjectId
 from gen_ai import models
 from gen_ai.models import local
-from gen_ai.model import JobStatus, RequestStatus, ErrorMsg, ErrorType
+from gen_ai.model import JobStatus, ErrorMsg, ErrorType
 from gen_ai.utils import count_tokens, query_to_hash, construct_prompt, MODELS_PATH, CACHE_FOLDER_PATH
 DEFAULT_CONTENT_TAG = "DEFAULT_CONTENT_TAG"
 DEFAULT_API_KEY = "000000000000000000"
@@ -34,12 +35,12 @@ class Directives:
         self.pricing = request.model.pricing
         self.total_computed_costs = {}
     
-    def get_input_tokens_count(self, req_ids: set[str]):
+    def get_input_tokens_count(self, profile_ids: set[str]):
         input_tokens_count = 0
         dupl_ids = set()
         for content in self.request.contents:
-            if content["request"]["request_id"] in req_ids and content["request"]["request_id"] not in dupl_ids:
-                dupl_ids.add(content["request"]["request_id"])
+            if content["request"]["profile_id"] in profile_ids and content["request"]["profile_id"] not in dupl_ids:
+                dupl_ids.add(content["request"]["profile_id"])
                 input_tokens_count += count_tokens(construct_prompt(self.request.prompt_structure, content["request"]))
         return input_tokens_count
     
@@ -49,10 +50,10 @@ class Directives:
         if self.request.update:
             tot_requests += len(self.to_be_updated)
             tot_input_tokens += self.to_be_updated_tokens
-        tot_max_output_tokens = self.request.generationConfig["maxOutputTokens"] * tot_requests
+        tot_max_output_tokens = self.request.gen_config["maxOutputTokens"] * tot_requests
         if expected_output_tokens_per_request is None:
-            expected_output_tokens_per_request = int(self.request.generationConfig["maxOutputTokens"] / 2)
-        expected_tot_output_tokens = min(expected_output_tokens_per_request, self.request.generationConfig["maxOutputTokens"]) * tot_requests
+            expected_output_tokens_per_request = int(self.request.gen_config["maxOutputTokens"] / 2)
+        expected_tot_output_tokens = min(expected_output_tokens_per_request, self.request.gen_config["maxOutputTokens"]) * tot_requests
 
         multiplier = (1 if not self.request.batch else 0.5) / 10**6
         input_cost = tot_input_tokens * self.pricing["input"] * multiplier
@@ -156,30 +157,55 @@ def get_model_fullname(model: Model):
     return model.__bases__[0].__name__ + "." + model.__name__
 
 
-def verify_inputs(model, generationConfig, task_id, prompt_structure, text_variables, chat, stream, batch, update):
-    assert model is None or type(model) is str or model.__bases__[0].__bases__[0] is Model
-    assert type(generationConfig) is dict
+def is_valid_profile(profiles):
+    if not isinstance(profiles, dict) and not isinstance(profiles, str):
+        return False
+    
+    if isinstance(profiles, dict):
+        for key, value in profiles.items():
+            if not isinstance(key, str) and not isinstance(key, int):
+                return False
+            return is_valid_profile(value)
+    
+    return True
+
+
+def verify_inputs(task_id, prompt_structure, profiles, chat, stream, batch, update):
     assert type(task_id) is str or type(task_id) is ObjectId
     assert type(prompt_structure) is str
-    assert type(text_variables) is list or type(text_variables) is str
-    if type(text_variables) is list:
-        assert all(isinstance(x, dict) for x in text_variables)
-        assert all(isinstance(k, str) and isinstance(v, str) for x in text_variables for k, v in x.items())
+    assert isinstance(profiles, Iterable) or type(profiles) is str
+    if type(profiles) in [dict, str]:
+        assert is_valid_profile(profiles)
+    elif isinstance(profiles, Iterable):
+        assert all(isinstance(x, str) for x in profiles) or all(is_valid_profile(x) for x in profiles)
+
     assert type(chat) is bool
     assert type(stream) is bool
     assert type(batch) is bool
     assert type(update) is bool
     if chat and (batch or update):
         raise Exception("Chat mode is incompatible with 'batch' and 'update' flags.")
-    if chat and type(text_variables) is list and len(text_variables) > 1:
+    if chat and (isinstance(profiles, Iterable) and len(profiles) > 1):
         raise Exception("Chat mode is incompatible with multiple contents.")
     if not chat and stream:
         raise Exception("Streaming is allowed only in chat mode.")
 
 
+def sanitize_model_genConfig(model, gen_config):
+    assert model is None or type(model) is str or model.__bases__[0].__bases__[0] is Model
+    assert type(gen_config) is dict
+    model = model if model else local.gemma3
+    model = resolve_model(**{k: m for k, m in zip(("module", "model_name"), model.split(".")[-2:])}) if type(model) == str else model
+    if not model:
+        raise Exception(f"Model not recognized.")
+    if "maxOutputTokens" not in gen_config:
+        gen_config["maxOutputTokens"] = 4000
+    return model, gen_config
+
+
 class Request:
-    def __init__(self, from_entry: dict={}, model: Model|str=None, generationConfig: dict={}, task_id: ObjectId|str="",
-                 prompt_structure: str="", text_variables: list[dict]|str="", contents: list[dict]=[],
+    def __init__(self, from_entry: dict={}, model: Model|str=None, gen_config: dict={}, task_id: ObjectId|str="",
+                 prompt_structure: str="", profiles: dict | list[str] | list[dict] | str="", contents: list[dict]=[],
                  chat: bool=False, stream: bool=False, batch: bool=False, update: bool=False):
         self.directives: Directives = None
         self.eur_usd_rate = 1
@@ -192,7 +218,7 @@ class Request:
             self.price_eur = from_entry["priceEUR"]
             self.date = from_entry["date"]
             self.operational = from_entry["model_info"]["operational"]
-            self.generationConfig = from_entry["generationConfig"]
+            self.gen_config = from_entry["generationConfig"]
             self.task_id = from_entry["taskId"]
             self.prompt_structure = from_entry["promptStructure"]
             self.request_hash = from_entry["requestHash"]
@@ -204,42 +230,44 @@ class Request:
             self.status = from_entry["status"]
             self.cancellation_requested = from_entry["cancellationRequested"]
         else:
-            model = model if model else local.gemma3
             task_id = task_id if task_id else ObjectId()
             prompt_structure = prompt_structure if prompt_structure else ("{{" + DEFAULT_CONTENT_TAG + "}}")
-            if "maxOutputTokens" not in generationConfig:
-                generationConfig["maxOutputTokens"] = 999999
 
-            verify_inputs(model, generationConfig, task_id, prompt_structure, text_variables, chat, stream, batch, update)
+            verify_inputs(task_id, prompt_structure, profiles, chat, stream, batch, update)
+            self.model, self.gen_config = sanitize_model_genConfig(model, gen_config)
             self.req_id = None
-            self.model = resolve_model(**{k: m for k, m in zip(("module", "model_name"), model.split(".")[-2:])}) if type(model) == str else model
-            if not self.model:
-                raise Exception(f"Model not recognized.")
-            self.generationConfig = generationConfig if generationConfig else {}
             self.price_usd = 0
             self.price_eur = 0
             self.date = datetime.now(timezone.utc)
             self.operational = {}
             self.task_id = task_id
             self.prompt_structure = prompt_structure
-            self.request_hash = ObjectId(query_to_hash(prompt_structure + get_model_fullname(model) + json.dumps(self.generationConfig))) if not chat else None
-            if type(text_variables) is str:
-                text_variables = [{DEFAULT_CONTENT_TAG: text_variables}]
+            self.request_hash = ObjectId(query_to_hash(prompt_structure + get_model_fullname(model) + json.dumps(self.gen_config))) if not chat else None
+            if type(profiles) is str:
+                profiles = [{"tag": 0, "content_vars": {DEFAULT_CONTENT_TAG: profiles}}]
+            elif type(profiles) is dict:
+                profiles = [{"tag": tag, "content_vars": x} for tag, x in profiles.items()]
+            elif isinstance(profiles, Iterable):
+                profiles = [{"tag": i, "content_vars": (x if type(x) is dict else {DEFAULT_CONTENT_TAG: x})} for i, x in enumerate(profiles)]
+            else:
+                raise Exception("Unknown input format.")
+
             additional_body = {
                 "modelFamily": self.model.__bases__[0].__name__,
                 "modelName": self.model.__name__,
-                "generationConfig": self.generationConfig
+                "generationConfig": self.gen_config
             } if chat else {}
             self.contents = [
                 {
                     "request": {
-                        "request_id": query_to_hash(json.dumps(content_vars)) if not chat else 0,
-                        "content_vars": content_vars,
+                        "profile_id": query_to_hash(json.dumps(profile["content_vars"])) if not chat else 0,
+                        "profile_tag": profile["tag"],
+                        "profile": profile["content_vars"],
                         **additional_body
                     },
                     "response": {}
                 }
-                for content_vars in text_variables
+                for profile in profiles
             ] if not contents else contents
             self.chat = chat
             self.stream = stream
@@ -249,7 +277,7 @@ class Request:
             self.cancellation_requested = False
     
     def get_full_requests(self):
-        return {content["request"]["request_id"]: construct_prompt(self.prompt_structure, content["request"])
+        return {content["request"]["profile_id"]: construct_prompt(self.prompt_structure, content["request"])
                 for content in self.contents if not len(content["response"])}
     
     def is_complete(self):
@@ -261,10 +289,11 @@ class Request:
         # new_task - computed_prompt = request has been already computed under a different task
         # computed_task - new_prompt = request has been already computed for the current task but under a different prompt signature
         # computed_task - computed_prompt = request has been already computed
-        req_ids = {content["request"]["request_id"] for content in self.contents}
+        profile_ids = {content["request"]["profile_id"] for content in self.contents}
+        
         if self.chat:
-            assert len(req_ids) < 2
-            to_be_computed, to_be_copied, to_be_updated, to_be_dropped = req_ids, set(), set(), set()
+            assert len(profile_ids) < 2
+            to_be_computed, to_be_copied, to_be_updated, to_be_dropped = profile_ids, set(), set(), set()
         else:
             states = [
                 JobStatus.JOB_STATE_CREATED,
@@ -272,19 +301,19 @@ class Request:
                 JobStatus.JOB_STATE_RUNNING,
                 JobStatus.JOB_STATE_SUCCEEDED
             ] 
-            new_task, computed_task = bm.__get_req_id_by_query__(req_ids, {"taskId": self.task_id, "status": {"$in": states}, "chat": False})
-            new_prompt, computed_prompt = bm.__get_req_id_by_query__(req_ids, {"requestHash": self.request_hash, "status": {"$in": states}, "chat": False})
-            _, computed_totally = bm.__get_req_id_by_query__(req_ids, {"taskId": self.task_id, "requestHash": self.request_hash, "status": {"$in": states}, "chat": False})
+            new_task, computed_task = bm.__get_profile_id_by_query__(profile_ids, {"taskId": self.task_id, "status": {"$in": states}, "chat": False})
+            new_prompt, computed_prompt = bm.__get_profile_id_by_query__(profile_ids, {"requestHash": self.request_hash, "status": {"$in": states}, "chat": False})
+            _, computed_totally = bm.__get_profile_id_by_query__(profile_ids, {"taskId": self.task_id, "requestHash": self.request_hash, "status": {"$in": states}, "chat": False})
             to_be_computed, to_be_copied, to_be_updated, to_be_dropped = set(), set(), set(), set()
-            for req_id in req_ids:
-                if req_id in new_task and req_id in new_prompt:
-                    to_be_computed.add(req_id)
-                elif (req_id in new_task and req_id in computed_prompt) or (req_id in computed_task and req_id in computed_prompt and req_id not in computed_totally):
-                    to_be_copied.add(req_id)
-                elif req_id in computed_task and req_id in new_prompt:
-                    to_be_updated.add(req_id)
-                elif req_id in computed_totally:
-                    to_be_dropped.add(req_id)
+            for profile_id in profile_ids:
+                if profile_id in new_task and profile_id in new_prompt:
+                    to_be_computed.add(profile_id)
+                elif (profile_id in new_task and profile_id in computed_prompt) or (profile_id in computed_task and profile_id in computed_prompt and profile_id not in computed_totally):
+                    to_be_copied.add(profile_id)
+                elif profile_id in computed_task and profile_id in new_prompt:
+                    to_be_updated.add(profile_id)
+                elif profile_id in computed_totally:
+                    to_be_dropped.add(profile_id)
         directives = Directives(self, bm, to_be_computed, to_be_copied, to_be_updated, to_be_dropped)
         directives.total_computed_costs = bm.get_consumption()
         self.directives = directives
@@ -318,7 +347,7 @@ class Request:
             "requestHash": self.request_hash,
             "promptStructure": self.prompt_structure,
             "contents": self.contents,
-            "generationConfig": self.generationConfig,
+            "generationConfig": self.gen_config,
             "status": self.status,
             "cancellationRequested": self.cancellation_requested,
         }
@@ -326,7 +355,11 @@ class Request:
 
 
 class BatchManager:
-    def __init__(self, ip: str, port: int|str, db_name: str, username: str = "", password: str = "", space: str|None=None):
+    def __init__(self, ip: str, port: int|str, db_name: str, username: str = "", password: str = "", api_keys: dict = {}, space: str|None=None,
+                 cb_on_complete = None, cb_on_stream = None):
+        self.__api_keys = {}
+        self.set_api_keys(api_keys)
+
         self.eur_usd_rate = 1
         try:
             self.eur_usd_rate = requests.get("https://api.frankfurter.app/latest", params={"from": "EUR", "to": "USD"}).json()["rates"]["USD"]
@@ -351,7 +384,6 @@ class BatchManager:
         self.__chat_requests: list[ObjectId]
         self.__instant_requests: list[ObjectId]
         self.__batch_requests: list[ObjectId]
-        self.__api_keys = {}
         self.__on_background = False
         self.__interrupt_backgroud_flag = True
         self.__close_flag = False
@@ -359,8 +391,8 @@ class BatchManager:
         self.__registered_cb_on_chat__ = None
         self.__registered_cb_on_instant__ = None
         self.__registered_cb_on_batch__ = None
-        self.__registered_cb_on_complete__ = None
-        self.__registered_cb_on_stream__ = None
+        self.__registered_cb_on_complete__ = cb_on_complete
+        self.__registered_cb_on_stream__ = cb_on_stream
         self.__clear_cache_folder()
         self.__connect()
         threading.Thread(target=self.__background_task, daemon=True).start()
@@ -436,28 +468,28 @@ class BatchManager:
     def __update_request_entry(self, request_entry):
         self.__get_collection().find_one_and_update({"_id": request_entry["_id"]}, {"$set": request_entry}, upsert=True)
 
-    def __get_content_by_query(self, req_ids: set[str], query: dict):
-        contents = {content["request"]["request_id"]: content
+    def __get_content_by_query(self, profile_ids: set[str], query: dict):
+        contents = {content["request"]["profile_id"]: content
                     for doc in self.__get_collection().find(query)
                     for content in doc["contents"]
-                    if content["request"]["request_id"] in req_ids and content["response"] != {}}
+                    if content["request"]["profile_id"] in profile_ids and content["response"] != {}}
         return contents
 
-    def __delete_content_by_query(self, req_ids: set[str], query: dict):
+    def __delete_content_by_query(self, profile_ids: set[str], query: dict):
         base_filter = {
             **query,
-            "contents.request.request_id": {"$in": list(req_ids)}
+            "contents.request.profile_id": {"$in": list(profile_ids)}
         }
         update = {
             "$pull": {
                 "contents": {
-                    "request.request_id": {"$in": list(req_ids)}
+                    "request.profile_id": {"$in": list(profile_ids)}
                 }
             }
         }
         self.__get_collection().update_many(filter=base_filter, update=update)
 
-    def __get_req_id_by_query__(self, req_ids: set[str], query: dict):
+    def __get_profile_id_by_query__(self, profile_ids: set[str], query: dict):
         pipeline = [
             {"$match": {
                 **query
@@ -465,21 +497,21 @@ class BatchManager:
             {"$unwind": "$contents"},
             {"$group": {
                 "_id": None,
-                "req_ids": {"$addToSet": "$contents.request.request_id"}
+                "profile_ids": {"$addToSet": "$contents.request.profile_id"}
             }}
         ]
         result = self.__get_collection().aggregate(pipeline)
         doc = next(result, None)
-        stored_req_ids = set(doc["req_ids"]) if doc else set()
-        fresh_ids = {rid for rid in req_ids if rid not in stored_req_ids}
-        computed_ids = {rid for rid in req_ids if rid in stored_req_ids}
+        stored_profile_ids = set(doc["profile_ids"]) if doc else set()
+        fresh_ids = {rid for rid in profile_ids if rid not in stored_profile_ids}
+        computed_ids = {rid for rid in profile_ids if rid in stored_profile_ids}
         return fresh_ids, computed_ids
 
     def __sanitize_request_content(self, directives: Directives):
         request: Request = directives.request
-        request.contents = [content for content in request.contents if content["request"]["request_id"] not in directives.to_be_dropped]
+        request.contents = [content for content in request.contents if content["request"]["profile_id"] not in directives.to_be_dropped]
         if not directives.request.update:
-            request.contents = [content for content in request.contents if content["request"]["request_id"] not in directives.to_be_updated]
+            request.contents = [content for content in request.contents if content["request"]["profile_id"] not in directives.to_be_updated]
         
         states = [
             JobStatus.JOB_STATE_CREATED,
@@ -489,7 +521,7 @@ class BatchManager:
             JobStatus.JOB_STATE_SUCCEEDED
         ]
         source_contents = self.__get_content_by_query(directives.to_be_copied, {"requestHash": request.request_hash, "status": {"$in": states}, "chat": False})
-        request.contents = [source_contents.get(content["request"]["request_id"], content) for content in request.contents]
+        request.contents = [source_contents.get(content["request"]["profile_id"], content) for content in request.contents]
         return request
 
     def __finalize_request_content(self, request: Request):
@@ -593,7 +625,7 @@ class BatchManager:
                     response = data
                     computed = 0
                     for content in request.contents:
-                        if cur_content["request"]["request_id"] == content["request"]["request_id"]:
+                        if cur_content["request"]["profile_id"] == content["request"]["profile_id"]:
                             computed += 1
                             content["response"] = response
                     self.__update_request_entry(request.create_record())
@@ -649,7 +681,7 @@ class BatchManager:
                 self.__batch_requests.pop(index)
                 if job_status == JobStatus.JOB_STATE_SUCCEEDED:
                     for content in batch_request.contents:
-                        response = responses.get(content["request"]["request_id"], None)
+                        response = responses.get(content["request"]["profile_id"], None)
                         if response:
                             content["response"] = response
                     self.__on_complete(batch_request)
@@ -820,36 +852,57 @@ class BatchManager:
     def close(self):
         self.__close_flag = True
     
-    def send_chat(self, task_id: ObjectId|str, content_vars: dict|str, stream: bool=False):
-        assert type(task_id) is ObjectId or type(task_id) is str
-        assert type(content_vars) is str or type(content_vars) is dict
-        assert type(stream) is bool
-        if type(content_vars) is dict:
-            assert all(isinstance(k, str) and isinstance(v, str) for k, v in content_vars.items())
-        else:
-            content_vars = {DEFAULT_CONTENT_TAG: content_vars}
-
+    def create_chat(self, model: Model | str=None, gen_config: dict={}, task_id: ObjectId | str=""):
+        request = Request(model=model, gen_config=gen_config, task_id=task_id, profiles=[], chat=True)
+        request.status = JobStatus.JOB_STATE_RUNNING
+        chat_obj = self.__get_collection().find_one({"chat": True, "taskId": task_id})
+        if chat_obj:
+            return ErrorMsg(ErrorType.NO_REQUEST)
+        return Request(from_entry=self.__create_request_entry(request.create_record()))
+    
+    def send_chat(self, task_id: ObjectId|str, message: dict|str, stream: bool=False, model: Model | str=None, gen_config: dict={}):
+        assert type(message) in [dict, str]
         chat_obj = self.__get_collection().find_one({"chat": True, "taskId": task_id})
         if not chat_obj:
             return None, ErrorMsg(ErrorType.CHAT_NOT_FOUND)
         request = Request(from_entry=chat_obj)
+        model_, gen_config_ = sanitize_model_genConfig(model, gen_config)
+        if model:
+            request.model = model_
+        if gen_config == {}:
+            request.gen_config = gen_config_
+
         additional_body = {
             "modelFamily": request.model.__bases__[0].__name__,
             "modelName": request.model.__name__,
-            "generationConfig": request.generationConfig
+            "generationConfig": request.gen_config
         }
         new_content = {
             "request": {
-                "request_id": len(request.contents),
-                "content_vars": content_vars,
+                "profile_id": len(request.contents),
+                "profile": {DEFAULT_CONTENT_TAG: message},
                 **additional_body
             },
             "response": {}
         }
         request.contents = [new_content]
+        request.status = JobStatus.JOB_STATE_RUNNING
         request.stream = stream
         request.get_directives(self)
         return self.send_request(request)
+    
+    def create_single_request(self, model: Model|str=None, gen_config: dict={}, task_id: ObjectId|str="",
+                              prompt_structure: str="", message: dict | str="", update: bool=False):
+        assert type(message) in [dict, str]
+        request = Request(model=model, gen_config=gen_config, task_id=task_id, prompt_structure=prompt_structure, profiles=message, update=update)
+        request.get_directives(self)
+        return request
+    
+    def create_bucket_requests(self, model: Model|str=None, gen_config: dict={}, task_id: ObjectId|str="",
+                               prompt_structure: str="", profiles: dict | list[str] | list[dict] | str="", batch: bool=False, update: bool=False):
+        request = Request(model=model, gen_config=gen_config, task_id=task_id, prompt_structure=prompt_structure, profiles=profiles, batch=batch, update=update)
+        request.get_directives(self)
+        return request
 
     def send_request(self, request: Request):
         """
@@ -890,7 +943,7 @@ class BatchManager:
                             stored_request = sanitized_request
                             stored_request.status = JobStatus.JOB_STATE_CREATED
                             stored_request.req_id = chat_request.req_id
-                            stored_request.contents[0]["request"]["request_id"] = len(chat_request.contents)
+                            stored_request.contents[0]["request"]["profile_id"] = len(chat_request.contents)
                             stored_request.contents = chat_request.contents + stored_request.contents
                             self.__update_request_entry(stored_request.create_record())
                         else:

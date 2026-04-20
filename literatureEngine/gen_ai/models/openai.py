@@ -1,9 +1,8 @@
 import os
-import tempfile
 import json
 from openai import OpenAI
 from gen_ai.utils import count_tokens, construct_prompt, CACHE_FOLDER_PATH
-from gen_ai.model import Model, JobStatus, RequestStatus, ErrorMsg, ErrorType
+from gen_ai.model import Model, JobStatus, ErrorMsg, ErrorType
 
 
 client = None
@@ -40,14 +39,14 @@ class OpenAiFamily(Model):
             body = {
                 "model": request.model.name,
                 "messages": [
-                    {"role": "system", "content": request.generationConfig.get("systemPrompt", "")},
+                    {"role": "system", "content": request.gen_config.get("systemPrompt", "")},
                     {"role": "user", "content": text},
                 ],
-                "max_completion_tokens": request.generationConfig.get("maxOutputTokens", 999999)
+                "max_completion_tokens": request.gen_config.get("maxOutputTokens", 999999)
             }
             is_reasoning_model = any(prefix in request.model.name.lower() for prefix in ["o1", "o3", "o4", "gpt-5", "reasoning"])
             if not is_reasoning_model:
-                body["temperature"] = request.generationConfig.get("temperature", 0)
+                body["temperature"] = request.gen_config.get("temperature", 0)
 
             batch_line = {
                 "custom_id": req_id,
@@ -159,11 +158,11 @@ class OpenAiFamily(Model):
                     {"role": "system", "content": "You are a helpful assistant"},
                     {"role": "user", "content": text},
                 ],
-                "max_completion_tokens": request.generationConfig.get("maxOutputTokens", 999999)
+                "max_completion_tokens": request.gen_config.get("maxOutputTokens", 999999)
             }
             is_reasoning_model = any(prefix in request.model.name.lower() for prefix in ["o1", "o3", "o4", "gpt-5", "reasoning"])
             if not is_reasoning_model:
-                api_params["temperature"] = request.generationConfig.get("temperature", 0)
+                api_params["temperature"] = request.gen_config.get("temperature", 0)
             response = client.chat.completions.create(**api_params)
         except Exception as e:
             return {}, ErrorMsg(ErrorType.SIMPLE_REQUEST, e)
@@ -188,7 +187,7 @@ class OpenAiFamily(Model):
 
         try:
             messages=[
-                {"role": "system", "content": request.generationConfig.get("systemPrompt", "")}
+                {"role": "system", "content": request.gen_config.get("systemPrompt", "")}
             ]
             for content in request.contents:
                 if content["response"] != {}:

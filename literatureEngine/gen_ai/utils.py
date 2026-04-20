@@ -1,4 +1,5 @@
 import os
+import re
 import tiktoken
 import hashlib
 
@@ -22,7 +23,18 @@ def count_tokens(text):
 
 
 def construct_prompt(prompt_structure, request_content):
+    pattern = r'{{(.*?)}}'
+    matches = re.findall(pattern, prompt_structure)
+    variables = {}
+    for x in matches:
+        value = request_content["profile"]
+        for k in x.split("."):
+            value = value.get(k, None) if type(value) is dict else None
+            if value is None:
+                break
+        variables[x] = "" if value is None else value
+    
     prompt = prompt_structure
-    for key, value in request_content["content_vars"].items():
-        prompt = prompt.replace("{{" + key + "}}", value)
+    for k, v in variables.items():
+        prompt = prompt.replace("{{" + k + "}}", str(v))
     return prompt

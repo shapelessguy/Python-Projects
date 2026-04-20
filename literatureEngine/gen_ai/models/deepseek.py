@@ -1,7 +1,6 @@
-import os
 import json
 from openai import OpenAI
-from gen_ai.model import Model, JobStatus, RequestStatus, ErrorMsg, ErrorType
+from gen_ai.model import Model, JobStatus, ErrorMsg, ErrorType
 from gen_ai.utils import count_tokens, construct_prompt
 
 
@@ -45,17 +44,17 @@ class DeepSeekFamily(Model):
 
         try:
             messages=[
-                {"role": "system", "content": request.generationConfig.get("systemPrompt", "")},
+                {"role": "system", "content": request.gen_config.get("systemPrompt", "")},
                 {"role": "user", "content": text},
             ]
             response = client.chat.completions.create(
                 model=request.model.name,
                 messages=messages,
-                max_tokens=request.generationConfig.get("maxOutputTokens", 999999),
-                temperature=request.generationConfig.get("temperature", 0),
+                max_tokens=request.gen_config.get("maxOutputTokens", 999999),
+                temperature=request.gen_config.get("temperature", 0),
                 extra_body={
                     "thinking": {
-                        "type": "enabled" if request.generationConfig.get("thinking_config", {"include_thoughts": False})["include_thoughts"] else "disabled"
+                        "type": "enabled" if request.gen_config.get("thinking_config", {"include_thoughts": False})["include_thoughts"] else "disabled"
                     }
                 }
             )
@@ -84,7 +83,7 @@ class DeepSeekFamily(Model):
 
         try:
             messages=[
-                {"role": "system", "content": request.generationConfig.get("systemPrompt", "")}
+                {"role": "system", "content": request.gen_config.get("systemPrompt", "")}
             ]
             for content in request.contents:
                 if content["response"] != {}:

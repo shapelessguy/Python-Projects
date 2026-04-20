@@ -84,10 +84,11 @@ def send_to_arduino_receiver(signal, verbose, topic, arg):
     pending_message = verbose, topic, arg
 
 
-def initialize(signal):
+def initialize(thread_manager):
     global serialPort, mode
+    signal = thread_manager.signal
     serialPort = None
-    while signal.is_alive():
+    while signal.is_alive() and not thread_manager.to_kill:
         if serialPort is None:
             try:
                 serialPort = serial.Serial(
@@ -102,7 +103,7 @@ def initialize(signal):
 
     loop_init = False
     print('Contacting Arduino..')
-    while not loop_init and signal.is_alive():
+    while not loop_init and signal.is_alive() and not thread_manager.to_kill:
         time.sleep(0.05)
         if serialPort.in_waiting > 0:
             serial_string = serialPort.readline().decode("Ascii")
@@ -218,7 +219,7 @@ def entrypoint(thread_manager):
     global signal, current_mode, pending_message, serialPort
     signal = thread_manager.signal
     pending_message = None
-    initialize(signal)
+    initialize(thread_manager)
     while signal.is_alive() and not thread_manager.to_kill:
         if pending_message:
             verbose, topic, arg = pending_message

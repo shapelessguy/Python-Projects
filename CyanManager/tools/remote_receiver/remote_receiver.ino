@@ -174,7 +174,6 @@ void loop() {
         executeAction(cmd);
       }
     }
-    Serial.println();
     IrReceiver.resume();
   }
   if (currentHeldCommand != 0 && millis() - lastActionTime > 2000) {
