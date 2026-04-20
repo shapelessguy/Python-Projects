@@ -59,7 +59,7 @@
             "path": "app:Obsidian",
             "arguments": "",
             "runas": false,
-            "startup": true
+            "startup": false
         },
         "Outlook": {
             "window_kw": [
