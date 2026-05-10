@@ -37,24 +37,35 @@ def pprint(*args, dt_format="%Y-%m-%d %H:%M:%S", **kwargs):
 
 
 def check_if_process_already_running(script_name, last_arg):
+    current_pid = os.getpid()
+    parent_pid = os.getppid()
     processes = []
+
     for proc in psutil.process_iter(["pid", "name", "cmdline"]):
         try:
+            if proc.pid in (current_pid, parent_pid):
+                continue
+
             proc_name = proc.info["name"].lower()
             if not proc_name.startswith("python"):
                 continue
+
             cmdline = proc.info.get("cmdline") or []
             if not cmdline:
                 continue
+
             if any(script_name in part for part in cmdline) and last_arg in cmdline:
                 processes.append(proc)
+
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             continue
-    if len(processes) > 1:
-        pprint(f"SyncAndroid already running on the same configuration:")
+
+    if processes:
+        pprint("SyncAndroid already running on the same configuration:")
         for proc in processes:
             pprint(" ".join(proc.info["cmdline"]) + f" -> {proc.pid}")
         return True
+
     return False
 
 
