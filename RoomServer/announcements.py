@@ -147,11 +147,12 @@ def spawn_telegram_chatbot(signal_):
     try:
         bac.initialize_repo()
         print('Bot is ready.')
-        if os.path.exists(MSG_HISTORY_PATH):
-            with open(MSG_HISTORY_PATH, 'r') as file:
-                bot_history = json.load(file)
-        else:
-            bot_history = {}
+        bot_history = {}
+        # if os.path.exists(MSG_HISTORY_PATH):
+        #     with open(MSG_HISTORY_PATH, 'r') as file:
+        #         bot_history = json.load(file)
+        # else:
+        #     bot_history = {}
         bh.signal = signal_
         monitor_thread = threading.Thread(target=monitor, args=(bh, ))
         monitor_thread.start()
