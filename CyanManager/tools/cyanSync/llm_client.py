@@ -66,30 +66,46 @@ async def connect():
             print(f"Connection lost: {e}, retrying in 5 seconds...")
             await asyncio.sleep(5)
 
-@app.post("/v1/chat/completions")
-async def chat_completion(request: Request):
-    if ws_connection is None:
-        return JSONResponse({"error": "not connected"}, status_code=503)
+@app.api_route("/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"])
+async def proxy(request: Request, path: str):
+    # for chat completions, route via websocket
+    if path == "v1/chat/completions":
+        if ws_connection is None:
+            return JSONResponse({"error": "not connected"}, status_code=503)
+        body = await request.json()
+        request_id = str(uuid.uuid4())
+        future = asyncio.get_running_loop().create_future()
+        pending[request_id] = future
+        await ws_connection.send(json.dumps({
+            "llm_instruct": {"sender": client, "content": body, "request_id": request_id},
+            "target": target,
+            "request_id": request_id
+        }))
+        try:
+            result = await asyncio.wait_for(future, timeout=30)
+            return JSONResponse(result.get("content"))
+        except asyncio.TimeoutError:
+            return JSONResponse({"error": "timeout"}, status_code=504)
+        finally:
+            pending.pop(request_id, None)
 
-    body = await request.json()
-    request_id = str(uuid.uuid4())
-
-    future = asyncio.get_running_loop().create_future()
-    pending[request_id] = future
-
-    await ws_connection.send(json.dumps({
-        "llm_instruct": {"sender": client, "content": body, "request_id": request_id},
-        "target": target,
-        "request_id": request_id
-    }))
-
-    try:
-        result = await asyncio.wait_for(future, timeout=30)
-        return JSONResponse(result.get("content"))
-    except asyncio.TimeoutError:
-        return JSONResponse({"error": "timeout"}, status_code=504)
-    finally:
-        pending.pop(request_id, None)
+    # everything else goes directly to litellm
+    async with aiohttp.ClientSession() as session:
+        url = f"https://autoreq.dlr.de/litellm/{path}"
+        headers = {k: v for k, v in request.headers.items() if k.lower() != "host"}
+        body = await request.body()
+        async with session.request(
+            method=request.method,
+            url=url,
+            headers=headers,
+            data=body,
+            params=dict(request.query_params)
+        ) as resp:
+            content = await resp.read()
+            return JSONResponse(
+                content=json.loads(content) if resp.content_type == "application/json" else content,
+                status_code=resp.status
+            )
 
 async def main():
     asyncio.create_task(connect())
