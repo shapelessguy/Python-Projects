@@ -478,6 +478,9 @@ def start_ws_server_thread(signal):
 
 def main(signal):
     MIN_DELAY = 0.5
+    import subprocess
+    script_path = os.path.join(os.path.dirname(__file__), "llm_client.py", "roomserver_llm", "localhost")
+    subprocess.Popen([sys.executable, script_path])
     try:
         interfaces = []
         for interface in CONFIGURATION["interfaces"]:
