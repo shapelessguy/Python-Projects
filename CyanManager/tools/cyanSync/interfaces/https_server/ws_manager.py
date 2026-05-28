@@ -50,7 +50,9 @@ class WebSocketManager:
             return list(self._clients.values())
 
     async def send_to_client(self, client_name: str, message: any, timeout: float) -> bool:
-        request_id = uuid.uuid4().hex
+        # if client_name not in ["EVA", "DLR"]:
+        #     print("-----------------------------------------------", client_name)
+        request_id = uuid.uuid4().hex if "request_id" not in message else message["request_id"]
         if type(message) == dict:
             message["request_id"] = request_id
             message = json.dumps(message)
@@ -94,8 +96,13 @@ class WebSocketManager:
             self.save_to = None
 
     async def handle_response(self, message: any):
+        asyncio.create_task(self._handle_response_inner(message))
+
+    async def _handle_response_inner(self, message: any):
         try:
             data = json.loads(message)
+            if "llm_instruct" in data:
+                await self.send_to_client(data["target"], data["llm_instruct"], timeout=30)
             request_id = data.get("request_id")
             if request_id in self._pending:
                 self._pending[request_id].set_result(data)
