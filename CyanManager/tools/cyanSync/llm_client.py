@@ -26,13 +26,19 @@ app.add_middleware(
 pending = {}
 ws_connection = None
 
-async def handle_llm_instruct(ws, sender, content, request_id):
-    print(f"sender={sender}, request_id={request_id}")
+async def handle_llm_instruct(ws, sender, data, request_id):
+    method = data.get("method", "POST")
+    path = data.get("path", "v1/chat/completions")
+    content = data.get("content", {})
+    
+    print(f"sender={sender}, request_id={request_id}, path={path}")
+    
     async with aiohttp.ClientSession() as session:
-        async with session.post(
-            "https://autoreq.dlr.de/litellm/v1/chat/completions",
+        async with session.request(
+            method=method,
+            url=f"https://autoreq.dlr.de/litellm/{path}",
             headers={"Authorization": "Bearer autoreq-admin", "Content-Type": "application/json"},
-            json=content
+            json=content if content else None
         ) as resp:
             result = await resp.json()
 
@@ -47,12 +53,11 @@ async def listen(ws):
         data = json.loads(message)
         request_id = data.get("request_id")
         sender = data.get("sender")
-        content = data.get("content")
 
         if request_id in pending:
             pending[request_id].set_result(data)
         elif sender and request_id:
-            await handle_llm_instruct(ws, sender, content, request_id)
+            asyncio.create_task(handle_llm_instruct(ws, sender, data, request_id))
         else:
             print(f"Received: {message}")
 
