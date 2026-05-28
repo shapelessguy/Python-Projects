@@ -122,6 +122,25 @@
             "runas": false,
             "startup": true
         },
+        "LLM client": {
+            "window_kw": [],
+            "excluded_kw": [],
+            "window_props": {
+                "monitor_id": "",
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "win_state": "normal",
+                "order": false
+            },
+            "proc_name": "llm_client.py",
+            "proc_type": "python",
+            "path": "C:/Users/shape/Documents/codebase/sharedCode/CyanManager/tools/cyanSync/llm_client.py",
+            "arguments": "default_llm_client",
+            "runas": false,
+            "startup": true
+        },
         "MSI Afterburner": {
             "window_kw": [
                 "MSI Afterburner",
