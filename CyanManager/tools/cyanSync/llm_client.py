@@ -12,7 +12,8 @@ import uvicorn
 import aiohttp
 
 port = 12312
-client = sys.argv[1] if len(sys.argv) > 1 else "default_llm_client"
+client = sys.argv[1]
+server_hostname = sys.argv[2] if len(sys.argv) > 2 else "cyanroomserver.duckdns.org"
 target = "llm_provider"
 
 app = FastAPI()
@@ -65,7 +66,7 @@ async def connect():
     global ws_connection
     while True:
         try:
-            ip = socket.gethostbyname("cyanroomserver.duckdns.org")
+            ip = socket.gethostbyname(server_hostname) if server_hostname != "localhost" else "localhost"
             ssl_ctx = ssl.create_default_context()
             ssl_ctx.check_hostname = False
             ssl_ctx.verify_mode = ssl.CERT_NONE
@@ -85,7 +86,6 @@ async def proxy(request: Request, path: str):
         return JSONResponse({"error": "not connected"}, status_code=503)
 
     body = await request.body()
-    print(body)
     request_id = str(uuid.uuid4())
     future = asyncio.get_running_loop().create_future()
     pending[request_id] = future
