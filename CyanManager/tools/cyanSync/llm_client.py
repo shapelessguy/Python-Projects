@@ -51,7 +51,7 @@ async def listen(ws):
 
         if request_id in pending:
             pending[request_id].set_result(data)
-        elif sender and content and request_id:
+        elif sender and request_id:
             await handle_llm_instruct(ws, sender, content, request_id)
         else:
             print(f"Received: {message}")
@@ -80,6 +80,7 @@ async def proxy(request: Request, path: str):
         return JSONResponse({"error": "not connected"}, status_code=503)
 
     body = await request.body()
+    print(body)
     request_id = str(uuid.uuid4())
     future = asyncio.get_running_loop().create_future()
     pending[request_id] = future
@@ -98,6 +99,7 @@ async def proxy(request: Request, path: str):
 
     try:
         result = await asyncio.wait_for(future, timeout=30)
+        print(result)
         return JSONResponse(result.get("content", {}))
     except asyncio.TimeoutError:
         return JSONResponse({"error": "timeout"}, status_code=504)
