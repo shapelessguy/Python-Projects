@@ -1,5 +1,24 @@
 {
     "applications": {
+        "LLM client": {
+            "window_kw": [],
+            "excluded_kw": [],
+            "window_props": {
+                "monitor_id": "",
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "win_state": "normal",
+                "order": false
+            },
+            "proc_name": "llm_client.py",
+            "proc_type": "python",
+            "path": "C:/Users/cian_cl/Documents/TOPICS/sharedCode/CyanManager/tools/cyanSync/llm_client.py",
+            "arguments": "llm_provider",
+            "runas": false,
+            "startup": true
+        },
         "Mattermost": {
             "window_kw": [
                 "Mattermost Desktop App"
@@ -189,7 +208,7 @@
                 "Inactivity to Shutdown": "01:00",
                 "Shutdown from": "02:00",
                 "Shutdown to": "08:00",
-                "Shutdown": true
+                "Shutdown": false
             }
         },
         "XM4-1000": {
