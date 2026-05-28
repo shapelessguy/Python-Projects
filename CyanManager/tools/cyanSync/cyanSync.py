@@ -3,6 +3,7 @@ import os
 import time
 import traceback
 import threading
+import subprocess
 import asyncio
 from colorama import init, Fore, Style
 from datetime import datetime
@@ -478,7 +479,6 @@ def start_ws_server_thread(signal):
 
 def main(signal):
     MIN_DELAY = 0.5
-    import subprocess
     script_path = os.path.join(os.path.dirname(__file__), "llm_client.py")
     subprocess.Popen([sys.executable, script_path, "roomserver_llm", "localhost"])
     try:
