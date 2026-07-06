@@ -33,6 +33,7 @@ async def handle_llm_instruct(ws, sender, data, request_id):
     content = data.get("content", {})
     
     print(f"sender={sender}, request_id={request_id}, path={path}")
+    print(f"https://autoreq.dlr.de/litellm/{path}")
     
     async with aiohttp.ClientSession() as session:
         async with session.request(
@@ -42,6 +43,7 @@ async def handle_llm_instruct(ws, sender, data, request_id):
             json=content if content else None
         ) as resp:
             result = await resp.json()
+            print("result", result)
 
     await ws.send(json.dumps({
         "llm_instruct": {"sender": client, "content": result, "request_id": request_id},
