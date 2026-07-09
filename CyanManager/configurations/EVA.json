@@ -38,6 +38,25 @@
             "runas": false,
             "startup": false
         },
+        "Claude": {
+            "window_kw": [],
+            "excluded_kw": [],
+            "window_props": {
+                "monitor_id": "HKC2413(2)",
+                "x": 954,
+                "y": 601,
+                "width": 966,
+                "height": 439,
+                "win_state": "normal",
+                "order": true
+            },
+            "proc_name": "claude.exe",
+            "proc_type": "exe",
+            "path": "app:Claude",
+            "arguments": "",
+            "runas": false,
+            "startup": true
+        },
         "Discord": {
             "window_kw": [
                 "Discord"
@@ -108,10 +127,10 @@
             "excluded_kw": [],
             "window_props": {
                 "monitor_id": "HKC2413(2)",
-                "x": -7,
-                "y": 529,
-                "width": 976,
-                "height": 510,
+                "x": 954,
+                "y": 601,
+                "width": 966,
+                "height": 439,
                 "win_state": "normal",
                 "order": true
             },
@@ -120,7 +139,7 @@
             "path": "C:/Program Files/Google/Chrome/Application/chrome_proxy.exe",
             "arguments": "--profile-directory=Default --app-id=ggjocahimgaohmigbfhghnlfcnjemagj",
             "runas": false,
-            "startup": true
+            "startup": false
         },
         "LLM client": {
             "window_kw": [],
@@ -287,14 +306,33 @@
             "runas": false,
             "startup": true
         },
+        "Spotify": {
+            "window_kw": [],
+            "excluded_kw": [],
+            "window_props": {
+                "monitor_id": "HKC2413(2)",
+                "x": 961,
+                "y": 0,
+                "width": 952,
+                "height": 600,
+                "win_state": "normal",
+                "order": true
+            },
+            "proc_name": "Spotify.exe",
+            "proc_type": "exe",
+            "path": "app:Spotify",
+            "arguments": "",
+            "runas": false,
+            "startup": true
+        },
         "Telegram": {
             "window_kw": [],
             "excluded_kw": [],
             "window_props": {
                 "monitor_id": "HKC2413(2)",
-                "x": 954,
-                "y": 527,
-                "width": 966,
+                "x": -7,
+                "y": 529,
+                "width": 976,
                 "height": 513,
                 "win_state": "normal",
                 "order": true
@@ -365,7 +403,7 @@
             "path": "app:YouTube Music Desktop App",
             "arguments": "",
             "runas": false,
-            "startup": true
+            "startup": false
         }
     },
     "threads": {
