@@ -3,7 +3,7 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from resources import *
 
-TOTAL_VOLUME_ML = 250
+TOTAL_VOLUME_ML = 210
 menthol = Mixture('Menthol', {base_pg: 1.}, d_price=0.05)
 aroma = Mixture('Berry Bomb', {base_pg: 1.}, d_price=0.69)
 aroma_mix = {default_base: 0.88, aroma: 0.1, menthol: 0.012}
