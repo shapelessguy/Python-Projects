@@ -1,0 +1,12 @@
+openai-whisper
+piper-tts
+
+# For Python 3.10
+torch==2.5.1+cu121
+torchvision==0.20.1+cu121
+torchaudio==2.5.1+cu121 # --index-url https://download.pytorch.org/whl/cu121
+
+# For Python 3.13
+torch==2.9.1+cu126
+torchvision==0.24.1+cu126
+torchaudio==2.9.1+cu126 # --index-url https://download.pytorch.org/whl/cu126

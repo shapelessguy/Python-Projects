@@ -411,6 +411,10 @@
             "enabled": true,
             "parameters": {}
         },
+        "API Server": {
+            "enabled": true,
+            "parameters": {}
+        },
         "Arduino": {
             "enabled": true,
             "parameters": {}
@@ -442,6 +446,14 @@
                 "Lights to": "20:00"
             }
         },
+        "STT service": {
+            "enabled": true,
+            "parameters": {
+                "URL": "https://openrouter.ai/api/v1/chat/completions",
+                "Token": "OPENROUTER_KEY",
+                "Model": "gemini-3.5-flash-lite"
+            }
+        },
         "Start&Shutdown": {
             "enabled": true,
             "parameters": {
@@ -453,7 +465,7 @@
             }
         },
         "XM4-1000": {
-            "enabled": true,
+            "enabled": false,
             "parameters": {}
         }
     }

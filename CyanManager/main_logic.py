@@ -1,6 +1,6 @@
 import os
 import json
-import time
+import whisper
 import threading
 import datetime
 import traceback
@@ -37,7 +37,10 @@ class ThreadManager():
         return parameters
     
     def get_param(self, name):
-        return self.get_params()[name]
+        available_params = self.get_params().keys()
+        if name not in available_params:
+            print(f"Requested param {name} but not available: {available_params}")
+        return self.get_params().get(name, None)
     
     def start(self):
         print(f"Starting thread: {self.name}")
@@ -61,6 +64,7 @@ class Signal:
     reg_functions: RegisteredFunctions
     thread_managers: dict[str, ThreadManager]
     last_interaction: datetime
+    info: dict
     ui_manager = None
     profile: str
 
@@ -68,6 +72,10 @@ class Signal:
         
         from queue import Queue
         self.log_queue = Queue()
+
+        self.info = {}
+        self.info["audio_device"] = ""
+        self.info["volume"] = 0
 
         sys.stdout = Tee(self.log_queue, sys.stdout)
         sys.stderr = Tee(self.log_queue, sys.stderr)
