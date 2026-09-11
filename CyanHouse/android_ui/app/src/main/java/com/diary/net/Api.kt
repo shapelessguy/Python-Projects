@@ -1,0 +1,178 @@
+package com.diary.net
+
+import com.diary.Config
+import io.ktor.client.HttpClient
+import io.ktor.client.call.body
+import io.ktor.client.engine.okhttp.OkHttp
+import io.ktor.client.plugins.HttpResponseValidator
+import io.ktor.client.plugins.ClientRequestException
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.defaultRequest
+import io.ktor.client.plugins.expectSuccess
+import io.ktor.client.request.delete
+import io.ktor.client.request.get
+import io.ktor.client.request.header
+import io.ktor.client.request.parameter
+import io.ktor.client.request.patch
+import io.ktor.client.request.post
+import io.ktor.client.request.put
+import io.ktor.client.request.setBody
+import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
+import io.ktor.http.contentType
+import io.ktor.serialization.kotlinx.json.json
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
+
+object Api {
+    private val json = Json {
+        ignoreUnknownKeys = true
+        encodeDefaults = true
+        explicitNulls = false
+    }
+
+    private val client = HttpClient(OkHttp) {
+        expectSuccess = true
+        install(ContentNegotiation) { json(json) }
+        defaultRequest {
+            Auth.basicHeader()?.let { header(HttpHeaders.Authorization, it) }
+        }
+        HttpResponseValidator {
+            handleResponseExceptionWithRequest { cause, _ ->
+                if (cause is ClientRequestException &&
+                    cause.response.status == HttpStatusCode.Unauthorized
+                ) Auth.clear() // bad/expired token -> drop it, UI falls back to login
+            }
+        }
+    }
+
+    private fun u(path: String) = Config.BASE_URL + path
+
+    // ── meta ─────────────────────────────────────────────────────────────
+    suspend fun version(): Versions = client.get(u("/api/version")).body()
+
+    /** Validate a credential without persisting it (used by the login screen). */
+    suspend fun check(basic: String): Boolean = runCatching {
+        client.get(u("/api/version")) {
+            header(HttpHeaders.Authorization, basic)
+            expectSuccess = false
+        }.status == HttpStatusCode.OK
+    }.getOrDefault(false)
+
+    // ── environment ─────────────────────────────────────────────────────
+    suspend fun envBootstrap(): EnvBootstrap = client.get(u("/api/environment/bootstrap")).body()
+
+    suspend fun series(
+        cities: String, start: String, end: String, resample: String, vars: String,
+    ): SeriesResponse = client.get(u("/api/environment/series")) {
+        parameter("cities", cities)
+        parameter("start", start)
+        parameter("end", end)
+        parameter("resample", resample)
+        parameter("vars", vars)
+    }.body()
+
+    suspend fun refresh(): EnvBootstrap = client.post(u("/api/environment/refresh")).body()
+
+    // ── forecast (self-contained service: hourly precip, DWD + Open-Meteo) ──
+    suspend fun forecastBootstrap(): ForecastBootstrap =
+        client.get(u("/api/forecast/bootstrap")).body()
+
+    suspend fun forecastSeries(cities: String): ForecastResponse =
+        client.get(u("/api/forecast/series")) { parameter("cities", cities) }.body()
+
+    suspend fun forecastRefresh(): ForecastBootstrap =
+        client.post(u("/api/forecast/refresh")).body()
+
+    // ── controls (CC) — thin proxy to the CyanControls RoomServer services ──
+    suspend fun controlInfo(): ControlsInfo = client.get(u("/api/controls/info")).body()
+
+    suspend fun controlRoom(topic: String, command: String, extra: JsonObject? = null): ControlsInfo =
+        client.post(u("/api/controls/room/$topic")) {
+            contentType(ContentType.Application.Json)
+            setBody(buildJsonObject {
+                put("command", command)
+                extra?.forEach { (k, v) -> put(k, v) }
+            })
+        }.body()
+
+    suspend fun controlFn(name: String, body: JsonObject? = null): ControlsInfo =
+        client.post(u("/api/controls/fn/$name")) {
+            if (body != null) {
+                contentType(ContentType.Application.Json)
+                setBody(body)
+            }
+        }.body()
+
+    // ── personal (every mutation replies with the full month snapshot) ──
+    suspend fun month(month: String): MonthData =
+        client.get(u("/api/personal/entries")) { parameter("month", month) }.body()
+
+    suspend fun putDay(date: String, values: JsonObject): MonthData =
+        client.put(u("/api/personal/entries/$date")) {
+            contentType(ContentType.Application.Json)
+            setBody(DayBody(values))
+        }.body()
+
+    suspend fun addColumn(body: ColumnBody, month: String): MonthData =
+        client.post(u("/api/personal/columns")) {
+            parameter("month", month)
+            contentType(ContentType.Application.Json)
+            setBody(body)
+        }.body()
+
+    suspend fun patchColumn(key: String, patch: ColumnPatch, month: String): MonthData =
+        client.patch(u("/api/personal/columns/$key")) {
+            parameter("month", month)
+            contentType(ContentType.Application.Json)
+            setBody(patch)
+        }.body()
+
+    suspend fun deleteColumn(key: String, month: String): MonthData =
+        client.delete(u("/api/personal/columns/$key")) { parameter("month", month) }.body()
+
+    suspend fun addUnit(unit: String, month: String): MonthData =
+        client.post(u("/api/personal/units")) {
+            parameter("month", month)
+            contentType(ContentType.Application.Json)
+            setBody(UnitBody(unit))
+        }.body()
+
+    suspend fun deleteUnit(unit: String, month: String): MonthData =
+        client.delete(u("/api/personal/units")) {
+            parameter("unit", unit)
+            parameter("month", month)
+        }.body()
+
+    // ── food (self-contained service; every mutation replies with the full
+    //    catalogue snapshot, same contract as personal) ──────────────────
+    suspend fun foodDishes(): FoodData = client.get(u("/api/food/dishes")).body()
+
+    suspend fun addDish(body: DishBody): FoodData =
+        client.post(u("/api/food/dishes")) {
+            contentType(ContentType.Application.Json)
+            setBody(body)
+        }.body()
+
+    suspend fun patchDish(id: Int, patch: DishPatch): FoodData =
+        client.patch(u("/api/food/dishes/$id")) {
+            contentType(ContentType.Application.Json)
+            setBody(patch)
+        }.body()
+
+    suspend fun deleteDish(id: Int): FoodData =
+        client.delete(u("/api/food/dishes/$id")).body()
+
+    suspend fun searchDishImages(query: String, num: Int = 60): ImageSearchResult =
+        client.get(u("/api/food/image-search")) {
+            parameter("q", query)
+            parameter("num", num)
+        }.body()
+
+    /** Absolute URL for a stored dish image filename (needs the auth header — see
+     *  [com.diary.net.FoodImages]). */
+    fun dishImageUrl(name: String): String = u("/api/food/images/$name")
+}

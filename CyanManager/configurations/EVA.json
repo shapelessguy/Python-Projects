@@ -427,7 +427,7 @@
             "enabled": true,
             "parameters": {
                 "Speakers": "SPDIF-Out",
-                "Headphones": "Headphones"
+                "Headphones": "Soundcore Life Q30"
             }
         },
         "Hotkeys": {
@@ -447,7 +447,7 @@
             }
         },
         "STT service": {
-            "enabled": true,
+            "enabled": false,
             "parameters": {
                 "URL": "https://openrouter.ai/api/v1/chat/completions",
                 "Token": "OPENROUTER_KEY",
@@ -461,7 +461,7 @@
                 "Inactivity to Shutdown": "02:00",
                 "Shutdown from": "00:00",
                 "Shutdown to": "08:00",
-                "Shutdown": true
+                "Shutdown": false
             }
         },
         "XM4-1000": {
