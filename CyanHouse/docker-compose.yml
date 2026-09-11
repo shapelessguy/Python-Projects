@@ -9,7 +9,7 @@ services:
     restart: unless-stopped
     volumes:
       - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/html:/usr/share/nginx/html:ro
+      - ./docker/html:/usr/share/nginx/html:ro
       - ./docker/certbot/www:/var/www/certbot:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
 
