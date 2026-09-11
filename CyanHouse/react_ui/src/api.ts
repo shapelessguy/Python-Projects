@@ -83,6 +83,21 @@ export interface ControlsInfo {
   device?: string;
 }
 
+export interface Torrent {
+  name: string;
+  size: number;
+  progress: number;
+  dlspeed: number;
+  upspeed: number;
+  eta: number;
+  state: string;
+  ratio: number;
+  category: string;
+  added_on: number;
+  num_seeds: number;
+  num_leechs: number;
+}
+
 async function j<T>(r: Response): Promise<T> {
   if (r.status === 401) {
     onAuthFailed();
@@ -135,6 +150,8 @@ export const api = {
         ? { method: "POST", headers: JSON_HEADERS, body: JSON.stringify(body) }
         : { method: "POST" },
     ).then(j<ControlsInfo>),
+
+  torrents: () => f("/api/torrents").then(j<Torrent[]>),
 
   // Every diary mutation replies with the full month snapshot for `month`.
   columns: () => f("/api/personal/columns").then(j<Column[]>),

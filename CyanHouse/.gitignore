@@ -4,3 +4,4 @@ __pycache__/
 .kotlin/
 .gradle/
 nginx/
+data/forecast/datasets/
