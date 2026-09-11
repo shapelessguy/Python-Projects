@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { api, Torrent } from "../api";
+import { api, Torrent, TorrentVideo } from "../api";
+import { VideoPlayer } from "../components/VideoPlayer";
 
 const POLL_MS = 3000;
 
@@ -43,6 +44,11 @@ export function TorrentsPanel() {
   const [torrents, setTorrents] = useState<Torrent[] | null>(null);
   const [error, setError] = useState("");
 
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [videos, setVideos] = useState<TorrentVideo[] | null>(null);
+  const [videosError, setVideosError] = useState("");
+  const [playing, setPlaying] = useState<TorrentVideo | null>(null);
+
   useEffect(() => {
     let alive = true;
     const tick = () =>
@@ -65,6 +71,21 @@ export function TorrentsPanel() {
     };
   }, []);
 
+  const toggleExpand = (hash: string) => {
+    if (expanded === hash) {
+      setExpanded(null);
+      return;
+    }
+    setExpanded(hash);
+    setVideos(null);
+    setVideosError("");
+    setPlaying(null);
+    api
+      .torrentVideos(hash)
+      .then(setVideos)
+      .catch((e) => setVideosError(String(e.message ?? e)));
+  };
+
   return (
     <div className="torrents">
       <h2>Torrents</h2>
@@ -74,9 +95,9 @@ export function TorrentsPanel() {
       )}
       {torrents && torrents.length > 0 && (
         <div className="torrent-list">
-          {torrents.map((t, i) => (
-            <div className="torrent-row" key={i}>
-              <div className="torrent-top">
+          {torrents.map((t) => (
+            <div className="torrent-row" key={t.hash}>
+              <div className="torrent-top" onClick={() => toggleExpand(t.hash)} style={{ cursor: "pointer" }}>
                 <span className="torrent-name" title={t.name}>{t.name}</span>
                 <span className="torrent-state">{STATE_LABEL[t.state] ?? t.state}</span>
               </div>
@@ -96,6 +117,34 @@ export function TorrentsPanel() {
                 <span>{t.num_seeds} seeds / {t.num_leechs} peers</span>
                 {t.category && <span className="muted">{t.category}</span>}
               </div>
+
+              {expanded === t.hash && (
+                <div className="torrent-videos">
+                  {videosError && <p className="error">{videosError}</p>}
+                  {!videosError && videos === null && <p className="muted">Loading files…</p>}
+                  {videos !== null && videos.length === 0 && (
+                    <p className="muted">No video files found.</p>
+                  )}
+                  {videos !== null && videos.length > 0 && (
+                    <ul>
+                      {videos.map((v) => (
+                        <li key={v.path}>
+                          <button className="ghost" onClick={() => setPlaying(v)}>
+                            ▶ {v.name} ({bytes(v.size)})
+                            {v.subtitlePath && " · subs found"}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {playing && (
+                    <VideoPlayer
+                      path={playing.path}
+                      subtitlesPath={playing.subtitlePath ?? undefined}
+                    />
+                  )}
+                </div>
+              )}
             </div>
           ))}
         </div>

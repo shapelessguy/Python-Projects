@@ -5,3 +5,4 @@ __pycache__/
 .gradle/
 nginx/
 data/forecast/datasets/
+dev_test_media/

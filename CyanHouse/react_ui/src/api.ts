@@ -84,6 +84,7 @@ export interface ControlsInfo {
 }
 
 export interface Torrent {
+  hash: string;
   name: string;
   size: number;
   progress: number;
@@ -96,6 +97,13 @@ export interface Torrent {
   added_on: number;
   num_seeds: number;
   num_leechs: number;
+}
+
+export interface TorrentVideo {
+  name: string;
+  path: string;
+  size: number;
+  subtitlePath: string | null;
 }
 
 async function j<T>(r: Response): Promise<T> {
@@ -152,6 +160,7 @@ export const api = {
     ).then(j<ControlsInfo>),
 
   torrents: () => f("/api/torrents").then(j<Torrent[]>),
+  torrentVideos: (hash: string) => f(`/api/torrents/${hash}/videos`).then(j<TorrentVideo[]>),
 
   // Every diary mutation replies with the full month snapshot for `month`.
   columns: () => f("/api/personal/columns").then(j<Column[]>),
