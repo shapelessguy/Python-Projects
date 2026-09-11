@@ -4,9 +4,12 @@ base64(user:token)`). The browser SPA manages the cookie and it takes
 precedence; Android sends the Basic header (it has no cookie).
 
 Users come from, in order:
-  1. env var  DIARY_USERS='{"alice":"tok1","bob":"tok2"}'
+  1. env var  DIARY_USERS='{"alice":{"token":"tok1","permissions":{}}}'
   2. file     api/users.json  (git-ignored, same JSON shape)
-  3. dev fallback  {"dev": "dev"}  (logs a warning)
+  3. dev fallback  {"dev": {"token": "dev", "permissions": {}}}  (logs a warning)
+
+Each user is `{"token": str, "permissions": dict}` — permissions aren't
+enforced anywhere yet, just carried through for later.
 """
 import base64
 import json
@@ -18,17 +21,17 @@ from fastapi import HTTPException, Request, status
 from api.config import API_DIR
 
 
-def _load_users() -> dict[str, str]:
+def _load_users() -> dict[str, dict]:
     raw = os.environ.get("DIARY_USERS")
     if raw:
-        return {str(k): str(v) for k, v in json.loads(raw).items()}
+        return {str(k): dict(v) for k, v in json.loads(raw).items()}
 
     f = API_DIR / "users.json"
     if f.exists():
-        return {str(k): str(v) for k, v in json.loads(f.read_text("utf-8")).items()}
+        return {str(k): dict(v) for k, v in json.loads(f.read_text("utf-8")).items()}
 
     print("WARNING: no DIARY_USERS / api/users.json — using dev/dev credentials")
-    return {"dev": "dev"}
+    return {"dev": {"token": "dev", "permissions": {}}}
 
 
 USERS = _load_users()
@@ -60,8 +63,9 @@ def require_user(request: Request) -> str:
     if creds is not None:
         user, token = creds
         expected = USERS.get(user)
-        if expected is not None and secrets.compare_digest(
-            expected.encode("utf-8"), token.encode("utf-8")
+        expected_token = expected.get("token") if expected else None
+        if expected_token is not None and secrets.compare_digest(
+            expected_token.encode("utf-8"), token.encode("utf-8")
         ):
             # Stash it so middleware (which runs after the route) can read the
             # authenticated user without re-parsing the credential.
