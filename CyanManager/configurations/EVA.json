@@ -57,6 +57,27 @@
             "runas": false,
             "startup": true
         },
+        "Cyan House": {
+            "window_kw": [
+                "Cyan House"
+            ],
+            "excluded_kw": [],
+            "window_props": {
+                "monitor_id": "HKC2413",
+                "x": 1327,
+                "y": 0,
+                "width": 600,
+                "height": 1039,
+                "win_state": "normal",
+                "order": true
+            },
+            "proc_name": "",
+            "proc_type": "chrome",
+            "path": "C:/Program Files/Google/Chrome/Application/chrome_proxy.exe",
+            "arguments": "--profile-directory=Default --app-id=jfgaidljchhmfpcjcjakclekealckhpm",
+            "runas": false,
+            "startup": true
+        },
         "Discord": {
             "window_kw": [
                 "Discord"
@@ -85,9 +106,9 @@
             "excluded_kw": [],
             "window_props": {
                 "monitor_id": "HKC2413",
-                "x": 1460,
+                "x": 1326,
                 "y": 0,
-                "width": 466,
+                "width": 601,
                 "height": 1039,
                 "win_state": "normal",
                 "order": true
@@ -293,9 +314,9 @@
             "window_props": {
                 "monitor_id": "HKC2413",
                 "x": 393,
-                "y": -1,
-                "width": 1080,
-                "height": 427,
+                "y": 0,
+                "width": 946,
+                "height": 423,
                 "win_state": "normal",
                 "order": true
             },
@@ -351,7 +372,7 @@
                 "monitor_id": "HKC2413",
                 "x": 393,
                 "y": 417,
-                "width": 1080,
+                "width": 946,
                 "height": 623,
                 "win_state": "normal",
                 "order": true
