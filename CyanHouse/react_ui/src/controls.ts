@@ -35,7 +35,7 @@ const BLUE = "#4c9be8";
 
 export const MODE_CONFIGS: Record<Exclude<ControlMode, "ALL">, ControlItem[]> = {
   LIGHTS: [
-    { label: "Power", icon: "⏻", topic: "top", command: "w", room: true, row: 0, col: 0, tint: RED },
+    { label: "Power", icon: "🔌", topic: "top", command: "w", room: true, row: 0, col: 0, tint: RED },
     { label: "Top RGB", icon: "🎨", topic: "top", command: "rgb", room: true, row: 0, col: 1, tint: BLUE },
     { label: "Heart", icon: "❤️", topic: "top", command: "heart", room: true, row: 0, col: 2, tint: MAGENTA },
     { label: "Bright -", icon: "🔅", topic: "top", command: "bright-", room: true, row: 1, col: 0 },
@@ -58,16 +58,18 @@ export const MODE_CONFIGS: Record<Exclude<ControlMode, "ALL">, ControlItem[]> = 
     { label: "Next", icon: "⏭", topic: "", command: "NEXT", room: false, row: 3, col: 2 },
   ],
   TV: [
-    { label: "TV ON/OFF", icon: "⏻", topic: "tv", command: "power", room: true, row: 0, col: 0, tint: RED },
+    { label: "TV ON/OFF", icon: "🔌", topic: "tv", command: "power", room: true, row: 0, col: 0, tint: RED },
     { label: "TV OK", icon: "📺", topic: "tv", command: "ok", room: true, row: 0, col: 2, tint: GREEN },
-    { label: "Screens OFF", icon: "🖥", topic: "", command: "SHUTDOWN_MONITORS", room: false, row: 1, col: 0, tint: RED },
-    { label: "Screens ON", icon: "🖥", topic: "", command: "TURN_ON_MONITORS", room: false, row: 1, col: 2, tint: GREEN },
-    { label: "Win Snap", icon: "📸", topic: "", command: "WIN_SNAPSHOT", room: false, row: 2, col: 1, tint: CYAN },
   ],
   PC: [
+    { label: "Screens OFF", icon: "🖥", topic: "", command: "SHUTDOWN_MONITORS", room: false, row: 0, col: 0, tint: RED },
     { label: "Startup", icon: "🚀", topic: "", command: "STARTUP", room: false, row: 0, col: 1, tint: CYAN },
-    { label: "Mouse OFF", icon: "🖱", topic: "", command: "TURN_OFF_MOUSEPAD", room: false, row: 1, col: 0, tint: RED },
-    { label: "Mouse ON", icon: "🖱", topic: "", command: "TURN_ON_MOUSEPAD", room: false, row: 1, col: 2, tint: GREEN },
+    { label: "Screens ON", icon: "🖥", topic: "", command: "TURN_ON_MONITORS", room: false, row: 0, col: 2, tint: GREEN },
+    { label: "Win Snap", icon: "📸", topic: "", command: "WIN_SNAPSHOT", room: false, row: 1, col: 1, tint: CYAN },
+    { label: "Strips OFF", icon: "⚫", topic: "strips", command: "off", room: true, row: 2, col: 0, tint: RED },
+    { label: "Strips ON", icon: "💡", topic: "strips", command: "on", room: true, row: 2, col: 2, tint: GREEN },
+    { label: "Mouse OFF", icon: "🖱", topic: "", command: "TURN_OFF_MOUSEPAD", room: false, row: 3, col: 0, tint: RED },
+    { label: "Mouse ON", icon: "🖱", topic: "", command: "TURN_ON_MOUSEPAD", room: false, row: 3, col: 2, tint: GREEN },
   ],
 };
 

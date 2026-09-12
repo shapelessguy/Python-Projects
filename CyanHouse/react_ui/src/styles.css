@@ -94,6 +94,9 @@ h3 { font-size: 0.85rem; margin: 12px 0 6px; text-transform: uppercase; letter-s
 .env-controls summary { cursor: pointer; color: var(--muted); font-size: 0.8rem; }
 .env-controls .refresh { width: 100%; margin-top: 12px; }
 .env-charts { flex: 1 1 auto; min-width: 0; }
+@media (max-width: 500px) {
+  .env-controls { display: none; }
+}
 .chart-group { margin-bottom: 18px; }
 
 /* ── forecast strip ──────────────────────────────────────── */

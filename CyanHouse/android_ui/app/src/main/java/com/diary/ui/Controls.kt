@@ -36,7 +36,7 @@ private const val BLUE = 0xFF4C9BE8L
 
 val MODE_CONFIGS: Map<ControlMode, List<ControlItem>> = mapOf(
     ControlMode.LIGHTS to listOf(
-        ControlItem("Power", "⏻", "top", "w", true, 0, 0, tint = RED),
+        ControlItem("Power", "🔌", "top", "w", true, 0, 0, tint = RED),
         ControlItem("Top RGB", "🎨", "top", "rgb", true, 0, 1, tint = BLUE),
         ControlItem("Heart", "❤️", "top", "heart", true, 0, 2, tint = MAGENTA),
         ControlItem("Bright -", "🔅", "top", "bright-", true, 1, 0),
@@ -59,16 +59,18 @@ val MODE_CONFIGS: Map<ControlMode, List<ControlItem>> = mapOf(
         ControlItem("Next", "⏭", "", "NEXT", false, 3, 2),
     ),
     ControlMode.TV to listOf(
-        ControlItem("TV ON/OFF", "⏻", "tv", "power", true, 0, 0, tint = RED),
+        ControlItem("TV ON/OFF", "🔌", "tv", "power", true, 0, 0, tint = RED),
         ControlItem("TV OK", "📺", "tv", "ok", true, 0, 2, tint = GREEN),
-        ControlItem("Screens OFF", "🖥", "", "SHUTDOWN_MONITORS", false, 1, 0, tint = RED),
-        ControlItem("Screens ON", "🖥", "", "TURN_ON_MONITORS", false, 1, 2, tint = GREEN),
-        ControlItem("Win Snap", "📸", "", "WIN_SNAPSHOT", false, 2, 1, tint = CYAN),
     ),
     ControlMode.PC to listOf(
+        ControlItem("Screens OFF", "🖥", "", "SHUTDOWN_MONITORS", false, 0, 0, tint = RED),
         ControlItem("Startup", "🚀", "", "STARTUP", false, 0, 1, tint = CYAN),
-        ControlItem("Mouse OFF", "🖱", "", "TURN_OFF_MOUSEPAD", false, 1, 0, tint = RED),
-        ControlItem("Mouse ON", "🖱", "", "TURN_ON_MOUSEPAD", false, 1, 2, tint = GREEN),
+        ControlItem("Screens ON", "🖥", "", "TURN_ON_MONITORS", false, 0, 2, tint = GREEN),
+        ControlItem("Win Snap", "📸", "", "WIN_SNAPSHOT", false, 1, 1, tint = CYAN),
+        ControlItem("Strips OFF", "⚫", "strips", "off", true, 2, 0, tint = RED),
+        ControlItem("Strips ON", "💡", "strips", "on", true, 2, 2, tint = GREEN),
+        ControlItem("Mouse OFF", "🖱", "", "TURN_OFF_MOUSEPAD", false, 3, 0, tint = RED),
+        ControlItem("Mouse ON", "🖱", "", "TURN_ON_MOUSEPAD", false, 3, 2, tint = GREEN),
     ),
 )
 

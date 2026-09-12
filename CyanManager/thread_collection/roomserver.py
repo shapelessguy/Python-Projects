@@ -1,7 +1,7 @@
+import base64
 import time
 import requests
 import json
-import base64
 from dotenv import dotenv_values
 from PyQt5.QtWidgets import QLineEdit, QTimeEdit
 from utils import Parameter, ENV_PATH

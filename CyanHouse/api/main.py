@@ -16,6 +16,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from api import routers as _routers_pkg
@@ -80,7 +82,39 @@ async def lifespan(_app: FastAPI):
     yield
 
 
-app = FastAPI(title="Cyan House API", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="Cyan House API", version="1.0.0", lifespan=lifespan, docs_url=None, redoc_url=None)
+
+# Neither Swagger UI nor ReDoc ship a dark theme, and there's no supported
+# hook to just add CSS on top of the default page — get_swagger_ui_html /
+# get_redoc_html only let you swap the *whole* stylesheet, not extend it. So:
+# default docs disabled above, replaced with these two routes that grab the
+# normal generated HTML and splice one extra <style> tag into <head>. The
+# actual dark effect is a CSS filter inverting the whole page then
+# hue-rotating it back to sane colors (a standard trick for "dark-mode-ify an
+# app you don't control the stylesheet of") — images/logos get re-inverted so
+# they don't come out looking like photo negatives.
+_DARK_MODE_CSS = """
+<style>
+  html { background: #1a1a1a; }
+  body { filter: invert(92%) hue-rotate(180deg); background: #fff; }
+  img, svg, .swagger-ui .topbar { filter: invert(100%) hue-rotate(180deg); }
+</style>
+"""
+
+
+def _inject_dark_css(html: HTMLResponse) -> HTMLResponse:
+    body = html.body.decode() if isinstance(html.body, bytes) else html.body
+    return HTMLResponse(body.replace("</head>", _DARK_MODE_CSS + "</head>"))
+
+
+@app.get("/docs", include_in_schema=False)
+async def swagger_docs():
+    return _inject_dark_css(get_swagger_ui_html(openapi_url=app.openapi_url, title=f"{app.title} - Docs"))
+
+
+@app.get("/redoc", include_in_schema=False)
+async def redoc_docs():
+    return _inject_dark_css(get_redoc_html(openapi_url=app.openapi_url, title=f"{app.title} - ReDoc"))
 
 app.add_middleware(
     CORSMiddleware,

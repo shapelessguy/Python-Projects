@@ -61,8 +61,9 @@ async def room_command(topic: str, body: dict[str, Any] | None = None):
     command = (body or {}).get("command")
     if not command:
         raise HTTPException(status_code=400, detail="command is required")
+    set_auto_time = (body or {}).get("set_auto_time")
     try:
-        return await run_in_threadpool(room.send, topic, command)
+        return await run_in_threadpool(room.send, topic, command, set_auto_time)
     except room.RoomError as e:
         raise HTTPException(status_code=e.status_code, detail=str(e))
 
