@@ -78,9 +78,3 @@ ARDUINO_DEVICE = os.environ.get("ARDUINO_DEVICE", "").strip()
 
 _fn_addr = os.environ.get("CONTROLS_FN_HOST", "").strip()  # host:port, e.g. LAN IP
 CONTROLS_FN_URL = f"http://{_fn_addr}" if _fn_addr else ""
-
-# ── qBittorrent (local torrent client, read-only dashboard panel) ──────────
-# Runs on this same box (see docker/nginx.conf's /qbt/ proxy for the full
-# Web UI). No separate credentials here — it logs in as SEED_USER, reusing
-# whatever token that user already has in api/users.json / DIARY_USERS.
-QBITTORRENT_URL = os.environ.get("QBITTORRENT_URL", "http://127.0.0.1:8081").strip()

@@ -1,3 +1,5 @@
+import threading
+
 from fastapi import APIRouter, Query
 from starlette.concurrency import run_in_threadpool
 
@@ -5,6 +7,25 @@ from api.db import bump, connect, get_version
 from api.services import weather
 
 router = APIRouter(prefix="/api/environment", tags=["environment"])
+
+
+def init() -> None:
+    """A fresh deployment starts with no historical weather CSVs at all —
+    min_date/max_date come back null, the date-range presets silently do
+    nothing, and the plot never renders. Fetch once in the background at
+    startup so that's populated without needing someone to know to hit
+    /refresh manually. update_city (what this calls into) is incremental and
+    a no-op once a city is already current, so this is cheap on every
+    restart after the first."""
+    def run() -> None:
+        try:
+            weather.refresh()
+            with connect() as conn:
+                bump(conn, "weather_version")
+        except Exception as e:
+            print(f"[environment] startup weather fetch failed: {e}")
+
+    threading.Thread(target=run, name="weather-startup-fetch", daemon=True).start()
 
 
 @router.get("/bootstrap")
