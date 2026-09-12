@@ -192,6 +192,19 @@ automatically after a reboot as long as the Docker daemon itself is running
 for those.
 
 
+## 12. Mount the Pangea drive (NTFS, auto-mount on access)
 
+> **Before you start:** migrate `/var/lib/plexmediaserver/Library/Application Support/Plex Media Server` from the old server — Plex metadata lives there and won't carry over automatically.
 
-// Migrate /var/lib/plexmediaserver/Library/Application Support/Plex Media Server to the new server, otherwise metadata will be lost
+Install ffmpeg if needed:
+```bash
+sudo apt update && sudo apt install -y ffmpeg
+```
+
+Add `x-systemd.automount` to the Pangea fstab entry so the drive mounts on first access rather than at boot:
+```bash
+sudo sed -i 's|UUID=E408CE9E08CE6F5C /mnt/pangea ntfs3 rw,uid=1000,gid=1000,umask=002,nofail 0 0|UUID=E408CE9E08CE6F5C /mnt/pangea ntfs3 rw,uid=1000,gid=1000,umask=002,nofail,x-systemd.automount 0 0|' /etc/fstab
+sudo systemctl daemon-reload
+sudo mount /mnt/pangea
+ls /mnt/pangea
+```

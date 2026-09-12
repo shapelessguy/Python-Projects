@@ -415,10 +415,6 @@
             "enabled": true,
             "parameters": {}
         },
-        "Arduino": {
-            "enabled": true,
-            "parameters": {}
-        },
         "Cyan Launcher Manager": {
             "enabled": true,
             "parameters": {}
@@ -434,16 +430,16 @@
             "enabled": true,
             "parameters": {}
         },
-        "LEDS": {
+        "PC_CONNECTED_DEVICES": {
             "enabled": true,
             "parameters": {}
         },
         "Roomserver": {
             "enabled": true,
             "parameters": {
-                "Hostname/port": "http://cyanroomserver.duckdns.org:10004",
-                "Lights from": "09:00",
-                "Lights to": "20:00"
+                "Hostname/port": "https://cyanroomserver.duckdns.org/api/controls/room",
+                "Lights from": "08:00",
+                "Lights to": "18:46"
             }
         },
         "STT service": {
@@ -458,7 +454,7 @@
             "enabled": true,
             "parameters": {
                 "Mouse Jiggle": false,
-                "Inactivity to Shutdown": "02:00",
+                "Inactivity to Shutdown": "01:00",
                 "Shutdown from": "00:00",
                 "Shutdown to": "08:00",
                 "Shutdown": false

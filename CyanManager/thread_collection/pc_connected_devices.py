@@ -5,7 +5,7 @@ from openrgb import OpenRGBClient
 from openrgb.utils import RGBColor, DeviceType
 
 
-NAME = "LEDS"
+NAME = "PC_CONNECTED_DEVICES"
 PARAMETERS = {}
 OPENRGB_PORT = 6743
 
@@ -46,6 +46,9 @@ def entrypoint(thread_manager):
                 color = pending_message
                 pending_message = None
                 mousepad.set_color(RGBColor(*color))
+                client.disconnect()
             except:
+                import traceback
+                print(traceback.format_exc())
                 pass
         time.sleep(0.1)

@@ -1,5 +1,4 @@
 from thread_collection.roomserver import send_to_roomserver
-from thread_collection.arduino_processes import send_to_arduino_receiver
 from utils import notify
 
 
@@ -16,7 +15,7 @@ def send_audio(signal, verbose, value, notify_):
         notify(signal, title="Room Server", message=f"Audio System {value}", icon="audio_system.png")
 
 def send_strips(signal, verbose, value, notify_):
-    send_to_arduino_receiver(signal, verbose, "strip", value)
+    send_to_roomserver(signal, verbose, "strips", value)
     if notify_:
         notify(signal, title="Room Server", message=f"Strip lights {value}", icon="lights.png")
 
