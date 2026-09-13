@@ -94,7 +94,7 @@ h3 { font-size: 0.85rem; margin: 12px 0 6px; text-transform: uppercase; letter-s
 .env-controls summary { cursor: pointer; color: var(--muted); font-size: 0.8rem; }
 .env-controls .refresh { width: 100%; margin-top: 12px; }
 .env-charts { flex: 1 1 auto; min-width: 0; }
-@media (max-width: 500px) {
+@media (max-width: 800px) {
   .env-controls { display: none; }
 }
 .chart-group { margin-bottom: 18px; }
@@ -324,6 +324,50 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
 .food-zoom { display: flex; align-items: center; gap: 6px; color: var(--muted); }
 .food-zoom input[type="range"] { width: clamp(90px, 18vw, 200px); }
 
+/* ── grocery list ────────────────────────────────────────── */
+.grocery-panel {
+  margin: 14px 0; padding: 10px 14px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+}
+.grocery-panel-head { display: flex; align-items: center; gap: 10px; }
+.grocery-panel-head h3 { margin: 0 8px 0 0; font-size: 0.95rem; }
+.grocery-panel-head .row-actions { margin-left: auto; display: flex; gap: 6px; }
+.grocery-items { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.grocery-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 4px 0; border-top: 1px solid var(--line);
+}
+.grocery-item:first-child { border-top: none; padding-top: 0; }
+.grocery-item-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qty-stepper { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
+.qty-stepper button { width: 24px; height: 24px; padding: 0; line-height: 1; flex: 0 0 auto; }
+.qty-value { min-width: 3em; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.grocery-summary { margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--line); }
+.grocery-summary h4 { margin: 0 0 8px; font-size: 0.85rem; color: var(--muted); }
+.grocery-summary-list { list-style: none; margin: 0; padding: 0; columns: 2; column-gap: 24px; }
+.grocery-summary-list li { break-inside: avoid; padding: 2px 0; }
+.grocery-summary-list label { display: flex; align-items: baseline; gap: 6px; cursor: pointer; }
+.grocery-summary-name { text-transform: capitalize; }
+.grocery-summary-list input:checked ~ .grocery-summary-name,
+.grocery-summary-list input:checked ~ .grocery-summary-amount {
+  text-decoration: line-through; color: var(--muted);
+}
+.grocery-summary-amount { color: var(--muted); font-size: 0.85em; margin-left: auto; }
+
+/* Dish grid in selection mode: whole card toggles, ineligible ones (no
+   ingredients yet) are visibly out of play rather than hidden outright. */
+.dish-card.grocery-select { cursor: pointer; }
+.dish-card.grocery-select.ineligible { opacity: 0.4; cursor: not-allowed; }
+.dish-card.grocery-select.selected { outline: 2px solid var(--accent); outline-offset: -2px; }
+.dish-card-select-mark {
+  position: absolute; top: 6px; left: 6px; z-index: 2;
+  width: 24px; height: 24px; border-radius: 6px;
+  background: rgba(0, 0, 0, 0.55); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.05rem;
+}
+
 .food-group { margin-top: 14px; }
 .food-group-head {
   cursor: pointer; user-select: none;
@@ -357,15 +401,41 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
   display: flex; flex-direction: column;
   background: var(--panel); border: 1px solid var(--line);
   border-radius: 12px; overflow: hidden;
+  container-type: inline-size; /* lets .dish-card-foot react to the card's own width */
 }
 .dish-card-img {
-  /* Fixed shape: zoom scales the card, the crop never shifts. */
-  aspect-ratio: var(--dish-aspect, 4 / 3);
+  /* Fixed 4:3 shape via the classic padding-top hack, not `aspect-ratio`:
+     Chrome was inconsistently resolving `aspect-ratio` on this element
+     (a flex item that's itself a flex container) against images of
+     varying intrinsic dimensions, letting some cards' image boxes stretch
+     to the photo's own aspect instead of the fixed card shape -- visible
+     as tall/narrow cards sprinkled among normal ones, Chrome-only. The
+     padding-top box has no such ambiguity: the ratio comes purely from
+     block layout math, independent of any child's intrinsic size.
+  */
+  display: block; /* may render as <button> when the dish has ingredients to show */
+  position: relative;
+  width: 100%;
   background: var(--panel-2);
-  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+  /* Undo the generic `button` rule's border/padding/radius for the
+     <button>-rendered case -- harmless no-ops for the plain <div> case. */
+  border: none; padding: 0; border-radius: 0; font: inherit; text-align: inherit;
 }
-.dish-card-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.dish-card-img-empty { font-size: 2.2rem; opacity: 0.4; }
+.dish-card-img::before { content: ""; display: block; padding-top: 75%; }
+.dish-card-img img {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%; object-fit: cover; display: block;
+  transition: transform 0.18s ease;
+}
+.dish-card-img-empty {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2.2rem; opacity: 0.4;
+}
+/* Dishes with ingredients ready: the image itself opens them. */
+.dish-card-img.clickable { cursor: pointer; }
+.dish-card-img.clickable:hover img { transform: scale(1.06); }
 
 .dish-card-foot {
   display: flex; align-items: center; gap: 8px;
@@ -377,12 +447,31 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .dish-card-foot .dish-stars { color: #f2c14e; font-size: 0.78rem; margin-top: 1px; }
-.dish-card-foot .acts { display: flex; gap: 4px; flex: 0 0 auto; }
+.dish-card-foot .acts { display: flex; align-items: center; gap: 4px; flex: 0 0 auto; }
+/* Recipe url/html fetch status: red = url set but page not saved yet,
+   green = page fetched and stored. Absent entirely when there's no url. */
+.dish-status-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto;
+}
+.dish-status-dot.ok { background: #46a758; }
+.dish-status-dot.bad { background: #e5484d; }
 .dish-card-foot .acts button { padding: 2px 7px; font-size: 0.8rem; line-height: 1.3; }
 .dish-card-foot.armed { flex-wrap: wrap; }
 .dish-card-foot .confirm-label {
   flex: 1 1 100%; font-size: 0.78rem; color: var(--muted);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* Narrow cards: up to five icon buttons in .acts leaves the name only a
+   sliver of room next to it. Below this width, give the name its own full
+   row and drop the star rating down to share a row with the buttons instead
+   -- .meta becomes `contents` so .dish-name/.dish-stars join .dish-card-foot's
+   own flex layout directly rather than being boxed together by .meta. */
+@container (max-width: 260px) {
+  .dish-card-foot { flex-wrap: wrap; }
+  .dish-card-foot .meta { display: contents; }
+  .dish-card-foot .dish-name { flex: 1 1 100%; }
+  .dish-card-foot .dish-stars { flex: 1 1 auto; }
+  .dish-card-foot .acts { margin-left: auto; }
 }
 
 /* form image preview (still a small thumb) */
@@ -438,14 +527,18 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
 /* ── calendar ─────────────────────────────────────────────── */
 .calendar { align-items: stretch; }
 .calendar-main { flex: 1 1 auto; min-width: 0; }
+/* Measured in CalendarPanel and applied to both Month and Week's shared
+   wrapper (same spot below the nav bar in either view), so the two views'
+   total heights come out exactly equal instead of each sizing itself. */
+.cal-body { display: flex; flex-direction: column; min-height: 0; }
 .cal-weekdays {
   display: grid; grid-template-columns: repeat(7, 1fr);
-  gap: 6px; margin-top: 10px;
+  gap: 6px; margin-top: 10px; flex: 0 0 auto;
   color: var(--muted); font-size: 0.75rem; text-align: center;
 }
 .cal-grid {
   display: grid; grid-template-columns: repeat(7, 1fr); grid-auto-rows: minmax(84px, 1fr);
-  gap: 6px; margin-top: 4px;
+  gap: 6px; margin-top: 4px; flex: 1 1 auto; min-height: 0;
 }
 .cal-day {
   border: 1px solid var(--line); border-radius: 8px;
@@ -464,33 +557,88 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
 .cal-events { display: flex; flex-direction: column; gap: 2px; overflow: hidden; }
 .cal-event {
   display: block; width: 100%; text-align: left;
-  border: none; border-radius: 4px; padding: 2px 5px;
+  border: none; border-left: 3px solid var(--line); border-radius: 4px; padding: 2px 5px;
   font-size: 0.72rem; line-height: 1.3;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   cursor: pointer;
+  background: var(--panel-2); color: var(--text);
 }
-.cal-event.personal { background: var(--panel-2); color: var(--text); }
-.cal-event.shared { background: #22b8cf33; color: var(--text); border: 1px solid #22b8cf88; }
 .modal.event-form .field {
   display: flex; flex-direction: column; gap: 4px;
   font-size: 0.8rem; color: var(--muted); margin-top: 8px;
 }
 .modal.event-form .field:first-of-type { margin-top: 0; }
-.modal.event-form .field .dates { margin-top: 2px; }
+.modal.event-form .field .dates {
+  display: flex; align-items: center; gap: 8px; margin-top: 2px;
+}
+/* Every pair sharing a .dates row (Start/End's date+time, and the
+   recurrence row's interval+until-date) should just split the row's width
+   between them. Targeting every direct child generically (rather than
+   listing input types) is deliberate -- input{width:100%} becomes each
+   one's flex-basis (flex-basis:auto resolves to a set width) and this bit
+   us twice already for two different input types sharing this row, once
+   for each type nobody had explicitly reset width on yet. */
+.modal.event-form .field .dates > * { width: auto; flex: 1 1 0; min-width: 0; }
 .modal.event-form label.check-row {
   display: flex; align-items: center; gap: 6px;
   margin-top: 8px; font-size: 0.85rem; cursor: pointer;
 }
+.modal.event-form .check-row-group { display: flex; justify-content: space-between; }
 .modal.event-form .dates { margin-top: 8px; }
+
+/* react-time-picker re-skinned to match the app's dark inputs instead of
+   its light-theme default. disableClock means no popup at all -- just
+   editable HH/mm segments -- so there's no clock-face styling to worry
+   about here. */
+.react-time-picker--disabled { background: transparent; color: var(--muted); }
+.react-time-picker__wrapper {
+  border: 1px solid var(--line); border-radius: 5px;
+  background: var(--panel); color: inherit;
+  padding: 3px 6px; font: inherit;
+}
+.react-time-picker__inputGroup__input { color: var(--text); }
+.react-time-picker__inputGroup__input:invalid { background: transparent; }
+.react-time-picker--disabled .react-time-picker__inputGroup__input { color: var(--muted); }
 .modal.event-form .row-actions { margin-top: 12px; }
 .modal.event-form .error.small { margin: 8px 0 0; }
 
 .cal-view-toggle { display: flex; gap: 4px; margin-left: auto; }
 
-.cal-week {
-  margin-top: 8px; border: 1px solid var(--line); border-radius: 8px; overflow: hidden;
+.cal-calendars-menu { position: relative; }
+.cal-calendars-btn {
+  width: 30px; height: 30px; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 1rem; line-height: 1;
 }
-.cal-week-head, .cal-week-allday { display: flex; border-bottom: 1px solid var(--line); }
+.cal-calendars-popover {
+  position: absolute; top: calc(100% + 4px); right: 0; z-index: 20;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+  padding: 8px; min-width: 220px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+.cal-cal-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 4px 2px; font-size: 0.85rem;
+}
+.cal-cal-row .check { display: flex; align-items: center; gap: 8px; cursor: pointer; flex: 1 1 auto; min-width: 0; }
+.cal-cal-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cal-swatch {
+  width: 20px; height: 20px; padding: 0; flex: none; cursor: pointer;
+  background: none; border: 2px solid var(--panel); outline: 1px solid var(--line);
+  border-radius: 50%; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+.cal-swatch::-webkit-color-swatch-wrapper { padding: 0; border-radius: 50%; overflow: hidden; }
+.cal-swatch::-webkit-color-swatch { border: none; border-radius: 50%; }
+.cal-swatch::-moz-color-swatch { border: none; border-radius: 50%; }
+.cal-cal-delete { padding: 0 4px; font-size: 0.8rem; flex: none; }
+.cal-cal-add { border-top: 1px solid var(--line); margin-top: 4px; padding-top: 8px; }
+.cal-new-cal-input { flex: 1 1 auto; padding: 3px 6px; min-width: 0; }
+
+.cal-week {
+  flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0;
+  margin-top: 10px; border: 1px solid var(--line); border-radius: 8px; overflow: hidden;
+}
+.cal-week-head, .cal-week-allday { display: flex; flex: 0 0 auto; border-bottom: 1px solid var(--line); }
 .cal-week-gutter { flex: 0 0 50px; }
 .cal-week-head > *:not(.cal-week-gutter) {
   flex: 1 1 0; text-align: center; padding: 6px 2px;
@@ -504,7 +652,7 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
   flex: 1 1 0; border-left: 1px solid var(--line); padding: 2px 3px;
   display: flex; flex-direction: column; gap: 2px;
 }
-.cal-week-scroll { overflow-y: auto; }
+.cal-week-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
 .cal-week-grid { position: relative; display: flex; }
 .cal-hour-labels { flex: 0 0 50px; }
 .cal-hour-label {
@@ -514,12 +662,16 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
 .cal-week-col { flex: 1 1 0; position: relative; border-left: 1px solid var(--line); cursor: pointer; }
 .cal-hour-line { position: absolute; left: 0; right: 0; border-top: 1px solid var(--line); height: 0; }
 .cal-week-event {
-  position: absolute; left: 2px; right: 2px; overflow: hidden;
-  border: none; border-radius: 4px; padding: 2px 4px; font-size: 0.68rem; line-height: 1.2;
+  /* Inset enough that a sliver of the column's own background stays
+     clickable beside the event chip, for "click empty space to add
+     another event at this time" -- 2px was so thin it was effectively
+     unclickable. */
+  position: absolute; left: 5px; right: 5px; overflow: hidden;
+  border: none; border-left: 3px solid var(--line); border-radius: 4px; padding: 2px 4px;
+  font-size: 0.68rem; line-height: 1.2;
   text-align: left; cursor: pointer;
+  background: var(--panel-2); color: var(--text);
 }
-.cal-week-event.personal { background: var(--panel-2); color: var(--text); }
-.cal-week-event.shared { background: #22b8cf55; color: var(--text); border: 1px solid #22b8cf88; }
 .cal-week-event-time { color: var(--muted); font-size: 0.62rem; }
 
 /* ── modal ───────────────────────────────────────────────── */
@@ -536,4 +688,59 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
   width: min(340px, 90vw);
 }
 .modal h4 { margin: 0 0 10px; font-size: 0.95rem; }
+.modal.dish-info { width: min(560px, 90vw); max-height: 80vh; display: flex; flex-direction: column; }
+
+/* ── alarm overlay ───────────────────────────────────────── */
+/* Above every other modal -- an alarm should never end up hidden behind
+   whatever dialog happened to already be open. */
+.alarm-backdrop { z-index: 200; }
+.modal.alarm-modal { width: min(420px, 92vw); max-height: 80vh; display: flex; flex-direction: column; }
+.alarm-list { overflow-y: auto; min-height: 0; display: flex; flex-direction: column; gap: 8px; overscroll-behavior: contain; }
+.alarm-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px; background: var(--panel-2);
+  border: 1px solid var(--line); border-radius: 8px;
+}
+.alarm-dot { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; }
+.alarm-info { flex: 1 1 auto; min-width: 0; }
+.alarm-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.alarm-actions { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
+.alarm-actions select { font-size: 0.78rem; }
+.dish-info-scroll {
+  overflow-y: auto; min-height: 0; margin: 0 0 12px;
+  overscroll-behavior: contain;
+}
+.ingredients-top { display: flex; gap: 10px; margin-bottom: 12px; }
+.ingredients-top label { flex: 1 1 0; display: flex; flex-direction: column; gap: 3px; font-size: 0.78rem; color: var(--muted); }
+.ingredients-rows { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+.ingredients-row { display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 6px; align-items: center; }
+.ingredients-row.invalid input { border-color: var(--accent); }
+.ingredients-row-error { color: var(--accent); font-size: 0.74rem; margin: 2px 0 0 2px; }
+.dish-info-edit {
+  width: 100%; margin: 0 0 12px; resize: vertical;
+  font-family: inherit; font-size: 0.85rem; line-height: 1.5;
+  overscroll-behavior: contain;
+}
+.dish-info-body {
+  margin: 0 0 12px; padding: 10px 14px;
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px;
+  font-size: 0.85rem; line-height: 1.5;
+  overflow-y: auto;
+  /* The modal sits over a scrollable panel; without this, scrolling past
+     this box's own end/start hands the wheel event to the page behind it. */
+  overscroll-behavior: contain;
+}
+.dish-info-body.markdown > :first-child { margin-top: 0; }
+.dish-info-body.markdown > :last-child { margin-bottom: 0; }
+.dish-info-body.markdown h1,
+.dish-info-body.markdown h2,
+.dish-info-body.markdown h3 { font-size: 1rem; margin: 14px 0 6px; }
+.dish-info-body.markdown p { margin: 0 0 10px; }
+.dish-info-body.markdown ul,
+.dish-info-body.markdown ol { margin: 0 0 10px; padding-left: 1.3em; }
+.dish-info-body.markdown li { margin: 3px 0; }
+.dish-info-body.markdown code {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 4px;
+  padding: 1px 4px; font-size: 0.82em;
+}
 

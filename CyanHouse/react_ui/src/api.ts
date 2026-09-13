@@ -109,11 +109,21 @@ export interface Versions {
 
 export type RecurFreq = "daily" | "weekly" | "monthly" | "yearly";
 
+export interface Calendar {
+  id: number;
+  name: string;
+  color: string;
+  shared: boolean;
+}
+
 export interface CalendarEvent {
   id: number;
   owner: string;
   mine: boolean;
-  shared: boolean;
+  calendar_id: number;
+  calendar_name: string;
+  calendar_color: string;
+  calendar_shared: boolean;
   title: string;
   description: string;
   start_date: string;
@@ -125,6 +135,18 @@ export interface CalendarEvent {
   recur_interval: number;
   recur_until: string | null;
   recurring: boolean;
+  alarm: boolean;
+  // "" (not acknowledged); else "true" for a plain event or a YYYY-MM-DD
+  // date -- the last occurrence acknowledged -- for a recurring one. See
+  // alarms.ts for how this decides whether an alarm is currently due.
+  alarm_ack: string | null;
+  // Set together, cleared together: while alarm_snooze_until (epoch ms) is
+  // still in the future AND alarm_snooze_occurrence still matches whichever
+  // occurrence is currently due, the alarm stays hidden without being
+  // permanently acknowledged. Synced through the backend (not a cookie) so
+  // snoozing/closing from one client is reflected on every other.
+  alarm_snooze_occurrence: string | null;
+  alarm_snooze_until: number | null;
 }
 
 export interface MonthEvents {
@@ -141,10 +163,16 @@ export interface EventInput {
   all_day?: boolean;
   start_time?: string | null;
   end_time?: string | null;
-  shared?: boolean;
+  calendar_id: number;
   recur_freq?: RecurFreq | null;
   recur_interval?: number;
   recur_until?: string | null;
+  alarm?: boolean;
+  alarm_ack?: string | null;
+  // Patch-only in practice (see alarms.ts) -- a freshly created event has
+  // nothing to snooze yet.
+  alarm_snooze_occurrence?: string | null;
+  alarm_snooze_until?: number | null;
 }
 
 export const api = {
@@ -160,6 +188,14 @@ export const api = {
     f("/api/forecast/series?" + new URLSearchParams({ cities })).then(j<ForecastResponse>),
   forecastRefresh: () =>
     f("/api/forecast/refresh", { method: "POST" }).then(j<ForecastBootstrap>),
+
+  calendars: () => f("/api/calendar/calendars").then(j<Calendar[]>),
+  createCalendar: (name: string, color?: string) =>
+    f("/api/calendar/calendars", { method: "POST", headers: JSON_HEADERS, body: JSON.stringify({ name, color }) }).then(j<Calendar[]>),
+  patchCalendar: (id: number, body: { name?: string; color?: string }) =>
+    f(`/api/calendar/calendars/${id}`, { method: "PATCH", headers: JSON_HEADERS, body: JSON.stringify(body) }).then(j<Calendar[]>),
+  deleteCalendar: (id: number) =>
+    f(`/api/calendar/calendars/${id}`, { method: "DELETE" }).then(j<Calendar[]>),
 
   // Every calendar mutation replies with the full month snapshot for the
   // affected event's month (create/patch: its date; delete: its old date).

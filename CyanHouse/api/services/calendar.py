@@ -2,13 +2,21 @@
 version counter), mirroring food.py's template. No external account: every
 event lives only in this DB.
 
-Two kinds of event, told apart by the `shared` flag:
-  - personal (shared=0): visible only to its owner.
-  - shared   (shared=1): visible to every CyanHouse user.
+Every event belongs to exactly one calendar (`calendar_id`), and a calendar
+is either:
+  - personal (owner = a username): visible only to that owner. Every user
+    gets a "Default" one lazily created the first time they need it, and can
+    create more of their own (`create_calendar`).
+  - the shared calendar (owner IS NULL): exactly one such row ever exists
+    (ensured by init_db); visible to every CyanHouse user regardless of who
+    put an event there.
 
-Either way, only the creator can edit or delete their own event — a shared
-event is visible to everyone but not up for grabs by everyone, which avoids
-one user's edit silently overwriting another's.
+A personal-calendar event can only be edited or deleted by its creator. An
+event on the shared calendar belongs to everyone who can see it, though —
+any user can edit or delete it, not just whoever happened to create it
+(see `_get_editable`). An event's `calendar_id` must be either the shared
+calendar or one the requester owns — you can't file an event into someone
+else's personal calendar in the first place.
 
 Every event has a start_date/end_date span (end_date == start_date for a
 plain single-day event) plus an `all_day` flag; when all_day is false,
@@ -32,6 +40,7 @@ weather_version) rather than a per-user one: a shared event changing is
 relevant to everyone anyway, and the extra precision of scoping personal-only
 changes to just their owner isn't worth the complexity here."""
 import json
+import re
 import sqlite3
 from contextlib import contextmanager
 from datetime import date, datetime, timedelta, timezone
@@ -41,10 +50,23 @@ from api.db import bump, connect as _connect, get_version
 from api.models import EventIn, EventPatch
 
 _SCHEMA = """
+CREATE TABLE IF NOT EXISTS calendars (
+    id    INTEGER PRIMARY KEY AUTOINCREMENT,
+    owner TEXT,
+    name  TEXT NOT NULL,
+    color TEXT NOT NULL DEFAULT '#8b93a1'
+);
+-- Guards _ensure_default_calendar's check-then-insert against a race (two
+-- concurrent requests both seeing "no calendar yet" and both inserting one —
+-- e.g. React StrictMode firing the same effect twice in quick succession).
+-- SQLite treats NULLs as distinct for uniqueness, so this doesn't protect
+-- the single shared-calendar row; init_db's own check is enough there since
+-- it only ever runs once at process startup, not per-request.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_calendars_owner_name ON calendars(owner, name);
 CREATE TABLE IF NOT EXISTS calendar_events (
     id             INTEGER PRIMARY KEY AUTOINCREMENT,
     owner          TEXT NOT NULL,
-    shared         INTEGER NOT NULL DEFAULT 0,
+    calendar_id    INTEGER NOT NULL REFERENCES calendars(id),
     title          TEXT NOT NULL,
     description    TEXT NOT NULL DEFAULT '',
     start_date     TEXT NOT NULL,
@@ -56,6 +78,23 @@ CREATE TABLE IF NOT EXISTS calendar_events (
     recur_interval INTEGER NOT NULL DEFAULT 1,
     recur_until    TEXT,
     recur_exceptions TEXT NOT NULL DEFAULT '[]',
+    -- alarm: whether this event should alert at all. alarm_ack's shape
+    -- depends on recurrence (see _validate_alarm_ack): "" (not acknowledged);
+    -- else "true" for a plain event, or the date (YYYY-MM-DD) of the last
+    -- occurrence acknowledged for a recurring one -- the frontend compares
+    -- that against the series' latest visible occurrence to decide whether
+    -- the alarm is still due.
+    -- alarm_snooze_* is the temporary version of the same idea: while
+    -- alarm_snooze_until (epoch milliseconds) is still in the future *and*
+    -- alarm_snooze_occurrence still matches the occurrence currently due,
+    -- the alarm stays hidden without being permanently acknowledged. Storing
+    -- which occurrence it belongs to (not just a bare timestamp) is what
+    -- makes a newer occurrence of a recurring series immediately override a
+    -- snooze meant for an older one, instead of inheriting it.
+    alarm          INTEGER NOT NULL DEFAULT 0,
+    alarm_ack      TEXT,
+    alarm_snooze_occurrence TEXT,
+    alarm_snooze_until      INTEGER,
     created_at     TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_calendar_span ON calendar_events(start_date, end_date);
@@ -65,7 +104,16 @@ CREATE TABLE IF NOT EXISTS meta (
 );
 """
 
+DEFAULT_CALENDAR_NAME = "Default"
+SHARED_CALENDAR_NAME = "Shared"
+SHARED_CALENDAR_COLOR = "#22b8cf"
+# Rotated through by id so a user's calendars aren't all the same colour by
+# default; still freely changeable afterwards via update_calendar.
+_DEFAULT_PALETTE = ["#4c9be8", "#e5484d", "#46a758", "#e93d82", "#f2c14e"]
+_COLOR_RE = re.compile(r"^#[0-9a-fA-F]{6}$")
+
 _RECUR_FREQS = {"daily", "weekly", "monthly", "yearly"}
+_ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 _VERSION_KEY = "calendar_version"
 
@@ -82,14 +130,137 @@ def connect():
         yield conn
 
 
+def _migrate(conn: sqlite3.Connection) -> None:
+    """Add columns introduced after a database already existed in the wild —
+    CREATE TABLE IF NOT EXISTS in _SCHEMA only covers a brand-new DB."""
+    cols = {r["name"] for r in conn.execute("PRAGMA table_info(calendar_events)")}
+    if "alarm" not in cols:
+        conn.execute("ALTER TABLE calendar_events ADD COLUMN alarm INTEGER NOT NULL DEFAULT 0")
+    if "alarm_ack" not in cols:
+        conn.execute("ALTER TABLE calendar_events ADD COLUMN alarm_ack TEXT")
+    if "alarm_snooze_occurrence" not in cols:
+        conn.execute("ALTER TABLE calendar_events ADD COLUMN alarm_snooze_occurrence TEXT")
+    if "alarm_snooze_until" not in cols:
+        conn.execute("ALTER TABLE calendar_events ADD COLUMN alarm_snooze_until INTEGER")
+
+
 def init_db() -> None:
     with connect() as conn:
         conn.executescript(_SCHEMA)
+        _migrate(conn)
         conn.execute("INSERT OR IGNORE INTO meta(key, value) VALUES(?, 0)", (_VERSION_KEY,))
+        if conn.execute("SELECT 1 FROM calendars WHERE owner IS NULL").fetchone() is None:
+            conn.execute(
+                "INSERT INTO calendars(owner, name, color) VALUES(NULL, ?, ?)",
+                (SHARED_CALENDAR_NAME, SHARED_CALENDAR_COLOR),
+            )
 
 
 def version(conn: sqlite3.Connection) -> int:
     return get_version(conn, _VERSION_KEY)
+
+
+def _next_palette_color(conn: sqlite3.Connection) -> str:
+    n = conn.execute("SELECT COUNT(*) FROM calendars WHERE owner IS NOT NULL").fetchone()[0]
+    return _DEFAULT_PALETTE[n % len(_DEFAULT_PALETTE)]
+
+
+def _ensure_default_calendar(conn: sqlite3.Connection, user: str) -> None:
+    # INSERT OR IGNORE (not a check-then-insert) so two concurrent callers —
+    # e.g. React StrictMode firing the same effect twice — can't both see
+    # "no calendar yet" and both insert one; the unique index makes the
+    # second attempt a no-op instead of a duplicate row.
+    conn.execute(
+        "INSERT OR IGNORE INTO calendars(owner, name, color) VALUES(?, ?, ?)",
+        (user, DEFAULT_CALENDAR_NAME, _next_palette_color(conn)),
+    )
+
+
+def list_calendars(conn: sqlite3.Connection, user: str) -> list[dict]:
+    """The user's own calendars (oldest — i.e. their Default — first) followed
+    by the one shared calendar, which every user sees the same instance of."""
+    _ensure_default_calendar(conn, user)
+    rows = conn.execute(
+        "SELECT * FROM calendars WHERE owner = ? OR owner IS NULL ORDER BY owner IS NULL, id", (user,),
+    ).fetchall()
+    return [
+        {"id": r["id"], "name": r["name"], "color": r["color"], "shared": r["owner"] is None}
+        for r in rows
+    ]
+
+
+def _validate_color(color: str) -> None:
+    if not _COLOR_RE.match(color):
+        raise CalendarError("color must be a hex code like #4c9be8")
+
+
+def create_calendar(conn: sqlite3.Connection, user: str, name: str, color: str | None = None) -> list[dict]:
+    name = name.strip()
+    if not name:
+        raise CalendarError("calendar name is required")
+    if color is not None:
+        _validate_color(color)
+    else:
+        color = _next_palette_color(conn)
+    try:
+        conn.execute("INSERT INTO calendars(owner, name, color) VALUES(?, ?, ?)", (user, name, color))
+    except sqlite3.IntegrityError:
+        raise CalendarError(f"you already have a calendar named {name!r}")
+    return list_calendars(conn, user)
+
+
+def _get_own_calendar(conn: sqlite3.Connection, user: str, calendar_id: int) -> sqlite3.Row:
+    """Unlike `_check_calendar_access` (which also lets the shared calendar
+    through, for filing events into it), renaming/recolouring/deleting a
+    calendar is restricted to a personal one you actually own — nobody
+    individually owns the shared calendar, so those actions don't apply to it."""
+    row = conn.execute("SELECT * FROM calendars WHERE id = ?", (calendar_id,)).fetchone()
+    if row is None:
+        raise CalendarError("calendar not found", status_code=404)
+    if row["owner"] != user:
+        raise CalendarError("not your calendar", status_code=403)
+    return row
+
+
+def update_calendar(conn: sqlite3.Connection, user: str, calendar_id: int,
+                     name: str | None, color: str | None) -> list[dict]:
+    _get_own_calendar(conn, user, calendar_id)
+    fields: dict[str, str] = {}
+    if name is not None:
+        name = name.strip()
+        if not name:
+            raise CalendarError("calendar name is required")
+        fields["name"] = name
+    if color is not None:
+        _validate_color(color)
+        fields["color"] = color
+    if fields:
+        try:
+            conn.execute(
+                f"UPDATE calendars SET {', '.join(f'{k} = ?' for k in fields)} WHERE id = ?",
+                (*fields.values(), calendar_id),
+            )
+        except sqlite3.IntegrityError:
+            raise CalendarError(f"you already have a calendar named {name!r}")
+        bump(conn, _VERSION_KEY)  # event listings embed calendar name/color
+    return list_calendars(conn, user)
+
+
+def delete_calendar(conn: sqlite3.Connection, user: str, calendar_id: int) -> list[dict]:
+    """Cascades: every event filed under this calendar is deleted with it."""
+    _get_own_calendar(conn, user, calendar_id)
+    conn.execute("DELETE FROM calendar_events WHERE calendar_id = ?", (calendar_id,))
+    conn.execute("DELETE FROM calendars WHERE id = ?", (calendar_id,))
+    bump(conn, _VERSION_KEY)
+    return list_calendars(conn, user)
+
+
+def _check_calendar_access(conn: sqlite3.Connection, user: str, calendar_id: int) -> None:
+    row = conn.execute("SELECT owner FROM calendars WHERE id = ?", (calendar_id,)).fetchone()
+    if row is None:
+        raise CalendarError("calendar not found", status_code=404)
+    if row["owner"] is not None and row["owner"] != user:
+        raise CalendarError("not your calendar", status_code=403)
 
 
 def _row_to_event(row: sqlite3.Row, user: str, start_date: str | None = None,
@@ -100,7 +271,10 @@ def _row_to_event(row: sqlite3.Row, user: str, start_date: str | None = None,
         "id": row["id"],
         "owner": row["owner"],
         "mine": row["owner"] == user,
-        "shared": bool(row["shared"]),
+        "calendar_id": row["calendar_id"],
+        "calendar_name": row["calendar_name"],
+        "calendar_color": row["calendar_color"],
+        "calendar_shared": bool(row["calendar_shared"]),
         "title": row["title"],
         "description": row["description"],
         "start_date": start_date or row["start_date"],
@@ -112,6 +286,10 @@ def _row_to_event(row: sqlite3.Row, user: str, start_date: str | None = None,
         "recur_interval": row["recur_interval"],
         "recur_until": row["recur_until"],
         "recurring": row["recur_freq"] is not None,
+        "alarm": bool(row["alarm"]),
+        "alarm_ack": row["alarm_ack"],
+        "alarm_snooze_occurrence": row["alarm_snooze_occurrence"],
+        "alarm_snooze_until": row["alarm_snooze_until"],
     }
 
 
@@ -172,8 +350,11 @@ def list_month(conn: sqlite3.Connection, user: str, month: str) -> dict:
     that falls in the month, computed fresh on each call."""
     range_start, range_end = _month_bounds(month)
     rows = conn.execute(
-        "SELECT * FROM calendar_events WHERE (shared = 1 OR owner = ?) "
-        "AND (recur_freq IS NOT NULL OR (end_date >= ? AND start_date < ?))",
+        "SELECT e.*, c.name AS calendar_name, c.color AS calendar_color, "
+        "c.owner IS NULL AS calendar_shared "
+        "FROM calendar_events e JOIN calendars c ON e.calendar_id = c.id "
+        "WHERE (c.owner IS NULL OR c.owner = ?) "
+        "AND (e.recur_freq IS NOT NULL OR (e.end_date >= ? AND e.start_date < ?))",
         (user, range_start.isoformat(), range_end.isoformat()),
     ).fetchall()
 
@@ -223,37 +404,110 @@ def _validate_recurrence(freq: str | None, interval: int, until: str | None, sta
         raise CalendarError("recur_until must not be before start date")
 
 
-def create_event(conn: sqlite3.Connection, user: str, body: EventIn) -> dict:
+def _validate_alarm_ack(alarm_ack: str | None, recur_freq: str | None) -> None:
+    """alarm_ack's required shape depends on whether the event recurs: ""
+    (not acknowledged) is always fine; otherwise a recurring event needs a
+    YYYY-MM-DD date (the last occurrence acknowledged) and a plain one needs
+    the literal string "true"."""
+    if not alarm_ack:
+        return
+    if recur_freq is not None:
+        if not _ISO_DATE_RE.match(alarm_ack):
+            raise CalendarError('alarm_ack must be "" or a YYYY-MM-DD date for a recurring event')
+    elif alarm_ack != "true":
+        raise CalendarError('alarm_ack must be "" or "true" for a non-recurring event')
+
+
+def _validate_snooze(occurrence: str | None, until: int | None) -> None:
+    """Both fields travel together -- a snooze without knowing which
+    occurrence it's for is meaningless, and a bare occurrence with no
+    timestamp doesn't suppress anything."""
+    if occurrence is None and until is None:
+        return
+    if occurrence is None or until is None:
+        raise CalendarError(
+            "alarm_snooze_occurrence and alarm_snooze_until must be set or cleared together"
+        )
+    if not _ISO_DATE_RE.match(occurrence):
+        raise CalendarError("alarm_snooze_occurrence must be a YYYY-MM-DD date")
+    if not isinstance(until, int) or isinstance(until, bool) or until <= 0:
+        raise CalendarError("alarm_snooze_until must be a positive integer (epoch milliseconds)")
+
+
+def _validate_new_event(conn: sqlite3.Connection, user: str, body: EventIn) -> None:
+    _check_calendar_access(conn, user, body.calendar_id)
     _validate_span(body.start_date, body.end_date, body.all_day, body.start_time, body.end_time)
     _validate_recurrence(body.recur_freq, body.recur_interval, body.recur_until, body.start_date)
-    conn.execute(
-        "INSERT INTO calendar_events(owner, shared, title, description, start_date, end_date, "
-        "all_day, start_time, end_time, recur_freq, recur_interval, recur_until, created_at) "
-        "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
+    _validate_alarm_ack(body.alarm_ack, body.recur_freq)
+
+
+def _insert_event(conn: sqlite3.Connection, user: str, body: EventIn) -> int:
+    cur = conn.execute(
+        "INSERT INTO calendar_events(owner, calendar_id, title, description, start_date, end_date, "
+        "all_day, start_time, end_time, recur_freq, recur_interval, recur_until, alarm, alarm_ack, created_at) "
+        "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
         (
-            user, int(body.shared), body.title, body.description, body.start_date, body.end_date,
+            user, body.calendar_id, body.title, body.description, body.start_date, body.end_date,
             int(body.all_day), None if body.all_day else body.start_time,
             None if body.all_day else body.end_time,
             body.recur_freq, body.recur_interval, body.recur_until,
+            int(body.alarm), body.alarm_ack,
             datetime.now(timezone.utc).isoformat(),
         ),
     )
+    return cur.lastrowid
+
+
+def create_event(conn: sqlite3.Connection, user: str, body: EventIn) -> dict:
+    _validate_new_event(conn, user, body)
+    _insert_event(conn, user, body)
     bump(conn, _VERSION_KEY)
     return list_month(conn, user, body.start_date[:7])
 
 
-def _get_owned(conn: sqlite3.Connection, user: str, event_id: int) -> sqlite3.Row:
-    row = conn.execute("SELECT * FROM calendar_events WHERE id = ?", (event_id,)).fetchone()
+def create_events_bulk(conn: sqlite3.Connection, user: str, bodies: list[EventIn]) -> list[dict]:
+    """Insert every event in `bodies` together. Every entry is validated
+    first and only then inserted -- one bad entry anywhere in the list fails
+    (and, since the caller's `connect()` rolls back on any exception) leaves
+    the whole batch uninserted, rather than importing part of it."""
+    if not bodies:
+        return []
+    for body in bodies:
+        _validate_new_event(conn, user, body)
+    ids = [_insert_event(conn, user, body) for body in bodies]
+    bump(conn, _VERSION_KEY)
+    rows = conn.execute(
+        "SELECT e.*, c.name AS calendar_name, c.color AS calendar_color, "
+        "c.owner IS NULL AS calendar_shared FROM calendar_events e "
+        f"JOIN calendars c ON c.id = e.calendar_id WHERE e.id IN ({','.join('?' * len(ids))})",
+        ids,
+    ).fetchall()
+    by_id = {r["id"]: r for r in rows}
+    return [_row_to_event(by_id[i], user) for i in ids]
+
+
+def _get_editable(conn: sqlite3.Connection, user: str, event_id: int) -> sqlite3.Row:
+    """An event on the shared calendar belongs to everyone -- any user can
+    edit or delete it. An event on a personal calendar still only answers
+    to its creator."""
+    row = conn.execute(
+        "SELECT e.*, c.owner AS calendar_owner FROM calendar_events e "
+        "JOIN calendars c ON c.id = e.calendar_id WHERE e.id = ?",
+        (event_id,),
+    ).fetchone()
     if row is None:
         raise CalendarError("event not found", status_code=404)
-    if row["owner"] != user:
+    if row["calendar_owner"] is not None and row["owner"] != user:
         raise CalendarError("only the creator can change this event", status_code=403)
     return row
 
 
 def update_event(conn: sqlite3.Connection, user: str, event_id: int, body: EventPatch) -> dict:
-    row = _get_owned(conn, user, event_id)
+    row = _get_editable(conn, user, event_id)
     fields = body.model_dump(exclude_unset=True)
+
+    if "calendar_id" in fields:
+        _check_calendar_access(conn, user, fields["calendar_id"])
 
     start_date = fields.get("start_date", row["start_date"])
     end_date = fields.get("end_date", row["end_date"])
@@ -264,10 +518,32 @@ def update_event(conn: sqlite3.Connection, user: str, event_id: int, body: Event
         start_time = end_time = None
     _validate_span(start_date, end_date, all_day, start_time, end_time)
 
+    # A moved event invalidates whatever ack/snooze applied to it at its old
+    # time -- e.g. rescheduling a 9am meeting to 2pm shouldn't inherit the
+    # fact that 9am's alarm was already dismissed, and a snooze keyed to the
+    # old start_date would otherwise keep suppressing the alarm at the new
+    # time whenever only start_time changed (start_date staying the same
+    # would still match the stored snooze occurrence). An explicit alarm_ack/
+    # snooze value in the same request still wins over this default.
+    moved = (
+        start_date != row["start_date"]
+        or start_time != row["start_time"]
+        or int(all_day) != row["all_day"]
+    )
+    if moved:
+        fields.setdefault("alarm_ack", "")
+        fields.setdefault("alarm_snooze_occurrence", None)
+        fields.setdefault("alarm_snooze_until", None)
+
     recur_freq = fields.get("recur_freq", row["recur_freq"])
     recur_interval = fields.get("recur_interval", row["recur_interval"])
     recur_until = fields.get("recur_until", row["recur_until"])
     _validate_recurrence(recur_freq, recur_interval, recur_until, start_date)
+    alarm_ack = fields.get("alarm_ack", row["alarm_ack"])
+    _validate_alarm_ack(alarm_ack, recur_freq)
+    snooze_occurrence = fields.get("alarm_snooze_occurrence", row["alarm_snooze_occurrence"])
+    snooze_until = fields.get("alarm_snooze_until", row["alarm_snooze_until"])
+    _validate_snooze(snooze_occurrence, snooze_until)
 
     fields["start_date"] = start_date
     fields["end_date"] = end_date
@@ -277,8 +553,6 @@ def update_event(conn: sqlite3.Connection, user: str, event_id: int, body: Event
     fields["recur_freq"] = recur_freq
     fields["recur_interval"] = recur_interval
     fields["recur_until"] = recur_until
-    if "shared" in fields:
-        fields["shared"] = int(fields["shared"])
 
     conn.execute(
         f"UPDATE calendar_events SET {', '.join(f'{k} = ?' for k in fields)} WHERE id = ?",
@@ -294,7 +568,7 @@ def delete_event(conn: sqlite3.Connection, user: str, event_id: int, occurrence:
     row, so the rest of the series is untouched. Without it — or when the
     event isn't recurring, where there's only ever one occurrence anyway —
     the whole row is removed ("delete series")."""
-    row = _get_owned(conn, user, event_id)
+    row = _get_editable(conn, user, event_id)
     month = (occurrence or row["start_date"])[:7]
     if occurrence and row["recur_freq"] is not None:
         exceptions = set(json.loads(row["recur_exceptions"] or "[]"))
@@ -307,3 +581,25 @@ def delete_event(conn: sqlite3.Connection, user: str, event_id: int, occurrence:
         conn.execute("DELETE FROM calendar_events WHERE id = ?", (event_id,))
     bump(conn, _VERSION_KEY)
     return list_month(conn, user, month)
+
+
+def delete_events_from(conn: sqlite3.Connection, user: str, from_date: str) -> int:
+    """Deletes every event whose own start_date is on or after `from_date`
+    (inclusive), among calendars this user may edit (the shared calendar, or
+    one they own -- same access rule as _get_editable). For a recurring
+    series this looks at the row's own anchor start_date, not its individual
+    occurrences -- a weekly series that started before `from_date` is left
+    alone even though some of its future occurrences fall after it, since
+    deleting "some occurrences" isn't a thing the schema represents (there's
+    one row per series, not per occurrence). Returns the number of rows
+    deleted."""
+    rows = conn.execute(
+        "SELECT e.id FROM calendar_events e JOIN calendars c ON c.id = e.calendar_id "
+        "WHERE e.start_date >= ? AND (c.owner IS NULL OR c.owner = ?)",
+        (from_date, user),
+    ).fetchall()
+    ids = [r["id"] for r in rows]
+    if ids:
+        conn.execute(f"DELETE FROM calendar_events WHERE id IN ({','.join('?' * len(ids))})", ids)
+        bump(conn, _VERSION_KEY)
+    return len(ids)

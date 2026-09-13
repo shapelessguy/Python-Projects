@@ -36,6 +36,7 @@ class DishIn(BaseModel):
     category: str = ""
     rating: int = 0
     image_url: str | None = None
+    url: str = ""
 
 
 class DishPatch(BaseModel):
@@ -43,6 +44,9 @@ class DishPatch(BaseModel):
     category: str | None = None
     rating: int | None = None
     image_url: str | None = None
+    url: str | None = None
+    instructions: str | None = None  # manual edit from the Instructions modal
+    ingredients: str | None = None  # manual edit from the Ingredients modal (JSON text)
 
 
 # ── dishes ───────────────────────────────────────────────────────────────
@@ -55,7 +59,7 @@ async def list_dishes(user: str = Depends(require_user)):
 async def create_dish(body: DishIn, user: str = Depends(require_user)):
     try:
         return await run_in_threadpool(
-            food.create_dish, user, body.name, body.category, body.rating, body.image_url
+            food.create_dish, user, body.name, body.category, body.rating, body.image_url, body.url
         )
     except ValueError as e:
         raise HTTPException(422, str(e))
@@ -71,6 +75,8 @@ async def patch_dish(dish_id: int, body: DishPatch, user: str = Depends(require_
         )
     except KeyError:
         raise HTTPException(404, f"no dish {dish_id}")
+    except ValueError as e:
+        raise HTTPException(422, str(e))
     except Exception as e:
         raise HTTPException(502, f"could not update dish: {e}")
 

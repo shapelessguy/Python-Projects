@@ -145,6 +145,19 @@ async def version_headers(request, call_next):
         user = getattr(request.state, "username", None)  # set by require_user
         for name, value in _collect_versions(user).items():
             response.headers[f"X-{name.capitalize()}-Version"] = str(value)
+    elif path.startswith("/assets/"):
+        # Vite content-hashes these filenames, so a new build is always a new
+        # URL -- safe to let the browser cache them forever.
+        response.headers.setdefault("Cache-Control", "public, max-age=31536000, immutable")
+    elif not path.startswith("/api"):
+        # The SPA shell (index.html, served here directly or as the html=True
+        # fallback for client-side routes) has neither a hash nor an explicit
+        # Cache-Control today, so browsers fall back to heuristic caching and
+        # can keep serving a build whose bundled asset hashes no longer exist
+        # -- the exact "stale Chrome, fine in Firefox" symptom seen after a
+        # redeploy. Forcing revalidation on every load keeps it in sync while
+        # still letting a 304 skip re-downloading the body.
+        response.headers.setdefault("Cache-Control", "no-cache")
     return response
 
 

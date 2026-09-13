@@ -4,6 +4,7 @@ import { EnvironmentPanel } from "./panels/EnvironmentPanel";
 import { PersonalPanel } from "./panels/PersonalPanel";
 import { FoodPanel } from "./panels/FoodPanel";
 import { CalendarPanel } from "./panels/CalendarPanel";
+import { AlarmOverlay } from "./AlarmOverlay";
 import { currentUsername, logout } from "./auth";
 
 type PanelId = "controls" | "environment" | "personal" | "food" | "calendar";
@@ -45,6 +46,7 @@ export default function App() {
         </nav>
       </header>
       <main className="content">{active.render()}</main>
+      <AlarmOverlay />
     </div>
   );
 }

@@ -8,6 +8,10 @@ export interface Dish {
   category: string;
   rating: number;
   image: string;
+  url: string;
+  has_text: boolean;
+  instructions: string;
+  ingredients: string;
 }
 
 export interface FoodData {
@@ -28,6 +32,9 @@ export interface DishInput {
   category: string;
   rating: number;
   image_url?: string | null;
+  url?: string;
+  instructions?: string;
+  ingredients?: string;
 }
 
 async function j<T>(r: Response): Promise<T> {

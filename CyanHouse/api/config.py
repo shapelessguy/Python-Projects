@@ -55,6 +55,13 @@ FOOD_IMAGES_DIR = Path(os.environ.get("FOOD_IMAGES_DIR", API_DATA_DIR / "food_im
 SERPER_API_KEY = os.environ.get("SERPER_API_KEY", "").strip()
 SERPER_IMAGE_URL = os.environ.get("SERPER_IMAGE_URL", "https://google.serper.dev/images").strip()
 
+# LLM (OpenRouter) — used to turn a dish's scraped recipe text into a
+# formatted description. LLM_FOOD_MODEL is overridable per-deployment
+# without touching code; the default is a cheap, fast, widely-available model.
+OPENROUTER_KEY = os.environ.get("OPENROUTER_KEY", "").strip()
+OPENROUTER_MODEL = os.environ.get("LLM_FOOD_MODEL", "openai/gpt-4o-mini").strip()
+OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
+
 # ── calendar service (self-contained: own DB) — no external account, local only
 CALENDAR_DB = Path(os.environ.get("CALENDAR_DB", API_DATA_DIR / "calendar.db"))
 
