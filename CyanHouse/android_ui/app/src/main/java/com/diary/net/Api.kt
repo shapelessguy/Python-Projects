@@ -212,6 +212,10 @@ object Api {
             })
         }.body()
 
-    suspend fun deleteEvent(id: Int): MonthEvents =
-        client.delete(u("/api/calendar/events/$id")).body()
+    /** `occurrence` ("delete this event", only meaningful for a recurring
+     *  series) suppresses just that one date; omitted, it deletes the series. */
+    suspend fun deleteEvent(id: Int, occurrence: String? = null): MonthEvents =
+        client.delete(u("/api/calendar/events/$id")) {
+            occurrence?.let { parameter("occurrence", it) }
+        }.body()
 }

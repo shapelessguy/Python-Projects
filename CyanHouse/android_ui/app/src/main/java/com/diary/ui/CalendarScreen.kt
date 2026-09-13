@@ -10,6 +10,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -238,13 +239,13 @@ fun CalendarScreen(vm: CalendarViewModel = viewModel()) {
                 if (it.id != null) vm.patchEvent(it.id, body) else vm.createEvent(body)
                 draft = null
             },
-            onDelete = { id -> vm.deleteEvent(id); draft = null },
+            onDelete = { id, occurrence -> vm.deleteEvent(id, occurrence); draft = null },
         )
     }
 }
 
 @Composable
-private fun MonthGrid(
+private fun ColumnScope.MonthGrid(
     days: List<LocalDate>,
     anchor: LocalDate,
     eventsByDate: Map<LocalDate, List<CalendarEvent>>,
@@ -340,7 +341,7 @@ private fun EventChip(e: CalendarEvent, onOpen: (CalendarEvent) -> Unit) {
 }
 
 @Composable
-private fun WeekGrid(
+private fun ColumnScope.WeekGrid(
     days: List<LocalDate>,
     eventsByDate: Map<LocalDate, List<CalendarEvent>>,
     onAdd: (LocalDate, LocalTime, LocalTime) -> Unit,
@@ -441,7 +442,8 @@ private fun EventEditorSheet(
     onChange: (Draft) -> Unit,
     onDismiss: () -> Unit,
     onSave: (Draft) -> Unit,
-    onDelete: (Int) -> Unit,
+    /** id, occurrence (null = whole series, a date string = just that one). */
+    onDelete: (Int, String?) -> Unit,
 ) {
     val sheet = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var pickingStartDate by remember { mutableStateOf(false) }
@@ -557,14 +559,28 @@ private fun EventEditorSheet(
                 if (draft.mine) Text(it, color = MaterialTheme.colorScheme.primary, fontSize = 12.sp)
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(
+                Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
                 if (draft.mine) {
                     Button(onClick = { onSave(draft) }, enabled = draft.title.isNotBlank() && error == null) {
                         Text(if (draft.id == null) "Add" else "Save")
                     }
                 }
                 if (draft.mine && draft.id != null) {
-                    TextButton(onClick = { onDelete(draft.id) }) { Text("Delete") }
+                    // For a plain event these are the same thing; for a
+                    // recurring one, "this event" only excludes the clicked
+                    // occurrence (recur_exceptions) while "series" removes
+                    // the whole row.
+                    if (draft.recurFreq != null) {
+                        TextButton(onClick = { onDelete(draft.id, draft.startDate.toString()) }) {
+                            Text("Delete this event")
+                        }
+                        TextButton(onClick = { onDelete(draft.id, null) }) { Text("Delete series") }
+                    } else {
+                        TextButton(onClick = { onDelete(draft.id, null) }) { Text("Delete") }
+                    }
                 }
                 TextButton(onClick = onDismiss) { Text(if (draft.mine) "Cancel" else "Close") }
             }

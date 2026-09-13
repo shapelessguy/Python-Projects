@@ -169,8 +169,13 @@ export const api = {
     f("/api/calendar/events", { method: "POST", headers: JSON_HEADERS, body: JSON.stringify(body) }).then(j<MonthEvents>),
   patchEvent: (id: number, body: Partial<EventInput>) =>
     f(`/api/calendar/events/${id}`, { method: "PATCH", headers: JSON_HEADERS, body: JSON.stringify(body) }).then(j<MonthEvents>),
-  deleteEvent: (id: number) =>
-    f(`/api/calendar/events/${id}`, { method: "DELETE" }).then(j<MonthEvents>),
+  // `occurrence` ("delete this event", only meaningful for a recurring
+  // series) suppresses just that one date; omitted, it deletes the series.
+  deleteEvent: (id: number, occurrence?: string) =>
+    f(
+      `/api/calendar/events/${id}` + (occurrence ? "?" + new URLSearchParams({ occurrence }) : ""),
+      { method: "DELETE" },
+    ).then(j<MonthEvents>),
 
   // ── controls (CC) — thin proxy to the CyanControls RoomServer services ──
   controlInfo: () => f("/api/controls/info").then(j<ControlsInfo>),

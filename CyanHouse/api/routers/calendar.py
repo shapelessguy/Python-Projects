@@ -15,6 +15,7 @@ router = APIRouter(prefix="/api/calendar", tags=["calendar"])
 VERSION_NAMES = ["calendar"]
 
 _MONTH_RE = r"^\d{4}-\d{2}$"
+_DATE_RE = r"^\d{4}-\d{2}-\d{2}$"
 
 
 def init() -> None:
@@ -51,9 +52,13 @@ def patch_event(event_id: int, body: EventPatch, user: str = Depends(require_use
 
 
 @router.delete("/events/{event_id}")
-def delete_event(event_id: int, user: str = Depends(require_user)):
+def delete_event(
+    event_id: int,
+    occurrence: str | None = Query(None, pattern=_DATE_RE),
+    user: str = Depends(require_user),
+):
     try:
         with calendar.connect() as conn:
-            return calendar.delete_event(conn, user, event_id)
+            return calendar.delete_event(conn, user, event_id, occurrence)
     except calendar.CalendarError as e:
         raise HTTPException(status_code=e.status_code, detail=str(e))

@@ -21,14 +21,17 @@ Recurrence (recur_freq/recur_interval/recur_until) is stored once on the
 event's own row — there is no row per occurrence. list_month() expands a
 recurring event's occurrences that overlap the requested month on every read
 ("recomputed by the backend"), each carrying the same `id` as the master row.
-Consequently editing or deleting acts on the whole series, not a single
-occurrence — there's no per-occurrence exception support (a "skip just this
-one" or "change just this one") in this version.
+Editing always acts on the whole series (there's no per-occurrence "change
+just this one"). Deleting can go either way: delete_event's `occurrence`
+parameter, when given, adds that one date to the row's `recur_exceptions`
+list instead of removing the row — "delete this event" for a single
+occurrence vs. "delete series" for the whole thing.
 
 A single global `calendar_version` counter covers both kinds (like
 weather_version) rather than a per-user one: a shared event changing is
 relevant to everyone anyway, and the extra precision of scoping personal-only
 changes to just their owner isn't worth the complexity here."""
+import json
 import sqlite3
 from contextlib import contextmanager
 from datetime import date, datetime, timedelta, timezone
@@ -52,6 +55,7 @@ CREATE TABLE IF NOT EXISTS calendar_events (
     recur_freq     TEXT,
     recur_interval INTEGER NOT NULL DEFAULT 1,
     recur_until    TEXT,
+    recur_exceptions TEXT NOT NULL DEFAULT '[]',
     created_at     TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_calendar_span ON calendar_events(start_date, end_date);
@@ -181,9 +185,12 @@ def list_month(conn: sqlite3.Connection, user: str, month: str) -> dict:
         start = date.fromisoformat(row["start_date"])
         duration = date.fromisoformat(row["end_date"]) - start
         until = date.fromisoformat(row["recur_until"]) if row["recur_until"] else None
+        exceptions = set(json.loads(row["recur_exceptions"] or "[]"))
         for occ_start in _occurrence_starts(
             start, row["recur_freq"], row["recur_interval"], until, range_start, range_end,
         ):
+            if occ_start.isoformat() in exceptions:
+                continue
             events.append(_row_to_event(row, user, occ_start.isoformat(), (occ_start + duration).isoformat()))
 
     events.sort(key=lambda e: (e["start_date"], not e["all_day"], e["start_time"] or ""))
@@ -281,9 +288,22 @@ def update_event(conn: sqlite3.Connection, user: str, event_id: int, body: Event
     return list_month(conn, user, start_date[:7])
 
 
-def delete_event(conn: sqlite3.Connection, user: str, event_id: int) -> dict:
+def delete_event(conn: sqlite3.Connection, user: str, event_id: int, occurrence: str | None = None) -> dict:
+    """`occurrence` ("delete this event", only meaningful for a recurring
+    series) adds that one date to recur_exceptions instead of removing the
+    row, so the rest of the series is untouched. Without it — or when the
+    event isn't recurring, where there's only ever one occurrence anyway —
+    the whole row is removed ("delete series")."""
     row = _get_owned(conn, user, event_id)
-    month = row["start_date"][:7]
-    conn.execute("DELETE FROM calendar_events WHERE id = ?", (event_id,))
+    month = (occurrence or row["start_date"])[:7]
+    if occurrence and row["recur_freq"] is not None:
+        exceptions = set(json.loads(row["recur_exceptions"] or "[]"))
+        exceptions.add(occurrence)
+        conn.execute(
+            "UPDATE calendar_events SET recur_exceptions = ? WHERE id = ?",
+            (json.dumps(sorted(exceptions)), event_id),
+        )
+    else:
+        conn.execute("DELETE FROM calendar_events WHERE id = ?", (event_id,))
     bump(conn, _VERSION_KEY)
     return list_month(conn, user, month)

@@ -78,7 +78,7 @@ class CalendarViewModel : ViewModel() {
 
     fun createEvent(body: EventBody) = mutate { Api.createEvent(body) }
     fun patchEvent(id: Int, body: EventBody) = mutate { Api.patchEvent(id, body) }
-    fun deleteEvent(id: Int) = mutate { Api.deleteEvent(id) }
+    fun deleteEvent(id: Int, occurrence: String? = null) = mutate { Api.deleteEvent(id, occurrence) }
 
     private fun mutate(block: suspend () -> MonthEvents) = viewModelScope.launch {
         runCatching { block() }

@@ -117,9 +117,29 @@ function draftValidationError(d: Draft): string | null {
   return null;
 }
 
+const VIEW_KEY = "calendar.view";
+
+function loadView(): ViewMode {
+  try {
+    const v = localStorage.getItem(VIEW_KEY);
+    if (v === "month" || v === "week") return v;
+  } catch {
+    /* private mode / disabled storage */
+  }
+  return "month";
+}
+
 export function CalendarPanel() {
   const { calendar } = useVersionPoll();
-  const [view, setView] = useState<ViewMode>("month");
+  const [view, setViewState] = useState<ViewMode>(loadView);
+  const setView = (v: ViewMode) => {
+    setViewState(v);
+    try {
+      localStorage.setItem(VIEW_KEY, v);
+    } catch {
+      /* ignore */
+    }
+  };
   const [anchor, setAnchor] = useState(TODAY);
   const [events, setEvents] = useState<CalendarEvent[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -194,7 +214,14 @@ export function CalendarPanel() {
     req.then(() => { load(); setDraft(null); }).catch((e) => setError(String(e)));
   };
 
-  const removeDraft = () => {
+  // For a plain event these are the same thing; for a recurring one,
+  // deleteThisOccurrence only adds an exception (the rest of the series is
+  // untouched) while deleteSeries removes the whole row.
+  const deleteThisOccurrence = () => {
+    if (!draft?.id) return;
+    api.deleteEvent(draft.id, draft.start_date).then(() => { load(); setDraft(null); }).catch((e) => setError(String(e)));
+  };
+  const deleteSeries = () => {
     if (!draft?.id) return;
     api.deleteEvent(draft.id).then(() => { load(); setDraft(null); }).catch((e) => setError(String(e)));
   };
@@ -396,7 +423,14 @@ export function CalendarPanel() {
                 </button>
               )}
               {draft.mine && draft.id && (
-                <button className="danger" onClick={removeDraft}>Delete</button>
+                draft.recur_freq ? (
+                  <>
+                    <button className="danger" onClick={deleteThisOccurrence}>Delete this event</button>
+                    <button className="danger" onClick={deleteSeries}>Delete series</button>
+                  </>
+                ) : (
+                  <button className="danger" onClick={deleteSeries}>Delete</button>
+                )
               )}
               <button className="ghost" onClick={() => setDraft(null)}>
                 {draft.mine ? "Cancel" : "Close"}
@@ -420,6 +454,7 @@ function WeekGrid({
   const hours = useMemo(() => Array.from({ length: 24 }, (_, i) => i), []);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [scrollbarWidth, setScrollbarWidth] = useState(0);
+  const [scrollHeight, setScrollHeight] = useState(480);
 
   // Land the scroll around 7am by default rather than midnight — most
   // events happen later in the day and this avoids opening on empty space.
@@ -434,6 +469,26 @@ function WeekGrid({
     el.scrollTo({ top: 7 * HOUR_HEIGHT });
     setScrollbarWidth(el.offsetWidth - el.clientWidth);
   }, []);
+
+  // Stretch the grid down to the bottom of the viewport (minus a little
+  // breathing room) instead of stopping at a fixed height — remeasured on
+  // resize and whenever the rows above it (the all-day banner especially)
+  // might have changed height and shifted where the grid itself starts.
+  useEffect(() => {
+    const measure = () => {
+      const el = scrollRef.current;
+      if (!el) return;
+      const top = el.getBoundingClientRect().top;
+      setScrollHeight(Math.max(240, window.innerHeight - top - 16));
+    };
+    measure();
+    const raf = requestAnimationFrame(measure);
+    window.addEventListener("resize", measure);
+    return () => {
+      window.removeEventListener("resize", measure);
+      cancelAnimationFrame(raf);
+    };
+  }, [eventsByDate]);
 
   const handleColumnClick = (date: string, ev: React.MouseEvent<HTMLDivElement>) => {
     const rect = ev.currentTarget.getBoundingClientRect();
@@ -482,7 +537,7 @@ function WeekGrid({
         ))}
       </div>
 
-      <div className="cal-week-scroll" ref={scrollRef}>
+      <div className="cal-week-scroll" ref={scrollRef} style={{ maxHeight: scrollHeight }}>
         <div className="cal-week-grid" style={{ height: 24 * HOUR_HEIGHT }}>
           <div className="cal-week-gutter cal-hour-labels">
             {hours.map((h) => (
