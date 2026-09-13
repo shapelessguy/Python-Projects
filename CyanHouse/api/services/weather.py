@@ -33,7 +33,11 @@ def _load_meta() -> dict:
 
 def _read_csv(c: dict) -> pd.DataFrame:
     path = csv_path(c)
-    if not os.path.exists(path):
+    if not os.path.exists(path) or os.path.getsize(path) == 0:
+        # A city's file being empty (a truncated write, a failed fetch that
+        # still touched the path) must not take every other city down with
+        # it — treat it the same as "not fetched yet" rather than letting
+        # pandas.errors.EmptyDataError bubble up out of bootstrap().
         return pd.DataFrame()
     return pd.read_csv(path, index_col="datetime", parse_dates=True)
 

@@ -3,15 +3,17 @@ import { ControlsPanel } from "./panels/ControlsPanel";
 import { EnvironmentPanel } from "./panels/EnvironmentPanel";
 import { PersonalPanel } from "./panels/PersonalPanel";
 import { FoodPanel } from "./panels/FoodPanel";
+import { CalendarPanel } from "./panels/CalendarPanel";
 import { currentUsername, logout } from "./auth";
 
-type PanelId = "controls" | "environment" | "personal" | "food";
+type PanelId = "controls" | "environment" | "personal" | "food" | "calendar";
 
 const PANELS: { id: PanelId; label: string; render: () => JSX.Element }[] = [
   { id: "controls", label: "🎛 Controls", render: () => <ControlsPanel /> },
   { id: "environment", label: "🌦 Environment", render: () => <EnvironmentPanel /> },
   { id: "personal", label: "🗂 Personal", render: () => <PersonalPanel /> },
   { id: "food", label: "🍽 Food", render: () => <FoodPanel /> },
+  { id: "calendar", label: "📅 Calendar", render: () => <CalendarPanel /> },
 ];
 
 export default function App() {

@@ -16,6 +16,50 @@ data class Versions(
     val weather: Int = 0,
     val food: Int = 0,
     val forecast: Int = 0,
+    val calendar: Int = 0,
+)
+
+// ── calendar service (self-contained; personal + shared events, local only —
+//    no external account) ────────────────────────────────────────────────
+@Serializable
+data class CalendarEvent(
+    val id: Int,
+    val owner: String,
+    val mine: Boolean,
+    val shared: Boolean,
+    val title: String,
+    val description: String = "",
+    val start_date: String,
+    val end_date: String,
+    val all_day: Boolean = true,
+    val start_time: String? = null,
+    val end_time: String? = null,
+    val recur_freq: String? = null,
+    val recur_interval: Int = 1,
+    val recur_until: String? = null,
+    val recurring: Boolean = false,
+)
+
+@Serializable
+data class MonthEvents(
+    val month: String,
+    val events: List<CalendarEvent> = emptyList(),
+    val calendar_version: Int = 0,
+)
+
+@Serializable
+data class EventBody(
+    val title: String,
+    val description: String = "",
+    val start_date: String,
+    val end_date: String,
+    val all_day: Boolean = true,
+    val start_time: String? = null,
+    val end_time: String? = null,
+    val shared: Boolean = false,
+    val recur_freq: String? = null,
+    val recur_interval: Int = 1,
+    val recur_until: String? = null,
 )
 
 // ── food service ─────────────────────────────────────────────────────────

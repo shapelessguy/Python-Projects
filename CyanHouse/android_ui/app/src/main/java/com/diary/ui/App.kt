@@ -13,6 +13,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MenuBook
@@ -59,6 +60,7 @@ private enum class Section(val label: String, val icon: ImageVector) {
     Environment("Environment", Icons.Default.Cloud),
     Personal("Personal", Icons.Default.MenuBook),
     Food("Food", Icons.Default.Restaurant),
+    Calendar("Calendar", Icons.Default.CalendarMonth),
 }
 
 @Composable
@@ -159,6 +161,7 @@ fun App() {
                         Section.Environment -> EnvironmentScreen()
                         Section.Personal -> PersonalScreen()
                         Section.Food -> FoodScreen()
+                        Section.Calendar -> CalendarScreen()
                     }
                 }
             }

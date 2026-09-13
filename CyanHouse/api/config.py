@@ -55,6 +55,9 @@ FOOD_IMAGES_DIR = Path(os.environ.get("FOOD_IMAGES_DIR", API_DATA_DIR / "food_im
 SERPER_API_KEY = os.environ.get("SERPER_API_KEY", "").strip()
 SERPER_IMAGE_URL = os.environ.get("SERPER_IMAGE_URL", "https://google.serper.dev/images").strip()
 
+# ── calendar service (self-contained: own DB) — no external account, local only
+CALENDAR_DB = Path(os.environ.get("CALENDAR_DB", API_DATA_DIR / "calendar.db"))
+
 # uvicorn bind address — always all interfaces, not a per-deployment knob.
 HOST = "0.0.0.0"
 API_PORT = int(os.environ.get("API_PORT", "8000"))

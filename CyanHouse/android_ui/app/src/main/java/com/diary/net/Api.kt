@@ -23,7 +23,9 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
@@ -175,4 +177,41 @@ object Api {
     /** Absolute URL for a stored dish image filename (needs the auth header — see
      *  [com.diary.net.FoodImages]). */
     fun dishImageUrl(name: String): String = u("/api/food/images/$name")
+
+    // ── calendar (self-contained service; personal + shared events, local
+    //    only) — every mutation replies with the affected month's snapshot ──
+    suspend fun calendarMonth(month: String): MonthEvents =
+        client.get(u("/api/calendar/events")) { parameter("month", month) }.body()
+
+    suspend fun createEvent(body: EventBody): MonthEvents =
+        client.post(u("/api/calendar/events")) {
+            contentType(ContentType.Application.Json)
+            setBody(body)
+        }.body()
+
+    /** Built as an explicit JsonObject rather than `setBody(body)`: the shared
+     *  client's `explicitNulls = false` (needed elsewhere so an omitted PATCH
+     *  field means "don't touch") would otherwise silently drop a null
+     *  `recur_freq`/`recur_until`, making "clear this series' recurrence"
+     *  indistinguishable from "field not sent" server-side. */
+    suspend fun patchEvent(id: Int, body: EventBody): MonthEvents =
+        client.patch(u("/api/calendar/events/$id")) {
+            contentType(ContentType.Application.Json)
+            setBody(buildJsonObject {
+                put("title", body.title)
+                put("description", body.description)
+                put("start_date", body.start_date)
+                put("end_date", body.end_date)
+                put("all_day", body.all_day)
+                put("start_time", body.start_time?.let { JsonPrimitive(it) } ?: JsonNull)
+                put("end_time", body.end_time?.let { JsonPrimitive(it) } ?: JsonNull)
+                put("shared", body.shared)
+                put("recur_freq", body.recur_freq?.let { JsonPrimitive(it) } ?: JsonNull)
+                put("recur_interval", body.recur_interval)
+                put("recur_until", body.recur_until?.let { JsonPrimitive(it) } ?: JsonNull)
+            })
+        }.body()
+
+    suspend fun deleteEvent(id: Int): MonthEvents =
+        client.delete(u("/api/calendar/events/$id")).body()
 }

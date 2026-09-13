@@ -104,6 +104,47 @@ export interface Versions {
   weather: number;
   food: number;
   forecast: number;
+  calendar: number;
+}
+
+export type RecurFreq = "daily" | "weekly" | "monthly" | "yearly";
+
+export interface CalendarEvent {
+  id: number;
+  owner: string;
+  mine: boolean;
+  shared: boolean;
+  title: string;
+  description: string;
+  start_date: string;
+  end_date: string;
+  all_day: boolean;
+  start_time: string | null;
+  end_time: string | null;
+  recur_freq: RecurFreq | null;
+  recur_interval: number;
+  recur_until: string | null;
+  recurring: boolean;
+}
+
+export interface MonthEvents {
+  month: string;
+  events: CalendarEvent[];
+  calendar_version: number;
+}
+
+export interface EventInput {
+  title: string;
+  description?: string;
+  start_date: string;
+  end_date: string;
+  all_day?: boolean;
+  start_time?: string | null;
+  end_time?: string | null;
+  shared?: boolean;
+  recur_freq?: RecurFreq | null;
+  recur_interval?: number;
+  recur_until?: string | null;
 }
 
 export const api = {
@@ -119,6 +160,17 @@ export const api = {
     f("/api/forecast/series?" + new URLSearchParams({ cities })).then(j<ForecastResponse>),
   forecastRefresh: () =>
     f("/api/forecast/refresh", { method: "POST" }).then(j<ForecastBootstrap>),
+
+  // Every calendar mutation replies with the full month snapshot for the
+  // affected event's month (create/patch: its date; delete: its old date).
+  calendarMonth: (month: string) =>
+    f("/api/calendar/events?" + new URLSearchParams({ month })).then(j<MonthEvents>),
+  createEvent: (body: EventInput) =>
+    f("/api/calendar/events", { method: "POST", headers: JSON_HEADERS, body: JSON.stringify(body) }).then(j<MonthEvents>),
+  patchEvent: (id: number, body: Partial<EventInput>) =>
+    f(`/api/calendar/events/${id}`, { method: "PATCH", headers: JSON_HEADERS, body: JSON.stringify(body) }).then(j<MonthEvents>),
+  deleteEvent: (id: number) =>
+    f(`/api/calendar/events/${id}`, { method: "DELETE" }).then(j<MonthEvents>),
 
   // ── controls (CC) — thin proxy to the CyanControls RoomServer services ──
   controlInfo: () => f("/api/controls/info").then(j<ControlsInfo>),
@@ -161,7 +213,7 @@ export const api = {
 /** Poll GET /api/version every second so the UI refetches on any DB change,
  *  including ones made from another client (e.g. the future Android app). */
 export function useVersionPoll(intervalMs = 1000): Versions {
-  const [v, setV] = useState<Versions>({ diary: 0, weather: 0, food: 0, forecast: 0 });
+  const [v, setV] = useState<Versions>({ diary: 0, weather: 0, food: 0, forecast: 0, calendar: 0 });
   const ref = useRef(v);
   ref.current = v;
 
@@ -175,7 +227,8 @@ export function useVersionPoll(intervalMs = 1000): Versions {
           (next.diary !== ref.current.diary ||
             next.weather !== ref.current.weather ||
             next.food !== ref.current.food ||
-            next.forecast !== ref.current.forecast)
+            next.forecast !== ref.current.forecast ||
+            next.calendar !== ref.current.calendar)
         ) {
           setV(next);
         }

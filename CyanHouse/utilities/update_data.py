@@ -114,6 +114,14 @@ def update_city(city: dict):
         if city["country"] == "Germany":
             merged = merged[merged.index >= START_DATE]
         merged = _dedupe(merged)
+        if merged.empty:
+            # A transient fetch failure (network hiccup, source down) must
+            # never create the file at all — an empty file on disk would
+            # then look "already built" to every caller (_read_csv treats
+            # missing vs. empty the same, but only if the path never got
+            # created in the first place) and silently stay broken forever.
+            print(f"[{city['city_name']}] No data returned — leaving unfetched, will retry next time.")
+            return
         merged.to_csv(output)
         print(f"[{city['city_name']}] Saved {len(merged)} rows × {len(merged.columns)} columns.")
 
