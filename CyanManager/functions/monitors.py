@@ -139,8 +139,6 @@ def turn_on_monitors(signal, verbose=False):
         
     strips_on(signal, verbose)
     turn_on_mousepad(signal, verbose)
-    time.sleep(0.2)
-    strips_cyan(signal, verbose)
     subprocess.run([MULTIMONITOR_EXE_PATH, "/TurnOn"] + monitor_names)
     top_heart(signal, verbose)
 
