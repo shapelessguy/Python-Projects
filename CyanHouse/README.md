@@ -43,13 +43,13 @@ top-level packages resolve. Its name is irrelevant:
 
 ```bash
 pip install -r requirements.txt
-python -m api                        # binds API_PORT from .env (default 10001)
+python -m api                        # binds API_PORT from secrets.json (default 10001)
 ```
 
-`python -m api` is the way to run it — it reads `API_PORT` / `HOST` from `.env`.
-The bare `uvicorn api.main:app` form works too but ignores `.env` and defaults to
-port 8000, so pass `--port 10001` (matching `.env`) or the web UI's `/api` proxy
-won't find it.
+`python -m api` is the way to run it — it reads `API_PORT` / `HOST` from
+`secrets.json`. The bare `uvicorn api.main:app` form works too but ignores
+`secrets.json` and defaults to port 8000, so pass `--port 10001` (matching
+`secrets.json`) or the web UI's `/api` proxy won't find it.
 
 Frontend:
 
@@ -73,7 +73,7 @@ Every `/api/*` route requires a **username + token** (HTTP Basic, or a
 `diary_auth` cookie holding `base64("user:token")`). Define users via either:
 
 - env var `DIARY_USERS='{"alice":{"token":"tok1","permissions":{}}}'`, or
-- `cp api/users.json.example api/users.json` and edit it (git-ignored)
+- `cp secrets.json.example secrets.json` and edit its `"users"` key (git-ignored)
 
 The React UI has a sign-in screen and keeps the credential in the `diary_auth`
 cookie; the Android app keeps it in EncryptedSharedPreferences. `/` (the SPA) and
@@ -109,7 +109,7 @@ users start from the default `schema.json` / `units.json` with unrated dishes.
 - `GET  /api/controls/info` → OS volume + active audio device (polled ~1 s)
 - `POST /api/controls/room/{topic}` `{command, ...}` → the Room actuator
   (in-process, `api/services/room.py`), sent to the Arduino over
-  `ARDUINO_DEVICE` from `.env`
+  `ARDUINO_DEVICE` from `secrets.json`
 - `POST /api/controls/fn/{name}` `{...}?` → forwards to `…/functions/{name}/run`
   on the function server (`CONTROLS_FN_HOST`, a `host:port` on the LAN)
 - `GET/POST/PATCH/DELETE /api/personal/columns[/{key}]`
@@ -127,7 +127,7 @@ users start from the default `schema.json` / `units.json` with unrated dishes.
   dish (bumps everyone), `rating` sets just the caller's; `DELETE` removes it
   for everyone → snapshot
 - `GET  /api/food/image-search?q=&num=` → server-side proxy to serper.dev
-  (needs `SERPER_API_KEY` in `.env`; the key never reaches the clients)
+  (needs `SERPER_API_KEY` in `secrets.json`; the key never reaches the clients)
 - `GET  /api/food/images/{file}` → a stored dish image
 
 Every mutating call returns the fresh collection (columns list / month rows) so

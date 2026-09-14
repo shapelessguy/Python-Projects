@@ -260,7 +260,7 @@ def send(topic: str, command: str, set_auto_time: dict | None = None) -> dict:
     if ARDUINO_DEVICE and serial is None:
         raise RoomError("pyserial not installed", status_code=503)
     if not ARDUINO_DEVICE:
-        raise RoomError("Arduino not connected — set ARDUINO_DEVICE in .env", status_code=503)
+        raise RoomError("Arduino not connected — set ARDUINO_DEVICE in secrets.json", status_code=503)
 
     _write_raw(topic, command)
     return {"msg": f"{topic} [value={command}] sent to arduino."}

@@ -613,7 +613,7 @@ def _forget_image(fname: str) -> None:
 
 def search_images(query: str, num: int = 60) -> list[dict]:
     if not SERPER_API_KEY:
-        raise RuntimeError("SERPER_API_KEY is not set in .env")
+        raise RuntimeError("SERPER_API_KEY is not set in secrets.json")
     resp = requests.post(
         SERPER_IMAGE_URL,
         headers={"X-API-KEY": SERPER_API_KEY, "Content-Type": "application/json"},

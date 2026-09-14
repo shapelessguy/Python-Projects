@@ -2,7 +2,7 @@
 
 The Room actuator (top/lights/strip/tv/audio -> Arduino over serial) runs
 in-process — see api/services/room.py, ported from old_roomserver. The fn
-service is still a separate process on the LAN (CONTROLS_FN_HOST in .env),
+service is still a separate process on the LAN (CONTROLS_FN_HOST in secrets.json),
 reached the same way CyanControls always did, just proxied here so the
 panels stay same-origin and behind the dashboard login:
 
@@ -38,7 +38,7 @@ def _forward(method: str, base: str, path: str, payload: dict | None) -> dict:
     if not base:
         raise HTTPException(
             status_code=503,
-            detail="controls proxy not configured — set CONTROLS_FN_HOST in .env",
+            detail="controls proxy not configured — set CONTROLS_FN_HOST in secrets.json",
         )
     url = f"{base}{path}"
     try:

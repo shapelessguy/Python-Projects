@@ -1,8 +1,10 @@
 """Paths and settings for the API. Importing this also puts the project root on
 sys.path so the top-level packages (`api`, `forecast`, `utilities`, `variables`)
-resolve no matter where uvicorn is launched from, and loads .env so the port
-lives in exactly one place. Nothing here depends on what the project folder or
-its parent are named."""
+resolve no matter where uvicorn is launched from, and loads secrets.json so
+every setting (previously split across .env and api/users.json) lives in
+exactly one place. Nothing here depends on what the project folder or its
+parent are named."""
+import json
 import os
 import sys
 from pathlib import Path
@@ -12,19 +14,29 @@ if str(PROJECT_DIR) not in sys.path:
     sys.path.insert(0, str(PROJECT_DIR))
 
 
-def _load_dotenv(path: Path) -> None:
-    """Minimal .env reader — real environment variables still win."""
+def _load_secrets(path: Path) -> dict:
+    """Every top-level key except "users" becomes an environment variable
+    (real environment variables still win, same as the old .env loader) --
+    see secrets.json.example. "users" is returned as-is for api/auth.py
+    (SECRET_USERS below) rather than becoming an env var itself."""
     if not path.exists():
-        return
-    for line in path.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if not line or line.startswith("#") or "=" not in line:
+        return {}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except Exception as e:
+        print(f"WARNING: couldn't parse {path}: {e}")
+        return {}
+    for key, value in data.items():
+        if key == "users":
             continue
-        key, _, value = line.partition("=")
-        os.environ.setdefault(key.strip(), value.split("#", 1)[0].strip())
+        os.environ.setdefault(key, str(value))
+    return data
 
 
-_load_dotenv(PROJECT_DIR / ".env")
+_SECRETS = _load_secrets(PROJECT_DIR / "secrets.json")
+# api/auth.py's own DIARY_USERS-env-var override still takes precedence over
+# this -- see its _load_users().
+SECRET_USERS: dict = _SECRETS.get("users", {})
 
 # Root for all generated/runtime data: api's sqlite DBs + food images, the
 # forecast cache (forecast/update.py), and the historical weather CSVs

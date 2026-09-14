@@ -65,40 +65,46 @@ targeting this machine's LAN IP (`hostname -I` to confirm it). Verify
 externally with `canyouseeme.org` (or similar) — testing from inside the same
 network can give a false positive via NAT hairpinning.
 
-## 8. Check the `.env` file (top level)
+## 8. Check the `secrets.json` file (top level)
 
-Gitignored — doesn't come with `git pull`. Create it from `.env.example`:
+Gitignored — doesn't come with `git pull`, and holds *everything* config-ish
+that used to be split across `.env` and `api/users.json`: ports, hosts, API
+keys, and the `users` map. Create it from `secrets.json.example`:
 
 ```bash
 cd ~/Documents/sharedCode/CyanHouse
-cp .env.example .env
-nano .env
+cp secrets.json.example secrets.json
+nano secrets.json
 ```
 
 Fill in for *this* machine specifically: `PUBLIC_HOST`, `ARDUINO_DEVICE`
 (e.g. `/dev/ttyUSB0`, or blank if no Arduino attached yet), `CONTROLS_FN_HOST`,
-`DATA_DIR` (blank unless you want data elsewhere), `SERPER_API_KEY`.
+`DATA_DIR` (blank unless you want data elsewhere), `SERPER_API_KEY`,
+`OPENROUTER_KEY`/`LLM_FOOD_MODEL`.
 
-## 9. Check `users.json` in `/api`
-
-Also gitignored. Without it, the app falls back to `dev`/`dev` credentials
-(logs a warning) — not something you want exposed once this is live behind
-nginx. Create real credentials:
+And real user credentials under `"users"` — without at least one entry, the
+app falls back to `dev`/`dev` (logs a warning), not something you want exposed
+once this is live behind nginx:
 
 ```bash
-cd ~/Documents/sharedCode/CyanHouse/api
 python3 -c "import secrets; print(secrets.token_hex(16))"   # generate a token
-nano users.json
 ```
-
-Same shape either way — one entry per user, `token` plus a `permissions` dict
-(not enforced anywhere yet, just carried through for later):
 
 ```json
-{ "claudio": { "token": "the-token-you-just-generated", "permissions": {} } }
+{
+  "...": "... (ports/hosts/keys above) ...",
+  "users": {
+    "claudio": { "token": "the-token-you-just-generated", "permissions": {} }
+  }
+}
 ```
 
-## 10. Backend as a service
+Each user's `permissions` dict optionally takes a `visibility` list (panel
+ids: `controls`, `environment`, `personal`, `food`, `calendar`) restricting
+which panels/APIs that user can reach — omit it entirely for "sees everything"
+(the default).
+
+## 9. Backend as a service
 
 ```bash
 sudo nano /etc/systemd/system/cyanhouse-api.service
@@ -131,7 +137,7 @@ Check it: `sudo systemctl status cyanhouse-api.service`, or attach to the live
 process with `tmux attach -t cyanhouse-api` (detach again with `Ctrl+b d`
 without killing it).
 
-## 11. nginx + HTTPS (Docker)
+## 10. nginx + HTTPS (Docker)
 
 Same reverse-proxy setup as the Windows `nginx/` folder (`/ui`, `/api`,
 `/cyan_pc`), containerized instead of installing an nginx binary on the box.
@@ -192,7 +198,7 @@ automatically after a reboot as long as the Docker daemon itself is running
 for those.
 
 
-## 12. Mount the Pangea drive (NTFS, auto-mount on access)
+## 11. Mount the Pangea drive (NTFS, auto-mount on access)
 
 > **Before you start:** migrate `/var/lib/plexmediaserver/Library/Application Support/Plex Media Server` from the old server — Plex metadata lives there and won't carry over automatically.
 
@@ -208,3 +214,125 @@ sudo systemctl daemon-reload
 sudo mount /mnt/pangea
 ls /mnt/pangea
 ```
+
+## 12. Automated database backups (OneDrive via rclone)
+
+Backs up all of `data/` (the three SQLite DBs + food images + anything else
+under it, except `data/forecast/`'s regenerable API cache) to OneDrive, once
+per server restart rather than on a fixed clock schedule. See
+`scripts/backup_dbs.py`'s own module docstring for exactly how retention
+works (geometric/logarithmic bucketing, same-day dedup, a rolling `current/`
+snapshot) — this section is just the one-time machine setup.
+
+### Install rclone (no root needed — a static binary, not an apt package)
+
+```bash
+mkdir -p ~/.local/bin
+curl -sL https://downloads.rclone.org/rclone-current-linux-amd64.zip -o /tmp/rclone.zip
+cd /tmp && unzip -q rclone.zip && cd rclone-*-linux-amd64
+cp rclone ~/.local/bin/rclone && chmod +x ~/.local/bin/rclone
+~/.local/bin/rclone version   # confirm it runs
+```
+
+### Configure the OneDrive remote (one-time, interactive, needs a browser)
+
+cyanserver is headless, so the OAuth login has to happen on a *different*
+machine that has both a browser and rclone installed:
+
+```bash
+~/.local/bin/rclone config
+```
+
+Walk the wizard: `n` (new remote) → name it exactly `onedrive` → pick
+**Microsoft OneDrive** from the storage list (the type string must come out
+as `onedrive` — don't confuse it with "OpenDrive", an unrelated service with
+a near-identical name in the same list) → leave client_id/client_secret
+blank (Enter) → region `1` (global) → tenant blank → "Edit advanced config?"
+→ `n` → "Use web browser to automatically authenticate?" → `n` (no browser
+here) → it prints a command like:
+
+```
+Please run rclone authorize "onedrive" on your machine with web browser access
+```
+
+Run *that* on the other machine, sign in, approve access, and it prints a
+JSON token blob — paste that back into cyanserver's prompt exactly as
+printed (nothing before/after it). Finish by picking the actual
+**OneDrive (personal)** drive from the list it shows (not the other
+cryptic-GUID / "Bundles_..." entries, which are other apps' hidden storage on
+the same account). Verify:
+
+```bash
+~/.local/bin/rclone lsd onedrive:
+```
+
+Should list your real OneDrive folders. This only needs doing once — the
+stored refresh token renews itself silently on every subsequent backup run,
+so it won't ask for credentials again as long as the cron job below keeps
+running at least occasionally.
+
+### Wire up the backup
+
+```bash
+crontab -e
+```
+
+Add:
+
+```
+@reboot /usr/bin/python3 /home/claudio/Documents/sharedCode/CyanHouse/scripts/backup_dbs.py >> /home/claudio/Documents/sharedCode/CyanHouse/scripts/backup.log 2>&1
+```
+
+This is in *your own* crontab (not root's) — the script only reads project
+files and writes to `~/backups/cyanhouse/` + OneDrive, nothing that needs
+root. Verify after the next restart:
+
+```bash
+cat scripts/backup.log                                 # should show "backed up N files to ..."
+~/.local/bin/rclone lsf onedrive:CyanHouseBackups/ --dirs-only   # timestamped snapshots + current/
+```
+
+To back up on demand without waiting for a restart: `python3 scripts/backup_dbs.py`.
+
+## 13. Daily automatic restart
+
+Root's crontab (not yours — rebooting needs root):
+
+```bash
+sudo crontab -e
+```
+
+Add:
+
+```
+0 3 * * * /usr/sbin/reboot
+```
+
+This reboots the *whole machine* at 3am daily, not just the API process —
+nginx and any other containers/services on cyanserver go down and back up
+with it, not just CyanHouse. Everything that needs to survive a reboot
+already does, and needs no further setup:
+
+- `cyanhouse-api.service` is `enabled` (see step 9) and starts on boot.
+- The two Docker containers (`cyanhouse-nginx`, `cyanhouse-certbot`) use
+  `restart: unless-stopped` (see step 10) and come back once Docker's own
+  systemd service starts.
+- The reboot itself also fires the `@reboot` backup job from step 12, so the
+  daily restart doubles as a daily backup trigger for free.
+
+### Troubleshooting: `cyanhouse-api.service` shows `inactive` but the site half-works
+
+If it was ever manually recovered by starting the tmux session directly
+(`tmux new -s cyanhouse-api -d '.../python -m api'`) instead of through
+`systemctl`, systemd loses track of it — `systemctl status` will say
+`inactive` even though the backend is actually running. Left alone, the
+*next* reboot's `systemctl start` will then fail outright, because
+`ExecStart`'s `tmux new -s cyanhouse-api` errors out when a session by that
+name already exists. Reconcile it:
+
+```bash
+tmux kill-session -t cyanhouse-api
+sudo systemctl start cyanhouse-api.service
+```
+
+Brief downtime during the handoff, then it's back under proper supervision.

@@ -5,7 +5,8 @@ precedence; Android sends the Basic header (it has no cookie).
 
 Users come from, in order:
   1. env var  DIARY_USERS='{"alice":{"token":"tok1","permissions":{}}}'
-  2. file     api/users.json  (git-ignored, same JSON shape)
+  2. the "users" key of top-level secrets.json (git-ignored) -- see
+     secrets.json.example
   3. dev fallback  {"dev": {"token": "dev", "permissions": {}}}  (logs a warning)
 
 Each user is `{"token": str, "permissions": dict}`. One permission is
@@ -22,7 +23,7 @@ import secrets
 
 from fastapi import Depends, HTTPException, Request, status
 
-from api.config import API_DIR
+from api.config import SECRET_USERS
 
 
 def _load_users() -> dict[str, dict]:
@@ -30,11 +31,10 @@ def _load_users() -> dict[str, dict]:
     if raw:
         return {str(k): dict(v) for k, v in json.loads(raw).items()}
 
-    f = API_DIR / "users.json"
-    if f.exists():
-        return {str(k): dict(v) for k, v in json.loads(f.read_text("utf-8")).items()}
+    if SECRET_USERS:
+        return {str(k): dict(v) for k, v in SECRET_USERS.items()}
 
-    print("WARNING: no DIARY_USERS / api/users.json — using dev/dev credentials")
+    print("WARNING: no DIARY_USERS / secrets.json users -- using dev/dev credentials")
     return {"dev": {"token": "dev", "permissions": {}}}
 
 
