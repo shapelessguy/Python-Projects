@@ -71,14 +71,30 @@ class AlarmViewModel : ViewModel() {
     var due by mutableStateOf<List<DueAlarm>>(emptyList()); private set
     var error by mutableStateOf<String?>(null); private set
 
+    // False until App.kt calls setEnabled once it knows whether this user
+    // can see the calendar panel at all -- alarms are calendar events, so
+    // there's nothing to check for a user who can't, and fetching anyway
+    // would just be a request the backend 403s for no visible reason (see
+    // api/auth.py's require_panel).
+    private var enabled = false
     private var events: List<CalendarEvent> = emptyList()
     private var loadedMonth: String? = null
     private var seenCalendar = 0
 
+    fun setEnabled(value: Boolean) {
+        if (enabled == value) return
+        enabled = value
+        if (!enabled) {
+            due = emptyList()
+            events = emptyList()
+            loadedMonth = null
+        }
+    }
+
     init {
         viewModelScope.launch {
             while (true) {
-                tick()
+                if (enabled) tick()
                 delay(1000)
             }
         }

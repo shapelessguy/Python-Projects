@@ -60,7 +60,12 @@ function latestDueOccurrencePerEvent(events: CalendarEvent[], now: number): Cale
   return [...latest.values()];
 }
 
-export function useDueAlarms() {
+/** `enabled` should be false whenever the caller can't see the calendar
+ *  panel (permissions.visibility excludes it) -- alarms are calendar events,
+ *  so there's nothing to check for such a user, and fetching anyway would
+ *  just be a request the backend 403s for no visible reason (api/auth.py's
+ *  require_panel). Disabled, this fetches nothing and reports no due alarms. */
+export function useDueAlarms(enabled: boolean) {
   const { calendar } = useVersionPoll();
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [now, setNow] = useState(() => Date.now());
@@ -69,9 +74,10 @@ export function useDueAlarms() {
   // nothing in `events` has changed, since simply enough time passing can
   // make something newly due (or a snooze expire).
   useEffect(() => {
+    if (!enabled) return;
     const id = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(id);
-  }, []);
+  }, [enabled]);
 
   // Recomputed every tick but only actually changes value at local midnight,
   // so this only re-triggers the fetch effect below on a real month rollover
@@ -80,12 +86,13 @@ export function useDueAlarms() {
   const month = useMemo(() => new Date(now).toLocaleDateString("en-CA").slice(0, 7), [now]);
 
   useEffect(() => {
+    if (!enabled) return;
     let alive = true;
     api.calendarMonth(month)
       .then((res) => { if (alive) setEvents(res.events); })
       .catch(() => { /* transient -- keep last known events, retry next trigger */ });
     return () => { alive = false; };
-  }, [month, calendar]);
+  }, [enabled, month, calendar]);
 
   const due = useMemo<DueAlarm[]>(() => {
     return latestDueOccurrencePerEvent(events, now)

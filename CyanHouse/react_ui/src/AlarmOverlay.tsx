@@ -44,9 +44,11 @@ function AlarmRow({
 
 /** Rendered once at the app's top level (see App.tsx) so a due alarm shows
  *  up no matter which panel is open. Deliberately has no backdrop-click /
- *  Escape dismissal -- the only ways off an alarm are its own buttons. */
-export function AlarmOverlay() {
-  const { due, snooze, dismiss } = useDueAlarms();
+ *  Escape dismissal -- the only ways off an alarm are its own buttons.
+ *  `enabled` should reflect whether the calendar panel is actually visible
+ *  to this user -- see useDueAlarms. */
+export function AlarmOverlay({ enabled }: { enabled: boolean }) {
+  const { due, snooze, dismiss } = useDueAlarms(enabled);
   const [error, setError] = useState<string | null>(null);
   if (due.length === 0) return null;
   return (

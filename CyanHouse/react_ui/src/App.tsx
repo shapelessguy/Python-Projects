@@ -70,7 +70,10 @@ export default function App() {
           <p className="muted">No panels available for this account.</p>
         )}
       </main>
-      <AlarmOverlay />
+      {/* Alarms are calendar events -- nothing to check if this user can't
+          see the calendar panel at all, and fetching anyway would just be a
+          request the backend 403s for no visible reason. */}
+      <AlarmOverlay enabled={loaded && (visiblePanelIds === null || visiblePanelIds.includes("calendar"))} />
     </div>
   );
 }

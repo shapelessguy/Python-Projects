@@ -118,6 +118,10 @@ fun App() {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
+    val alarmViewModel: AlarmViewModel = viewModel()
+    val calendarVisible = visible == null || "calendar" in visible
+    LaunchedEffect(calendarVisible) { alarmViewModel.setEnabled(calendarVisible) }
+
     ModalNavigationDrawer(
         drawerState = drawerState,
         // Open only via the menu button — an edge-swipe-to-open would fight the
@@ -212,5 +216,5 @@ fun App() {
     // Rendered as a Dialog (its own Android window), so its place in this
     // tree doesn't affect stacking -- it shows up over whichever section is
     // open, no matter which section that is.
-    AlarmOverlay(viewModel())
+    AlarmOverlay(alarmViewModel)
 }
