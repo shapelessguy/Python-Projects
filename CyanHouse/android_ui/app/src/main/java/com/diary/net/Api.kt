@@ -56,6 +56,8 @@ object Api {
     // ── meta ─────────────────────────────────────────────────────────────
     suspend fun version(): Versions = client.get(u("/api/version")).body()
 
+    suspend fun me(): Me = client.get(u("/api/me")).body()
+
     /** Validate a credential without persisting it (used by the login screen). */
     suspend fun check(basic: String): Boolean = runCatching {
         client.get(u("/api/version")) {

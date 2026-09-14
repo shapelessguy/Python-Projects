@@ -20,6 +20,7 @@ from api.services import food
 router = APIRouter(prefix="/api/food", tags=["food"])
 
 VERSION_NAMES = ["food"]
+PANEL = "food"  # gates the whole router behind permissions.visibility -- see api/auth.py
 
 
 def init() -> None:

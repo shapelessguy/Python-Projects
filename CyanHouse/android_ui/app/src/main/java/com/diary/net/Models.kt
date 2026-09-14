@@ -19,6 +19,16 @@ data class Versions(
     val calendar: Int = 0,
 )
 
+/** GET /api/me -- one-shot, not polled (permissions are static for the life
+ *  of a session, only changing via a backend restart). null visible_panels
+ *  means unrestricted (every panel); otherwise the explicit allowed set,
+ *  matching each Section's name lowercased (see App.kt). */
+@Serializable
+data class Me(
+    val username: String,
+    val visible_panels: List<String>? = null,
+)
+
 // ── calendar service (self-contained; personal + shared events, local only —
 //    no external account) ────────────────────────────────────────────────
 @Serializable

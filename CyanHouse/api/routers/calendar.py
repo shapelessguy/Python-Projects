@@ -14,6 +14,7 @@ from api.services import calendar
 router = APIRouter(prefix="/api/calendar", tags=["calendar"])
 
 VERSION_NAMES = ["calendar"]
+PANEL = "calendar"  # gates the whole router behind permissions.visibility -- see api/auth.py
 
 _MONTH_RE = r"^\d{4}-\d{2}$"
 _DATE_RE = r"^\d{4}-\d{2}-\d{2}$"

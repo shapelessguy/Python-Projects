@@ -25,6 +25,8 @@ from api.services import room
 
 router = APIRouter(prefix="/api/controls", tags=["controls"])
 
+PANEL = "controls"  # gates the whole router behind permissions.visibility -- see api/auth.py
+
 _TIMEOUT = 5  # same as CyanControls' OkHttp timeouts
 
 

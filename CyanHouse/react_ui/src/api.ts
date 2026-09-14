@@ -107,6 +107,14 @@ export interface Versions {
   calendar: number;
 }
 
+// null = every panel (the default, unrestricted); otherwise the explicit
+// allowed set. The corresponding APIs are 403'd server-side regardless of
+// whether the frontend respects this -- see api/auth.py's require_panel.
+export interface Me {
+  username: string;
+  visible_panels: string[] | null;
+}
+
 export type RecurFreq = "daily" | "weekly" | "monthly" | "yearly";
 
 export interface Calendar {
@@ -177,6 +185,7 @@ export interface EventInput {
 
 export const api = {
   version: () => f("/api/version").then(j<Versions>),
+  me: () => f("/api/me").then(j<Me>),
 
   envBootstrap: () => f("/api/environment/bootstrap").then(j<EnvBootstrap>),
   series: (q: Record<string, string>) =>
@@ -286,4 +295,42 @@ export function useVersionPoll(intervalMs = 1000): Versions {
   }, [intervalMs]);
 
   return v;
+}
+
+/** One-shot fetch (not polled -- permissions are static for the life of a
+ *  session, only changing via a backend restart): what the current user is
+ *  allowed to see, fetched once at app start so panels can be hidden and
+ *  their APIs never called in the first place, rather than every panel
+ *  discovering it's restricted from its own first request 403ing. `loaded`
+ *  is false until that first reply lands (or fails); callers should hold
+ *  off rendering/mounting any panel content until then, since `visible` is
+ *  meaningless -- neither "restricted" nor "unrestricted" -- before that. */
+export function useVisibility(): { visible: string[] | null; loaded: boolean } {
+  const [visible, setVisible] = useState<string[] | null>(null);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    let timer: number | undefined;
+    const attempt = () => {
+      api.me()
+        .then((me) => {
+          if (!alive) return;
+          setVisible(me.visible_panels);
+          setLoaded(true);
+        })
+        .catch(() => {
+          // Transient (server not up yet, brief network blip) -- retry
+          // rather than leaving the app stuck on its loading state forever.
+          if (alive) timer = window.setTimeout(attempt, 2000);
+        });
+    };
+    attempt();
+    return () => {
+      alive = false;
+      window.clearTimeout(timer);
+    };
+  }, []);
+
+  return { visible, loaded };
 }

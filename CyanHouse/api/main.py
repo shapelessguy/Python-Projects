@@ -21,7 +21,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from api import routers as _routers_pkg
-from api.auth import require_user
+from api.auth import require_panel, require_user, visible_panels
 from api.config import DEV_ORIGINS, FRONTEND_DIST
 from api.db import connect, diary_version_key, get_version, init_db
 
@@ -166,8 +166,20 @@ def version(user: str = Depends(require_user)):
     return _collect_versions(user)
 
 
+@app.get("/api/me", tags=["meta"])
+def me(user: str = Depends(require_user)):
+    """One-shot, not polled: a client calls this once (at login / app start)
+    to learn what it's allowed to show, rather than every panel finding out
+    the hard way from a 403 the first time it fetches its own data. null =
+    unrestricted (every panel); otherwise the explicit allowed list."""
+    vis = visible_panels(user)
+    return {"username": user, "visible_panels": sorted(vis) if vis is not None else None}
+
+
 for _mod in ROUTER_MODULES:
-    app.include_router(_mod.router, dependencies=[Depends(require_user)])
+    panel = getattr(_mod, "PANEL", None)
+    dep = require_panel(panel) if panel else require_user
+    app.include_router(_mod.router, dependencies=[Depends(dep)])
 
 if FRONTEND_DIST.is_dir():
     app.mount("/", StaticFiles(directory=str(FRONTEND_DIST), html=True), name="spa")

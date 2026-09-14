@@ -8,6 +8,8 @@ from api.services import weather
 
 router = APIRouter(prefix="/api/environment", tags=["environment"])
 
+PANEL = "environment"  # gates the whole router behind permissions.visibility -- see api/auth.py
+
 
 def init() -> None:
     """A fresh deployment starts with no historical weather CSVs at all —

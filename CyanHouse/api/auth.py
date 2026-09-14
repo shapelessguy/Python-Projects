@@ -8,15 +8,19 @@ Users come from, in order:
   2. file     api/users.json  (git-ignored, same JSON shape)
   3. dev fallback  {"dev": {"token": "dev", "permissions": {}}}  (logs a warning)
 
-Each user is `{"token": str, "permissions": dict}` — permissions aren't
-enforced anywhere yet, just carried through for later.
+Each user is `{"token": str, "permissions": dict}`. One permission is
+enforced so far: `permissions.visibility`, an optional list of panel ids
+(see each router module's own `PANEL` constant) a user is restricted to.
+Omitted entirely (the common case), a user sees/can call every panel, same
+as before this existed -- it's an allowlist that only narrows things down
+when explicitly set, never something you opt into by omission.
 """
 import base64
 import json
 import os
 import secrets
 
-from fastapi import HTTPException, Request, status
+from fastapi import Depends, HTTPException, Request, status
 
 from api.config import API_DIR
 
@@ -77,3 +81,27 @@ def require_user(request: Request) -> str:
     # for the whole origin, which then shadow the SPA's cookie. The SPA has its
     # own login screen; Android sends the Basic header proactively.
     raise HTTPException(status.HTTP_401_UNAUTHORIZED, "bad username or token")
+
+
+def visible_panels(user: str) -> set[str] | None:
+    """`None` means unrestricted (every panel) -- a user with no `visibility`
+    entry in their permissions, which is every user unless explicitly
+    configured otherwise. Otherwise, the explicit allowed set."""
+    perms = (USERS.get(user) or {}).get("permissions") or {}
+    vis = perms.get("visibility")
+    return set(vis) if vis is not None else None
+
+
+def require_panel(panel: str):
+    """Dependency factory for `app.include_router(..., dependencies=[...])`:
+    401s an unauthenticated caller (via the nested require_user) same as
+    always, and additionally 403s an authenticated one whose visibility list
+    exists and doesn't include `panel` -- so a restricted user can't reach
+    this router's endpoints directly even knowing the URL, not just fail to
+    see the tab for it."""
+    def _dep(user: str = Depends(require_user)) -> str:
+        vis = visible_panels(user)
+        if vis is not None and panel not in vis:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, f"not permitted to access {panel!r}")
+        return user
+    return _dep

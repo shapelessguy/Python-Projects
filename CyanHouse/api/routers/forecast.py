@@ -23,6 +23,9 @@ from forecast import update
 router = APIRouter(prefix="/api/forecast", tags=["forecast"])
 
 VERSION_NAMES = ["forecast"]
+# Embedded inside EnvironmentPanel (ForecastStrip), not its own tab -- shares
+# that panel's visibility gate. See api/auth.py.
+PANEL = "environment"
 
 _KEY = "forecast_version"
 

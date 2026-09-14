@@ -52,16 +52,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diary.net.Auth
+import com.diary.net.fetchVisiblePanels
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-/** App sections. Add a row here + a branch in the `when` below to add one. */
-private enum class Section(val label: String, val icon: ImageVector) {
-    Controls("Controls", Icons.Default.Tune),
-    Environment("Environment", Icons.Default.Cloud),
-    Personal("Personal", Icons.Default.MenuBook),
-    Food("Food", Icons.Default.Restaurant),
-    Calendar("Calendar", Icons.Default.CalendarMonth),
+/** App sections. Add a row here + a branch in the `when` below to add one.
+ *  [panelId] must match the backend's panel keys (api/routers/*.py's own
+ *  `PANEL` constant) -- it's what permissions.visibility entries list. */
+private enum class Section(val label: String, val icon: ImageVector, val panelId: String) {
+    Controls("Controls", Icons.Default.Tune, "controls"),
+    Environment("Environment", Icons.Default.Cloud, "environment"),
+    Personal("Personal", Icons.Default.MenuBook, "personal"),
+    Food("Food", Icons.Default.Restaurant, "food"),
+    Calendar("Calendar", Icons.Default.CalendarMonth, "calendar"),
 }
 
 @Composable
@@ -74,7 +77,44 @@ fun App() {
         return
     }
 
+    // Fetched once per login (not polled -- see fetchVisiblePanels), and
+    // nothing below mounts a single section until it resolves: otherwise a
+    // restricted user's very first frame could still fire a request toward
+    // a screen it isn't allowed to see, a moment before that screen's tab
+    // disappears anyway. The backend 403s that request either way (see
+    // api/auth.py's require_panel) -- this is purely about not showing a
+    // tab, or firing a request, that would just fail.
+    var visiblePanels by remember { mutableStateOf<List<String>?>(null) }
+    var visibilityLoaded by remember { mutableStateOf(false) }
+    LaunchedEffect(credential) {
+        visibilityLoaded = false
+        visiblePanels = fetchVisiblePanels()
+        visibilityLoaded = true
+    }
+    if (!visibilityLoaded) {
+        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+            Box(Modifier.systemBarsPadding().fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        }
+        return
+    }
+    val visible = visiblePanels
+    val visibleSections = Section.entries.filter { visible == null || it.panelId in visible }
+    if (visibleSections.isEmpty()) {
+        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+            Box(Modifier.systemBarsPadding().fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("No panels available for this account.")
+            }
+        }
+        return
+    }
+
     var section by rememberSaveable { mutableStateOf(Section.Controls) }
+    // Falls back to the first visible section without needing to resync
+    // `section` state itself -- covers a restricted user whose default
+    // Controls isn't in their list.
+    val activeSection = visibleSections.firstOrNull { it == section } ?: visibleSections.first()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
@@ -94,11 +134,11 @@ fun App() {
                     )
                     HorizontalDivider()
                     Spacer(Modifier.height(8.dp))
-                    Section.entries.forEach { s ->
+                    visibleSections.forEach { s ->
                         NavigationDrawerItem(
                             icon = { Icon(s.icon, contentDescription = null) },
                             label = { Text(s.label) },
-                            selected = s == section,
+                            selected = s == activeSection,
                             onClick = {
                                 section = s
                                 scope.launch { drawerState.close() }
@@ -127,7 +167,7 @@ fun App() {
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text(section.label) },
+                    title = { Text(activeSection.label) },
                     navigationIcon = {
                         IconButton(onClick = { scope.launch { drawerState.open() } }) {
                             Icon(Icons.Default.Menu, contentDescription = "Open menu")
@@ -147,14 +187,14 @@ fun App() {
                 // updated) and show a centred spinner for a beat, so the
                 // possibly-heavy screen mounts after the drawer has closed
                 // instead of janking the transition.
-                var shown by remember { mutableStateOf(section) }
-                LaunchedEffect(section) {
-                    if (section != shown) {
+                var shown by remember { mutableStateOf(activeSection) }
+                LaunchedEffect(activeSection) {
+                    if (activeSection != shown) {
                         delay(160)
-                        shown = section
+                        shown = activeSection
                     }
                 }
-                if (shown != section) {
+                if (shown != activeSection) {
                     CircularProgressIndicator()
                 } else {
                     when (shown) {

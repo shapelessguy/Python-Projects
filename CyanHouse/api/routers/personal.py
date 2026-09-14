@@ -9,6 +9,8 @@ from api.services import diary
 
 router = APIRouter(prefix="/api/personal", tags=["personal"])
 
+PANEL = "personal"  # gates the whole router behind permissions.visibility -- see api/auth.py
+
 _MONTH_RE = r"^\d{4}-\d{2}$"
 _DATE_RE = r"^\d{4}-\d{2}-\d{2}$"
 
