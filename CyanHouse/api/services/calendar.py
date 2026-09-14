@@ -583,21 +583,32 @@ def delete_event(conn: sqlite3.Connection, user: str, event_id: int, occurrence:
     return list_month(conn, user, month)
 
 
-def delete_events_from(conn: sqlite3.Connection, user: str, from_date: str) -> int:
+def delete_events_from(
+    conn: sqlite3.Connection, user: str, from_date: str, calendar_id: int | None = None,
+) -> int:
     """Deletes every event whose own start_date is on or after `from_date`
     (inclusive), among calendars this user may edit (the shared calendar, or
-    one they own -- same access rule as _get_editable). For a recurring
-    series this looks at the row's own anchor start_date, not its individual
-    occurrences -- a weekly series that started before `from_date` is left
-    alone even though some of its future occurrences fall after it, since
-    deleting "some occurrences" isn't a thing the schema represents (there's
-    one row per series, not per occurrence). Returns the number of rows
-    deleted."""
-    rows = conn.execute(
+    one they own -- same access rule as _get_editable). `calendar_id`, when
+    given, narrows this to just that one calendar (still access-checked --
+    404/403 the same way filing an event into it would); omitted, every
+    editable calendar is in scope, as before this parameter existed. For a
+    recurring series this looks at the row's own anchor start_date, not its
+    individual occurrences -- a weekly series that started before `from_date`
+    is left alone even though some of its future occurrences fall after it,
+    since deleting "some occurrences" isn't a thing the schema represents
+    (there's one row per series, not per occurrence). Returns the number of
+    rows deleted."""
+    if calendar_id is not None:
+        _check_calendar_access(conn, user, calendar_id)
+    query = (
         "SELECT e.id FROM calendar_events e JOIN calendars c ON c.id = e.calendar_id "
-        "WHERE e.start_date >= ? AND (c.owner IS NULL OR c.owner = ?)",
-        (from_date, user),
-    ).fetchall()
+        "WHERE e.start_date >= ? AND (c.owner IS NULL OR c.owner = ?)"
+    )
+    params: list = [from_date, user]
+    if calendar_id is not None:
+        query += " AND e.calendar_id = ?"
+        params.append(calendar_id)
+    rows = conn.execute(query, params).fetchall()
     ids = [r["id"] for r in rows]
     if ids:
         conn.execute(f"DELETE FROM calendar_events WHERE id IN ({','.join('?' * len(ids))})", ids)

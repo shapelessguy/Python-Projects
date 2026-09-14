@@ -4,6 +4,6 @@ __pycache__/
 .kotlin/
 .gradle/
 nginx/
-data/forecast/datasets/
-data/utilities/datasets/
 dev_test_media/
+data/
+scripts/backup.log

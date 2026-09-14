@@ -89,10 +89,14 @@ def create_events_bulk(body: list[EventIn], user: str = Depends(require_user)):
 
 
 @router.delete("/events")
-def delete_events_from(from_date: str = Query(..., pattern=_DATE_RE), user: str = Depends(require_user)):
+def delete_events_from(
+    from_date: str = Query(..., pattern=_DATE_RE),
+    calendar_id: int | None = Query(None),
+    user: str = Depends(require_user),
+):
     try:
         with calendar.connect() as conn:
-            return {"deleted": calendar.delete_events_from(conn, user, from_date)}
+            return {"deleted": calendar.delete_events_from(conn, user, from_date, calendar_id)}
     except calendar.CalendarError as e:
         raise HTTPException(status_code=e.status_code, detail=str(e))
 
