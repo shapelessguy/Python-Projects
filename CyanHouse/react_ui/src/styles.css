@@ -120,6 +120,11 @@ h3 { font-size: 0.85rem; margin: 12px 0 6px; text-transform: uppercase; letter-s
 .fc-ticks { display: flex; justify-content: space-between; font-size: 0.65rem; color: var(--muted); }
 .fc-daylabel { white-space: nowrap; font-size: 0.85rem; min-width: 116px; text-align: right; }
 .fc-headline { margin: 2px 0 4px; font-size: 0.9rem; }
+/* Plotly's own top/bottom margins reserve room for the title/tick labels but
+   don't reliably keep the rendered text clear of it -- the second chart's
+   title ends up overlapping the first chart's x-axis labels without an
+   explicit gap between the two chart containers. */
+.fc-charts { display: flex; flex-direction: column; gap: 16px; }
 .fc-stale { color: #ffcf7a; }
 button.link {
   background: none; border: none; padding: 0; color: var(--muted);

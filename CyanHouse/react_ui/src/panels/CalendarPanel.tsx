@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import TimePicker from "react-time-picker";
 import "react-time-picker/dist/TimePicker.css";
 import { api, Calendar, CalendarEvent, EventInput, RecurFreq, useVersionPoll } from "../api";
+import { readCookie, writeCookie } from "../cookies";
 
 const TODAY = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD, local
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -184,16 +185,11 @@ function draftValidationError(d: Draft): string | null {
   return null;
 }
 
-const VIEW_KEY = "calendar.view";
+const VIEW_COOKIE = "calendar_view";
 
 function loadView(): ViewMode {
-  try {
-    const v = localStorage.getItem(VIEW_KEY);
-    if (v === "month" || v === "week") return v;
-  } catch {
-    /* private mode / disabled storage */
-  }
-  return "month";
+  const v = readCookie(VIEW_COOKIE);
+  return v === "month" || v === "week" ? v : "month";
 }
 
 const VISIBLE_CALENDARS_KEY = "calendar.visibleCalendars";
@@ -227,11 +223,7 @@ export function CalendarPanel() {
   const [view, setViewState] = useState<ViewMode>(loadView);
   const setView = (v: ViewMode) => {
     setViewState(v);
-    try {
-      localStorage.setItem(VIEW_KEY, v);
-    } catch {
-      /* ignore */
-    }
+    writeCookie(VIEW_COOKIE, v);
   };
   const [anchor, setAnchor] = useState(TODAY);
   // A native "click" fires on the nearest common ancestor of the mousedown
@@ -257,11 +249,20 @@ export function CalendarPanel() {
       setBodyHeight(Math.max(240, window.innerHeight - top - 32));
     };
     measure();
-    const raf = requestAnimationFrame(measure);
+    // A single requestAnimationFrame re-check isn't reliable on the very
+    // first mount of this panel -- whatever's above .cal-body (the nav bar,
+    // web fonts swapping in, ...) can still be settling a frame or three
+    // later, which is exactly what showed up as "wrong height until you
+    // resize the window" (a resize event just happens to re-run measure()
+    // after that settling has already finished). ResizeObserver keeps
+    // re-measuring for as long as anything affecting our position keeps
+    // changing size, instead of gambling on a fixed number of frames.
+    const ro = new ResizeObserver(measure);
+    ro.observe(document.body);
     window.addEventListener("resize", measure);
     return () => {
+      ro.disconnect();
       window.removeEventListener("resize", measure);
-      cancelAnimationFrame(raf);
     };
   }, [view]);
   const [events, setEvents] = useState<CalendarEvent[] | null>(null);

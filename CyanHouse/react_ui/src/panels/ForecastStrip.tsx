@@ -243,39 +243,41 @@ export function ForecastStrip({ allCities, selected, forecastVersion }: Props) {
         {peakText}
       </p>
 
-      <Plot
-        data={sliced.map((s) => ({
-          x: s.hours,
-          y: s.mm,
-          type: "bar" as const,
-          name: s.city?.city_name ?? s.key,
-          marker: { color: s.city?.color },
-        }))}
-        layout={{ ...baseLayout, title: { text: "Precipitation [mm/h]", font: { size: 12 } } }}
-        config={{ displayModeBar: false }}
-        style={{ width: "100%" }}
-        useResizeHandler
-      />
-      <Plot
-        data={sliced.map((s) => ({
-          x: s.hours,
-          y: s.prob,
-          type: "scatter" as const,
-          mode: "lines" as const,
-          name: s.city?.city_name ?? s.key,
-          line: { width: 1.5, color: s.city?.color },
-          fill: ready.length === 1 ? ("tozeroy" as const) : ("none" as const),
-          fillcolor: "rgba(76,155,232,0.15)",
-        }))}
-        layout={{
-          ...baseLayout,
-          title: { text: "Probability of precipitation [%]", font: { size: 12 } },
-          yaxis: { ...baseLayout.yaxis, range: [0, 100] },
-        }}
-        config={{ displayModeBar: false }}
-        style={{ width: "100%" }}
-        useResizeHandler
-      />
+      <div className="fc-charts">
+        <Plot
+          data={sliced.map((s) => ({
+            x: s.hours,
+            y: s.mm,
+            type: "bar" as const,
+            name: s.city?.city_name ?? s.key,
+            marker: { color: s.city?.color },
+          }))}
+          layout={{ ...baseLayout, title: { text: "Precipitation [mm/h]", font: { size: 12 } } }}
+          config={{ displayModeBar: false }}
+          style={{ width: "100%" }}
+          useResizeHandler
+        />
+        <Plot
+          data={sliced.map((s) => ({
+            x: s.hours,
+            y: s.prob,
+            type: "scatter" as const,
+            mode: "lines" as const,
+            name: s.city?.city_name ?? s.key,
+            line: { width: 1.5, color: s.city?.color },
+            fill: ready.length === 1 ? ("tozeroy" as const) : ("none" as const),
+            fillcolor: "rgba(76,155,232,0.15)",
+          }))}
+          layout={{
+            ...baseLayout,
+            title: { text: "Probability of precipitation [%]", font: { size: 12 } },
+            yaxis: { ...baseLayout.yaxis, range: [0, 100] },
+          }}
+          config={{ displayModeBar: false }}
+          style={{ width: "100%" }}
+          useResizeHandler
+        />
+      </div>
 
       {anyDwd && (
         <p className="muted small">

@@ -7,6 +7,7 @@ import { CalendarPanel } from "./panels/CalendarPanel";
 import { AlarmOverlay } from "./AlarmOverlay";
 import { useVisibility } from "./api";
 import { currentUsername, logout } from "./auth";
+import { readCookie, writeCookie } from "./cookies";
 
 type PanelId = "controls" | "environment" | "personal" | "food" | "calendar";
 
@@ -18,9 +19,20 @@ const PANELS: { id: PanelId; label: string; render: () => JSX.Element }[] = [
   { id: "calendar", label: "📅 Calendar", render: () => <CalendarPanel /> },
 ];
 
+const LAST_SECTION_COOKIE = "last_section";
+
+function loadLastPanel(): PanelId {
+  const v = readCookie(LAST_SECTION_COOKIE);
+  return PANELS.some((p) => p.id === v) ? (v as PanelId) : "controls";
+}
+
 export default function App() {
   const { visible: visiblePanelIds, loaded } = useVisibility();
-  const [panel, setPanel] = useState<PanelId>("controls");
+  const [panel, setPanelState] = useState<PanelId>(loadLastPanel);
+  const setPanel = (id: PanelId) => {
+    setPanelState(id);
+    writeCookie(LAST_SECTION_COOKIE, id);
+  };
   const username = currentUsername();
 
   // Purely a UI nicety -- the APIs behind a hidden panel already 403 a

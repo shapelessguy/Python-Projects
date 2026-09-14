@@ -33,8 +33,11 @@ fun visibleDays(view: CalendarViewMode, anchor: LocalDate): List<LocalDate> = wh
     }
 }
 
+private fun loadSavedViewMode(): CalendarViewMode =
+    runCatching { CalendarViewMode.valueOf(Prefs.calendarView) }.getOrDefault(CalendarViewMode.MONTH)
+
 class CalendarViewModel : ViewModel() {
-    var viewMode by mutableStateOf(CalendarViewMode.MONTH); private set
+    var viewMode by mutableStateOf(loadSavedViewMode()); private set
     var anchor by mutableStateOf(LocalDate.now()); private set
     var events by mutableStateOf<List<CalendarEvent>?>(null); private set
     var error by mutableStateOf<String?>(null); private set
@@ -115,7 +118,7 @@ class CalendarViewModel : ViewModel() {
     private fun neededMonths(): List<String> =
         visibleDays(viewMode, anchor).map { YearMonth.from(it).toString() }.distinct()
 
-    fun setView(v: CalendarViewMode) { viewMode = v; load() }
+    fun setView(v: CalendarViewMode) { viewMode = v; Prefs.calendarView = v.name; load() }
     fun goToDate(d: LocalDate) { anchor = d; load() }
     fun goToday() = goToDate(LocalDate.now())
     fun goPrev() = goToDate(if (viewMode == CalendarViewMode.MONTH) anchor.minusMonths(1) else anchor.minusWeeks(1))

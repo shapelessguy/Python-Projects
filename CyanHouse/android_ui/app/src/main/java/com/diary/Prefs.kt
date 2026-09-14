@@ -23,6 +23,12 @@ object Prefs {
         set(v) { sp?.edit()?.putString("controlsMode", v)?.apply() }
 
     // ── calendar ─────────────────────────────────────────────────────────
+    /** Last-open calendar view ("MONTH" / "WEEK"), mirroring
+     *  CalendarPanel.tsx's calendar_view cookie. */
+    var calendarView: String
+        get() = sp?.getString("calendarView", "MONTH") ?: "MONTH"
+        set(v) { sp?.edit()?.putString("calendarView", v)?.apply() }
+
     /** Which of the user's calendars to render events from. Unset (never
      *  saved, or every saved id now unknown -- e.g. deleted elsewhere) means
      *  "everything visible", mirroring CalendarPanel.tsx's loadVisibleCalendars. */
