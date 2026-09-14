@@ -57,7 +57,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /** App sections. Add a row here + a branch in the `when` below to add one.
- *  [panelId] must match the backend's panel keys (api/routers/*.py's own
+ *  [panelId] must match the backend's panel keys (api/routers/\*.py's own
  *  `PANEL` constant) -- it's what permissions.visibility entries list. */
 private enum class Section(val label: String, val icon: ImageVector, val panelId: String) {
     Controls("Controls", Icons.Default.Tune, "controls"),
