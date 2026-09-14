@@ -50,6 +50,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diary.net.Auth
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -167,4 +168,9 @@ fun App() {
             }
         }
     }
+
+    // Rendered as a Dialog (its own Android window), so its place in this
+    // tree doesn't affect stacking -- it shows up over whichever section is
+    // open, no matter which section that is.
+    AlarmOverlay(viewModel())
 }

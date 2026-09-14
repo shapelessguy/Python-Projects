@@ -22,11 +22,22 @@ data class Versions(
 // ── calendar service (self-contained; personal + shared events, local only —
 //    no external account) ────────────────────────────────────────────────
 @Serializable
+data class Calendar(
+    val id: Int,
+    val name: String,
+    val color: String,
+    val shared: Boolean,
+)
+
+@Serializable
 data class CalendarEvent(
     val id: Int,
     val owner: String,
     val mine: Boolean,
-    val shared: Boolean,
+    val calendar_id: Int,
+    val calendar_name: String,
+    val calendar_color: String,
+    val calendar_shared: Boolean,
     val title: String,
     val description: String = "",
     val start_date: String,
@@ -38,6 +49,17 @@ data class CalendarEvent(
     val recur_interval: Int = 1,
     val recur_until: String? = null,
     val recurring: Boolean = false,
+    val alarm: Boolean = false,
+    // "" (not acknowledged); else "true" for a plain event or a YYYY-MM-DD
+    // date -- the last occurrence acknowledged -- for a recurring one. See
+    // AlarmViewModel for how this decides whether an alarm is currently due.
+    val alarm_ack: String? = null,
+    // Set together, cleared together: while alarm_snooze_until (epoch ms) is
+    // still in the future AND alarm_snooze_occurrence still matches whichever
+    // occurrence is currently due, the alarm stays hidden without being
+    // permanently acknowledged.
+    val alarm_snooze_occurrence: String? = null,
+    val alarm_snooze_until: Long? = null,
 )
 
 @Serializable
@@ -56,11 +78,18 @@ data class EventBody(
     val all_day: Boolean = true,
     val start_time: String? = null,
     val end_time: String? = null,
-    val shared: Boolean = false,
+    val calendar_id: Int,
     val recur_freq: String? = null,
     val recur_interval: Int = 1,
     val recur_until: String? = null,
+    val alarm: Boolean = false,
 )
+
+@Serializable
+data class CalendarBody(val name: String, val color: String? = null)
+
+@Serializable
+data class CalendarPatchBody(val name: String? = null, val color: String? = null)
 
 // ── food service ─────────────────────────────────────────────────────────
 @Serializable
@@ -70,6 +99,10 @@ data class Dish(
     val category: String = "",
     val rating: Int = 0,
     val image: String = "",
+    val url: String = "",
+    val has_text: Boolean = false,
+    val instructions: String = "",
+    val ingredients: String = "",
 )
 
 @Serializable
@@ -85,6 +118,7 @@ data class DishBody(
     val category: String = "",
     val rating: Int = 0,
     val image_url: String? = null,
+    val url: String = "",
 )
 
 @Serializable
@@ -93,6 +127,22 @@ data class DishPatch(
     val category: String? = null,
     val rating: Int? = null,
     val image_url: String? = null,
+    val url: String? = null,
+    val instructions: String? = null,
+    val ingredients: String? = null,
+)
+
+// ── ingredients — canonical JSON stored in Dish.ingredients (see
+//    api/services/food.py's _validate_ingredients_json); parsed/rendered by
+//    the ingredients editor and the grocery-list totals. ────────────────
+@Serializable
+data class IngredientEntry(val quantity: String = "", val unit: String = "")
+
+@Serializable
+data class IngredientsData(
+    val quantity: String = "",
+    val unit: String = "",
+    val ingredients: Map<String, IngredientEntry> = emptyMap(),
 )
 
 @Serializable

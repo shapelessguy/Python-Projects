@@ -21,4 +21,46 @@ object Prefs {
     var controlsMode: String
         get() = sp?.getString("controlsMode", "ALL") ?: "ALL"
         set(v) { sp?.edit()?.putString("controlsMode", v)?.apply() }
+
+    // ── calendar ─────────────────────────────────────────────────────────
+    /** Which of the user's calendars to render events from. Unset (never
+     *  saved, or every saved id now unknown -- e.g. deleted elsewhere) means
+     *  "everything visible", mirroring CalendarPanel.tsx's loadVisibleCalendars. */
+    fun loadVisibleCalendars(allIds: Set<Int>): Set<Int> {
+        val raw = sp?.getString("visibleCalendars", null) ?: return allIds
+        return raw.split(",").mapNotNull { it.toIntOrNull() }.filter { it in allIds }.toSet()
+    }
+
+    fun saveVisibleCalendars(ids: Set<Int>) {
+        sp?.edit()?.putString("visibleCalendars", ids.joinToString(","))?.apply()
+    }
+
+    // ── food / grocery list ──────────────────────────────────────────────
+    /** Grocery list -- dish id -> quantity. Purely a client-side convenience
+     *  (never sent to the backend), mirroring grocery.ts's cookie. */
+    fun loadGroceryList(): Map<Int, Int> {
+        val raw = sp?.getString("groceryList", null) ?: return emptyMap()
+        return raw.split(",").mapNotNull { entry ->
+            val parts = entry.split(":")
+            if (parts.size != 2) return@mapNotNull null
+            val id = parts[0].toIntOrNull()
+            val qty = parts[1].toIntOrNull()
+            if (id != null && qty != null && qty > 0) id to qty else null
+        }.toMap()
+    }
+
+    fun saveGroceryList(list: Map<Int, Int>) {
+        sp?.edit()?.putString("groceryList", list.entries.joinToString(",") { "${it.key}:${it.value}" })?.apply()
+    }
+
+    /** Which shopping-list lines ("name::unit", see FoodViewModel's
+     *  computeGroceryTotals) have been ticked off. */
+    fun loadCheckedIngredients(): Set<String> {
+        val raw = sp?.getString("groceryChecked", null) ?: return emptySet()
+        return raw.split(",").filter { it.isNotEmpty() }.toSet()
+    }
+
+    fun saveCheckedIngredients(keys: Set<String>) {
+        sp?.edit()?.putString("groceryChecked", keys.joinToString(","))?.apply()
+    }
 }

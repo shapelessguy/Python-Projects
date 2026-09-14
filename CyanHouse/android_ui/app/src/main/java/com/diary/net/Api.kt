@@ -180,6 +180,23 @@ object Api {
 
     // ── calendar (self-contained service; personal + shared events, local
     //    only) — every mutation replies with the affected month's snapshot ──
+    suspend fun calendars(): List<Calendar> = client.get(u("/api/calendar/calendars")).body()
+
+    suspend fun createCalendar(name: String, color: String? = null): List<Calendar> =
+        client.post(u("/api/calendar/calendars")) {
+            contentType(ContentType.Application.Json)
+            setBody(CalendarBody(name, color))
+        }.body()
+
+    suspend fun patchCalendar(id: Int, name: String? = null, color: String? = null): List<Calendar> =
+        client.patch(u("/api/calendar/calendars/$id")) {
+            contentType(ContentType.Application.Json)
+            setBody(CalendarPatchBody(name, color))
+        }.body()
+
+    suspend fun deleteCalendar(id: Int): List<Calendar> =
+        client.delete(u("/api/calendar/calendars/$id")).body()
+
     suspend fun calendarMonth(month: String): MonthEvents =
         client.get(u("/api/calendar/events")) { parameter("month", month) }.body()
 
@@ -193,8 +210,10 @@ object Api {
      *  client's `explicitNulls = false` (needed elsewhere so an omitted PATCH
      *  field means "don't touch") would otherwise silently drop a null
      *  `recur_freq`/`recur_until`, making "clear this series' recurrence"
-     *  indistinguishable from "field not sent" server-side. */
-    suspend fun patchEvent(id: Int, body: EventBody): MonthEvents =
+     *  indistinguishable from "field not sent" server-side. `clearAlarmAck`
+     *  is set when a recurring<->single flip makes the stale alarm_ack shape
+     *  invalid for the new shape (mirrors CalendarPanel.tsx's saveDraft). */
+    suspend fun patchEvent(id: Int, body: EventBody, clearAlarmAck: Boolean = false): MonthEvents =
         client.patch(u("/api/calendar/events/$id")) {
             contentType(ContentType.Application.Json)
             setBody(buildJsonObject {
@@ -205,10 +224,12 @@ object Api {
                 put("all_day", body.all_day)
                 put("start_time", body.start_time?.let { JsonPrimitive(it) } ?: JsonNull)
                 put("end_time", body.end_time?.let { JsonPrimitive(it) } ?: JsonNull)
-                put("shared", body.shared)
+                put("calendar_id", body.calendar_id)
                 put("recur_freq", body.recur_freq?.let { JsonPrimitive(it) } ?: JsonNull)
                 put("recur_interval", body.recur_interval)
                 put("recur_until", body.recur_until?.let { JsonPrimitive(it) } ?: JsonNull)
+                put("alarm", body.alarm)
+                if (clearAlarmAck) put("alarm_ack", "")
             })
         }.body()
 
@@ -217,5 +238,29 @@ object Api {
     suspend fun deleteEvent(id: Int, occurrence: String? = null): MonthEvents =
         client.delete(u("/api/calendar/events/$id")) {
             occurrence?.let { parameter("occurrence", it) }
+        }.body()
+
+    /** Snooze a due alarm: hides it until [untilEpochMs] as long as the
+     *  occurrence currently due still matches [occurrence] (see
+     *  calendar.py's _validate_snooze). */
+    suspend fun snoozeEvent(id: Int, occurrence: String, untilEpochMs: Long): MonthEvents =
+        client.patch(u("/api/calendar/events/$id")) {
+            contentType(ContentType.Application.Json)
+            setBody(buildJsonObject {
+                put("alarm_snooze_occurrence", occurrence)
+                put("alarm_snooze_until", untilEpochMs)
+            })
+        }.body()
+
+    /** Permanently acknowledge a due alarm -- [ack] is the series' occurrence
+     *  date for a recurring event, or "true" for a plain one. */
+    suspend fun dismissEvent(id: Int, ack: String): MonthEvents =
+        client.patch(u("/api/calendar/events/$id")) {
+            contentType(ContentType.Application.Json)
+            setBody(buildJsonObject {
+                put("alarm_ack", ack)
+                put("alarm_snooze_occurrence", JsonNull)
+                put("alarm_snooze_until", JsonNull)
+            })
         }.body()
 }
