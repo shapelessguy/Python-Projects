@@ -230,7 +230,7 @@ private fun TouchSurface(modifier: Modifier) {
 private const val PIXELS_PER_SCROLL_CLICK = 60f
 
 /** Vertical-drag-only strip next to the pad, dedicated to scrolling. Finger up
- *  scrolls up (content follows the finger, same convention as the touchpad's own
+ *  scrolls down (wheel convention, opposite of the touchpad's own finger-follows
  *  drag-to-move). Arrows + a grip mark it as a scroll control at a glance rather
  *  than looking like an unlabeled sliver next to the pad. */
 @Composable
@@ -242,7 +242,7 @@ private fun ScrollStrip(modifier: Modifier) {
             .pointerInput(Unit) {
                 detectVerticalDragGestures { change, dragAmount ->
                     change.consume()
-                    MouseSocket.scroll(-dragAmount / PIXELS_PER_SCROLL_CLICK)
+                    MouseSocket.scroll(dragAmount / PIXELS_PER_SCROLL_CLICK)
                 }
             },
         verticalArrangement = Arrangement.SpaceBetween,

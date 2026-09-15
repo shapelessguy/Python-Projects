@@ -2,6 +2,8 @@
 
 package com.diary.ui
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -70,10 +72,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -181,6 +185,57 @@ private fun LocalDate.isWeekend() =
 private fun isBanner(e: CalendarEvent) = e.all_day || e.start_date != e.end_date
 private fun isTimedSingleDay(e: CalendarEvent) =
     !e.all_day && e.start_date == e.end_date && e.start_time != null && e.end_time != null
+
+private data class DaySlot(val event: CalendarEvent, val lane: Int, val lanes: Int)
+
+/** Side-by-side lane assignment for same-day timed events whose time ranges
+ *  overlap, so two events at the same hour sit next to each other instead of
+ *  drawn on top of one another. Standard greedy interval-graph colouring:
+ *  sorted by start time, each event takes the first lane whose last occupant
+ *  has already ended, opening a new lane otherwise; a cluster of mutually
+ *  touching events all share the same lane count so they end up evenly
+ *  divided, and it closes the moment an event starts after every lane in it
+ *  has already finished. Mirrors CalendarPanel.tsx's layoutDayEvents. */
+private fun layoutDayEvents(events: List<CalendarEvent>): List<DaySlot> {
+    fun minutes(t: String): Int {
+        val (h, m) = t.split(":").map(String::toInt)
+        return h * 60 + m
+    }
+
+    val sorted = events.sortedWith(
+        compareBy({ minutes(it.start_time!!) }, { minutes(it.end_time!!) }),
+    )
+
+    val result = mutableListOf<DaySlot>()
+    var cluster = mutableListOf<Pair<CalendarEvent, Int>>()
+    val laneEnds = mutableListOf<Int>()
+    var clusterEnd = Int.MIN_VALUE
+
+    fun flush() {
+        if (cluster.isEmpty()) return
+        val lanes = cluster.maxOf { it.second } + 1
+        cluster.forEach { (e, lane) -> result.add(DaySlot(e, lane, lanes)) }
+        cluster = mutableListOf()
+        laneEnds.clear()
+        clusterEnd = Int.MIN_VALUE
+    }
+
+    for (e in sorted) {
+        val start = minutes(e.start_time!!)
+        val end = minutes(e.end_time!!)
+        if (cluster.isNotEmpty() && start >= clusterEnd) flush()
+
+        val existingLane = laneEnds.indexOfFirst { it <= start }
+        val lane = if (existingLane != -1) existingLane else laneEnds.size
+        if (existingLane != -1) laneEnds[existingLane] = end else laneEnds.add(end)
+
+        cluster.add(e to lane)
+        clusterEnd = maxOf(clusterEnd, end)
+    }
+    flush()
+
+    return result
+}
 
 private fun headerLabel(view: CalendarViewMode, anchor: LocalDate): String = when (view) {
     CalendarViewMode.MONTH -> {
@@ -480,9 +535,10 @@ private fun MonthDayCell(
             date.dayOfMonth.toString(), fontSize = 11.sp,
             color = if (inMonth) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        dayEvents.take(3).forEach { e -> EventChip(e, onOpen) }
-        if (dayEvents.size > 3) {
-            Text("+${dayEvents.size - 3} more", fontSize = 8.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        // A busy day scrolls internally instead of hard-cutting after 3 events
+        // with a "+N more" that had no way to actually reach the rest.
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+            dayEvents.forEach { e -> EventChip(e, onOpen) }
         }
     }
 }
@@ -563,7 +619,7 @@ private fun ColumnScope.WeekGrid(
                 }
             }
             days.forEach { d ->
-                Box(
+                BoxWithConstraints(
                     Modifier
                         .weight(1f)
                         .height(HOUR_HEIGHT * 24)
@@ -586,15 +642,20 @@ private fun ColumnScope.WeekGrid(
                             Spacer(Modifier.height(HOUR_HEIGHT - 1.dp))
                         }
                     }
-                    eventsByDate[d].orEmpty().filter(::isTimedSingleDay).forEach { e ->
+                    // Overlapping events split side by side (lanes) instead of
+                    // drawn on top of each other -- the time column on the left
+                    // already shows the hour, so it's dropped from the label here.
+                    layoutDayEvents(eventsByDate[d].orEmpty().filter(::isTimedSingleDay)).forEach { slot ->
+                        val e = slot.event
                         val start = LocalTime.parse(e.start_time)
                         val end = LocalTime.parse(e.end_time)
                         val top = HOUR_HEIGHT * (start.toSecondOfDay() / 3600f)
                         val h = maxOf(18.dp, HOUR_HEIGHT * ((end.toSecondOfDay() - start.toSecondOfDay()) / 3600f))
+                        val laneWidth = maxWidth / slot.lanes
                         Box(
                             Modifier
-                                .offset(y = top)
-                                .fillMaxWidth()
+                                .offset(x = laneWidth * slot.lane, y = top)
+                                .width(laneWidth)
                                 .height(h)
                                 .padding(horizontal = 1.dp)
                                 .clip(RoundedCornerShape(3.dp))
@@ -605,7 +666,6 @@ private fun ColumnScope.WeekGrid(
                         ) {
                             Text(
                                 buildString {
-                                    append("${e.start_time} ")
                                     if (e.recurring) append("↻ ")
                                     if (e.alarm) append("🔔 ")
                                     append(e.title)
@@ -616,6 +676,36 @@ private fun ColumnScope.WeekGrid(
                     }
                 }
             }
+        }
+    }
+}
+
+private val URL_REGEX = Regex("""https?://\S+""")
+
+/** URLs found in free-text description, each tappable to open in a browser --
+ *  the field itself stays a plain editable text box, this just surfaces what's
+ *  in it as something you can actually press instead of having to select and
+ *  copy the text out first. */
+@Composable
+private fun DetectedLinks(text: String) {
+    val links = remember(text) {
+        URL_REGEX.findAll(text).map { it.value.trimEnd('.', ',', ')', ']') }.distinct().toList()
+    }
+    if (links.isEmpty()) return
+    val context = LocalContext.current
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        links.forEach { url ->
+            Text(
+                url,
+                color = MaterialTheme.colorScheme.primary,
+                fontSize = 12.sp,
+                textDecoration = TextDecoration.Underline,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) },
+            )
         }
     }
 }
@@ -664,6 +754,7 @@ private fun EventEditorSheet(
                 label = { Text("Description") }, enabled = editable,
                 modifier = Modifier.fillMaxWidth(),
             )
+            DetectedLinks(draft.description)
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(checked = draft.allDay, onCheckedChange = { onChange(draft.copy(allDay = it)) }, enabled = editable)
