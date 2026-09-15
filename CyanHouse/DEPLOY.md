@@ -230,6 +230,25 @@ sudo mount /mnt/pangea
 ls /mnt/pangea
 ```
 
+### Troubleshooting: Pangea randomly disconnects, needs a physical replug
+
+Pangea is a HDD in a powered Ugreen USB3-to-SATA dock, not an internal SATA
+drive. `journalctl -k` shows its USB bridge chip (`idVendor=1f75`, an
+Innostor bridge) issuing a `reset SuperSpeed USB device` on an almost exact
+10-minute cadence whenever the drive has been idle -- with no correlation to
+any actual read/write activity, cron job, or systemd timer on this box.
+That points at the dock's own firmware: a built-in idle-link-reset timer
+that renegotiates its internal USB<->SATA link to save power. Usually that
+renegotiation is harmless, but it occasionally fails outright and drops the
+whole USB device, which is what looks like a random disconnect and needs a
+physical unplug/replug to recover (that power-cycles the bridge chip).
+
+Workaround: `scripts/keep_pangea_awake.py`, run every 5 minutes via crontab
+(`crontab -l` to check it's there), writes and `fsync`s a tiny file on
+Pangea so the drive never idles long enough for the dock's timer to fire.
+It's a mitigation for the dock's firmware behavior, not a real fix -- if a
+full disconnect still happens occasionally, a replug is still the recovery.
+
 ## 12. Automated database backups (OneDrive via rclone)
 
 Backs up all of `data/` (the three SQLite DBs + food images + anything else
