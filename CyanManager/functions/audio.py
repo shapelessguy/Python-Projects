@@ -118,6 +118,27 @@ def ring_alarm(signal, verbose=False):
     sd.wait()
 
 
+def get_current_audio_info():
+    pythoncom.CoInitialize()
+    device = AudioUtilities.GetSpeakers()
+    volume = device.EndpointVolume
+    current = volume.GetMasterVolumeLevelScalar()
+    return { "device": device.FriendlyName, "volume": current }
+
+
+def set_volume(signal, verbose=False, volume_level=1):
+    pythoncom.CoInitialize()
+    device = AudioUtilities.GetSpeakers()
+    volume = device.EndpointVolume
+    new_vol = round(min(volume_level, 1.0), 2)
+    volume.SetMasterVolumeLevelScalar(new_vol, None)
+    signal.info["audio_device"] = device.FriendlyName
+    signal.info["volume"] = new_vol
+    if verbose:
+        print("Current volume:", new_vol)
+    un_mute_volume(volume, new_vol)
+
+
 def volume_up(signal, verbose=False):
     pythoncom.CoInitialize()
     device = AudioUtilities.GetSpeakers()
@@ -125,6 +146,8 @@ def volume_up(signal, verbose=False):
     current = volume.GetMasterVolumeLevelScalar()
     new_vol = round(min(current + get_step(current, +1), 1.0), 2)
     volume.SetMasterVolumeLevelScalar(new_vol, None)
+    signal.info["audio_device"] = device.FriendlyName
+    signal.info["volume"] = new_vol
     if verbose:
         print("Current volume:", new_vol)
     un_mute_volume(volume, new_vol)
@@ -137,6 +160,8 @@ def volume_down(signal, verbose=False):
     current = volume.GetMasterVolumeLevelScalar()
     new_vol = round(max(current + get_step(current, -1), 0.0), 2)
     volume.SetMasterVolumeLevelScalar(new_vol, None)
+    signal.info["audio_device"] = device.FriendlyName
+    signal.info["volume"] = new_vol
     if verbose:
         print("Current volume:", new_vol)
     un_mute_volume(volume, new_vol)
@@ -149,9 +174,10 @@ def switch_to_audio_device(signal, device_name, icon):
     subprocess.run([SV_EXE_PATH, '/SetDefault', device_name, '1'])
     device = AudioUtilities.GetSpeakers()
     after = device.FriendlyName
-    if after != before:
-        print(f"Switch to {after}")
-        notify(signal, title="Default Audio Device", message=f"{after}", icon=icon)
+    signal.info["audio_device"] = after
+    signal.info["volume"] = device.EndpointVolume.GetMasterVolumeLevelScalar()
+    print(f"Switch to {after}")
+    notify(signal, title="Default Audio Device", message=f"{after}", icon=icon)
 
 
 def switch_to_headphones(signal, verbose=False):

@@ -52,7 +52,7 @@ def get_plan_document():
 def get_vacations():
     vacations = {'entries': []}
     if os.path.exists(VACATIONS_FILEPATH):
-        with open(VACATIONS_FILEPATH, 'r') as file:
+        with open(VACATIONS_FILEPATH, 'r', encoding="utf-8") as file:
             vacations = json.load(file)
     else:
         save_vacations(vacations)
@@ -62,7 +62,7 @@ def get_vacations():
 def get_swaps():
     swaps = {'entries': []}
     if os.path.exists(SWAPS_FILEPATH):
-        with open(SWAPS_FILEPATH, 'r') as file:
+        with open(SWAPS_FILEPATH, 'r', encoding="utf-8") as file:
             swaps = json.load(file)
     else:
         save_swaps(swaps)
@@ -72,7 +72,7 @@ def get_swaps():
 def get_expenses():
     expenses = {'entries': []}
     if os.path.exists(EXPENSES_FILEPATH):
-        with open(EXPENSES_FILEPATH, 'r') as file:
+        with open(EXPENSES_FILEPATH, 'r', encoding="utf-8") as file:
             expenses = json.load(file)
     else:
         save_expenses(expenses)
@@ -82,7 +82,7 @@ def get_expenses():
 def get_blames():
     blames = {'entries': []}
     if os.path.exists(BLAMES_FILEPATH):
-        with open(BLAMES_FILEPATH, 'r') as file:
+        with open(BLAMES_FILEPATH, 'r', encoding="utf-8") as file:
             blames = json.load(file)
     return blames
 
@@ -95,23 +95,23 @@ def save_history(df):
 
 
 def save_vacations(vacations):
-    with open(VACATIONS_FILEPATH, 'w') as file:
-        json.dump(vacations, file, indent=4)
+    with open(VACATIONS_FILEPATH, 'w', encoding="utf-8") as file:
+        json.dump(vacations, file, indent=4, ensure_ascii=False)
 
 
 def save_swaps(swaps):
-    with open(SWAPS_FILEPATH, 'w') as file:
-        json.dump(swaps, file, indent=4)
+    with open(SWAPS_FILEPATH, 'w', encoding="utf-8") as file:
+        json.dump(swaps, file, indent=4, ensure_ascii=False)
 
 
 def save_expenses(expenses):
-    with open(EXPENSES_FILEPATH, 'w') as file:
-        json.dump(expenses, file, indent=4)
+    with open(EXPENSES_FILEPATH, 'w', encoding="utf-8") as file:
+        json.dump(expenses, file, indent=4, ensure_ascii=False)
 
 
 def save_blames(blames):
-    with open(BLAMES_FILEPATH, 'w') as file:
-        json.dump(blames, file, indent=4)
+    with open(BLAMES_FILEPATH, 'w', encoding="utf-8") as file:
+        json.dump(blames, file, indent=4, ensure_ascii=False)
 
 
 def expenses_to_xlsx(expenses_df):

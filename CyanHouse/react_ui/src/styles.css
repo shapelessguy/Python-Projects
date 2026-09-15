@@ -1,0 +1,756 @@
+:root {
+  --bg: #0e1117;
+  --panel: #161a23;
+  --panel-2: #1c2029;
+  --line: #2a2f3a;
+  --text: #e6e6e6;
+  --muted: #8b93a1;
+  --accent: #ff5a5a;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.45 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+}
+
+button {
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+button:hover { border-color: #3a414f; }
+button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+button.ghost { background: transparent; }
+button.danger { border-color: #6b2b2b; color: #ff9b9b; }
+button:disabled { opacity: 0.45; cursor: default; }
+
+input, select, textarea {
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 3px 6px;
+  font: inherit;
+  width: 100%;
+}
+input[type="checkbox"] { width: auto; }
+
+h1 { font-size: 1.6rem; margin: 0 0 2px; }
+h2 { font-size: 1.15rem; margin: 0; }
+h3 { font-size: 0.85rem; margin: 12px 0 6px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+
+.muted { color: var(--muted); }
+.small { font-size: 0.8rem; }
+.error { color: #ff9b9b; white-space: pre-wrap; }
+.unit { color: var(--muted); font-weight: 400; }
+
+/* ── shell ───────────────────────────────────────────────── */
+.topbar {
+  position: sticky; top: 0; z-index: 10;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+  padding: 8px 16px;
+}
+.switcher { display: flex; gap: 6px; align-items: center; }
+.whoami {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.85rem;
+  padding-right: 4px;
+  white-space: nowrap;
+}
+.whoami button { padding: 3px 8px; font-size: 0.8rem; }
+.content { padding: 16px; }
+.panel { display: flex; gap: 20px; align-items: flex-start; }
+
+/* ── environment ─────────────────────────────────────────── */
+/* This panel gets its own fixed-height row instead of flowing with the page:
+ * the graphs + forecast are always taller than the viewport, and only that
+ * column (not the whole page) should pick up a scrollbar for it. */
+.panel.environment { height: calc(100vh - 80px); align-items: stretch; }
+.env-controls {
+  flex: 0 0 240px;
+  background: var(--panel);
+  min-width: 320px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  overflow: auto;
+}
+.env-controls .check { display: flex; gap: 6px; align-items: center; margin: 3px 0; cursor: pointer; }
+.env-controls .presets { display: flex; gap: 4px; }
+.env-controls .presets button { flex: 1; padding: 3px 0; font-size: 0.72rem; }
+.env-controls .dates { display: flex; gap: 6px; margin-top: 6px; }
+.env-controls details { margin: 4px 0; }
+.env-controls summary { cursor: pointer; color: var(--muted); font-size: 0.8rem; }
+.env-controls .refresh { width: 100%; margin-top: 12px; }
+.env-charts { flex: 1 1 auto; min-width: 0; height: 100%; overflow-y: auto; }
+@media (max-width: 800px) {
+  .env-controls { display: none; }
+}
+.chart-group { margin-bottom: 18px; }
+
+/* ── forecast strip ──────────────────────────────────────── */
+.forecast-strip {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  padding: 10px 12px;
+  margin: 6px 0 20px;
+}
+.forecast-strip h3 { margin: 0; }
+.fc-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.fc-days {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  margin: 10px 0 4px;
+}
+.fc-pills { display: flex; gap: 6px; }
+.fc-pills button { font-size: 0.75rem; padding: 3px 10px; }
+.fc-track { flex: 1 1 240px; min-width: 180px; display: flex; flex-direction: column; gap: 2px; }
+.fc-track input[type="range"] { width: 100%; margin: 0; accent-color: var(--accent); }
+.fc-ticks { display: flex; justify-content: space-between; font-size: 0.65rem; color: var(--muted); }
+.fc-daylabel { white-space: nowrap; font-size: 0.85rem; min-width: 116px; text-align: right; }
+.fc-headline { margin: 2px 0 4px; font-size: 0.9rem; }
+/* Plotly's own top/bottom margins reserve room for the title/tick labels but
+   don't reliably keep the rendered text clear of it -- the second chart's
+   title ends up overlapping the first chart's x-axis labels without an
+   explicit gap between the two chart containers. */
+.fc-charts { display: flex; flex-direction: column; gap: 16px; }
+.fc-stale { color: #ffcf7a; }
+button.link {
+  background: none; border: none; padding: 0; color: var(--muted);
+  text-decoration: underline; font: inherit; cursor: pointer;
+}
+button.link:hover { color: var(--text); }
+
+/* ── controls (CC) ───────────────────────────────────────── */
+.controls { flex-direction: column; align-items: stretch; gap: 10px; width: 100%; }
+.ctl-modes { display: flex; flex-wrap: wrap; gap: 2px 4px; }
+.ctl-modes button { flex: 1 1 88px; padding: 5px 6px; }
+.ctl-status { margin: 0; min-height: 1.2em; }
+/* Per-mode views: CyanControls' fixed 3-column row/col layout, stretched to the
+   full panel width. ALL flows across as many columns as fit. */
+.ctl-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  align-items: stretch;
+}
+.ctl-grid.all { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.ctl-btn {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 6px; padding: 14px 8px; min-height: 88px;
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px;
+  color: var(--text); cursor: pointer; text-align: center;
+}
+.ctl-btn:hover { border-color: #3a414f; }
+.ctl-btn:active { background: var(--panel); }
+.ctl-btn.on { border-color: var(--accent); }
+.ctl-ico { font-size: 22px; line-height: 1; color: var(--tint, var(--text)); }
+.ctl-lbl { font-size: 13px; }
+.ctl-slider {
+  display: flex; flex-direction: column; gap: 6px;
+  background: var(--panel-2); border: 1px solid var(--line);
+  border-radius: 10px; padding: 10px 12px;
+}
+.ctl-slider label { font-size: 12px; color: var(--muted); }
+.ctl-slider-row { display: flex; align-items: center; gap: 8px; }
+.ctl-slider-row input[type="range"] { flex: 1 1 auto; width: auto; accent-color: var(--accent); }
+.ctl-nudge {
+  flex: none; width: 30px; height: 30px; padding: 0;
+  font-size: 18px; line-height: 1; border-radius: 6px;
+  background: var(--panel); border: 1px solid var(--line); color: var(--text);
+}
+.ctl-nudge:hover { border-color: #3a414f; }
+.ctl-nudge:active { background: var(--panel-2); }
+
+/* ── personal ────────────────────────────────────────────── */
+.personal { align-items: stretch; }
+.personal-main { flex: 1 1 auto; min-width: 0; }
+.month-nav { display: flex; align-items: center; gap: 10px; }
+.month-nav h2 { min-width: 160px; text-align: center; }
+
+.table-toolbar { display: flex; justify-content: flex-end; margin-top: 8px; }
+
+.col-order-list { list-style: none; margin: 8px 0 12px; padding: 0; max-height: 55vh; overflow: auto; }
+.col-order-list li {
+  display: flex; align-items: center; gap: 6px;
+  border: 1px solid var(--line); border-radius: 6px;
+  padding: 5px 8px; margin-bottom: 4px;
+}
+.col-order-list li .name { flex: 1; min-width: 0; }
+.col-order-list li button { padding: 1px 8px; line-height: 1.3; }
+
+.table-wrap {
+  margin-top: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: auto;
+  max-height: calc(100vh - 170px);
+}
+table.grid { border-collapse: collapse; width: 100%; font-size: 0.86rem; }
+table.grid th, table.grid td {
+  border-bottom: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+  text-align: left;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+table.grid th { padding: 2px 6px; vertical-align: top; }
+table.grid thead th {
+  position: sticky; top: 0; z-index: 2;
+  background: var(--panel-2);
+}
+
+table.grid td { padding: 0; }
+table.grid td.date { padding: 3px 6px; }
+
+/* Non-text cells: absolutely fill the cell, whatever height the row ends up
+   being (driven by a wrapped text cell elsewhere in the row). */
+table.grid td.fill-col { position: relative; }
+table.grid td.fill-col > input[type="number"] {
+  position: absolute; inset: 0;
+  box-sizing: border-box;
+  width: 100%; height: 100%;
+  border: none; border-radius: 0; background: transparent;
+  padding: 3px 4px; font: inherit;
+  -moz-appearance: textfield; appearance: textfield;
+}
+table.grid td.fill-col > input[type="number"]::-webkit-outer-spin-button,
+table.grid td.fill-col > input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none; margin: 0;
+}
+table.grid td.fill-col > input[type="checkbox"] { margin: 6px 8px; }
+table.grid td.fill-col > select {
+  position: absolute; inset: 0;
+  box-sizing: border-box;
+  width: 100%; height: 100%;
+  border: none; border-radius: 0; background: transparent;
+  padding: 3px 4px; font: inherit;
+}
+table.grid td.fill-col > select:focus {
+  background: var(--panel); outline: 1px solid var(--accent); outline-offset: -1px;
+}
+/* empty enum cell: no dropdown chrome until hovered/focused */
+table.grid td.fill-col > select.empty {
+  appearance: none; -webkit-appearance: none; -moz-appearance: none;
+}
+table.grid td.fill-col > select.empty:hover,
+table.grid td.fill-col > select.empty:focus {
+  appearance: auto; -webkit-appearance: auto; -moz-appearance: auto;
+}
+
+/* Text cells: the hidden .text-sizer flows and gives the <td> its height;
+   the textarea is absolutely positioned to fill whatever height results. */
+table.grid td.text-col { position: relative; white-space: normal; }
+table.grid td.text-col > .text-sizer,
+table.grid td.text-col > textarea.cell-text {
+  box-sizing: border-box;
+  min-width: 150px; max-width: 320px;
+  padding: 3px 4px;
+  font: inherit; line-height: 1.3;
+  white-space: pre-wrap; word-break: break-word;
+}
+table.grid td.text-col > .text-sizer {
+  min-height: 1.6em;
+  visibility: hidden;
+}
+table.grid td.text-col > textarea.cell-text {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  border: none; border-radius: 0; background: transparent;
+  resize: none; overflow: auto;
+  align-content: center; /* vertically centre the text lines within the box */
+}
+
+table.grid td > input:focus,
+table.grid td > textarea.cell-text:focus {
+  background: var(--panel);
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}
+.sticky-col { position: sticky; left: 0; z-index: 1; background: var(--panel-2); }
+table.grid td.date { color: var(--muted); }
+table.grid tr.today td { background: rgba(255, 90, 90, 0.16); }
+table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: var(--text); }
+
+/* ── column manager ──────────────────────────────────────── */
+.col-manager {
+  flex: 0 0 260px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  position: sticky; top: 56px;
+  max-height: calc(100vh - 80px);
+  overflow: auto;
+}
+.col-manager.collapsed { flex-basis: 50px; }
+.col-manager-toggle { width: 100%; margin-bottom: 6px; }
+.col-row { border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; margin: 6px 0; }
+.col-row summary { cursor: pointer; }
+.col-row.add summary { color: var(--accent); }
+.col-row label { display: block; margin: 6px 0; font-size: 0.8rem; color: var(--muted); }
+.col-row label input, .col-row label textarea, .col-row label select { margin-top: 2px; }
+.unit-field { display: flex; gap: 4px; align-items: center; }
+.unit-field button { white-space: nowrap; padding: 3px 8px; }
+.row-actions { display: flex; gap: 6px; margin-top: 8px; }
+
+.unit-list { list-style: none; margin: 6px 0 0; padding: 0; }
+.unit-list li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 3px 0; }
+.unit-list li button { padding: 1px 7px; line-height: 1.2; }
+
+/* ── login ───────────────────────────────────────────────── */
+.login-wrap { display: flex; justify-content: center; padding-top: 15vh; }
+.login {
+  display: flex; flex-direction: column; gap: 12px;
+  width: min(320px, 90vw);
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: 10px; padding: 20px;
+}
+.login h1 { font-size: 1.2rem; margin: 0 0 4px; }
+.login label { display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem; color: var(--muted); }
+.login button { padding: 8px; }
+
+/* ── food ────────────────────────────────────────────────── */
+.food { align-items: stretch; }
+.food-main { flex: 1 1 auto; min-width: 0; max-width: 1400px; margin: 0 auto; }
+.food-head { display: flex; align-items: center; gap: 12px; }
+.food-head h2 { margin-right: auto; }
+.food-zoom { display: flex; align-items: center; gap: 6px; color: var(--muted); }
+.food-zoom input[type="range"] { width: clamp(90px, 18vw, 200px); }
+
+/* ── grocery list ────────────────────────────────────────── */
+.grocery-panel {
+  margin: 14px 0; padding: 10px 14px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+}
+.grocery-panel-head { display: flex; align-items: center; gap: 10px; }
+.grocery-panel-head h3 { margin: 0 8px 0 0; font-size: 0.95rem; }
+.grocery-panel-head .row-actions { margin-left: auto; display: flex; gap: 6px; }
+.grocery-items { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.grocery-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 4px 0; border-top: 1px solid var(--line);
+}
+.grocery-item:first-child { border-top: none; padding-top: 0; }
+.grocery-item-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qty-stepper { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
+.qty-stepper button { width: 24px; height: 24px; padding: 0; line-height: 1; flex: 0 0 auto; }
+.qty-value { min-width: 3em; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.grocery-summary { margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--line); }
+.grocery-summary h4 { margin: 0 0 8px; font-size: 0.85rem; color: var(--muted); }
+.grocery-summary-list { list-style: none; margin: 0; padding: 0; columns: 2; column-gap: 24px; }
+.grocery-summary-list li { break-inside: avoid; padding: 2px 0; }
+.grocery-summary-list label { display: flex; align-items: baseline; gap: 6px; cursor: pointer; }
+.grocery-summary-name { text-transform: capitalize; }
+.grocery-summary-list input:checked ~ .grocery-summary-name,
+.grocery-summary-list input:checked ~ .grocery-summary-amount {
+  text-decoration: line-through; color: var(--muted);
+}
+.grocery-summary-amount { color: var(--muted); font-size: 0.85em; margin-left: auto; }
+
+/* Dish grid in selection mode: whole card toggles, ineligible ones (no
+   ingredients yet) are visibly out of play rather than hidden outright. */
+.dish-card.grocery-select { cursor: pointer; }
+.dish-card.grocery-select.ineligible { opacity: 0.4; cursor: not-allowed; }
+.dish-card.grocery-select.selected { outline: 2px solid var(--accent); outline-offset: -2px; }
+.dish-card-select-mark {
+  position: absolute; top: 6px; left: 6px; z-index: 2;
+  width: 24px; height: 24px; border-radius: 6px;
+  background: rgba(0, 0, 0, 0.55); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.05rem;
+}
+
+.food-group { margin-top: 14px; }
+.food-group-head {
+  cursor: pointer; user-select: none;
+  display: flex; align-items: baseline; gap: 6px;
+  color: var(--text); text-transform: none; letter-spacing: 0;
+  font-size: 0.95rem; margin: 0 0 8px;
+}
+.food-group-head .chevron { color: var(--muted); font-size: 0.8rem; }
+
+/* Image-forward cards: the picture is the card; a thin footer carries the
+   name, rating and the (small) edit/delete controls. Column count follows the
+   width, card image height follows the viewport height. */
+.dish-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(var(--dish-col, 200px), 100%), 1fr));
+  gap: 12px;
+}
+.dish-grid[hidden] { display: none; }
+
+.cat-loading { margin: 0 0 10px; }
+.cat-loading-label { display: block; margin-bottom: 4px; }
+.cat-loading-track {
+  height: 4px; border-radius: 3px; overflow: hidden;
+  background: var(--panel-2); border: 1px solid var(--line);
+}
+.cat-loading-fill {
+  height: 100%; background: var(--accent);
+  transition: width 0.18s ease;
+}
+.dish-card {
+  display: flex; flex-direction: column;
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: 12px; overflow: hidden;
+  container-type: inline-size; /* lets .dish-card-foot react to the card's own width */
+}
+.dish-card-img {
+  /* Fixed 4:3 shape via the classic padding-top hack, not `aspect-ratio`:
+     Chrome was inconsistently resolving `aspect-ratio` on this element
+     (a flex item that's itself a flex container) against images of
+     varying intrinsic dimensions, letting some cards' image boxes stretch
+     to the photo's own aspect instead of the fixed card shape -- visible
+     as tall/narrow cards sprinkled among normal ones, Chrome-only. The
+     padding-top box has no such ambiguity: the ratio comes purely from
+     block layout math, independent of any child's intrinsic size.
+  */
+  display: block; /* may render as <button> when the dish has ingredients to show */
+  position: relative;
+  width: 100%;
+  background: var(--panel-2);
+  overflow: hidden;
+  /* Undo the generic `button` rule's border/padding/radius for the
+     <button>-rendered case -- harmless no-ops for the plain <div> case. */
+  border: none; padding: 0; border-radius: 0; font: inherit; text-align: inherit;
+}
+.dish-card-img::before { content: ""; display: block; padding-top: 75%; }
+.dish-card-img img {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%; object-fit: cover; display: block;
+  transition: transform 0.18s ease;
+}
+.dish-card-img-empty {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2.2rem; opacity: 0.4;
+}
+/* Dishes with ingredients ready: the image itself opens them. */
+.dish-card-img.clickable { cursor: pointer; }
+.dish-card-img.clickable:hover img { transform: scale(1.06); }
+
+.dish-card-foot {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 8px; min-height: 40px;
+}
+.dish-card-foot .meta { flex: 1 1 auto; min-width: 0; }
+.dish-card-foot .dish-name {
+  font-weight: 600; font-size: 0.88rem;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.dish-card-foot .dish-stars { color: #f2c14e; font-size: 0.78rem; margin-top: 1px; }
+.dish-card-foot .acts { display: flex; align-items: center; gap: 4px; flex: 0 0 auto; }
+/* Recipe url/html fetch status: red = url set but page not saved yet,
+   green = page fetched and stored. Absent entirely when there's no url. */
+.dish-status-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto;
+}
+.dish-status-dot.ok { background: #46a758; }
+.dish-status-dot.bad { background: #e5484d; }
+.dish-card-foot .acts button { padding: 2px 7px; font-size: 0.8rem; line-height: 1.3; }
+.dish-card-foot.armed { flex-wrap: wrap; }
+.dish-card-foot .confirm-label {
+  flex: 1 1 100%; font-size: 0.78rem; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* Narrow cards: up to five icon buttons in .acts leaves the name only a
+   sliver of room next to it. Below this width, give the name its own full
+   row and drop the star rating down to share a row with the buttons instead
+   -- .meta becomes `contents` so .dish-name/.dish-stars join .dish-card-foot's
+   own flex layout directly rather than being boxed together by .meta. */
+@container (max-width: 260px) {
+  .dish-card-foot { flex-wrap: wrap; }
+  .dish-card-foot .meta { display: contents; }
+  .dish-card-foot .dish-name { flex: 1 1 100%; }
+  .dish-card-foot .dish-stars { flex: 1 1 auto; }
+  .dish-card-foot .acts { margin-left: auto; }
+}
+
+/* form image preview (still a small thumb) */
+.dish-thumb {
+  flex: 0 0 auto; width: 140px; height: 105px;
+  border-radius: 8px; overflow: hidden;
+  background: var(--panel-2);
+  display: flex; align-items: center; justify-content: center;
+}
+.dish-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.dish-thumb-empty { font-size: 1.6rem; opacity: 0.5; }
+
+/* .modal is defined later in the file with width: min(340px, …); match its
+   specificity so these panel widths win regardless of source order. */
+.modal.dish-form { width: min(420px, 92vw); display: flex; flex-direction: column; gap: 10px; }
+.dish-form label { display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem; color: var(--muted); }
+.dish-form label input[type="range"] { padding: 0; }
+.dish-form-image { display: flex; gap: 12px; align-items: flex-start; }
+.dish-form-image .col { display: flex; flex-direction: column; gap: 6px; }
+
+.modal.image-picker {
+  width: min(1240px, 96vw);
+  height: min(960px, 90vh);
+  display: flex; flex-direction: column;
+}
+.modal-backdrop.picker { z-index: 110; }
+.picker-search { display: flex; gap: 6px; margin-bottom: 10px; }
+.picker-search input { flex: 1 1 auto; }
+.picker-search button { flex: 0 0 auto; white-space: nowrap; }
+.picker-grid {
+  flex: 1 1 auto; min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-auto-rows: 220px;
+  align-content: start;
+  gap: 10px;
+}
+.picker-cell {
+  margin: 0; padding: 0;
+  border: 1px solid var(--line); border-radius: 8px;
+  overflow: hidden; background: var(--panel-2);
+  cursor: pointer;
+  width: 100%; height: 100%;
+  display: block;
+}
+.picker-cell:hover { border-color: var(--accent); }
+.picker-cell img {
+  width: 100%; height: 100%;
+  object-fit: cover; display: block;
+}
+
+/* ── calendar ─────────────────────────────────────────────── */
+.calendar { align-items: stretch; }
+.calendar-main { flex: 1 1 auto; min-width: 0; }
+/* Measured in CalendarPanel and applied to both Month and Week's shared
+   wrapper (same spot below the nav bar in either view), so the two views'
+   total heights come out exactly equal instead of each sizing itself. */
+.cal-body { display: flex; flex-direction: column; min-height: 0; }
+.cal-weekdays {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  gap: 6px; margin-top: 10px; flex: 0 0 auto;
+  color: var(--muted); font-size: 0.75rem; text-align: center;
+}
+.cal-grid {
+  display: grid; grid-template-columns: repeat(7, 1fr); grid-auto-rows: minmax(84px, 1fr);
+  gap: 6px; margin-top: 4px; flex: 1 1 auto; min-height: 0;
+}
+.cal-day {
+  border: 1px solid var(--line); border-radius: 8px;
+  background: var(--panel); padding: 4px 5px;
+  display: flex; flex-direction: column; gap: 4px; min-width: 0;
+}
+.cal-day.out { opacity: 0.35; }
+.cal-day.today { border-color: var(--accent); }
+.cal-day.weekend { background: var(--panel-2); }
+.cal-weekdays .weekend { color: var(--text); }
+.cal-day-head { display: flex; align-items: center; justify-content: space-between; }
+.cal-daynum { font-size: 0.78rem; color: var(--muted); }
+.cal-add {
+  border: none; background: transparent; color: var(--muted);
+  padding: 0 4px; font-size: 0.9rem; line-height: 1; cursor: pointer;
+}
+.cal-add:hover { color: var(--text); }
+.cal-events { display: flex; flex-direction: column; gap: 2px; overflow: hidden; }
+.cal-event {
+  display: block; width: 100%; text-align: left;
+  border: none; border-left: 3px solid var(--line); border-radius: 4px; padding: 2px 5px;
+  font-size: 0.72rem; line-height: 1.3;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  cursor: pointer;
+  background: var(--panel-2); color: var(--text);
+}
+.modal.event-form .field {
+  display: flex; flex-direction: column; gap: 4px;
+  font-size: 0.8rem; color: var(--muted); margin-top: 8px;
+}
+.modal.event-form .field:first-of-type { margin-top: 0; }
+.modal.event-form .field .dates {
+  display: flex; align-items: center; gap: 8px; margin-top: 2px;
+}
+/* Every pair sharing a .dates row (Start/End's date+time, and the
+   recurrence row's interval+until-date) should just split the row's width
+   between them. Targeting every direct child generically (rather than
+   listing input types) is deliberate -- input{width:100%} becomes each
+   one's flex-basis (flex-basis:auto resolves to a set width) and this bit
+   us twice already for two different input types sharing this row, once
+   for each type nobody had explicitly reset width on yet. */
+.modal.event-form .field .dates > * { width: auto; flex: 1 1 0; min-width: 0; }
+.modal.event-form label.check-row {
+  display: flex; align-items: center; gap: 6px;
+  margin-top: 8px; font-size: 0.85rem; cursor: pointer;
+}
+.modal.event-form .check-row-group { display: flex; justify-content: space-between; }
+.modal.event-form .dates { margin-top: 8px; }
+
+/* react-time-picker re-skinned to match the app's dark inputs instead of
+   its light-theme default. disableClock means no popup at all -- just
+   editable HH/mm segments -- so there's no clock-face styling to worry
+   about here. */
+.react-time-picker--disabled { background: transparent; color: var(--muted); }
+.react-time-picker__wrapper {
+  border: 1px solid var(--line); border-radius: 5px;
+  background: var(--panel); color: inherit;
+  padding: 3px 6px; font: inherit;
+}
+.react-time-picker__inputGroup__input { color: var(--text); }
+.react-time-picker__inputGroup__input:invalid { background: transparent; }
+.react-time-picker--disabled .react-time-picker__inputGroup__input { color: var(--muted); }
+.modal.event-form .row-actions { margin-top: 12px; }
+.modal.event-form .error.small { margin: 8px 0 0; }
+
+.cal-view-toggle { display: flex; gap: 4px; margin-left: auto; }
+
+.cal-calendars-menu { position: relative; }
+.cal-calendars-btn {
+  width: 30px; height: 30px; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 1rem; line-height: 1;
+}
+.cal-calendars-popover {
+  position: absolute; top: calc(100% + 4px); right: 0; z-index: 20;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+  padding: 8px; min-width: 220px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+.cal-cal-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 4px 2px; font-size: 0.85rem;
+}
+.cal-cal-row .check { display: flex; align-items: center; gap: 8px; cursor: pointer; flex: 1 1 auto; min-width: 0; }
+.cal-cal-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cal-swatch {
+  width: 20px; height: 20px; padding: 0; flex: none; cursor: pointer;
+  background: none; border: 2px solid var(--panel); outline: 1px solid var(--line);
+  border-radius: 50%; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+.cal-swatch::-webkit-color-swatch-wrapper { padding: 0; border-radius: 50%; overflow: hidden; }
+.cal-swatch::-webkit-color-swatch { border: none; border-radius: 50%; }
+.cal-swatch::-moz-color-swatch { border: none; border-radius: 50%; }
+.cal-cal-delete { padding: 0 4px; font-size: 0.8rem; flex: none; }
+.cal-cal-add { border-top: 1px solid var(--line); margin-top: 4px; padding-top: 8px; }
+.cal-new-cal-input { flex: 1 1 auto; padding: 3px 6px; min-width: 0; }
+
+.cal-week {
+  flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0;
+  margin-top: 10px; border: 1px solid var(--line); border-radius: 8px; overflow: hidden;
+}
+.cal-week-head, .cal-week-allday { display: flex; flex: 0 0 auto; border-bottom: 1px solid var(--line); }
+.cal-week-gutter { flex: 0 0 50px; }
+.cal-week-head > *:not(.cal-week-gutter) {
+  flex: 1 1 0; text-align: center; padding: 6px 2px;
+  font-size: 0.75rem; color: var(--muted); border-left: 1px solid var(--line);
+}
+.cal-week-daylabel.today { color: var(--text); font-weight: 600; }
+.cal-week-daylabel.weekend, .cal-week-allday-col.weekend, .cal-week-col.weekend { background: var(--panel-2); }
+.cal-week-num { color: var(--text); }
+.cal-week-allday { min-height: 28px; }
+.cal-allday-label { display: flex; align-items: center; padding-left: 6px; font-size: 0.68rem; color: var(--muted); }
+.cal-week-allday-col {
+  flex: 1 1 0; border-left: 1px solid var(--line); padding: 2px 3px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.cal-week-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+.cal-week-grid { position: relative; display: flex; }
+.cal-hour-labels { flex: 0 0 50px; }
+.cal-hour-label {
+  font-size: 0.68rem; color: var(--muted); text-align: right;
+  padding-right: 6px; box-sizing: border-box; border-top: 1px solid var(--line);
+}
+.cal-week-col { flex: 1 1 0; position: relative; border-left: 1px solid var(--line); cursor: pointer; }
+.cal-hour-line { position: absolute; left: 0; right: 0; border-top: 1px solid var(--line); height: 0; }
+.cal-week-event {
+  /* Inset enough that a sliver of the column's own background stays
+     clickable beside the event chip, for "click empty space to add
+     another event at this time" -- 2px was so thin it was effectively
+     unclickable. */
+  position: absolute; left: 5px; right: 5px; overflow: hidden;
+  border: none; border-left: 3px solid var(--line); border-radius: 4px; padding: 2px 4px;
+  font-size: 0.68rem; line-height: 1.2;
+  text-align: left; cursor: pointer;
+  background: var(--panel-2); color: var(--text);
+}
+.cal-week-event-time { color: var(--muted); font-size: 0.62rem; }
+
+/* ── modal ───────────────────────────────────────────────── */
+.modal-backdrop {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex; align-items: center; justify-content: center;
+}
+.modal {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 16px 18px;
+  width: min(340px, 90vw);
+}
+.modal h4 { margin: 0 0 10px; font-size: 0.95rem; }
+.modal.dish-info { width: min(560px, 90vw); max-height: 80vh; display: flex; flex-direction: column; }
+
+/* ── alarm overlay ───────────────────────────────────────── */
+/* Above every other modal -- an alarm should never end up hidden behind
+   whatever dialog happened to already be open. */
+.alarm-backdrop { z-index: 200; }
+.modal.alarm-modal { width: min(420px, 92vw); max-height: 80vh; display: flex; flex-direction: column; }
+.alarm-list { overflow-y: auto; min-height: 0; display: flex; flex-direction: column; gap: 8px; overscroll-behavior: contain; }
+.alarm-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px; background: var(--panel-2);
+  border: 1px solid var(--line); border-radius: 8px;
+}
+.alarm-dot { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; }
+.alarm-info { flex: 1 1 auto; min-width: 0; }
+.alarm-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.alarm-actions { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
+.alarm-actions select { font-size: 0.78rem; }
+.dish-info-scroll {
+  overflow-y: auto; min-height: 0; margin: 0 0 12px;
+  overscroll-behavior: contain;
+}
+.ingredients-top { display: flex; gap: 10px; margin-bottom: 12px; }
+.ingredients-top label { flex: 1 1 0; display: flex; flex-direction: column; gap: 3px; font-size: 0.78rem; color: var(--muted); }
+.ingredients-rows { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+.ingredients-row { display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 6px; align-items: center; }
+.ingredients-row.invalid input { border-color: var(--accent); }
+.ingredients-row-error { color: var(--accent); font-size: 0.74rem; margin: 2px 0 0 2px; }
+.dish-info-edit {
+  width: 100%; margin: 0 0 12px; resize: vertical;
+  font-family: inherit; font-size: 0.85rem; line-height: 1.5;
+  overscroll-behavior: contain;
+}
+.dish-info-body {
+  margin: 0 0 12px; padding: 10px 14px;
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px;
+  font-size: 0.85rem; line-height: 1.5;
+  overflow-y: auto;
+  /* The modal sits over a scrollable panel; without this, scrolling past
+     this box's own end/start hands the wheel event to the page behind it. */
+  overscroll-behavior: contain;
+}
+.dish-info-body.markdown > :first-child { margin-top: 0; }
+.dish-info-body.markdown > :last-child { margin-bottom: 0; }
+.dish-info-body.markdown h1,
+.dish-info-body.markdown h2,
+.dish-info-body.markdown h3 { font-size: 1rem; margin: 14px 0 6px; }
+.dish-info-body.markdown p { margin: 0 0 10px; }
+.dish-info-body.markdown ul,
+.dish-info-body.markdown ol { margin: 0 0 10px; padding-left: 1.3em; }
+.dish-info-body.markdown li { margin: 3px 0; }
+.dish-info-body.markdown code {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 4px;
+  padding: 1px 4px; font-size: 0.82em;
+}
+

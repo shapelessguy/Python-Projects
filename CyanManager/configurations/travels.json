@@ -24,7 +24,7 @@
             "enabled": true,
             "parameters": {}
         },
-        "LEDS": {
+        "PC_CONNECTED_DEVICES": {
             "enabled": false,
             "parameters": {}
         },

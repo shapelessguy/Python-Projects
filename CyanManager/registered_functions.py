@@ -8,9 +8,12 @@ from utils import ERR_FLAG
 
 
 class HandleFunction:
-    def __init__(self, function_, verbose_always_off=False):
+    def __init__(self, function_, verbose_always_off=False, description=None, properties={}, required=[]):
         self.function_ = function_
         self.verbose_always_off = verbose_always_off
+        self.description = description
+        self.properties = properties
+        self.required = required
 
     @property
     def module_name(self) -> str:
@@ -27,12 +30,12 @@ class HandleFunction:
     def add_signal(self, signal):
         self.signal = signal
     
-    def _run(self, verbose, *args):
+    def _run(self, verbose, *args, **kwargs):
         result = ERR_FLAG
         try:
             if verbose:
                 print(f"RUN FUNCTION: '{self.function_.__name__}'")
-            result = self.function_(self.signal, verbose, *args)
+            result = self.function_(self.signal, verbose, *args, **kwargs)
         except:
             import traceback
             text = "\n-----------------\n"
@@ -41,8 +44,8 @@ class HandleFunction:
             print(text)
         return result
     
-    def run(self, *args):
-        return self._run(False, *args)
+    def run(self, *args, **kwargs):
+        return self._run(False, *args, **kwargs)
     
     def run_shortcut(self, *args):
         self.signal.last_interaction = datetime.now()
@@ -53,19 +56,23 @@ class HandleFunction:
 
 
 class RegisteredFunctions:
-    HEADPHONES=HandleFunction(switch_to_headphones)
-    SPEAKERS=HandleFunction(switch_to_speakers)
+    HEADPHONES=HandleFunction(switch_to_headphones, description="Switch audio output to headphones")
+    SPEAKERS=HandleFunction(switch_to_speakers, description="Switch audio output to 5.1 speakers in the bedroom")
+    SET_VOLUME=HandleFunction(set_volume, verbose_always_off=True, description="Set speakers'volume",
+                              properties={"volume_level": {"type": "number", "description":
+                                                           "Volume level between 0 and 1. If the user says a percentage, this needs to be converted into a float"}},
+                                                           required=["volume_level"])
     VOLUME_UP=HandleFunction(volume_up, verbose_always_off=True)
     VOLUME_DOWN=HandleFunction(volume_down, verbose_always_off=True)
-    PREV=HandleFunction(prev_multimedia)
-    NEXT=HandleFunction(next_multimedia)
+    PREV=HandleFunction(prev_multimedia, description="Go to previous track on Spotify or other media")
+    NEXT=HandleFunction(next_multimedia, description="Go to next track on Spotify or other media")
     FIND_WINDOWS=HandleFunction(find_windows)
     GET_SCREENS=HandleFunction(get_screens)
     ORDER=HandleFunction(order)
     SNAPSHOT=HandleFunction(get_snapshot)
     WIN_SNAPSHOT=HandleFunction(get_win_snapshot)
-    TURN_ON_MONITORS=HandleFunction(turn_on_monitors)
-    SHUTDOWN_MONITORS=HandleFunction(shutdown_monitors)
+    TURN_ON_MONITORS=HandleFunction(turn_on_monitors, description="Turn on all monitors")
+    SHUTDOWN_MONITORS=HandleFunction(shutdown_monitors, description="Turn off all monitors")
     GET_MOUSE_POS=HandleFunction(get_mouse_position)
     GET_APPS_STATUS=HandleFunction(get_apps_status)
     GET_WIN_POSITIONS=HandleFunction(get_win_pos)
@@ -74,30 +81,33 @@ class RegisteredFunctions:
     KILL_APP=HandleFunction(kill_application)
     SHOW_UWP_APP_NAMES=HandleFunction(get_uwp_apps)
     SHOW_ALARM=HandleFunction(show_alarm)
-    RING_ALARM=HandleFunction(ring_alarm)
+    RING_ALARM=HandleFunction(ring_alarm, description="Trigger the alarm sound")
     THREADS_STATUS=HandleFunction(get_threads_status)
-    LIGHTS_ON=HandleFunction(lights_on)
-    LIGHTS_OFF=HandleFunction(lights_off)
-    LIGHTS_AUTO=HandleFunction(lights_auto)
-    TOP_POWER=HandleFunction(top_power)
-    TOP_RGB=HandleFunction(top_leds)
+    LIGHTS_ON=HandleFunction(lights_on, description="Turn on the UV/plant lights")
+    LIGHTS_OFF=HandleFunction(lights_off, description="Turn off the UV/plant lights")
+    LIGHTS_AUTO=HandleFunction(lights_auto, description="Set UV/plant lights to automatic mode")
+    TOP_POWER=HandleFunction(top_power, description="Toggle power of the ceiling light")
+    TOP_RGB=HandleFunction(top_leds, description="Toggle RGB LED mode on the ceiling light")
     TOP_BRIGHT_PLUS=HandleFunction(top_bright_plus)
     TOP_BRIGHT_MINUS=HandleFunction(top_bright_minus)
     TOP_COLD_PLUS=HandleFunction(top_cold_plus)
     TOP_COLD_LESS=HandleFunction(top_cold_less)
     TOP_COL_CHANGE=HandleFunction(top_col_change)
     TOP_COL_LOOP=HandleFunction(top_col_loop)
-    TOP_HEART=HandleFunction(top_heart)
-    AUDIO_POWER=HandleFunction(audio_power)
+    TOP_HEART=HandleFunction(top_heart, description="Set ceiling light to favourite theme")
+    AUDIO_POWER=HandleFunction(audio_power, description="Toggle power of the Logitech Z906 audio system")
     AUDIO_LEVEL=HandleFunction(audio_level)
     AUDIO_EFFECT=HandleFunction(audio_effect)
-    TV_POWER=HandleFunction(tv_power)
-    TV_OK=HandleFunction(tv_ok)
+    TV_POWER=HandleFunction(tv_power, description="Toggle power of the Hisense TV")
+    TV_OK=HandleFunction(tv_ok, description="Press the OK/confirm button on the Hisense TV")
     SPECIAL=HandleFunction(special)
     TYPE_PASSWORD=HandleFunction(type_password)
-    PLAY_PAUSE=HandleFunction(play_pause)
+    PLAY_PAUSE=HandleFunction(play_pause, description="Play or pause current media")
     TURN_ON_MOUSEPAD = HandleFunction(turn_on_mousepad)
     TURN_OFF_MOUSEPAD = HandleFunction(turn_off_mousepad)
+    TURN_ON_STRIPS = HandleFunction(strips_on)
+    TURN_OFF_STRIPS = HandleFunction(strips_off)
+    STRIPS_CYAN = HandleFunction(strips_cyan)
 
     def __init__(self, signal):
         for attr_value in self.__class__.__dict__.values():

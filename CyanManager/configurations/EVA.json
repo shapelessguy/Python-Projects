@@ -38,6 +38,46 @@
             "runas": false,
             "startup": false
         },
+        "Claude": {
+            "window_kw": [],
+            "excluded_kw": [],
+            "window_props": {
+                "monitor_id": "HKC2413(2)",
+                "x": 954,
+                "y": 601,
+                "width": 966,
+                "height": 439,
+                "win_state": "normal",
+                "order": true
+            },
+            "proc_name": "claude.exe",
+            "proc_type": "exe",
+            "path": "app:Claude",
+            "arguments": "",
+            "runas": false,
+            "startup": true
+        },
+        "Cyan House": {
+            "window_kw": [
+                "Cyan House"
+            ],
+            "excluded_kw": [],
+            "window_props": {
+                "monitor_id": "HKC2413",
+                "x": 1327,
+                "y": 0,
+                "width": 600,
+                "height": 1039,
+                "win_state": "normal",
+                "order": true
+            },
+            "proc_name": "",
+            "proc_type": "chrome",
+            "path": "C:/Program Files/Google/Chrome/Application/chrome_proxy.exe",
+            "arguments": "--profile-directory=Default --app-id=jfgaidljchhmfpcjcjakclekealckhpm",
+            "runas": false,
+            "startup": true
+        },
         "Discord": {
             "window_kw": [
                 "Discord"
@@ -66,9 +106,9 @@
             "excluded_kw": [],
             "window_props": {
                 "monitor_id": "HKC2413",
-                "x": 1460,
+                "x": 1326,
                 "y": 0,
-                "width": 466,
+                "width": 601,
                 "height": 1039,
                 "win_state": "normal",
                 "order": true
@@ -108,10 +148,10 @@
             "excluded_kw": [],
             "window_props": {
                 "monitor_id": "HKC2413(2)",
-                "x": -7,
-                "y": 529,
-                "width": 976,
-                "height": 510,
+                "x": 954,
+                "y": 601,
+                "width": 966,
+                "height": 439,
                 "win_state": "normal",
                 "order": true
             },
@@ -120,7 +160,7 @@
             "path": "C:/Program Files/Google/Chrome/Application/chrome_proxy.exe",
             "arguments": "--profile-directory=Default --app-id=ggjocahimgaohmigbfhghnlfcnjemagj",
             "runas": false,
-            "startup": true
+            "startup": false
         },
         "LLM client": {
             "window_kw": [],
@@ -274,9 +314,9 @@
             "window_props": {
                 "monitor_id": "HKC2413",
                 "x": 393,
-                "y": -1,
-                "width": 1080,
-                "height": 427,
+                "y": 0,
+                "width": 946,
+                "height": 423,
                 "win_state": "normal",
                 "order": true
             },
@@ -287,14 +327,33 @@
             "runas": false,
             "startup": true
         },
+        "Spotify": {
+            "window_kw": [],
+            "excluded_kw": [],
+            "window_props": {
+                "monitor_id": "HKC2413(2)",
+                "x": 961,
+                "y": 0,
+                "width": 952,
+                "height": 600,
+                "win_state": "normal",
+                "order": true
+            },
+            "proc_name": "Spotify.exe",
+            "proc_type": "exe",
+            "path": "app:Spotify",
+            "arguments": "",
+            "runas": false,
+            "startup": true
+        },
         "Telegram": {
             "window_kw": [],
             "excluded_kw": [],
             "window_props": {
                 "monitor_id": "HKC2413(2)",
-                "x": 954,
-                "y": 527,
-                "width": 966,
+                "x": -7,
+                "y": 529,
+                "width": 976,
                 "height": 513,
                 "win_state": "normal",
                 "order": true
@@ -313,7 +372,7 @@
                 "monitor_id": "HKC2413",
                 "x": 393,
                 "y": 417,
-                "width": 1080,
+                "width": 946,
                 "height": 623,
                 "win_state": "normal",
                 "order": true
@@ -365,7 +424,7 @@
             "path": "app:YouTube Music Desktop App",
             "arguments": "",
             "runas": false,
-            "startup": true
+            "startup": false
         }
     },
     "threads": {
@@ -373,7 +432,7 @@
             "enabled": true,
             "parameters": {}
         },
-        "Arduino": {
+        "API Server": {
             "enabled": true,
             "parameters": {}
         },
@@ -385,37 +444,45 @@
             "enabled": true,
             "parameters": {
                 "Speakers": "SPDIF-Out",
-                "Headphones": "Headphones"
+                "Headphones": "Soundcore Life Q30"
             }
         },
         "Hotkeys": {
             "enabled": true,
             "parameters": {}
         },
-        "LEDS": {
+        "PC_CONNECTED_DEVICES": {
             "enabled": true,
             "parameters": {}
         },
         "Roomserver": {
             "enabled": true,
             "parameters": {
-                "Hostname/port": "http://cyanroomserver.duckdns.org:10004",
-                "Lights from": "09:00",
-                "Lights to": "20:00"
+                "Hostname/port": "https://cyanroomserver.duckdns.org/api/controls/room",
+                "Lights from": "08:00",
+                "Lights to": "18:46"
+            }
+        },
+        "STT service": {
+            "enabled": true,
+            "parameters": {
+                "URL": "https://openrouter.ai/api/v1/chat/completions",
+                "Token": "OPENROUTER_KEY",
+                "Model": "gemini-3.5-flash-lite"
             }
         },
         "Start&Shutdown": {
             "enabled": true,
             "parameters": {
                 "Mouse Jiggle": false,
-                "Inactivity to Shutdown": "02:00",
+                "Inactivity to Shutdown": "01:00",
                 "Shutdown from": "00:00",
                 "Shutdown to": "08:00",
-                "Shutdown": true
+                "Shutdown": false
             }
         },
         "XM4-1000": {
-            "enabled": true,
+            "enabled": false,
             "parameters": {}
         }
     }

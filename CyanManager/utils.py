@@ -47,13 +47,22 @@ class Tee:
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         if msg not in ["", " ", "\n"] and self.last_newline:
             msg = f"[{timestamp}] {msg}"
-        self.stream.write(msg)
-        self.stream.flush()
-        self.log_queue.put(msg)
-        self.last_newline = msg[-1] == "\n"
+        try:
+            self.stream.write(msg)
+            self.stream.flush()
+            self.log_queue.put(msg)
+            self.last_newline = msg[-1] == "\n"
+        except Exception:
+            pass
 
     def flush(self):
         self.stream.flush()
+
+    def isatty(self):
+        try:
+            return self.stream.isatty()
+        except Exception:
+            return False
 
 
 def wait(signal, ms: int):

@@ -1,0 +1,9 @@
+secrets.json
+__pycache__/
+*.pyc
+.kotlin/
+.gradle/
+nginx/
+dev_test_media/
+data/
+scripts/backup.log
