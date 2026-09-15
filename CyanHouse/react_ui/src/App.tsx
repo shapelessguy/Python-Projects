@@ -66,8 +66,8 @@ export default function App() {
           {username && (
             <span className="whoami">
               {username}
-              <button className="ghost" onClick={logout} title="Sign out">
-                Log out
+              <button className="ghost icon-btn" onClick={logout} title="Sign out">
+                ⏻
               </button>
             </span>
           )}

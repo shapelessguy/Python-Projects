@@ -229,6 +229,26 @@ function saveVisibleCalendars(ids: Set<number>): void {
   }
 }
 
+const URL_RE = /(https?:\/\/[^\s<>]+)/g;
+
+/** Renders plain text with bare URLs turned into clickable links, preserving
+ *  line breaks -- used for the read view of an event description, which is
+ *  often copy-pasted meeting-invite text full of dial-in links. */
+function linkifyText(text: string): JSX.Element[] {
+  return text.split("\n").map((line, i) => (
+    <span key={i}>
+      {i > 0 && <br />}
+      {line.split(URL_RE).map((part, j) =>
+        // URL_RE has one capturing group, so String.split alternates
+        // plain text (even indices) with the matched URLs (odd indices).
+        j % 2 === 1
+          ? <a key={j} href={part} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>{part}</a>
+          : part
+      )}
+    </span>
+  ));
+}
+
 export function CalendarPanel() {
   const { calendar } = useVersionPoll();
   const [view, setViewState] = useState<ViewMode>(loadView);
@@ -279,6 +299,11 @@ export function CalendarPanel() {
   const [events, setEvents] = useState<CalendarEvent[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
+  // Whether the description field is showing its editable textarea (true)
+  // or the read view with clickable links (false) -- reset explicitly
+  // whenever a modal is opened, never derived from `draft` itself since that
+  // object is also replaced on every keystroke.
+  const [descEditing, setDescEditing] = useState(false);
   const [calendars, setCalendars] = useState<Calendar[]>([]);
   const [visibleIds, setVisibleIdsState] = useState<Set<number>>(new Set());
   const [newCalName, setNewCalName] = useState("");
@@ -528,7 +553,7 @@ export function CalendarPanel() {
                     >
                       <div className="cal-day-head">
                         <span className="cal-daynum">{Number(date.slice(8))}</span>
-                        <button className="cal-add" title="Add event" onClick={() => setDraft(blankDraft(date, defaultCalendarId))}>
+                        <button className="cal-add" title="Add event" onClick={() => { setDraft(blankDraft(date, defaultCalendarId)); setDescEditing(true); }}>
                           +
                         </button>
                       </div>
@@ -538,7 +563,7 @@ export function CalendarPanel() {
                             key={e.id}
                             className="cal-event"
                             style={{ borderLeftColor: e.calendar_color }}
-                            onClick={() => setDraft(draftFromEvent(e))}
+                            onClick={() => { setDraft(draftFromEvent(e)); setDescEditing(false); }}
                             title={e.mine ? e.title : `${e.title} (by ${e.owner})`}
                           >
                             {e.recurring ? "↻ " : ""}
@@ -557,8 +582,8 @@ export function CalendarPanel() {
             <WeekGrid
               days={days}
               eventsByDate={eventsByDate}
-              onAdd={(date, start, end) => setDraft(blankDraft(date, defaultCalendarId, start, end, false))}
-              onOpen={(e) => setDraft(draftFromEvent(e))}
+              onAdd={(date, start, end) => { setDraft(blankDraft(date, defaultCalendarId, start, end, false)); setDescEditing(true); }}
+              onOpen={(e) => { setDraft(draftFromEvent(e)); setDescEditing(false); }}
             />
           )}
         </div>
@@ -598,11 +623,23 @@ export function CalendarPanel() {
             </label>
             <label className="field">
               Description
-              <textarea
-                value={draft.description}
-                disabled={!editable}
-                onChange={(e) => setDraft({ ...draft, description: e.target.value })}
-              />
+              {editable && descEditing ? (
+                <textarea
+                  value={draft.description}
+                  onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+                  onBlur={() => setDescEditing(false)}
+                  autoFocus
+                />
+              ) : (
+                <div
+                  className={"description-view" + (editable ? " editable" : "")}
+                  onClick={() => editable && setDescEditing(true)}
+                >
+                  {draft.description
+                    ? linkifyText(draft.description)
+                    : editable && <span className="muted">Click to add a description</span>}
+                </div>
+              )}
             </label>
             <div className="check-row-group">
               <label className="check-row">
