@@ -175,6 +175,9 @@ private fun Draft.validationError(): String? {
     return null
 }
 
+private fun LocalDate.isWeekend() =
+    dayOfWeek == java.time.DayOfWeek.SATURDAY || dayOfWeek == java.time.DayOfWeek.SUNDAY
+
 private fun isBanner(e: CalendarEvent) = e.all_day || e.start_date != e.end_date
 private fun isTimedSingleDay(e: CalendarEvent) =
     !e.all_day && e.start_date == e.end_date && e.start_time != null && e.end_time != null
@@ -418,12 +421,13 @@ private fun ColumnScope.MonthGrid(
         ) {
             item(span = { GridItemSpan(maxLineSpan) }) {
                 Row(Modifier.fillMaxWidth().height(MONTH_HEADER_HEIGHT)) {
-                    // Sunday-first order: DayOfWeek.of(7) is Sunday, then 1..6 (Mon..Sat).
-                    for (isoValue in listOf(7, 1, 2, 3, 4, 5, 6)) {
+                    // Monday-first order: DayOfWeek's ISO values are already 1=Monday..7=Sunday.
+                    for (isoValue in 1..7) {
+                        val weekend = isoValue >= 6
                         Text(
                             java.time.DayOfWeek.of(isoValue).getDisplayName(TextStyle.SHORT, Locale.getDefault()),
                             fontSize = 10.sp, textAlign = TextAlign.Center,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = if (weekend) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.weight(1f),
                         )
                     }
@@ -463,8 +467,11 @@ private fun MonthDayCell(
                 if (today) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
             )
             .background(
-                if (inMonth) MaterialTheme.colorScheme.surface
-                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                when {
+                    !inMonth -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+                    date.isWeekend() -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
+                    else -> MaterialTheme.colorScheme.surface
+                },
             )
             .clickable(onClick = onAdd)
             .padding(3.dp),
@@ -560,6 +567,10 @@ private fun ColumnScope.WeekGrid(
                     Modifier
                         .weight(1f)
                         .height(HOUR_HEIGHT * 24)
+                        .background(
+                            if (d.isWeekend()) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
+                            else androidx.compose.ui.graphics.Color.Transparent,
+                        )
                         .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
                         .pointerInput(d) {
                             detectTapGestures { offset ->

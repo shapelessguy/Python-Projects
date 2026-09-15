@@ -5,8 +5,19 @@ import { api, Calendar, CalendarEvent, EventInput, RecurFreq, useVersionPoll } f
 import { readCookie, writeCookie } from "../cookies";
 
 const TODAY = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD, local
-const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const HOUR_HEIGHT = 48; // px per hour row in the week grid
+
+/** getDay() is 0=Sunday..6=Saturday; this reindexes to 0=Monday..6=Sunday so
+ *  "days since the start of the week" lines up with a Monday-first grid. */
+function mondayIndex(getDay: number): number {
+  return (getDay + 6) % 7;
+}
+
+function isWeekend(date: string): boolean {
+  const day = new Date(date + "T00:00:00").getDay();
+  return day === 0 || day === 6;
+}
 
 type ViewMode = "month" | "week";
 
@@ -24,16 +35,16 @@ function addMonths(date: string, delta: number): string {
 
 function startOfWeek(date: string): string {
   const d = new Date(date + "T00:00:00");
-  d.setDate(d.getDate() - d.getDay());
+  d.setDate(d.getDate() - mondayIndex(d.getDay()));
   return d.toLocaleDateString("en-CA");
 }
 
 /** 6 weeks (42 days) covering the month, padded with adjacent months so the
- *  grid always starts on a Sunday. */
+ *  grid always starts on a Monday. */
 function monthGrid(monthStr: string): string[] {
   const [y, m] = monthStr.split("-").map(Number);
   const first = new Date(y, m - 1, 1);
-  const start = new Date(y, m - 1, 1 - first.getDay()).toLocaleDateString("en-CA");
+  const start = new Date(y, m - 1, 1 - mondayIndex(first.getDay())).toLocaleDateString("en-CA");
   return Array.from({ length: 42 }, (_, i) => addDays(start, i));
 }
 
@@ -499,14 +510,22 @@ export function CalendarPanel() {
           {view === "month" ? (
             <>
               <div className="cal-weekdays">
-                {WEEKDAYS.map((d) => <div key={d}>{d}</div>)}
+                {WEEKDAYS.map((d, i) => <div key={d} className={i >= 5 ? "weekend" : ""}>{d}</div>)}
               </div>
               <div className="cal-grid">
                 {days.map((date) => {
                   const inMonth = date.slice(0, 7) === anchor.slice(0, 7);
                   const dayEvents = eventsByDate[date] ?? [];
                   return (
-                    <div key={date} className={"cal-day" + (inMonth ? "" : " out") + (date === TODAY ? " today" : "")}>
+                    <div
+                      key={date}
+                      className={
+                        "cal-day" +
+                        (inMonth ? "" : " out") +
+                        (date === TODAY ? " today" : "") +
+                        (isWeekend(date) ? " weekend" : "")
+                      }
+                    >
                       <div className="cal-day-head">
                         <span className="cal-daynum">{Number(date.slice(8))}</span>
                         <button className="cal-add" title="Add event" onClick={() => setDraft(blankDraft(date, defaultCalendarId))}>
@@ -797,7 +816,10 @@ function WeekGrid({
         {days.map((date) => {
           const { weekday, num } = dayLabel(date);
           return (
-            <div key={date} className={"cal-week-daylabel" + (date === TODAY ? " today" : "")}>
+            <div
+              key={date}
+              className={"cal-week-daylabel" + (date === TODAY ? " today" : "") + (isWeekend(date) ? " weekend" : "")}
+            >
               {weekday} <span className="cal-week-num">{num}</span>
             </div>
           );
@@ -807,7 +829,7 @@ function WeekGrid({
       <div className="cal-week-allday" style={{ paddingRight: scrollbarWidth }}>
         <div className="cal-week-gutter cal-allday-label">All day</div>
         {days.map((date) => (
-          <div key={date} className="cal-week-allday-col">
+          <div key={date} className={"cal-week-allday-col" + (isWeekend(date) ? " weekend" : "")}>
             {(eventsByDate[date] ?? []).filter(isBanner).map((e) => (
               <button
                 key={e.id}
@@ -835,7 +857,11 @@ function WeekGrid({
             ))}
           </div>
           {days.map((date) => (
-            <div key={date} className="cal-week-col" onClick={(ev) => handleColumnClick(date, ev)}>
+            <div
+              key={date}
+              className={"cal-week-col" + (isWeekend(date) ? " weekend" : "")}
+              onClick={(ev) => handleColumnClick(date, ev)}
+            >
               {hours.map((h) => (
                 <div key={h} className="cal-hour-line" style={{ top: h * HOUR_HEIGHT }} />
               ))}

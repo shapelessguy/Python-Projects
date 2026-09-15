@@ -19,16 +19,18 @@ import java.time.YearMonth
 enum class CalendarViewMode { MONTH, WEEK }
 
 /** The days shown for a view — 42 (6 weeks) for MONTH, 7 for WEEK, both
- *  starting on a Sunday. Shared by the ViewModel (to know which months it
+ *  starting on a Monday. Shared by the ViewModel (to know which months it
  *  needs to fetch) and the screen (to know which days to render). */
 fun visibleDays(view: CalendarViewMode, anchor: LocalDate): List<LocalDate> = when (view) {
     CalendarViewMode.MONTH -> {
         val first = anchor.withDayOfMonth(1)
-        val start = first.minusDays(first.dayOfWeek.value.toLong() % 7)
+        // dayOfWeek.value is ISO (1=Monday..7=Sunday), so this is already the
+        // count of days since that week's Monday -- no modulo needed.
+        val start = first.minusDays(first.dayOfWeek.value.toLong() - 1)
         (0 until 42).map { start.plusDays(it.toLong()) }
     }
     CalendarViewMode.WEEK -> {
-        val start = anchor.minusDays(anchor.dayOfWeek.value.toLong() % 7)
+        val start = anchor.minusDays(anchor.dayOfWeek.value.toLong() - 1)
         (0 until 7).map { start.plusDays(it.toLong()) }
     }
 }

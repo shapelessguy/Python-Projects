@@ -58,6 +58,12 @@ class Tee:
     def flush(self):
         self.stream.flush()
 
+    def isatty(self):
+        try:
+            return self.stream.isatty()
+        except Exception:
+            return False
+
 
 def wait(signal, ms: int):
     while signal.is_alive():

@@ -552,6 +552,8 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
 }
 .cal-day.out { opacity: 0.35; }
 .cal-day.today { border-color: var(--accent); }
+.cal-day.weekend { background: var(--panel-2); }
+.cal-weekdays .weekend { color: var(--text); }
 .cal-day-head { display: flex; align-items: center; justify-content: space-between; }
 .cal-daynum { font-size: 0.78rem; color: var(--muted); }
 .cal-add {
@@ -650,6 +652,7 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
   font-size: 0.75rem; color: var(--muted); border-left: 1px solid var(--line);
 }
 .cal-week-daylabel.today { color: var(--text); font-weight: 600; }
+.cal-week-daylabel.weekend, .cal-week-allday-col.weekend, .cal-week-col.weekend { background: var(--panel-2); }
 .cal-week-num { color: var(--text); }
 .cal-week-allday { min-height: 28px; }
 .cal-allday-label { display: flex; align-items: center; padding-left: 6px; font-size: 0.68rem; color: var(--muted); }

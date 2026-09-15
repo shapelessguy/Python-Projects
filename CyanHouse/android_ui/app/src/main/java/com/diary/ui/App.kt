@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.filled.Mouse
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.CircularProgressIndicator
@@ -47,12 +48,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diary.net.Auth
-import com.diary.net.fetchVisiblePanels
+import com.diary.net.Me
+import com.diary.net.fetchMe
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -61,6 +64,9 @@ import kotlinx.coroutines.launch
  *  `PANEL` constant) -- it's what permissions.visibility entries list. */
 private enum class Section(val label: String, val icon: ImageVector, val panelId: String) {
     Controls("Controls", Icons.Default.Tune, "controls"),
+    // Connects straight to CyanManager over the LAN, never touches the backend --
+    // so it has no backend panelId to be gated by and is always shown.
+    Mouse("Mouse", Icons.Default.Mouse, "mouse"),
     Environment("Environment", Icons.Default.Cloud, "environment"),
     Personal("Personal", Icons.Default.MenuBook, "personal"),
     Food("Food", Icons.Default.Restaurant, "food"),
@@ -84,13 +90,14 @@ fun App() {
     // disappears anyway. The backend 403s that request either way (see
     // api/auth.py's require_panel) -- this is purely about not showing a
     // tab, or firing a request, that would just fail.
-    var visiblePanels by remember { mutableStateOf<List<String>?>(null) }
+    var me by remember { mutableStateOf<Me?>(null) }
     var visibilityLoaded by remember { mutableStateOf(false) }
     LaunchedEffect(credential) {
         visibilityLoaded = false
-        visiblePanels = fetchVisiblePanels()
+        me = fetchMe()
         visibilityLoaded = true
     }
+    val visiblePanels = me?.visible_panels
     if (!visibilityLoaded) {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             Box(Modifier.systemBarsPadding().fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -100,7 +107,7 @@ fun App() {
         return
     }
     val visible = visiblePanels
-    val visibleSections = Section.entries.filter { visible == null || it.panelId in visible }
+    val visibleSections = Section.entries.filter { it == Section.Mouse || visible == null || it.panelId in visible }
     if (visibleSections.isEmpty()) {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             Box(Modifier.systemBarsPadding().fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -153,6 +160,15 @@ fun App() {
                     Spacer(Modifier.height(8.dp))
                     HorizontalDivider()
                     Spacer(Modifier.height(8.dp))
+                    me?.username?.let {
+                        Text(
+                            it,
+                            fontSize = 18.sp,
+                            fontStyle = FontStyle.Italic,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 28.dp, top = 12.dp, bottom = 6.dp),
+                        )
+                    }
                     NavigationDrawerItem(
                         icon = { Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null) },
                         label = { Text("Log out") },
@@ -207,6 +223,7 @@ fun App() {
                         Section.Personal -> PersonalScreen()
                         Section.Food -> FoodScreen()
                         Section.Calendar -> CalendarScreen()
+                        Section.Mouse -> MouseScreen()
                     }
                 }
             }
