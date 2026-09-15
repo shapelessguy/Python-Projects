@@ -15,7 +15,7 @@ http {
 
     server {
         listen 80;
-        server_name cyanroomserver.duckdns.org;
+        server_name ${PUBLIC_HOST};
 
         location /.well-known/acme-challenge/ {
             root /var/www/certbot;

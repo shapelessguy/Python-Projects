@@ -78,7 +78,8 @@ nano secrets.json
 ```
 
 Fill in for *this* machine specifically: `PUBLIC_HOST`, `ARDUINO_DEVICE`
-(e.g. `/dev/ttyUSB0`, or blank if no Arduino attached yet), `CONTROLS_FN_HOST`,
+(e.g. `/dev/ttyUSB0`, or blank if no Arduino attached yet),
+`CONTROLS_FN_HOST`/`CONTROLS_FN_PORT`,
 `DATA_DIR` (blank unless you want data elsewhere), `SERPER_API_KEY`,
 `OPENROUTER_KEY`/`LLM_FOOD_MODEL`.
 
@@ -145,9 +146,22 @@ Runs with `network_mode: host`, so it reaches the FastAPI backend
 (`python -m api`, port 8000) on this same machine at `127.0.0.1:8000`
 unchanged, and binds 80/443 directly on the host.
 
-Prerequisites: Docker + Docker Compose installed, DNS
-(`cyanroomserver.duckdns.org`) pointing at this machine's public IP, and ports
+Prerequisites: Docker + Docker Compose installed, DNS (your `PUBLIC_HOST`
+from `secrets.json`, step 8) pointing at this machine's public IP, and ports
 80/443 forwarded to it (step 7, above).
+
+### Render the nginx config
+
+`docker/nginx.conf` and `docker/nginx-bootstrap.conf` are generated,
+gitignored files — the tracked source is `docker/nginx.conf.template` /
+`docker/nginx-bootstrap.conf.template`, with `${PUBLIC_HOST}`, `${API_PORT}`,
+`${CONTROLS_FN_HOST}` and `${CONTROLS_FN_PORT}` placeholders filled in from
+`secrets.json` so the domain/ports live in exactly one place. Render (or
+re-render, after editing `secrets.json` or either `.template`) with:
+
+```bash
+python3 scripts/render_nginx_conf.py
+```
 
 ### First-time cert issuance (one-time, chicken-and-egg problem)
 
@@ -165,11 +179,12 @@ docker run --rm -d --name nginx-bootstrap --network host \
   nginx:stable-alpine
 
 # 2. Issue the certificate (writes to /etc/letsencrypt on the host).
+PUBLIC_HOST=$(python3 -c "import json; print(json.load(open('secrets.json'))['PUBLIC_HOST'])")
 docker run --rm \
   -v /etc/letsencrypt:/etc/letsencrypt \
   -v "$(pwd)/docker/certbot/www:/var/www/certbot" \
   certbot/certbot certonly --webroot -w /var/www/certbot \
-  -d cyanroomserver.duckdns.org --email YOUR_EMAIL --agree-tos --no-eff-email --non-interactive
+  -d "$PUBLIC_HOST" --email YOUR_EMAIL --agree-tos --no-eff-email --non-interactive
 
 # 3. Tear down the bootstrap container — the real stack takes over from here.
 docker stop nginx-bootstrap
@@ -183,9 +198,9 @@ docker compose up -d
 
 Starts the real `nginx` (full config, HTTPS + `/ui`/`/api`/`/cyan_pc`) and
 `certbot` (renews automatically every ~12h, no-ops until the cert is close to
-expiry). After editing `docker/nginx.conf` or `docker-compose.yml`, redeploy
-with a full recreate rather than a restart, so any changed bind mounts or
-volumes actually take effect:
+expiry). After editing `secrets.json` or either `.template` file, re-render
+(above) and redeploy with a full recreate rather than a restart, so any
+changed bind mounts or volumes actually take effect:
 
 ```bash
 docker compose down

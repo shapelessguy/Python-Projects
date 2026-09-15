@@ -98,5 +98,6 @@ if PUBLIC_HOST:
 # The fn service is still a separate process, reached over the LAN.
 ARDUINO_DEVICE = os.environ.get("ARDUINO_DEVICE", "").strip()
 
-_fn_addr = os.environ.get("CONTROLS_FN_HOST", "").strip()  # host:port, e.g. LAN IP
-CONTROLS_FN_URL = f"http://{_fn_addr}" if _fn_addr else ""
+CONTROLS_FN_HOST = os.environ.get("CONTROLS_FN_HOST", "").strip()  # e.g. LAN IP
+CONTROLS_FN_PORT = os.environ.get("CONTROLS_FN_PORT", "").strip()
+CONTROLS_FN_URL = f"http://{CONTROLS_FN_HOST}:{CONTROLS_FN_PORT}" if CONTROLS_FN_HOST else ""

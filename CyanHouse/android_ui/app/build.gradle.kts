@@ -25,7 +25,7 @@ val apiBaseUrl: String =
 val controlsFnHost: String = (secrets["CONTROLS_FN_HOST"] as? String ?: "").trim()
 val mouseWsPort: String = (secrets["MOUSE_WS_PORT"] as? String ?: "10001").trim()
 val mouseWsHost: String =
-    if (controlsFnHost.isNotEmpty()) "${controlsFnHost.substringBefore(":")}:$mouseWsPort" else "10.0.2.2:$mouseWsPort"
+    if (controlsFnHost.isNotEmpty()) "$controlsFnHost:$mouseWsPort" else "10.0.2.2:$mouseWsPort"
 
 android {
     namespace = "com.diary"

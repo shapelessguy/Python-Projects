@@ -1,4 +1,6 @@
 secrets.json
+docker/nginx.conf
+docker/nginx-bootstrap.conf
 __pycache__/
 *.pyc
 .kotlin/

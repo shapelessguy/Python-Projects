@@ -111,7 +111,7 @@ users start from the default `schema.json` / `units.json` with unrated dishes.
   (in-process, `api/services/room.py`), sent to the Arduino over
   `ARDUINO_DEVICE` from `secrets.json`
 - `POST /api/controls/fn/{name}` `{...}?` → forwards to `…/functions/{name}/run`
-  on the function server (`CONTROLS_FN_HOST`, a `host:port` on the LAN)
+  on the function server (`CONTROLS_FN_HOST`/`CONTROLS_FN_PORT`, a LAN host)
 - `GET/POST/PATCH/DELETE /api/personal/columns[/{key}]`
 - `PUT /api/personal/columns/order` `{keys:[...]}` → set column order (positions 0..n-1)
 - `GET/POST /api/personal/units`, `DELETE /api/personal/units?unit=<name>`
