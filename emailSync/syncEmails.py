@@ -32,7 +32,8 @@ class Signal:
             for collection in self.collections:
                 for appt in collection:
                     id_, data = outlook.serialize_appt(appt)
-                    valid = datetime.fromisoformat(data["start"].replace("Z", "+00:00")) > datetime.now(timezone.utc)
+                    start_date = datetime.fromisoformat(data["start"].replace("Z", "+00:00")).date()
+                    valid = start_date >= datetime.now(timezone.utc).date()
                     if valid:
                         self.outlook_events[id_] = data
         except Exception:
