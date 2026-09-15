@@ -54,7 +54,7 @@ class Chat(QWidget):
     BUBBLE_PADDING = 12
 
     def __init__(self, data, deck_id, model_name, exercise_name,
-                 reviewed_today_notes, top_known_due_notes, parent=None):
+             reviewed_today_notes, top_known_due_notes, parent=None, card_unrelated=False):
         super().__init__(parent)
         uic.loadUi('ui_forms/chat.ui', self)
         self.data = data
@@ -63,21 +63,27 @@ class Chat(QWidget):
         self.exercise_name = exercise_name
         self.reviewed_today_notes = reviewed_today_notes
         self.top_known_due_notes = top_known_due_notes
+        self.card_unrelated = card_unrelated          # NEW
         self.history = History(self.data.config_llm)
         self.token_consumption = {}
 
-        self.current_note = self.data.get_next_note(
-            deck_id, model_name, exercise_name, reviewed_today_notes
-        )
+        if self.card_unrelated:                        # NEW
+            self.current_note = None                   # NEW
+        else:                                           # NEW
+            self.current_note = self.data.get_next_note(
+                deck_id, model_name, exercise_name, reviewed_today_notes
+            )
 
         self.ok_btn.setVisible(False)
         self.not_ok_btn.setVisible(False)
 
-        if self.current_note is None:
+        if self.current_note is None and not self.card_unrelated:   # CHANGED
             self._show_done_state()
             return
 
         self.ok_btn.clicked.connect(lambda: self._on_answer("ok", self.token_consumption))
+        if not self.card_unrelated:
+            self.not_ok_btn.clicked.connect(lambda: self._on_answer("not_ok", self.token_consumption))
         self.not_ok_btn.clicked.connect(lambda: self._on_answer("not_ok", self.token_consumption))
         self.user_prompt.installEventFilter(self)
         self._waiting_for_llm = True
@@ -166,12 +172,17 @@ class Chat(QWidget):
         exercise_config = self.data.config.get(self.deck_id, {}).get(self.model_name, {}).get(self.exercise_name, {})
         system_prompt = exercise_config.get("system_prompt", "")
         vocabulary = exercise_config.get("vocabulary", [])
+        vocabulary_order = exercise_config.get("vocabulary_order", "random")   # NEW
         resolved_prompt = self.history.resolve_system_prompt(system_prompt, self.current_note)
 
         self._add_message("Thinking…", sender="system")
         self._scroll_chat_to_bottom(force=True)
 
-        self.opening_worker = LLMOpeningWorker(self.history, resolved_prompt, vocabulary, self.top_known_due_notes)
+        self.opening_worker = LLMOpeningWorker(
+            self.history, resolved_prompt, vocabulary, self.top_known_due_notes,
+            card_unrelated=self.card_unrelated,
+            vocabulary_order=vocabulary_order   # NEW
+        )
         self.opening_worker.finished.connect(self._on_opening_ready)
         self.opening_worker.error.connect(self._on_llm_error)
         self.opening_worker.start()
@@ -234,7 +245,7 @@ class Chat(QWidget):
     def _refresh_button_visibility(self):
         show = self.history.llm_message_count() >= 2
         self.ok_btn.setVisible(show)
-        self.not_ok_btn.setVisible(show)
+        self.not_ok_btn.setVisible(show and not self.card_unrelated)
 
     def _remove_last_message(self):
         if self._chat_layout.count() == 0:
@@ -307,9 +318,25 @@ class Chat(QWidget):
         self._chat_layout.addWidget(row)
 
     def _on_answer(self, status, token_consumption):
+        if self.card_unrelated:
+            self._return_to_deck_menu()
+            return
         self.data.set_note_status(self.deck_id, self.model_name, self.exercise_name,
-                                   self.current_note['noteId'], status, token_consumption)
+                                self.current_note['noteId'], status, token_consumption)
         self._replace_with_fresh()
+
+    def _return_to_deck_menu(self):
+        main_window = self.window()
+        main_window.load_deck_menu(self.deck_id)
+
+    def _replace_with_fresh(self):
+        main_window = self.window()
+        main_window._clear_central()
+        new_chat = Chat(self.data, self.deck_id, self.model_name, self.exercise_name,
+                        self.reviewed_today_notes, self.top_known_due_notes,
+                        main_window.centralwidget, card_unrelated=self.card_unrelated)
+        main_window.centralwidget.layout().addWidget(new_chat)
+        main_window.chat_widget = new_chat
 
     def _replace_with_fresh(self):
         main_window = self.window()  # top-level window, regardless of nesting depth

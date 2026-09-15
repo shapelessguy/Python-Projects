@@ -37,6 +37,31 @@ REF_VOCABULARY
 ---- End of reference vocabulary ----
 """
 
+TOP_MOST_PROMPT_FREE = """"
+You are a helpful assistant that helps Anki users practice and learn through active conversation.
+
+Below is the user's description of how they want this exercise conducted:
+
+---- User's task description ----
+TASK_DESCRIPTION
+---- End of task description ----
+
+Guidelines:
+- Stay focused on the user's stated approach above.
+- If you are completely sure or the user explicitely tells you that the exercise is over, just reply precisely with only "END_EXERCISE", so that the program can continue.
+- Ask questions, prompt the user to produce answers, or engage them actively — don't just lecture or give away the answer immediately.
+- If the user makes a mistake, gently correct it and briefly explain why, then continue the exercise.
+- Keep your responses concise; this is a quick review exercise, not a lecture.
+- This is one exercise in a series of independent review sessions the user will do back to back. Do NOT open with greetings, ask how you can help, or add closing remarks like "let me know if you'd like to continue" or "ready when you are".
+    Get straight into the exercise and stay there.
+- Do not refer to future exercises, past exercises, or the review session as a whole — treat this exchange as self-contained.
+- NEVER use syntax for HTML, MD or similar. The editor doesn't render those.
+
+---- Reference vocabulary ----
+REF_VOCABULARY
+---- End of reference vocabulary ----
+"""
+
 
 class Data:
     def __init__(self):
@@ -80,20 +105,29 @@ class Data:
     def add_exercise(self, exercise_name: str):
         self.config.setdefault(self.current_deck, {}).setdefault(self.current_model, {})[exercise_name] = {
             "system_prompt": "",
-            "vocabulary": []
+            "vocabulary": [],
+            "vocabulary_order": "random",   # NEW
+            "card_unrelated": False
         }
         self.pending_save_config = True
-    
-    def remove_cur_exercise(self):
-        self.config.get(self.current_deck, {}).get(self.current_model, {}).pop(self.current_exercise, None)
-        self.pending_save_config = True
-    
-    def update_exercise(self, system_prompt: str, vocabulary: list[str]):
+
+    def update_exercise(self, system_prompt: str, vocabulary: list[str], vocabulary_order: str = "random"):  # CHANGED
         config = self.config
         if config.get(self.current_deck, {}).get(self.current_model, {}).get(self.current_exercise, None):
             config[self.current_deck][self.current_model][self.current_exercise]["system_prompt"] = system_prompt
             config[self.current_deck][self.current_model][self.current_exercise]["vocabulary"] = vocabulary
+            config[self.current_deck][self.current_model][self.current_exercise]["vocabulary_order"] = vocabulary_order  # NEW
             self.pending_save_config = True
+    
+    def set_exercise_card_unrelated(self, card_unrelated: bool):
+        exercise_cfg = self.config.get(self.current_deck, {}).get(self.current_model, {}).get(self.current_exercise, None)
+        if exercise_cfg is not None:
+            exercise_cfg["card_unrelated"] = card_unrelated
+            self.pending_save_config = True
+    
+    def remove_cur_exercise(self):
+        self.config.get(self.current_deck, {}).get(self.current_model, {}).pop(self.current_exercise, None)
+        self.pending_save_config = True
 
     def save_config(self):
         with self._config_lock:
@@ -237,16 +271,22 @@ class LLMOpeningWorker(QThread):
     finished = pyqtSignal(str, dict)
     error = pyqtSignal(str)
 
-    def __init__(self, history, system_prompt, vocabulary, reference_notes, parent=None):
+    def __init__(self, history, system_prompt, vocabulary, reference_notes,
+                 card_unrelated=False, vocabulary_order="random", parent=None):   # CHANGED
         super().__init__(parent)
         self.history = history
         self.system_prompt = system_prompt
         self.vocabulary = vocabulary
         self.reference_notes = reference_notes
+        self.card_unrelated = card_unrelated
+        self.vocabulary_order = vocabulary_order   # NEW
 
     def run(self):
         try:
-            answer, token_info = self.history.get_llm_opening(self.system_prompt, self.vocabulary, self.reference_notes)
+            answer, token_info = self.history.get_llm_opening(
+                self.system_prompt, self.vocabulary, self.reference_notes,
+                self.card_unrelated, self.vocabulary_order   # CHANGED
+            )
             self.finished.emit(answer, token_info)
         except Exception as e:
             self.error.emit(str(e))
@@ -278,7 +318,7 @@ class History:
         self.system_prompt = None  # set once at opening, reused for every later call
 
     def resolve_system_prompt(self, system_prompt, note):
-        fields = note.get('fields', {})
+        fields = (note or {}).get('fields', {})
 
         def replace_placeholder(match):
             field_name = match.group(1).strip()
@@ -289,12 +329,22 @@ class History:
 
         return re.sub(r'\{\{(.*?)\}\}', replace_placeholder, system_prompt)
 
-    def resolve_vocabulary(self, vocabulary, reference_notes):
-        selected = get_vocabulary_entries(vocabulary, reference_notes, random_pick=True)
+    def resolve_vocabulary(self, vocabulary, reference_notes, order="random"):   # CHANGED
+        selected = get_vocabulary_entries(vocabulary, reference_notes, order=order)  # CHANGED
         if not selected:
             return ""
         examples_text = "\n".join(f"- {e}" for e in selected)
         return examples_text
+
+    def get_llm_opening(self, system_prompt, vocabulary, reference_notes=None,
+                        card_unrelated=False, vocabulary_order="random"):
+        self.system_prompt = TOP_MOST_PROMPT.replace("TASK_DESCRIPTION", system_prompt)\
+            .replace("REF_VOCABULARY", self.resolve_vocabulary(vocabulary, reference_notes or [], order=vocabulary_order))
+        messages = self._build_messages()
+        answer, token_info = call_llm(self.llm_config, messages)
+        self.chat_history.append({"role": "llm", "text": answer})
+        self.opened = True
+        return answer, token_info
 
     def _build_messages(self):
         messages = []
@@ -304,14 +354,6 @@ class History:
             role = "assistant" if entry["role"] == "llm" else "user"
             messages.append({"role": role, "content": entry["text"]})
         return messages
-
-    def get_llm_opening(self, system_prompt, vocabulary, reference_notes=None):
-        self.system_prompt = TOP_MOST_PROMPT.replace("TASK_DESCRIPTION", system_prompt).replace("REF_VOCABULARY", self.resolve_vocabulary(vocabulary, reference_notes or []))
-        messages = self._build_messages()
-        answer, token_info = call_llm(self.llm_config, messages)
-        self.chat_history.append({"role": "llm", "text": answer})
-        self.opened = True
-        return answer, token_info
 
     def get_llm_reply(self, user_message):
         self.chat_history.append({"role": "user", "text": user_message})
@@ -324,17 +366,17 @@ class History:
         return sum(1 for m in self.chat_history if m["role"] == "llm")
 
 
-def get_vocabulary_entries(vocabulary, reference_notes, random_pick: bool = False):
-    """Returns the list of individual entry strings (e.g. 'Hund - dog'),
-    capped at ~200 words total. Shared by History.resolve_vocabulary and
-    the vocabulary-examples dialog, so both stay in sync."""
+def get_vocabulary_entries(vocabulary, reference_notes, order: str = "ordered"):
+    """order: "random" shuffles reference_notes before building entries;
+    "ordered" keeps the given order (callers pass notes already sorted
+    well-known -> less-known, e.g. top_known_due_note_ids, for that setting)."""
     if not vocabulary or not reference_notes:
         return []
+    notes = reference_notes.copy()
+    if order == "random":
+        random.shuffle(notes)
     entries = []
-    ref_notes = reference_notes.copy()
-    if random_pick:
-        random.shuffle(ref_notes)
-    for note in reference_notes:
+    for note in notes:
         fields = note.get('fields', {})
         parts = []
         for field_name in vocabulary:
@@ -404,6 +446,8 @@ def call_llm(config: dict, messages: list[dict], timeout: float = 30.0) -> str:
     token = config.get("api_token", "").strip()
     model = config.get("model_name", "").strip()
 
+    print(json.dumps(messages, indent=2))
+
     kwargs = {
         "model": model,
         "messages": messages,
@@ -432,7 +476,6 @@ def compute_usage(response, pricing: dict | None) -> dict:
     reasoning_tokens = getattr(completion_details, "reasoning_tokens", 0) or 0 if completion_details else 0
 
     # --- per-token prices (default to 0 if missing from pricing dict) ---
-    print("asdasfjkgf")
     input_cost_per_token = pricing.get("input_cost_per_token", 0) if pricing else 0
     output_cost_per_token = pricing.get("output_cost_per_token", 0) if pricing else 0
     cache_read_cost_per_token = pricing.get("cache_read_input_token_cost", 0) if pricing else 0

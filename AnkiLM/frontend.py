@@ -2,7 +2,7 @@ import warnings
 import sys
 from PyQt5 import uic
 from PyQt5.QtWidgets import (
-    QMainWindow, QWidget, QApplication, QStyleFactory, QVBoxLayout, QPushButton,
+    QMainWindow, QWidget, QApplication, QStyleFactory, QVBoxLayout, QPushButton, QComboBox,
     QHBoxLayout, QMessageBox, QCheckBox, QToolButton, QMenu, QWidgetAction, QProgressBar, QScrollArea,
     QSizePolicy, QLabel, QInputDialog, QDialog, QLineEdit, QFormLayout, QDialogButtonBox
 )
@@ -135,22 +135,23 @@ class VocabularyFetchWorker(QThread):
     finished = pyqtSignal(list)
     error = pyqtSignal(str)
 
-    def __init__(self, note_ids, vocabulary, parent=None):
+    def __init__(self, note_ids, vocabulary, order="ordered", parent=None):   # CHANGED
         super().__init__(parent)
         self.note_ids = note_ids
         self.vocabulary = vocabulary
+        self.order = order   # NEW
 
     def run(self):
         try:
             notes = get_notes_info(self.note_ids) if self.note_ids else []
-            entries = get_vocabulary_entries(self.vocabulary, notes)
+            entries = get_vocabulary_entries(self.vocabulary, notes, order=self.order)   # CHANGED
             self.finished.emit(entries)
         except Exception as e:
             self.error.emit(str(e))
 
 
 class VocabularyExamplesDialog(QDialog):
-    def __init__(self, note_ids, vocabulary, parent=None):
+    def __init__(self, note_ids, vocabulary, order="ordered", parent=None):
         super().__init__(parent)
         self.setWindowTitle("Vocabulary Examples")
         self.setMinimumSize(500, 400)
@@ -172,7 +173,7 @@ class VocabularyExamplesDialog(QDialog):
         self.empty_label.setVisible(False)
         layout.addWidget(self.empty_label)
 
-        self.worker = VocabularyFetchWorker(note_ids, vocabulary)
+        self.worker = VocabularyFetchWorker(note_ids, vocabulary, order)
         self.worker.finished.connect(self._on_entries_ready)
         self.worker.error.connect(self._on_fetch_error)
         self.worker.start()
@@ -392,10 +393,11 @@ class FirstMenu(QWidget):
 
 
 class PromptConfig(QWidget):
-    configChanged = pyqtSignal(str, list)
+    configChanged = pyqtSignal(str, list, str)   # CHANGED: now also carries vocabulary_order
     deleteRequested = pyqtSignal()
     startRequested = pyqtSignal()
     vocabularyExampleRequested = pyqtSignal()
+    cardUnrelatedToggled = pyqtSignal(bool)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -414,30 +416,66 @@ class PromptConfig(QWidget):
         self.vocabulary_combo.setMinimumHeight(30)
         layout.addWidget(self.vocabulary_combo)
 
+        self.vocabulary_order_combo = QComboBox()                                  # NEW
+        self.vocabulary_order_combo.addItem("Random", "random")                    # NEW
+        self.vocabulary_order_combo.addItem("Well-known → less-known", "ordered")  # NEW
+        self.vocabulary_order_combo.setMinimumHeight(30)                           # NEW
+        self.vocabulary_order_combo.setToolTip("Order in which vocabulary terms are drawn")  # NEW
+        layout.addWidget(self.vocabulary_order_combo)                              # NEW
+
         self.vocabulary_example_btn = QPushButton("View Examples")
         self.vocabulary_example_btn.setMinimumHeight(30)
         self.vocabulary_example_btn.setMinimumWidth(150)
         layout.addWidget(self.vocabulary_example_btn)
 
+        self.card_unrelated_btn.setCheckable(True)
+        self.card_unrelated_btn.toggled.connect(self._on_card_unrelated_toggled)
+
         self.system_prompt.textChanged.connect(self._emit_config_changed)
         self.vocabulary_combo.selectionChanged.connect(self._emit_config_changed)
+        self.vocabulary_order_combo.currentIndexChanged.connect(self._emit_config_changed)  # NEW
         self.delete_btn.clicked.connect(self.deleteRequested.emit)
         self.start_btn.clicked.connect(self.startRequested.emit)
         self.vocabulary_example_btn.clicked.connect(self.vocabularyExampleRequested.emit)
 
-    def _emit_config_changed(self):
-        self.configChanged.emit(self.system_prompt.toPlainText(), self.selected_keywords())
+    def _on_card_unrelated_toggled(self, checked: bool):
+        self._update_card_unrelated_btn_text(checked)
+        self.cardUnrelatedToggled.emit(checked)
 
-    def refresh(self, model_name: str, exercise_name: str, keywords=None, system_prompt="", vocabulary=None):
+    def _update_card_unrelated_btn_text(self, checked: bool):
+        self.card_unrelated_btn.setText("Card-unrelated ✓" if checked else "Card-unrelated")
+
+    def _emit_config_changed(self):
+        self.configChanged.emit(                                    # CHANGED
+            self.system_prompt.toPlainText(),
+            self.selected_keywords(),
+            self.vocabulary_order()
+        )
+
+    def vocabulary_order(self) -> str:                               # NEW
+        return self.vocabulary_order_combo.currentData()
+
+    def refresh(self, model_name: str, exercise_name: str, keywords=None, system_prompt="",
+                vocabulary=None, card_unrelated=False, vocabulary_order="random"):   # CHANGED: + vocabulary_order
         if model_name and exercise_name:
             self.exercise_title.setText(f"Exercise: {exercise_name}")
             self.delete_btn.setVisible(True)
             self.config_area.setVisible(True)
             self.vocabulary_combo.populate(keywords or [], checked=vocabulary or [])
 
+            self.vocabulary_order_combo.blockSignals(True)                                   # NEW
+            idx = self.vocabulary_order_combo.findData(vocabulary_order or "random")          # NEW
+            self.vocabulary_order_combo.setCurrentIndex(idx if idx >= 0 else 0)               # NEW
+            self.vocabulary_order_combo.blockSignals(False)                                   # NEW
+
             self.system_prompt.blockSignals(True)
             self.system_prompt.setPlainText(system_prompt or "")
             self.system_prompt.blockSignals(False)
+
+            self.card_unrelated_btn.blockSignals(True)
+            self.card_unrelated_btn.setChecked(card_unrelated)
+            self._update_card_unrelated_btn_text(card_unrelated)
+            self.card_unrelated_btn.blockSignals(False)
         else:
             self.exercise_title.setText("")
             self.delete_btn.setVisible(False)
@@ -537,6 +575,7 @@ class DeckMenu(QWidget):
         self.prompt_config_widget.configChanged.connect(self.on_prompt_config_changed)
         self.prompt_config_widget.deleteRequested.connect(self.on_delete_exercise_clicked)
         self.prompt_config_widget.startRequested.connect(self.on_start_clicked)
+        self.prompt_config_widget.cardUnrelatedToggled.connect(self.on_card_unrelated_toggled)  # NEW
         self.view_examples_btn.clicked.connect(self.on_view_examples_clicked)
         layout = QVBoxLayout(self.prompt_config)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -567,26 +606,24 @@ class DeckMenu(QWidget):
         if data.current_model:
             self.on_model_clicked(data.current_model)
     
-    def on_vocabulary_example_clicked(self):
+    def on_card_unrelated_toggled(self, checked: bool):
         data = self.parent().parent().parent().data
-        if data.current_model is None:
+        if data.current_model is None or data.current_exercise is None:
             return
-
-        model_info = data.decks[self.deck_id]["models"][data.current_model]
-        top_known_due_ids = model_info.get("top_known_due_note_ids", [])
-        vocabulary = self.prompt_config_widget.selected_keywords()
-        
-        dialog = VocabularyExamplesDialog(top_known_due_ids, vocabulary, self)
-        dialog.exec_()
+        data.set_exercise_card_unrelated(checked)
+        self.on_model_clicked(data.current_model)
     
     def on_start_clicked(self):
         data = self.parent().parent().parent().data
         if data.current_model is None or data.current_exercise is None:
             return
 
+        exercise_cfg = data.config.get(self.deck_id, {}).get(data.current_model, {}).get(data.current_exercise, {})
+        card_unrelated = exercise_cfg.get("card_unrelated", False)
+
         model_info = data.decks[self.deck_id]["models"][data.current_model]
-        reviewed_today_ids = model_info.get("reviewed_today_note_ids", [])
-        top_known_due_ids = model_info.get("top_known_due_note_ids", [])
+        reviewed_today_ids = [] if card_unrelated else model_info.get("reviewed_today_note_ids", [])
+        top_known_due_ids = model_info.get("top_known_due_note_ids", [])  # keep, still useful for vocabulary refs
 
         self.loading_overlay = LoadingOverlay(self)
         self.loading_overlay.setGeometry(self.rect())
@@ -594,11 +631,11 @@ class DeckMenu(QWidget):
         self.loading_overlay.raise_()
 
         self.chat_worker = ChatPrepWorker(reviewed_today_ids, top_known_due_ids)
-        self.chat_worker.finished.connect(self.on_chat_ready)
+        self.chat_worker.finished.connect(lambda payload: self.on_chat_ready(payload, card_unrelated))  # CHANGED
         self.chat_worker.error.connect(self.on_chat_fetch_error)
         self.chat_worker.start()
 
-    def on_chat_ready(self, payload):
+    def on_chat_ready(self, payload, card_unrelated=False):   # CHANGED signature
         self.loading_overlay.hide()
         self.loading_overlay.deleteLater()
 
@@ -608,7 +645,8 @@ class DeckMenu(QWidget):
         main_window = self.parent().parent().parent()
         main_window._clear_central()
         chat_widget = Chat(data, self.deck_id, data.current_model, data.current_exercise,
-                            reviewed_today_notes, top_known_due_notes, main_window.centralwidget)
+                            reviewed_today_notes, top_known_due_notes, main_window.centralwidget,
+                            card_unrelated=card_unrelated)   # CHANGED
         main_window.centralwidget.layout().addWidget(chat_widget)
         main_window.chat_widget = chat_widget
 
@@ -627,8 +665,29 @@ class DeckMenu(QWidget):
             data.current_exercise,
             keywords,
             exercise_config.get("system_prompt", ""),
-            exercise_config.get("vocabulary", [])
+            exercise_config.get("vocabulary", []),
+            exercise_config.get("card_unrelated", False),
+            exercise_config.get("vocabulary_order", "random")   # NEW
         )
+
+    def on_prompt_config_changed(self, prompt_text: str, keywords: list, vocabulary_order: str):  # CHANGED
+        data = self.parent().parent().parent().data
+        if data.current_model is None or data.current_exercise is None:
+            return
+        data.update_exercise(prompt_text, keywords, vocabulary_order)   # CHANGED
+
+    def on_vocabulary_example_clicked(self):
+        data = self.parent().parent().parent().data
+        if data.current_model is None:
+            return
+
+        model_info = data.decks[self.deck_id]["models"][data.current_model]
+        top_known_due_ids = model_info.get("top_known_due_note_ids", [])
+        vocabulary = self.prompt_config_widget.selected_keywords()
+        order = self.prompt_config_widget.vocabulary_order()          # NEW
+
+        dialog = VocabularyExamplesDialog(top_known_due_ids, vocabulary, order, self)  # CHANGED
+        dialog.exec_()
     
     def on_view_examples_clicked(self):
         data = self.parent().parent().parent().data
@@ -641,12 +700,6 @@ class DeckMenu(QWidget):
         self.examples_window = Examples(deck_name, data.current_model, fields)
         self.examples_window.setWindowFlags(Qt.WindowType.Window)
         self.examples_window.show()
-
-    def on_prompt_config_changed(self, prompt_text: str, keywords: list):
-        data = self.parent().parent().parent().data
-        if data.current_model is None or data.current_exercise is None:
-            return
-        data.update_exercise(prompt_text, keywords)
     
     def on_new_exercise_clicked(self):
         data = self.parent().parent().parent().data
@@ -726,19 +779,23 @@ class DeckMenu(QWidget):
         reviewed_today_ids = data.decks[self.deck_id]["models"][model_name].get("reviewed_today_note_ids", [])
 
         self.exercise_rows = {}
+        self.exercise_rows = {}
         container = QWidget()
         layout = QVBoxLayout(container)
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        for exercise_name in exercises:
-            not_ok_count, unreviewed_count = data.get_exercise_review_counts(
-                self.deck_id, model_name, exercise_name, reviewed_today_ids
-            )
-            row = DeckRow(
-                exercise_name,
-                self.on_exercise_clicked,
-                red_count=not_ok_count,
-                blue_count=unreviewed_count
-            )
+        for exercise_name, exercise_cfg in exercises.items():
+            if exercise_cfg.get("card_unrelated", False):
+                row = DeckRow(exercise_name, self.on_exercise_clicked)  # no red/blue counts
+            else:
+                not_ok_count, unreviewed_count = data.get_exercise_review_counts(
+                    self.deck_id, model_name, exercise_name, reviewed_today_ids
+                )
+                row = DeckRow(
+                    exercise_name,
+                    self.on_exercise_clicked,
+                    red_count=not_ok_count,
+                    blue_count=unreviewed_count
+                )
             self.exercise_rows[exercise_name] = row
             layout.addWidget(row)
         layout.addStretch()

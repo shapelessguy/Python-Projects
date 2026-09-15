@@ -16,7 +16,7 @@
             "proc_type": "python",
             "path": "C:/Users/cian_cl/Documents/TOPICS/sharedCode/CyanManager/tools/cyanSync/llm_client.py",
             "arguments": "llm_provider",
-            "runas": false,
+            "runas": true,
             "startup": true
         },
         "Mattermost": {
@@ -31,14 +31,14 @@
                 "width": 1518,
                 "height": 457,
                 "win_state": "normal",
-                "order": true
+                "order": false
             },
             "proc_name": "Mattermost.exe",
             "proc_type": "exe",
             "path": "app:Mattermost",
             "arguments": "",
             "runas": false,
-            "startup": true
+            "startup": false
         },
         "NotesSync": {
             "window_kw": [],
@@ -89,9 +89,9 @@
             "window_props": {
                 "monitor_id": "BOE09E9",
                 "x": 395,
-                "y": 457,
+                "y": 0,
                 "width": 1532,
-                "height": 582,
+                "height": 1039,
                 "win_state": "normal",
                 "order": true
             },
@@ -212,7 +212,7 @@
             }
         },
         "XM4-1000": {
-            "enabled": true,
+            "enabled": false,
             "parameters": {}
         }
     }
