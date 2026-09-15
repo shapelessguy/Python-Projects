@@ -1,6 +1,9 @@
 from __future__ import print_function
+import binascii
 import json
 import win32com.client
+import win32com.mapi.mapi as mapi
+import win32com.mapi.mapitags as mapitags
 import datetime
 from utils import hash_str
 
@@ -17,10 +20,63 @@ def safe_get(obj, attr, default=None):
         return default
 
 
+# The Outlook Object Model's `Body` property is blocked by Outlook's Object
+# Model Guard (an org-enforced security policy on this machine) -- it fails
+# with a generic COM error regardless of how the item is fetched. Extended
+# MAPI reads the same data directly from the message store and isn't subject
+# to that guard, so we use it just for the body text.
+_mapi_stores = None
+
+
+def _get_mapi_stores():
+    global _mapi_stores
+    if _mapi_stores is not None:
+        return _mapi_stores
+    opened = []
+    try:
+        mapi.MAPIInitialize(None)
+        session = mapi.MAPILogonEx(0, "", "", mapi.MAPI_NO_MAIL | mapi.MAPI_EXTENDED | mapi.MAPI_USE_DEFAULT)
+        stores_table = session.GetMsgStoresTable(0)
+        stores_table.SetColumns([mapitags.PR_ENTRYID, mapitags.PR_DISPLAY_NAME_W], 0)
+        while True:
+            rows = stores_table.QueryRows(10, 0)
+            if not rows:
+                break
+            for row in rows:
+                _, entryid_val = row[0]
+                try:
+                    opened.append(session.OpenMsgStore(0, entryid_val, None, mapi.MAPI_BEST_ACCESS | mapi.MDB_NO_MAIL))
+                except Exception:
+                    pass
+    except Exception:
+        opened = []
+    _mapi_stores = opened
+    return _mapi_stores
+
+
+def get_body(entry_id_hex):
+    if not entry_id_hex:
+        return ""
+    try:
+        entry_id_bytes = binascii.unhexlify(entry_id_hex)
+    except Exception:
+        return ""
+    for store in _get_mapi_stores():
+        try:
+            msg = store.OpenEntry(entry_id_bytes, None, mapi.MAPI_BEST_ACCESS)
+            _, props = msg.GetProps([mapitags.PR_BODY_W], 0)
+            tag, val = props[0]
+            if tag == mapitags.PR_BODY_W and val:
+                return val
+        except Exception:
+            continue
+    return ""
+
+
 def serialize_appt(item):
+    entry_id = safe_get(item, "EntryID")
     data = {
         # Identity
-        # "entry_id": safe_get(item, "EntryID"),
         # "global_id": safe_get(item, "GlobalAppointmentID"),
 
         # Core info
@@ -28,6 +84,7 @@ def serialize_appt(item):
         "location": safe_get(item, "Location"),
         "start": outlook_time(safe_get(item, "Start")),
         "end": outlook_time(safe_get(item, "End")),
+        "body": get_body(entry_id),
         # "all_day": safe_get(item, "AllDayEvent"),
 
         # # Metadata

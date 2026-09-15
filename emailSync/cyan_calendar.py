@@ -55,6 +55,20 @@ def _bump_zero_duration(start_time, end_time):
     return end_dt.strftime("%H:%M")
 
 
+def _build_description(data):
+    parts = []
+    location = (data.get("location") or "").strip()
+    if location:
+        parts.append(f"Loc: {location}")
+    category = (data.get("category") or "").strip()
+    if category:
+        parts.append(f"Category: {category}")
+    body = (data.get("body") or "").strip()
+    if body:
+        parts.append(body)
+    return "\n".join(parts)
+
+
 def to_cyan_event(data, calendar_id):
     start_date, start_time = _split_iso(data["start"])
     end_date, end_time = _split_iso(data["end"])
@@ -62,7 +76,7 @@ def to_cyan_event(data, calendar_id):
         end_time = _bump_zero_duration(start_time, end_time)
     return {
         "title": data.get("subject") or "(no title)",
-        "description": data.get("location") or "",
+        "description": _build_description(data),
         "start_date": start_date,
         "end_date": end_date,
         "all_day": False,
