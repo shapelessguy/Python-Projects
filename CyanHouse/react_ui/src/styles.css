@@ -75,15 +75,17 @@ h3 { font-size: 0.85rem; margin: 12px 0 6px; text-transform: uppercase; letter-s
 .panel { display: flex; gap: 20px; align-items: flex-start; }
 
 /* ── environment ─────────────────────────────────────────── */
+/* This panel gets its own fixed-height row instead of flowing with the page:
+ * the graphs + forecast are always taller than the viewport, and only that
+ * column (not the whole page) should pick up a scrollbar for it. */
+.panel.environment { height: calc(100vh - 80px); align-items: stretch; }
 .env-controls {
   flex: 0 0 240px;
-  position: sticky; top: 56px;
   background: var(--panel);
   min-width: 320px;
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 10px 12px;
-  max-height: calc(100vh - 80px);
   overflow: auto;
 }
 .env-controls .check { display: flex; gap: 6px; align-items: center; margin: 3px 0; cursor: pointer; }
@@ -93,7 +95,7 @@ h3 { font-size: 0.85rem; margin: 12px 0 6px; text-transform: uppercase; letter-s
 .env-controls details { margin: 4px 0; }
 .env-controls summary { cursor: pointer; color: var(--muted); font-size: 0.8rem; }
 .env-controls .refresh { width: 100%; margin-top: 12px; }
-.env-charts { flex: 1 1 auto; min-width: 0; }
+.env-charts { flex: 1 1 auto; min-width: 0; height: 100%; overflow-y: auto; }
 @media (max-width: 800px) {
   .env-controls { display: none; }
 }
