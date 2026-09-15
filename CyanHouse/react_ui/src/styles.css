@@ -82,8 +82,16 @@ h3 { font-size: 0.85rem; margin: 12px 0 6px; text-transform: uppercase; letter-s
 /* ── environment ─────────────────────────────────────────── */
 /* This panel gets its own fixed-height row instead of flowing with the page:
  * the graphs + forecast are always taller than the viewport, and only that
- * column (not the whole page) should pick up a scrollbar for it. */
-.panel.environment { height: calc(100vh - 80px); align-items: stretch; }
+ * column (not the whole page) should pick up a scrollbar for it. `.app--fixed`
+ * (added on `.app` only while this panel is active) turns the shell into a
+ * viewport-height flex column so `.content` gets an exact remaining-space
+ * height from flexbox itself -- not a guessed `calc(100vh - <topbar px>)`,
+ * which drifts (and produces a second, page-level scrollbar) whenever the
+ * topbar's actual rendered height differs, e.g. the nav wrapping to two
+ * rows on a narrow window. */
+.app--fixed { height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+.app--fixed .content { flex: 1 1 auto; min-height: 0; overflow: hidden; }
+.panel.environment { height: 100%; align-items: stretch; }
 .env-controls {
   flex: 0 0 240px;
   background: var(--panel);
@@ -687,6 +695,14 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
 }
 .cal-week-col { flex: 1 1 0; position: relative; border-left: 1px solid var(--line); cursor: pointer; }
 .cal-hour-line { position: absolute; left: 0; right: 0; border-top: 1px solid var(--line); height: 0; }
+.cal-week-now {
+  position: absolute; left: 0; right: 0; height: 0;
+  border-top: 2px solid var(--accent); z-index: 1; pointer-events: none;
+}
+.cal-week-now::before {
+  content: ""; position: absolute; left: -4px; top: -4px;
+  width: 8px; height: 8px; border-radius: 50%; background: var(--accent);
+}
 .cal-week-event {
   /* Inset enough that a sliver of the column's own background stays
      clickable beside the event chip, for "click empty space to add

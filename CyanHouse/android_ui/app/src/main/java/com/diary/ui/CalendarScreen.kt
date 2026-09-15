@@ -94,6 +94,7 @@ import java.time.YearMonth
 import java.time.ZoneOffset
 import java.time.format.TextStyle
 import java.util.Locale
+import kotlinx.coroutines.delay
 
 private val HOUR_HEIGHT = 48.dp
 private val RECUR_OPTIONS = listOf(null, "daily", "weekly", "monthly", "yearly")
@@ -574,6 +575,18 @@ private fun ColumnScope.WeekGrid(
     val density = LocalDensity.current
     val today = LocalDate.now()
 
+    // Live "now" line -- re-ticks once a minute (its own position only ever
+    // needs minute precision) so it keeps creeping down today's column while
+    // this screen stays open, rather than freezing at whatever time it
+    // happened to first compose.
+    var now by remember { mutableStateOf(LocalTime.now()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(60_000)
+            now = LocalTime.now()
+        }
+    }
+
     Column(Modifier.fillMaxWidth().weight(1f)) {
         Row(Modifier.fillMaxWidth()) {
             Spacer(Modifier.width(36.dp))
@@ -641,6 +654,21 @@ private fun ColumnScope.WeekGrid(
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                             Spacer(Modifier.height(HOUR_HEIGHT - 1.dp))
                         }
+                    }
+                    if (d == today) {
+                        val nowTop = HOUR_HEIGHT * (now.toSecondOfDay() / 3600f)
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.primary,
+                            thickness = 2.dp,
+                            modifier = Modifier.offset(y = nowTop),
+                        )
+                        Box(
+                            Modifier
+                                .offset(x = (-4).dp, y = nowTop - 4.dp)
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary),
+                        )
                     }
                     // Overlapping events split side by side (lanes) instead of
                     // drawn on top of each other -- the time column on the left

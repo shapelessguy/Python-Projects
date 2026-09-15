@@ -2,13 +2,13 @@ import { useState } from "react";
 import { DueAlarm, useDueAlarms } from "./alarms";
 
 const SNOOZE_OPTIONS = [
-  { minutes: 1, label: "1 minute" }, // debugging -- fast enough to watch a snooze actually expire
   { minutes: 5, label: "5 minutes" },
   { minutes: 10, label: "10 minutes" },
-  { minutes: 15, label: "15 minutes" },
   { minutes: 30, label: "30 minutes" },
-  { minutes: 60, label: "1 hour" },
   { minutes: 120, label: "2 hours" },
+  { minutes: 1440, label: "1 day" },
+  { minutes: 2880, label: "2 days" },
+  { minutes: 10080, label: "7 days" },
 ];
 
 function AlarmRow({

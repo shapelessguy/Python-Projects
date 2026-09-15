@@ -34,9 +34,8 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 
 private val SNOOZE_OPTIONS = listOf(
-    1 to "1 minute", // debugging -- fast enough to watch a snooze actually expire
-    5 to "5 minutes", 10 to "10 minutes", 15 to "15 minutes",
-    30 to "30 minutes", 60 to "1 hour", 120 to "2 hours",
+    5 to "5 minutes", 10 to "10 minutes", 30 to "30 minutes", 120 to "2 hours",
+    1440 to "1 day", 2880 to "2 days", 10080 to "7 days",
 )
 
 /** Rendered once at the app's top level (see App.kt) so a due alarm shows up

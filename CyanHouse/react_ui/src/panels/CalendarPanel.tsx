@@ -812,6 +812,18 @@ function WeekGrid({
   const scrollRef = useRef<HTMLDivElement>(null);
   const [scrollbarWidth, setScrollbarWidth] = useState(0);
 
+  // Live "now" line -- re-ticks once a minute (its own position only ever
+  // needs minute precision) so it keeps creeping down the current day's
+  // column while this view stays open, rather than freezing at whatever
+  // time the panel happened to mount.
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(new Date()), 60_000);
+    return () => window.clearInterval(id);
+  }, []);
+  const nowDate = now.toLocaleDateString("en-CA");
+  const nowTop = ((now.getHours() * 60 + now.getMinutes()) / 60) * HOUR_HEIGHT;
+
   // Land the scroll around 7am by default rather than midnight — most
   // events happen later in the day and this avoids opening on empty space.
   // Also measure the scrollbar's width: the hour grid always overflows
@@ -902,6 +914,7 @@ function WeekGrid({
               {hours.map((h) => (
                 <div key={h} className="cal-hour-line" style={{ top: h * HOUR_HEIGHT }} />
               ))}
+              {date === nowDate && <div className="cal-week-now" style={{ top: nowTop }} />}
               {layoutDayEvents((eventsByDate[date] ?? []).filter(isTimedSingleDay))
                 .map(({ event: e, lane, lanes }) => {
                   const top = (toMinutes(e.start_time!) / 60) * HOUR_HEIGHT;

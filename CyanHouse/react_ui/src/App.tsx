@@ -51,7 +51,7 @@ export default function App() {
   const active = visible.find((p) => p.id === panel) ?? visible[0];
 
   return (
-    <div className="app">
+    <div className={"app" + (active?.id === "environment" ? " app--fixed" : "")}>
       <header className="topbar">
         <nav className="switcher">
           {loaded && visible.map((p) => (
