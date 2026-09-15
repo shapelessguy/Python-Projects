@@ -2,12 +2,11 @@ from __future__ import print_function
 import json
 import win32com.client
 import datetime
-from datetime import timedelta
 from utils import hash_str
 
 
 def outlook_time(dt):
-    dt_utc = datetime.datetime.fromisoformat(str(dt)) - timedelta(hours=1)
+    dt_utc = datetime.datetime.fromisoformat(str(dt))
     return dt_utc.isoformat().replace("+00:00", "Z")
 
 
