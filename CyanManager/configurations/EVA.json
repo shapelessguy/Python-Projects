@@ -99,27 +99,6 @@
             "runas": false,
             "startup": false
         },
-        "Fantastical": {
-            "window_kw": [
-                "Fantastical"
-            ],
-            "excluded_kw": [],
-            "window_props": {
-                "monitor_id": "HKC2413",
-                "x": 1326,
-                "y": 0,
-                "width": 601,
-                "height": 1039,
-                "win_state": "normal",
-                "order": true
-            },
-            "proc_name": "Fantastical.exe",
-            "proc_type": "exe",
-            "path": "app:Fantastical",
-            "arguments": "",
-            "runas": false,
-            "startup": true
-        },
         "Gemini": {
             "window_kw": [
                 "Gemini"

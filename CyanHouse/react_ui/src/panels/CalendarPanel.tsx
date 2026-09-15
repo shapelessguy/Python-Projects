@@ -885,7 +885,7 @@ function WeekGrid({
                       onClick={(ev) => { ev.stopPropagation(); onOpen(e); }}
                       title={e.mine ? e.title : `${e.title} (by ${e.owner})`}
                     >
-                      <span className="cal-week-event-time">{e.start_time}</span> {e.recurring ? "↻ " : ""}{e.alarm ? "🔔 " : ""}{e.title}
+                      {e.recurring ? "↻ " : ""}{e.alarm ? "🔔 " : ""}{e.title}
                     </button>
                   );
                 })}
