@@ -91,6 +91,12 @@ object Api {
     suspend fun forecastRefresh(): ForecastBootstrap =
         client.post(u("/api/forecast/refresh")).body()
 
+    suspend fun forecastOverview(city: String, range: String): OverviewResponse =
+        client.get(u("/api/forecast/overview")) {
+            parameter("city", city)
+            parameter("range", range)
+        }.body()
+
     // ── controls (CC) — thin proxy to the CyanControls RoomServer services ──
     suspend fun controlInfo(): ControlsInfo = client.get(u("/api/controls/info")).body()
 

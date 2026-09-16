@@ -14,6 +14,7 @@ import com.diary.Prefs
 import com.diary.net.Api
 import com.diary.net.Auth
 import com.diary.net.CalendarEvent
+import com.diary.net.Me
 import com.diary.net.MonthEvents
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -24,6 +25,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
+import java.time.LocalTime
 
 /** Always-on background watcher: started at boot (see [BootReceiver]) and
  *  from [com.diary.MainActivity], it re-fetches the current month's calendar
@@ -47,15 +49,34 @@ import java.time.LocalDate
  *  Runs as a foreground service (with its own persistent low-priority
  *  notification, like a VPN app's connection status) because that's what
  *  exempts it from Doze's network/CPU restrictions; a plain background
- *  service would get throttled and stop noticing due alarms. */
+ *  service would get throttled and stop noticing due alarms.
+ *
+ *  Also the always-on watcher for the daily weather-overview glance (see
+ *  [WeatherOverlay], [checkWeatherDue]) -- same "always running" reason
+ *  applies, and there was no benefit to a second foreground service. Both
+ *  concerns share the one `/api/me` fetch below for panel-visibility gating,
+ *  since [com.diary.net.Me]'s permissions are static for the session (see
+ *  its own doc comment) and this service otherwise has no reason to know
+ *  who's logged in. */
 class CalendarAlarmService : Service() {
     private var job: Job = SupervisorJob()
     private val scope get() = CoroutineScope(Dispatchers.IO + job)
     private var wakeLock: PowerManager.WakeLock? = null
     private var player: MediaPlayer? = null
     private lateinit var ringOverlay: RingOverlay
+    private lateinit var weatherOverlay: WeatherOverlay
     private var shownOverlayKeys: Set<String> = emptySet()
     private var notifiedKeys = mutableSetOf<String>()
+
+    // null until the first successful /api/me fetch; visible_panels == null
+    // there means "unrestricted" (see Me's doc comment), so both getters
+    // default to visible while `me` itself is still unknown -- a brief
+    // startup window where an alarm firing anyway is the safer failure mode
+    // than one silently not firing for a fully-permitted user.
+    @Volatile
+    private var me: Me? = null
+    private val calendarVisible: Boolean get() = me?.visible_panels?.let { "calendar" in it } ?: true
+    private val environmentVisible: Boolean get() = me?.visible_panels?.let { "environment" in it } ?: true
 
     /** Decided once per "ring episode" (the moment due goes from empty to
      *  non-empty), not re-evaluated every tick -- otherwise the very act of
@@ -77,6 +98,7 @@ class CalendarAlarmService : Service() {
         AlarmNotifications.ensureChannels(this)
         startForeground(AlarmNotifications.NOTIF_ID_SERVICE, AlarmNotifications.serviceNotification(this))
         ringOverlay = RingOverlay(this)
+        weatherOverlay = WeatherOverlay(this)
 
         val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
         wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "cyanhouse:calendar-alarm-watcher").apply {
@@ -84,8 +106,10 @@ class CalendarAlarmService : Service() {
             acquire()
         }
 
+        scope.launch { fetchMeLoop() }
         scope.launch { fetchLoop() }
         scope.launch { checkLoop() }
+        scope.launch { weatherCheckLoop() }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_STICKY
@@ -96,8 +120,19 @@ class CalendarAlarmService : Service() {
         job.cancel()
         stopRinging()
         ringOverlay.hide()
+        weatherOverlay.hide()
         wakeLock?.let { if (it.isHeld) it.release() }
         super.onDestroy()
+    }
+
+    /** Retries every 30s until it succeeds -- covers a boot-time start before
+     *  networking is up. Not re-polled afterwards since permissions are
+     *  static for the session (see [Me]'s doc comment). */
+    private suspend fun fetchMeLoop() {
+        while (me == null) {
+            runCatching { Api.me() }.onSuccess { me = it }
+            if (me == null) delay(30_000L)
+        }
     }
 
     /** While an alarm is actively ringing (mode != NONE), re-fetches every
@@ -117,7 +152,7 @@ class CalendarAlarmService : Service() {
         while (true) {
             val interval = if (mode != RingMode.NONE) ACTIVE_POLL_INTERVAL_MS else DATA_POLL_INTERVAL_MS
             val now = System.currentTimeMillis()
-            if (now - lastFetchAt >= interval) {
+            if (now - lastFetchAt >= interval && calendarVisible) {
                 lastFetchAt = now
                 val month = LocalDate.now().toString().substring(0, 7)
                 runCatching { Api.calendarMonth(month) }
@@ -140,9 +175,12 @@ class CalendarAlarmService : Service() {
 
     private fun refresh() {
         // The user's blanket mute switch (see Prefs.alarmsEnabled and its
-        // checkbox on CalendarScreen) -- treated the same as "nothing due"
-        // so it tears down whichever ring UI, if any, was already showing.
-        val due = if (Prefs.alarmsEnabled) AlarmLogic.computeDue(events, System.currentTimeMillis()) else emptyList()
+        // checkbox on CalendarScreen), and a restricted user with no calendar
+        // access at all -- both treated the same as "nothing due" so it
+        // tears down whichever ring UI, if any, was already showing.
+        val due = if (Prefs.alarmsEnabled && calendarVisible)
+            AlarmLogic.computeDue(events, System.currentTimeMillis())
+        else emptyList()
         val dueKeys = due.mapTo(HashSet(due.size)) { it.key }
 
         if (due.isEmpty()) {
@@ -184,6 +222,44 @@ class CalendarAlarmService : Service() {
             }
             RingMode.NONE -> Unit
         }
+    }
+
+    private suspend fun weatherCheckLoop() {
+        while (true) {
+            checkWeatherDue()
+            delay(1000L)
+        }
+    }
+
+    /** Fires at most once per calendar day -- marks [Prefs.lastDailyOverviewDate]
+     *  the moment it decides to show, not when the user actually dismisses
+     *  it, so a service restart or a long-open overlay can't retrigger it. */
+    private fun checkWeatherDue() {
+        if (!Prefs.dailyOverviewEnabled || !environmentVisible) return
+        val today = LocalDate.now().toString()
+        if (Prefs.lastDailyOverviewDate == today) return
+        if (LocalTime.now().hour < DAILY_OVERVIEW_HOUR) return
+        Prefs.lastDailyOverviewDate = today
+        scope.launch { showWeatherOverview() }
+    }
+
+    private suspend fun showWeatherOverview() {
+        val city = resolveOverviewCity() ?: return
+        withContext(Dispatchers.Main) {
+            val screenOn = (getSystemService(Context.POWER_SERVICE) as PowerManager).isInteractive
+            if (screenOn) {
+                weatherOverlay.show(city, Prefs.overviewRange) { weatherOverlay.hide() }
+            } else {
+                AlarmNotifications.notifyWeather(this@CalendarAlarmService)
+            }
+        }
+    }
+
+    /** Same default-city fallback as EnvironmentScreen's own Overview tab. */
+    private suspend fun resolveOverviewCity(): String? {
+        Prefs.overviewCity.takeIf { it.isNotEmpty() }?.let { return it }
+        return runCatching { Api.envBootstrap() }.getOrNull()
+            ?.let { b -> (b.cities.find { it.default } ?: b.cities.firstOrNull())?.key }
     }
 
     /** Snooze/Dismiss from the overlay's own buttons -- applies immediately
@@ -237,6 +313,7 @@ class CalendarAlarmService : Service() {
         const val DATA_POLL_INTERVAL_MS = 2 * 60 * 1000L
         const val ACTIVE_POLL_INTERVAL_MS = 2 * 1000L
         const val ALARM_CHECK_INTERVAL_MS = 1000L
+        const val DAILY_OVERVIEW_HOUR = 7
 
         fun ensureStarted(context: Context) {
             ContextCompat.startForegroundService(context, Intent(context, CalendarAlarmService::class.java))

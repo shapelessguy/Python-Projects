@@ -41,6 +41,38 @@ object Prefs {
         get() = sp?.getBoolean("askedFullScreenIntent", false) ?: false
         set(v) { sp?.edit()?.putBoolean("askedFullScreenIntent", v)?.apply() }
 
+    // ── environment ──────────────────────────────────────────────────────
+    /** Last-open Environment tab ("overview" / "forecast" / "historical"),
+     *  mirroring EnvironmentPanel.tsx's environment.tab cookie. */
+    var environmentTab: String
+        get() = sp?.getString("environmentTab", "overview") ?: "overview"
+        set(v) { sp?.edit()?.putString("environmentTab", v)?.apply() }
+
+    /** Last-picked city / range for the Overview tab, mirroring
+     *  EnvironmentPanel.tsx's environment.overview.city / .range cookies. */
+    var overviewCity: String
+        get() = sp?.getString("overviewCity", "") ?: ""
+        set(v) { sp?.edit()?.putString("overviewCity", v)?.apply() }
+
+    var overviewRange: String
+        get() = sp?.getString("overviewRange", "today") ?: "today"
+        set(v) { sp?.edit()?.putString("overviewRange", v)?.apply() }
+
+    /** Blanket switch for the daily weather-overview overlay [com.diary.alarm.CalendarAlarmService]
+     *  pops every morning -- same on/off idea as [alarmsEnabled] but for a
+     *  morning glance instead of a due calendar alarm. Toggled from
+     *  EnvironmentScreen's own bell icon. */
+    var dailyOverviewEnabled: Boolean
+        get() = sp?.getBoolean("dailyOverviewEnabled", false) ?: false
+        set(v) { sp?.edit()?.putBoolean("dailyOverviewEnabled", v)?.apply() }
+
+    /** "YYYY-MM-DD" of the last day the daily overview already fired (or was
+     *  found ineligible) -- keeps it to at most once per day regardless of
+     *  how many times the service's per-second check runs. */
+    var lastDailyOverviewDate: String
+        get() = sp?.getString("lastDailyOverviewDate", "") ?: ""
+        set(v) { sp?.edit()?.putString("lastDailyOverviewDate", v)?.apply() }
+
     // ── calendar ─────────────────────────────────────────────────────────
     /** Last-open calendar view ("MONTH" / "WEEK"), mirroring
      *  CalendarPanel.tsx's calendar_view cookie. */

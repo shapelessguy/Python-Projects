@@ -243,14 +243,18 @@ private fun ColumnScope.ForecastBody(
     val issuedTxt = fcAgo(resp.issued_at[ready[0]])
     val focus = cityByKey.getValue(ready[0])
 
-    Text(
-        buildString {
-            append("${focus.flag} ${focus.city_name} · $srcBadge")
-            if (issuedTxt != null) append(" · $issuedTxt")
-        },
-        fontSize = 11.sp,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
+    // Only meaningful when a single city is in view -- with several selected
+    // it'd just repeat the first one's name for no reason.
+    if (ready.size == 1) {
+        Text(
+            buildString {
+                append("${focus.flag} ${focus.city_name} · $srcBadge")
+                if (issuedTxt != null) append(" · $issuedTxt")
+            },
+            fontSize = 11.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
     Text(
         buildString {
             append(if (totalMm >= 0.05f) "%.1f mm expected".format(totalMm) else "Dry")

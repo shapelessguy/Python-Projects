@@ -253,6 +253,31 @@ data class ForecastResponse(
     val series: Map<String, ForecastCitySeries> = emptyMap(),
 )
 
+// ── forecast overview (derived per-segment icons: solar/rain/wind levels) ──
+@Serializable
+data class OverviewSegment(
+    val start: String,
+    val end: String,
+    val temperature_c: Double? = null,
+    val humidity_pct: Double? = null,
+    val cloud_cover_pct: Double? = null,
+    val precip_prob: Double? = null,
+    val precip_mm: Double = 0.0,
+    val rain_level: Int = 0,
+    val wind_speed_kmh: Double? = null,
+    val wind_level: Int = 0,
+    val solar_light: Double = 0.0,
+    val source: String? = null,
+)
+
+@Serializable
+data class OverviewResponse(
+    val city: String = "",
+    val range: String = "today",
+    val issued_at: String? = null,
+    val segments: List<OverviewSegment> = emptyList(),
+)
+
 // ── controls (CC) proxy ──────────────────────────────────────────────────
 @Serializable
 data class ControlsInfo(

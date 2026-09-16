@@ -21,7 +21,9 @@ import com.diary.R
 object AlarmNotifications {
     const val CHANNEL_SERVICE = "cyanhouse_service"
     const val CHANNEL_ALARMS = "cyanhouse_alarms"
+    const val CHANNEL_WEATHER = "cyanhouse_weather"
     const val NOTIF_ID_SERVICE = 1
+    const val NOTIF_ID_WEATHER = 2
 
     fun ensureChannels(context: Context) {
         val nm = context.getSystemService(NotificationManager::class.java)
@@ -37,6 +39,11 @@ object AlarmNotifications {
                 description = "Wakes the ring screen when a calendar alarm becomes due with the screen off"
                 enableVibration(true)
             },
+        )
+        nm.createNotificationChannel(
+            NotificationChannel(
+                CHANNEL_WEATHER, "Daily weather overview", NotificationManager.IMPORTANCE_DEFAULT,
+            ).apply { description = "Posted instead of the overlay when the daily weather glance is due with the screen off" },
         )
     }
 
@@ -82,5 +89,25 @@ object AlarmNotifications {
 
     fun cancelAlarm(context: Context, key: String) {
         NotificationManagerCompat.from(context).cancel(notifId(key))
+    }
+
+    /** Fallback for the daily weather glance when the screen is off --
+     *  [WeatherOverlay] needs it already on, and this isn't urgent enough to
+     *  justify waking the screen the way a calendar alarm does. Just opens
+     *  the app on tap; the overview is a tap away in the Environment tab
+     *  either way. */
+    fun notifyWeather(context: Context) {
+        val open = PendingIntent.getActivity(
+            context, 0, Intent(context, MainActivity::class.java),
+            PendingIntent.FLAG_IMMUTABLE,
+        )
+        val notif = NotificationCompat.Builder(context, CHANNEL_WEATHER)
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setContentTitle("Weather overview ready")
+            .setContentText("Today's forecast is in")
+            .setContentIntent(open)
+            .setAutoCancel(true)
+            .build()
+        NotificationManagerCompat.from(context).notify(NOTIF_ID_WEATHER, notif)
     }
 }

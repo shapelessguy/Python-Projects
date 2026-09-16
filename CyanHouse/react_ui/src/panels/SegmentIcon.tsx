@@ -13,13 +13,17 @@ const RAIN_BAR_X = [10, 14, 18, 22, 26];
  * so it fades from invisible to solid gray) with blue rain bars below it --
  * bar count from rain_level, bar opacity from rain probability (hidden at 5%
  * or below, otherwise floored at 20% so a borderline forecast doesn't render
- * as invisible as a 0% one). */
+ * as invisible as a 0% one). rain_level buckets by amount (mm), which can
+ * floor to 0 even at a high probability -- e.g. a 74% chance of a
+ * barely-measurable drizzle. Without this, that shows as a bare cloud with
+ * no hint of rain at all, so once there's real rain odds (rainOpacity > 0),
+ * always draw at least one bar. */
 export function SegmentIcon({ solarLight, cloudCoverPct, rainLevel, precipProb, size = 32 }: Props) {
   const cloudFrac = Math.max(0, Math.min(1, (cloudCoverPct ?? 0) / 100));
   const sunOpacity = Math.max(0, Math.min(1, solarLight * (1 - cloudFrac)));
   const prob = precipProb ?? 0;
   const rainOpacity = prob <= 5 ? 0 : Math.max(0.2, prob / 100);
-  const bars = Math.max(0, Math.min(RAIN_BAR_X.length, rainLevel));
+  const bars = rainLevel <= 0 && rainOpacity > 0 ? 1 : Math.max(0, Math.min(RAIN_BAR_X.length, rainLevel));
 
   return (
     <svg viewBox="0 0 36 36" width={size} height={size}>

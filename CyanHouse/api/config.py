@@ -59,7 +59,7 @@ DB_PATH = Path(os.environ.get("DIARY_DB", API_DATA_DIR / "diary.db"))
 SEED_USER = os.environ.get("SEED_USER", "cian_cl").strip()
 
 # ── forecast service (self-contained: own CSV cache in forecast/, own poller)
-FORECAST_POLL_SECONDS = int(os.environ.get("FORECAST_POLL_SECONDS", "3600"))
+FORECAST_POLL_SECONDS = int(os.environ.get("FORECAST_POLL_SECONDS", "1800"))
 
 # ── food service (self-contained: own DB, own image store) ────────────────
 FOOD_DB = Path(os.environ.get("FOOD_DB", API_DATA_DIR / "food.db"))

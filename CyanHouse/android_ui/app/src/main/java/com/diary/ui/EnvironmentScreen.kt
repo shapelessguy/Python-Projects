@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Box
@@ -22,6 +23,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.NotificationsOff
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
@@ -29,14 +33,18 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
@@ -49,6 +57,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewModelScope
+import com.diary.Prefs
 import com.diary.net.Api
 import com.diary.net.City
 import com.diary.net.EnvBootstrap
@@ -68,6 +77,7 @@ class EnvironmentViewModel : ViewModel() {
     var series by mutableStateOf<SeriesResponse?>(null); private set
     var error by mutableStateOf<String?>(null); private set
     var refreshing by mutableStateOf(false); private set
+    var forecastVersion by mutableStateOf(0); private set
 
     val cities = mutableStateOf<Set<String>>(emptySet())
     val vars = mutableStateOf<Set<String>>(emptySet())
@@ -83,6 +93,7 @@ class EnvironmentViewModel : ViewModel() {
         loadBoot()
         viewModelScope.launch {
             versionPoll().collect { v ->
+                forecastVersion = v.forecast
                 if (v.weather == seenWeather) return@collect
                 seenWeather = v.weather
                 if (boot != null && v.weather != appliedWeather) loadBoot()
@@ -162,94 +173,167 @@ fun EnvironmentScreen(vm: EnvironmentViewModel = viewModel()) {
         }
         return
     }
-    Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
+
+    var tab by rememberSaveable { mutableStateOf(Prefs.environmentTab) }
+    var overviewCity by rememberSaveable { mutableStateOf(Prefs.overviewCity) }
+    var overviewRange by rememberSaveable { mutableStateOf(Prefs.overviewRange) }
+    var dailyOverviewOn by rememberSaveable { mutableStateOf(Prefs.dailyOverviewEnabled) }
+
+    fun changeTab(t: String) {
+        tab = t
+        Prefs.environmentTab = t
+    }
+    fun changeOverviewCity(k: String) {
+        overviewCity = k
+        Prefs.overviewCity = k
+    }
+    fun changeOverviewRange(r: String) {
+        overviewRange = r
+        Prefs.overviewRange = r
+    }
+
+    // Pick a default city once the bootstrap arrives, same fallback as the
+    // Historical tab's own city selection.
+    LaunchedEffect(boot.cities) {
+        if (overviewCity.isEmpty() || boot.cities.none { it.key == overviewCity }) {
+            val next = boot.cities.find { it.default }?.key ?: boot.cities.firstOrNull()?.key ?: ""
+            if (next != overviewCity) changeOverviewCity(next)
+        }
+    }
+
+    Column(Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         vm.error?.let { Text(it, color = MaterialTheme.colorScheme.primary, fontSize = 12.sp) }
 
-        val groups = remember(boot.variables) { boot.variables.groupBy { it.group } }
-
-        // Cities + Date range + Resample in one column, Variables in the other;
-        // each half-width, unless half is < MIN_COL_W -> single column.
-        BoxWithConstraints {
-            val gap = 12.dp
-            if (maxWidth >= MIN_COL_W * 2 + gap) {
-                // Match the Variables card's height to the (Cities+Date+Resample)
-                // column so their bottom borders line up; its list scrolls inside.
-                var leftPx by remember { mutableStateOf(0) }
-                val density = LocalDensity.current
-                Row(horizontalArrangement = Arrangement.spacedBy(gap)) {
-                    Column(
-                        Modifier.weight(1f).onSizeChanged { leftPx = it.height },
-                        verticalArrangement = Arrangement.spacedBy(gap),
-                    ) {
-                        CitiesCard(Modifier.fillMaxWidth(), boot, vm)
-                        DateRangeCard(Modifier.fillMaxWidth(), vm)
-                        ResampleCard(Modifier.fillMaxWidth(), vm)
-                    }
-                    val varMod = if (leftPx > 0)
-                        Modifier.weight(1f).height(with(density) { leftPx.toDp() })
-                    else Modifier.weight(1f)
-                    VariablesCard(varMod, groups, vm, fillHeight = leftPx > 0)
-                }
-            } else {
-                Column(verticalArrangement = Arrangement.spacedBy(gap)) {
-                    CitiesCard(Modifier.fillMaxWidth(), boot, vm)
-                    DateRangeCard(Modifier.fillMaxWidth(), vm)
-                    ResampleCard(Modifier.fillMaxWidth(), vm)
-                    VariablesCard(Modifier.fillMaxWidth(), groups, vm, fillHeight = false)
-                }
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = {
+                dailyOverviewOn = !dailyOverviewOn
+                Prefs.dailyOverviewEnabled = dailyOverviewOn
+            }) {
+                Icon(
+                    if (dailyOverviewOn) Icons.Default.Notifications else Icons.Default.NotificationsOff,
+                    if (dailyOverviewOn) "Daily weather overview on -- tap to disable" else "Daily weather overview off -- tap to enable",
+                )
+            }
+            Spacer(Modifier.weight(1f))
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                FilterChip(selected = tab == "overview", onClick = { changeTab("overview") }, label = { Text("Overview") })
+                FilterChip(selected = tab == "forecast", onClick = { changeTab("forecast") }, label = { Text("Forecast") })
+                FilterChip(selected = tab == "historical", onClick = { changeTab("historical") }, label = { Text("Historical") })
             }
         }
 
-        HorizontalDivider(Modifier.padding(vertical = 4.dp))
-
-        ForecastStrip(boot.cities, vm.cities.value)
-
-        val series = vm.series
-        val selectedVars = boot.variables.filter { it.key in vm.vars.value }
-        val fallbackColor = MaterialTheme.colorScheme.primary
-        if (series == null) {
-            Text("Pick at least one city and variable.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-        } else {
-            // Axis ticks stay short; the tap-readout carries the full moment
-            // (day + hour for hourly, the week's date range for weekly).
-            val xIso = remember(series) {
-                // the city with the most points (a city missing data for the
-                // range would otherwise give an empty / short index -> raw
-                // numbers in the axis + readout)
-                series.series.values
-                    .mapNotNull { it["index"] as? JsonArray }
-                    .maxByOrNull { it.size }
-                    ?.map { it.asText() } ?: emptyList()
+        when (tab) {
+            "overview" -> {
+                OverviewToolbar(
+                    cities = boot.cities,
+                    city = overviewCity,
+                    onCityChange = ::changeOverviewCity,
+                    range = overviewRange,
+                    onRangeChange = ::changeOverviewRange,
+                )
+                // Fills the remaining height exactly, same as OverviewBoard.tsx --
+                // no scrolling, unlike the other two tabs below.
+                OverviewBoard(
+                    city = overviewCity,
+                    range = overviewRange,
+                    forecastVersion = vm.forecastVersion,
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                )
             }
-            val axisLabels = remember(xIso, series.resample) { xIso.map { axisLabel(it, series.resample) } }
-            val pointLabels = remember(xIso, series.resample) { xIso.map { pointLabel(it, series.resample) } }
-            selectedVars.forEach { v ->
-                val chartSeries = boot.cities
-                    .filter { it.key in vm.cities.value }
-                    .mapNotNull { c ->
-                        val arr = series.series[c.key]?.get(v.key) as? JsonArray ?: return@mapNotNull null
-                        ChartSeries(
-                            name = c.city_name,
-                            color = runCatching { Color(android.graphics.Color.parseColor(c.color)) }
-                                .getOrDefault(fallbackColor),
-                            points = arr.map { it.asDoubleOrNull()?.toFloat() },
-                        )
+
+            "forecast" -> {
+                Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
+                    ForecastStrip(boot.cities, vm.cities.value)
+                }
+            }
+
+            else -> { // "historical"
+                Column(
+                    Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    val groups = remember(boot.variables) { boot.variables.groupBy { it.group } }
+
+                    // Cities + Date range + Resample in one column, Variables in the
+                    // other; each half-width, unless half is < MIN_COL_W -> single column.
+                    BoxWithConstraints {
+                        val gap = 12.dp
+                        if (maxWidth >= MIN_COL_W * 2 + gap) {
+                            // Match the Variables card's height to the (Cities+Date+Resample)
+                            // column so their bottom borders line up; its list scrolls inside.
+                            var leftPx by remember { mutableStateOf(0) }
+                            val density = LocalDensity.current
+                            Row(horizontalArrangement = Arrangement.spacedBy(gap)) {
+                                Column(
+                                    Modifier.weight(1f).onSizeChanged { leftPx = it.height },
+                                    verticalArrangement = Arrangement.spacedBy(gap),
+                                ) {
+                                    CitiesCard(Modifier.fillMaxWidth(), boot, vm)
+                                    DateRangeCard(Modifier.fillMaxWidth(), vm)
+                                    ResampleCard(Modifier.fillMaxWidth(), vm)
+                                }
+                                val varMod = if (leftPx > 0)
+                                    Modifier.weight(1f).height(with(density) { leftPx.toDp() })
+                                else Modifier.weight(1f)
+                                VariablesCard(varMod, groups, vm, fillHeight = leftPx > 0)
+                            }
+                        } else {
+                            Column(verticalArrangement = Arrangement.spacedBy(gap)) {
+                                CitiesCard(Modifier.fillMaxWidth(), boot, vm)
+                                DateRangeCard(Modifier.fillMaxWidth(), vm)
+                                ResampleCard(Modifier.fillMaxWidth(), vm)
+                                VariablesCard(Modifier.fillMaxWidth(), groups, vm, fillHeight = false)
+                            }
+                        }
                     }
-                if (chartSeries.isNotEmpty()) {
-                    LineChart(
-                        title = v.label + if (v.unit.isNotEmpty()) " [${v.unit}]" else "",
-                        xLabels = axisLabels,
-                        pointLabels = pointLabels,
-                        series = chartSeries,
-                    )
+
+                    val series = vm.series
+                    val selectedVars = boot.variables.filter { it.key in vm.vars.value }
+                    val fallbackColor = MaterialTheme.colorScheme.primary
+                    if (series == null) {
+                        Text("Pick at least one city and variable.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    } else {
+                        // Axis ticks stay short; the tap-readout carries the full moment
+                        // (day + hour for hourly, the week's date range for weekly).
+                        val xIso = remember(series) {
+                            // the city with the most points (a city missing data for the
+                            // range would otherwise give an empty / short index -> raw
+                            // numbers in the axis + readout)
+                            series.series.values
+                                .mapNotNull { it["index"] as? JsonArray }
+                                .maxByOrNull { it.size }
+                                ?.map { it.asText() } ?: emptyList()
+                        }
+                        val axisLabels = remember(xIso, series.resample) { xIso.map { axisLabel(it, series.resample) } }
+                        val pointLabels = remember(xIso, series.resample) { xIso.map { pointLabel(it, series.resample) } }
+                        selectedVars.forEach { v ->
+                            val chartSeries = boot.cities
+                                .filter { it.key in vm.cities.value }
+                                .mapNotNull { c ->
+                                    val arr = series.series[c.key]?.get(v.key) as? JsonArray ?: return@mapNotNull null
+                                    ChartSeries(
+                                        name = c.city_name,
+                                        color = runCatching { Color(android.graphics.Color.parseColor(c.color)) }
+                                            .getOrDefault(fallbackColor),
+                                        points = arr.map { it.asDoubleOrNull()?.toFloat() },
+                                    )
+                                }
+                            if (chartSeries.isNotEmpty()) {
+                                LineChart(
+                                    title = v.label + if (v.unit.isNotEmpty()) " [${v.unit}]" else "",
+                                    xLabels = axisLabels,
+                                    pointLabels = pointLabels,
+                                    series = chartSeries,
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
     }
 }
+
 
 private val DAY_FMT: java.time.format.DateTimeFormatter =
     java.time.format.DateTimeFormatter.ofPattern("d MMM")
