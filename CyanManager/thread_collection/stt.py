@@ -1,17 +1,13 @@
 import numpy as np
-import whisper
 import gc
-import torch
 import requests
 import traceback
 import time
 import json
 from dotenv import dotenv_values
 from pathlib import Path
-from piper import download_voices
 from utils import Parameter, wait, ENV_PATH
 from functions.audio import get_current_audio_info
-from piper import PiperVoice
 from PyQt5.QtWidgets import QLineEdit, QComboBox
 from registered_functions import RegisteredFunctions
 
@@ -197,6 +193,9 @@ def get_info():
 
 
 def entrypoint(thread_manager):
+    import torch
+    import whisper
+    from piper import PiperVoice, download_voices
     signal = thread_manager.signal
     params = [x for x in signal.get_threads() if x.name == NAME][0].parameters
 

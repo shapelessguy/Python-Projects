@@ -1,6 +1,5 @@
 import os
 import json
-import whisper
 import threading
 import datetime
 import traceback

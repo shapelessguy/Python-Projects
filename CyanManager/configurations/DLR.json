@@ -170,8 +170,8 @@
             "enabled": true,
             "parameters": {}
         },
-        "Arduino": {
-            "enabled": false,
+        "API Server": {
+            "enabled": true,
             "parameters": {}
         },
         "Cyan Launcher Manager": {
@@ -189,6 +189,10 @@
             "enabled": true,
             "parameters": {}
         },
+        "Mouse Server": {
+            "enabled": true,
+            "parameters": {}
+        },
         "PC_CONNECTED_DEVICES": {
             "enabled": true,
             "parameters": {}
@@ -200,6 +204,14 @@
                 "Lights to": "20:00"
             }
         },
+        "STT service": {
+            "enabled": false,
+            "parameters": {
+                "URL": "",
+                "Token": "",
+                "Model": ""
+            }
+        },
         "Start&Shutdown": {
             "enabled": true,
             "parameters": {
@@ -209,10 +221,6 @@
                 "Shutdown to": "08:00",
                 "Shutdown": false
             }
-        },
-        "XM4-1000": {
-            "enabled": false,
-            "parameters": {}
         }
     }
 }
