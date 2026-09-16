@@ -46,6 +46,9 @@ def get_forecast(city_keys: list[str]) -> dict:
     return {"issued_at": issued, "series": series}
 
 
+_DAY_OFFSET = {"today": 0, "tomorrow": 1, "in2days": 2}
+
+
 def get_overview(city_key: str, range_: str) -> dict:
     c = _BY_KEY.get(city_key)
     if c is None:
@@ -56,7 +59,12 @@ def get_overview(city_key: str, range_: str) -> dict:
         # One row per day (14), not per 2h segment -- see build_daily_averages.
         segments = _overview.build_daily_averages(df, sun, days=14)
     else:
-        segments = _overview.build_segments(df, sun, days=1)
+        # today/tomorrow/in2days: same 12-row (2h x 4 day-parts) detail,
+        # just a different day -- fetch up through that day and keep only
+        # its own 12 segments (always the last 12 of the fetched range).
+        offset = _DAY_OFFSET.get(range_, 0)
+        all_segments = _overview.build_segments(df, sun, days=offset + 1)
+        segments = all_segments[-12:]
     return {"city": city_key, "range": range_, "issued_at": meta.get("issued_at"), "segments": segments}
 
 

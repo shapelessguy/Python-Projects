@@ -65,7 +65,7 @@ def series(cities: str = Query(..., description="comma-separated city keys")):
 @router.get("/overview")
 def overview(
     city: str = Query(..., description="city key"),
-    range_: str = Query("today", alias="range", pattern="^(today|week)$"),
+    range_: str = Query("today", alias="range", pattern="^(today|tomorrow|in2days|week)$"),
 ):
     return forecast.get_overview(city, range_)
 

@@ -32,7 +32,7 @@ button.ghost { background: transparent; }
 button.danger { border-color: #6b2b2b; color: #ff9b9b; }
 button:disabled { opacity: 0.45; cursor: default; }
 
-input, select, textarea {
+input:not([type="range"]), select, textarea {
   background: var(--panel);
   color: var(--text);
   border: 1px solid var(--line);
@@ -42,6 +42,11 @@ input, select, textarea {
   width: 100%;
 }
 input[type="checkbox"] { width: auto; }
+/* Range inputs render their track from the padding box -- the shared 6px
+ * padding above pushed the thumb's min-value position in from the actual
+ * element edge, so the Forecast tab's day slider never looked flush at the
+ * left. No padding, no border/background box around the native track. */
+input[type="range"] { width: 100%; margin: 0; accent-color: var(--accent); }
 
 h1 { font-size: 1.6rem; margin: 0 0 2px; }
 h2 { font-size: 1.15rem; margin: 0; }
@@ -223,7 +228,6 @@ h3 { font-size: 0.85rem; margin: 12px 0 6px; text-transform: uppercase; letter-s
 .fc-pills { display: flex; gap: 6px; }
 .fc-pills button { font-size: 0.75rem; padding: 3px 10px; }
 .fc-track { flex: 1 1 240px; min-width: 180px; display: flex; flex-direction: column; gap: 2px; }
-.fc-track input[type="range"] { width: 100%; margin: 0; accent-color: var(--accent); }
 .fc-ticks { display: flex; justify-content: space-between; font-size: 0.65rem; color: var(--muted); }
 .fc-daylabel { white-space: nowrap; font-size: 0.85rem; min-width: 116px; text-align: right; }
 .fc-headline { margin: 2px 0 4px; font-size: 0.9rem; }

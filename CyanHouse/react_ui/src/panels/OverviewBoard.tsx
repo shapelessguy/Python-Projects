@@ -7,7 +7,7 @@ import { WindIcon } from "./WindIcon";
 
 interface Props {
   city: string;
-  range: "today" | "week";
+  range: "today" | "tomorrow" | "in2days" | "week";
   forecastVersion: number;
 }
 

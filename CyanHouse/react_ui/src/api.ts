@@ -99,7 +99,7 @@ export interface OverviewSegment {
 
 export interface OverviewResponse {
   city: string;
-  range: "today" | "week";
+  range: "today" | "tomorrow" | "in2days" | "week";
   issued_at: string | null;
   segments: OverviewSegment[];
 }
@@ -223,7 +223,7 @@ export const api = {
     f("/api/forecast/series?" + new URLSearchParams({ cities })).then(j<ForecastResponse>),
   forecastRefresh: () =>
     f("/api/forecast/refresh", { method: "POST" }).then(j<ForecastBootstrap>),
-  forecastOverview: (city: string, range: "today" | "week") =>
+  forecastOverview: (city: string, range: "today" | "tomorrow" | "in2days" | "week") =>
     f("/api/forecast/overview?" + new URLSearchParams({ city, range })).then(j<OverviewResponse>),
 
   calendars: () => f("/api/calendar/calendars").then(j<Calendar[]>),

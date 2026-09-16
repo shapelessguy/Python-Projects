@@ -26,8 +26,8 @@ const TABS: Tab[] = ["overview", "forecast", "historical"];
 const TAB_KEY = "environment.tab";
 const CITIES_KEY = "environment.cities";
 
-type OverviewRange = "today" | "week";
-const OVERVIEW_RANGES: OverviewRange[] = ["today", "week"];
+type OverviewRange = "today" | "tomorrow" | "in2days" | "week";
+const OVERVIEW_RANGES: OverviewRange[] = ["today", "tomorrow", "in2days", "week"];
 const OVERVIEW_CITY_KEY = "environment.overview.city";
 const OVERVIEW_RANGE_KEY = "environment.overview.range";
 
@@ -261,6 +261,18 @@ export function EnvironmentPanel() {
                 onClick={() => changeOverviewRange("today")}
               >
                 Today
+              </button>
+              <button
+                className={overviewRange === "tomorrow" ? "active" : ""}
+                onClick={() => changeOverviewRange("tomorrow")}
+              >
+                Tomorrow
+              </button>
+              <button
+                className={overviewRange === "in2days" ? "active" : ""}
+                onClick={() => changeOverviewRange("in2days")}
+              >
+                In 2 days
               </button>
               <button
                 className={overviewRange === "week" ? "active" : ""}
