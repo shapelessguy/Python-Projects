@@ -22,12 +22,40 @@ object Prefs {
         get() = sp?.getString("controlsMode", "ALL") ?: "ALL"
         set(v) { sp?.edit()?.putString("controlsMode", v)?.apply() }
 
+    /** Whether MainActivity has already shown the ignore-battery-optimizations
+     *  system dialog -- asked at most once ever, regardless of the user's
+     *  answer (see MainActivity.onCreate). */
+    var askedBatteryExemption: Boolean
+        get() = sp?.getBoolean("askedBatteryExemption", false) ?: false
+        set(v) { sp?.edit()?.putBoolean("askedBatteryExemption", v)?.apply() }
+
+    /** Whether MainActivity has already shown the "draw over other apps"
+     *  permission screen -- see MainActivity.onCreate. */
+    var askedOverlayPermission: Boolean
+        get() = sp?.getBoolean("askedOverlayPermission", false) ?: false
+        set(v) { sp?.edit()?.putBoolean("askedOverlayPermission", v)?.apply() }
+
+    /** Whether MainActivity has already shown the full-screen-intent
+     *  permission screen (API 34+ only) -- see MainActivity.onCreate. */
+    var askedFullScreenIntent: Boolean
+        get() = sp?.getBoolean("askedFullScreenIntent", false) ?: false
+        set(v) { sp?.edit()?.putBoolean("askedFullScreenIntent", v)?.apply() }
+
     // ── calendar ─────────────────────────────────────────────────────────
     /** Last-open calendar view ("MONTH" / "WEEK"), mirroring
      *  CalendarPanel.tsx's calendar_view cookie. */
     var calendarView: String
         get() = sp?.getString("calendarView", "MONTH") ?: "MONTH"
         set(v) { sp?.edit()?.putString("calendarView", v)?.apply() }
+
+    /** Blanket on/off switch for CalendarAlarmService's ring UI (overlay or
+     *  full-screen, whichever screen state applies) -- unrelated to any
+     *  individual event's own alarm flag. Read by the service itself, which
+     *  may run in a fresh process before this app's UI ever has (e.g. right
+     *  after boot), so it calls Prefs.init on its own too. */
+    var alarmsEnabled: Boolean
+        get() = sp?.getBoolean("alarmsEnabled", true) ?: true
+        set(v) { sp?.edit()?.putBoolean("alarmsEnabled", v)?.apply() }
 
     /** Which of the user's calendars to render events from. Unset (never
      *  saved, or every saved id now unknown -- e.g. deleted elsewhere) means

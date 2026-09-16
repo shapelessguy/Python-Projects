@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.diary.alarm.DueAlarm
 
 private val SNOOZE_OPTIONS = listOf(
     5 to "5 minutes", 10 to "10 minutes", 30 to "30 minutes", 120 to "2 hours",

@@ -40,6 +40,8 @@ import androidx.compose.material.icons.filled.CalendarViewDay
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.NotificationsOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
@@ -84,6 +86,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.diary.Prefs
 import com.diary.net.Calendar
 import com.diary.net.CalendarEvent
 import com.diary.net.EventBody
@@ -257,6 +260,10 @@ fun CalendarScreen(vm: CalendarViewModel = viewModel()) {
     var draft by remember { mutableStateOf<Draft?>(null) }
     var calendarsOpen by remember { mutableStateOf(false) }
     var confirmDeleteCal by remember { mutableStateOf<Calendar?>(null) }
+    // Blanket mute switch for CalendarAlarmService's ring UI (screen-on
+    // overlay or screen-off full-screen, whichever applies) -- unrelated to
+    // any individual event's own alarm flag. See Prefs.alarmsEnabled.
+    var alarmsEnabled by remember { mutableStateOf(Prefs.alarmsEnabled) }
 
     Column(Modifier.fillMaxSize()) {
         Row(
@@ -279,6 +286,12 @@ fun CalendarScreen(vm: CalendarViewModel = viewModel()) {
             FilterChip(selected = vm.viewMode == CalendarViewMode.WEEK,
                 onClick = { vm.setView(CalendarViewMode.WEEK) }, label = { Text("Week") })
             Spacer(Modifier.weight(1f))
+            IconButton(onClick = { alarmsEnabled = !alarmsEnabled; Prefs.alarmsEnabled = alarmsEnabled }) {
+                Icon(
+                    if (alarmsEnabled) Icons.Default.Notifications else Icons.Default.NotificationsOff,
+                    if (alarmsEnabled) "Alarms on -- tap to mute" else "Alarms muted -- tap to unmute",
+                )
+            }
             Box {
                 IconButton(onClick = { calendarsOpen = true }) {
                     Icon(Icons.Default.CalendarViewDay,
