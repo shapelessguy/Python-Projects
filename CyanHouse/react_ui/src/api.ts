@@ -70,12 +70,38 @@ export interface ForecastCitySeries {
   index: string[];
   precip_mm: (number | null)[];
   precip_prob: (number | null)[];
+  temperature_c: (number | null)[];
+  wind_speed_kmh: (number | null)[];
+  cloud_cover_pct: (number | null)[];
+  humidity_pct: (number | null)[];
   source: string[];
 }
 
 export interface ForecastResponse {
   issued_at: Record<string, string | null>;
   series: Record<string, ForecastCitySeries>;
+}
+
+export interface OverviewSegment {
+  start: string;
+  end: string;
+  temperature_c: number | null;
+  humidity_pct: number | null;
+  cloud_cover_pct: number | null;
+  precip_prob: number | null;
+  precip_mm: number;
+  rain_level: number;
+  wind_speed_kmh: number | null;
+  wind_level: number;
+  solar_light: number;
+  source: string | null;
+}
+
+export interface OverviewResponse {
+  city: string;
+  range: "today" | "week";
+  issued_at: string | null;
+  segments: OverviewSegment[];
 }
 
 export interface ControlsInfo {
@@ -197,6 +223,8 @@ export const api = {
     f("/api/forecast/series?" + new URLSearchParams({ cities })).then(j<ForecastResponse>),
   forecastRefresh: () =>
     f("/api/forecast/refresh", { method: "POST" }).then(j<ForecastBootstrap>),
+  forecastOverview: (city: string, range: "today" | "week") =>
+    f("/api/forecast/overview?" + new URLSearchParams({ city, range })).then(j<OverviewResponse>),
 
   calendars: () => f("/api/calendar/calendars").then(j<Calendar[]>),
   createCalendar: (name: string, color?: string) =>

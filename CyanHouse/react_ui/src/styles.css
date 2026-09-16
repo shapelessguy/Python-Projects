@@ -92,6 +92,9 @@ h3 { font-size: 0.85rem; margin: 12px 0 6px; text-transform: uppercase; letter-s
 .app--fixed { height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 .app--fixed .content { flex: 1 1 auto; min-height: 0; overflow: hidden; }
 .panel.environment { height: 100%; align-items: stretch; }
+.panel.environment.panel--column { flex-direction: column; gap: 10px; }
+.env-tabs { display: flex; gap: 6px; flex: 0 0 auto; }
+.env-tab-body { display: flex; gap: 20px; align-items: stretch; flex: 1 1 auto; min-height: 0; }
 .env-controls {
   flex: 0 0 240px;
   background: var(--panel);
@@ -109,6 +112,95 @@ h3 { font-size: 0.85rem; margin: 12px 0 6px; text-transform: uppercase; letter-s
 .env-controls summary { cursor: pointer; color: var(--muted); font-size: 0.8rem; }
 .env-controls .refresh { width: 100%; margin-top: 12px; }
 .env-charts { flex: 1 1 auto; min-width: 0; height: 100%; overflow-y: auto; }
+/* Overview only: fill the panel's exact height (toolbar + a flex chain of
+ * equal-share rows below it) instead of scrolling. */
+.env-charts--fit { display: flex; flex-direction: column; overflow: hidden; }
+.chart-title { font-size: 12px; color: #bbb; text-align: center; margin-bottom: 2px; }
+.overview-toolbar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.overview-toolbar select { width: auto; min-width: 160px; }
+.overview-toolbar .presets { display: flex; gap: 4px; }
+.overview-toolbar .presets button { padding: 4px 12px; font-size: 0.8rem; }
+.ov-board { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 4px; }
+.ov-day-label { margin: 0 0 4px; font-size: 1rem; }
+/* Header row for "today": indented to match .ov-part-label's fixed width so
+ * its columns land under the real per-part rows below it. */
+.ov-header { flex: 0 0 auto; display: flex; align-items: stretch; gap: 8px; }
+.ov-header-spacer { flex: 0 0 22px; width: 22px; }
+.ov-header-row { border-bottom: 1px solid var(--line); }
+/* "today": nested in .ov-header (a horizontal flex row after the spacer) --
+ * grow to fill the remaining width so the grid's 1fr numbers column has
+ * room. "week": a direct child of .ov-board (a vertical flex column) -- stay
+ * a fixed-height row instead of competing with .ov-rows for vertical space. */
+.ov-header .ov-header-row { flex: 1 1 auto; }
+.ov-board > .ov-header-row { flex: 0 0 auto; }
+.ov-numbers-head span {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.ov-part { flex: 1 1 0; min-height: 0; display: flex; align-items: stretch; gap: 8px; }
+.ov-part-label {
+  flex: 0 0 22px;
+  width: 22px;
+  writing-mode: vertical-rl;
+  text-align: center;
+  padding: 4px 0;
+  border-right: 1px solid var(--line);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.ov-rows { flex: 1 1 auto; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+/* A fixed grid, not flex+space-between: with variable-width content (label
+ * text length differs row to row), space-between drifts each column's start
+ * position instead of keeping them aligned like a table's would be. */
+.ov-row {
+  flex: 1 1 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 60px 32px 76px 60px 120px 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: 2px 2px;
+  border-bottom: 1px solid var(--line);
+}
+.ov-row:last-child { border-bottom: none; }
+.ov-time { font-size: 0.86rem; color: var(--muted); }
+.ov-numbers {
+  justify-self: end;
+  display: grid;
+  grid-template-columns: 40px 40px 45px 85px 35px 45px 95px;
+  gap: 10px;
+  font-size: 0.8rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.ov-numbers span { text-align: right; overflow: hidden; text-overflow: ellipsis; }
+.temp-bar, .humidity-gauge, .wind-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  font-variant-numeric: tabular-nums;
+}
+.temp-bar-label, .humidity-gauge-label, .wind-icon-label { font-size: 0.78rem; color: var(--muted); }
+@media (max-width: 900px) {
+  .ov-numbers, .ov-header, .ov-header-row { display: none; }
+  /* No numbers/header to keep column-aligned with below this width, so let
+   * the icon columns stretch and spread across the row instead of leaving
+   * the fixed-width table columns bunched on the left. */
+  .ov-row { grid-template-columns: 56px repeat(4, 1fr); justify-items: center; }
+  .ov-time { justify-self: start; }
+}
 @media (max-width: 800px) {
   .env-controls { display: none; }
 }
@@ -139,7 +231,7 @@ h3 { font-size: 0.85rem; margin: 12px 0 6px; text-transform: uppercase; letter-s
    don't reliably keep the rendered text clear of it -- the second chart's
    title ends up overlapping the first chart's x-axis labels without an
    explicit gap between the two chart containers. */
-.fc-charts { display: flex; flex-direction: column; gap: 16px; }
+.fc-charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px 20px; }
 .fc-stale { color: #ffcf7a; }
 button.link {
   background: none; border: none; padding: 0; color: var(--muted);

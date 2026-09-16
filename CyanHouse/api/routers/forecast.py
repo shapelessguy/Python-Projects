@@ -62,6 +62,14 @@ def series(cities: str = Query(..., description="comma-separated city keys")):
     return forecast.get_forecast([c for c in cities.split(",") if c])
 
 
+@router.get("/overview")
+def overview(
+    city: str = Query(..., description="city key"),
+    range_: str = Query("today", alias="range", pattern="^(today|week)$"),
+):
+    return forecast.get_overview(city, range_)
+
+
 @router.post("/refresh")
 async def refresh():
     await run_in_threadpool(forecast.refresh)

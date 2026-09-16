@@ -1,15 +1,15 @@
-"""Build and cache the merged precipitation forecast for every city.
+"""Build and cache the merged weather forecast for every city.
 
 Merge rule
 ----------
 Open-Meteo covers the whole ~16-day horizon. For German cities the first
 ``DWD_HOURS`` hours are replaced with DWD (MOSMIX via Bright Sky) wherever DWD
-has a value; every row keeps a ``source`` tag ("dwd" / "open-meteo") so the UI
-can show which provider it came from.
+has a precipitation value; every row keeps a ``source`` tag ("dwd" /
+"open-meteo") so the UI can show which provider it came from.
 
 Cache layout (one pair per city, fully overwritten on every poll), under
 DATASETS_DIR (<DATA_DIR or project root>/forecast/datasets by default):
-    <city>_forecast.csv        datetime,precip_mm,precip_prob,source
+    <city>_forecast.csv        datetime,<sources.METRIC_COLUMNS>,source
     <city>_forecast.meta.json  {issued_at, dwd_until, sources}
 
 Kept free of any ``api`` import; the API layer drives the poller and owns the
@@ -67,7 +67,7 @@ def meta_path(city: dict) -> str:
 
 # ── build ───────────────────────────────────────────────────────────────────
 def build_city_forecast(city: dict) -> tuple[pd.DataFrame, dict]:
-    om = sources.fetch_open_meteo(city["coords"])
+    om, sun = sources.fetch_open_meteo(city["coords"])
     out = om.assign(source="open-meteo")
     dwd_until = None
 
@@ -86,18 +86,25 @@ def build_city_forecast(city: dict) -> tuple[pd.DataFrame, dict]:
             out = om.reindex(full)
             d = dwd.reindex(full)
             use = d["precip_mm"].notna()
-            out.loc[use, ["precip_mm", "precip_prob"]] = d.loc[use, ["precip_mm", "precip_prob"]]
+            # MOSMIX doesn't forecast every field for every hour (e.g. no
+            # precip_prob for the first ~14h, no humidity past ~14h) -- merge
+            # column by column so a field DWD lacks for a given hour falls
+            # back to Open-Meteo instead of being blanked out.
+            for col in sources.METRIC_COLUMNS:
+                col_use = d[col].notna()
+                out.loc[col_use, col] = d.loc[col_use, col]
             out["source"] = "open-meteo"
             out.loc[use, "source"] = "dwd"
             if use.any():
                 dwd_until = out.index[use].max().isoformat()
 
-    out = out[["precip_mm", "precip_prob", "source"]].sort_index()
+    out = out[sources.METRIC_COLUMNS + ["source"]].sort_index()
     out.index.name = "datetime"
     meta = {
         "issued_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "dwd_until": dwd_until,
         "sources": sorted(out["source"].dropna().unique().tolist()),
+        "sun": sun,
     }
     return out, meta
 

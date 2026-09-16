@@ -10,7 +10,7 @@ const WEEKDAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 /** "2026-09-13T14:00:00" -> local Date (no trailing Z => parsed as local). */
 const asDate = (iso: string) => new Date(iso);
 const dayOf = (iso: string) => iso.slice(0, 10); // YYYY-MM-DD, no tz math
-const hourOf = (iso: string) => iso.slice(11, 16); // HH:MM
+const hourOf = (iso: string) => iso.slice(11, 13); // HH -- always on the hour, ":00" adds nothing
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(n, hi));
 
 function pillLabel(dayIdx: number, isoForDay: string): string {
@@ -99,7 +99,7 @@ export function ForecastStrip({ allCities, selected, forecastVersion }: Props) {
     return (
       <section className="forecast-strip">
         <h3>🌧 Precipitation forecast</h3>
-        <p className="muted">Select a city (left) to see its forecast.</p>
+        <p className="muted">Select a city in the Historical tab to see its forecast.</p>
       </section>
     );
 
@@ -125,7 +125,6 @@ export function ForecastStrip({ allCities, selected, forecastVersion }: Props) {
 
   const day = clamp(selectedDay, 0, maxDay);
   const dayKey = dayOf(dayList[day]);
-  const focusCity = cityByKey[ready[0]];
 
   // ── per-city slice for the selected day ─────────────────────────────────
   const sliced = ready.map((k) => {
@@ -140,6 +139,10 @@ export function ForecastStrip({ allCities, selected, forecastVersion }: Props) {
       hours: idx.map((i) => hourOf(s.index[i])),
       mm: idx.map((i) => s.precip_mm[i]),
       prob: idx.map((i) => s.precip_prob[i]),
+      temp: idx.map((i) => s.temperature_c[i]),
+      wind: idx.map((i) => s.wind_speed_kmh[i]),
+      clouds: idx.map((i) => s.cloud_cover_pct[i]),
+      humidity: idx.map((i) => s.humidity_pct[i]),
       sources: idx.map((i) => s.source[i]),
     };
   });
@@ -155,10 +158,6 @@ export function ForecastStrip({ allCities, selected, forecastVersion }: Props) {
       peakHour = fSlice.hours[i];
     }
   });
-  const srcSet = new Set(fSlice.sources);
-  const srcBadge =
-    srcSet.size > 1 ? "DWD → Open-Meteo" : srcSet.has("dwd") ? "DWD (MOSMIX)" : "Open-Meteo";
-
   const anyDwd = ready.some((k) => data!.series[k].source.includes("dwd"));
   const mins = minutesAgo(data!.issued_at[ready[0]]);
   const stale = mins != null && mins > 90;
@@ -168,16 +167,20 @@ export function ForecastStrip({ allCities, selected, forecastVersion }: Props) {
   const headline = totalMm >= 0.05 ? `${totalMm.toFixed(1)} mm expected` : "Dry";
   const peakText = peakProb >= 0 ? ` · peak ${Math.round(peakProb)}% at ${peakHour}` : "";
 
+  // Metric names render as a plain HTML label above each chart (see
+  // .chart-title) instead of Plotly's own `title`, which shares the same
+  // fractional coordinate space as a top-anchored legend and is fiddly to
+  // keep from overlapping it at this chart height.
   const baseLayout = {
     height: 190,
-    margin: { l: 44, r: 12, t: 24, b: 28 },
+    margin: { l: 44, r: 12, t: 32, b: 28 },
     paper_bgcolor: "rgba(0,0,0,0)",
     plot_bgcolor: "rgba(0,0,0,0)",
     font: { color: "#bbb", size: 11 },
     xaxis: { gridcolor: "#333", type: "category" as const },
     yaxis: { gridcolor: "#333" },
     showlegend: ready.length > 1,
-    legend: { orientation: "h" as const, y: 1.35 },
+    legend: { orientation: "h" as const, x: 1, xanchor: "right" as const, y: 1.18 },
     bargap: 0.15,
   };
 
@@ -186,13 +189,7 @@ export function ForecastStrip({ allCities, selected, forecastVersion }: Props) {
       <div className="fc-head">
         <h3>🌧 Precipitation forecast</h3>
         <span className="muted small">
-          {focusCity?.flag} {focusCity?.city_name} · {srcBadge}
-          {issuedText && (
-            <>
-              {" · "}
-              <span className={stale ? "fc-stale" : ""}>{issuedText}</span>
-            </>
-          )}
+          {issuedText && <span className={stale ? "fc-stale" : ""}>{issuedText}</span>}
           <button
             className="link"
             disabled={busy}
@@ -244,39 +241,109 @@ export function ForecastStrip({ allCities, selected, forecastVersion }: Props) {
       </p>
 
       <div className="fc-charts">
-        <Plot
-          data={sliced.map((s) => ({
-            x: s.hours,
-            y: s.mm,
-            type: "bar" as const,
-            name: s.city?.city_name ?? s.key,
-            marker: { color: s.city?.color },
-          }))}
-          layout={{ ...baseLayout, title: { text: "Precipitation [mm/h]", font: { size: 12 } } }}
-          config={{ displayModeBar: false }}
-          style={{ width: "100%" }}
-          useResizeHandler
-        />
-        <Plot
-          data={sliced.map((s) => ({
-            x: s.hours,
-            y: s.prob,
-            type: "scatter" as const,
-            mode: "lines" as const,
-            name: s.city?.city_name ?? s.key,
-            line: { width: 1.5, color: s.city?.color },
-            fill: ready.length === 1 ? ("tozeroy" as const) : ("none" as const),
-            fillcolor: "rgba(76,155,232,0.15)",
-          }))}
-          layout={{
-            ...baseLayout,
-            title: { text: "Probability of precipitation [%]", font: { size: 12 } },
-            yaxis: { ...baseLayout.yaxis, range: [0, 100] },
-          }}
-          config={{ displayModeBar: false }}
-          style={{ width: "100%" }}
-          useResizeHandler
-        />
+        <div className="chart-block">
+          <div className="chart-title">Precipitation [mm/h]</div>
+          <Plot
+            data={sliced.map((s) => ({
+              x: s.hours,
+              y: s.mm,
+              type: "bar" as const,
+              name: s.city?.city_name ?? s.key,
+              marker: { color: s.city?.color },
+            }))}
+            layout={baseLayout}
+            config={{ displayModeBar: false }}
+            style={{ width: "100%" }}
+            useResizeHandler
+          />
+        </div>
+        <div className="chart-block">
+          <div className="chart-title">Probability of precipitation [%]</div>
+          <Plot
+            data={sliced.map((s) => ({
+              x: s.hours,
+              y: s.prob,
+              type: "scatter" as const,
+              mode: "lines" as const,
+              name: s.city?.city_name ?? s.key,
+              line: { width: 1.5, color: s.city?.color },
+              fill: ready.length === 1 ? ("tozeroy" as const) : ("none" as const),
+              fillcolor: "rgba(76,155,232,0.15)",
+            }))}
+            layout={{ ...baseLayout, yaxis: { ...baseLayout.yaxis, range: [0, 100] } }}
+            config={{ displayModeBar: false }}
+            style={{ width: "100%" }}
+            useResizeHandler
+          />
+        </div>
+        <div className="chart-block">
+          <div className="chart-title">Temperature [°C]</div>
+          <Plot
+            data={sliced.map((s) => ({
+              x: s.hours,
+              y: s.temp,
+              type: "scatter" as const,
+              mode: "lines" as const,
+              name: s.city?.city_name ?? s.key,
+              line: { width: 1.5, color: s.city?.color },
+            }))}
+            layout={baseLayout}
+            config={{ displayModeBar: false }}
+            style={{ width: "100%" }}
+            useResizeHandler
+          />
+        </div>
+        <div className="chart-block">
+          <div className="chart-title">Wind speed [km/h]</div>
+          <Plot
+            data={sliced.map((s) => ({
+              x: s.hours,
+              y: s.wind,
+              type: "scatter" as const,
+              mode: "lines" as const,
+              name: s.city?.city_name ?? s.key,
+              line: { width: 1.5, color: s.city?.color },
+            }))}
+            layout={baseLayout}
+            config={{ displayModeBar: false }}
+            style={{ width: "100%" }}
+            useResizeHandler
+          />
+        </div>
+        <div className="chart-block">
+          <div className="chart-title">Cloud cover [%]</div>
+          <Plot
+            data={sliced.map((s) => ({
+              x: s.hours,
+              y: s.clouds,
+              type: "scatter" as const,
+              mode: "lines" as const,
+              name: s.city?.city_name ?? s.key,
+              line: { width: 1.5, color: s.city?.color },
+            }))}
+            layout={{ ...baseLayout, yaxis: { ...baseLayout.yaxis, range: [0, 100] } }}
+            config={{ displayModeBar: false }}
+            style={{ width: "100%" }}
+            useResizeHandler
+          />
+        </div>
+        <div className="chart-block">
+          <div className="chart-title">Humidity [%]</div>
+          <Plot
+            data={sliced.map((s) => ({
+              x: s.hours,
+              y: s.humidity,
+              type: "scatter" as const,
+              mode: "lines" as const,
+              name: s.city?.city_name ?? s.key,
+              line: { width: 1.5, color: s.city?.color },
+            }))}
+            layout={{ ...baseLayout, yaxis: { ...baseLayout.yaxis, range: [0, 100] } }}
+            config={{ displayModeBar: false }}
+            style={{ width: "100%" }}
+            useResizeHandler
+          />
+        </div>
       </div>
 
       {anyDwd && (
