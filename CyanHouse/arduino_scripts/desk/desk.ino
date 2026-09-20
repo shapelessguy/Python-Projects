@@ -1,11 +1,11 @@
 #include <IRremote.hpp>
 #include "../libraries/CyanDevice/CyanDevice.h"
 
-const char* device_name = "desk";
+const int IP_LAST_OCTET = 253;
 const int IR_PIN = 17;
 
 WebServer server(80);
-CyanDevice device(WIFI_SSID, WIFI_PASSWORD, device_name);
+CyanDevice device(WIFI_SSID, WIFI_PASSWORD, IP_LAST_OCTET);
 
 struct IRCommand { const char* name; uint8_t code; };
 static const IRCommand IR_COMMANDS[] = {

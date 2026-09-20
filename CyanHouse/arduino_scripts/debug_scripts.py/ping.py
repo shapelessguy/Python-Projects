@@ -2,8 +2,8 @@ import requests
 import time
 
 DEVICES = [
-    "http://desk.local",
-    "http://server.local",
+    "http://192.168.178.253",  # desk
+    "http://192.168.178.254",  # server
     # add more here
 ]
 

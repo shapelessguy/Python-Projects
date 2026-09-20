@@ -1,6 +1,5 @@
 #pragma once
 #include <WiFi.h>
-#include <ESPmDNS.h>
 #include <WebServer.h>
 #include "credentials.h"
 #include "esp_wifi.h"
@@ -12,18 +11,18 @@ void deviceSetup();
 void deviceLoop();
 void registerRoutes();
 
-// Use this instead of server.send() to enable keep-alive
+// WebServer always adds Content-Length and "Connection: close" itself and closes
+// the socket after each reply, so don't add those headers by hand.
 inline void sendResponse(int code, const String& type, const String& body) {
-  server.sendHeader("Content-Length", String(body.length()));
-  server.sendHeader("Connection", "keep-alive");
-  server.sendHeader("Keep-Alive", "timeout=10, max=100");
   server.send(code, type, body);
 }
 
 class CyanDevice {
 public:
-  CyanDevice(const char* ssid, const char* password, const char* hostname)
-    : _ssid(ssid), _password(password), _hostname(hostname) {}
+  // lastOctet: fixed address on the local network (192.168.178.<lastOctet>).
+  // 0 keeps DHCP. Pick one above the router's DHCP pool.
+  CyanDevice(const char* ssid, const char* password, uint8_t lastOctet = 0)
+    : _ssid(ssid), _password(password), _lastOctet(lastOctet) {}
 
   void begin() {
     Serial.begin(115200);
@@ -38,18 +37,7 @@ public:
 
     connectWiFi();
 
-    if (MDNS.begin(_hostname)) {
-      Serial.print(F("mDNS started: http://"));
-      Serial.print(_hostname);
-      Serial.println(F(".local"));
-    }
-
-    server.on("/ping", []() {
-      server.sendHeader("Content-Length", "2");
-      server.sendHeader("Connection", "keep-alive");
-      server.sendHeader("Keep-Alive", "timeout=10, max=100");
-      server.send(200, "text/plain", "ok");
-    });
+    server.on("/ping", []() { server.send(200, "text/plain", "ok"); });
 
     registerRoutes();
     server.begin();
@@ -71,9 +59,16 @@ public:
 private:
   const char* _ssid;
   const char* _password;
-  const char* _hostname;
+  uint8_t _lastOctet;
+
+  static constexpr uint8_t NET[3] = {192, 168, 178};  // network prefix
+  static constexpr uint8_t GATEWAY = 1;               // router, also used as DNS
 
   void connectWiFi() {
+    if (_lastOctet) {
+      const IPAddress gw(NET[0], NET[1], NET[2], GATEWAY);
+      WiFi.config(IPAddress(NET[0], NET[1], NET[2], _lastOctet), gw, IPAddress(255, 255, 255, 0), gw);
+    }
     WiFi.begin(_ssid, _password);
     Serial.print(F("Connecting to WiFi"));
     unsigned long start = millis();

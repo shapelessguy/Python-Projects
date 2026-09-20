@@ -1,11 +1,11 @@
 #include <IRremote.hpp>
 #include "../libraries/CyanDevice/CyanDevice.h"
 
-const char* device_name = "server";
+const int IP_LAST_OCTET = 254;
 const int IR_PIN = 17;
 
 WebServer server(80);
-CyanDevice device(WIFI_SSID, WIFI_PASSWORD, device_name);
+CyanDevice device(WIFI_SSID, WIFI_PASSWORD, IP_LAST_OCTET);
 
 #define COUNT_OF(a) (sizeof(a) / sizeof((a)[0]))
 

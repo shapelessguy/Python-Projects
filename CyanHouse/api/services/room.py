@@ -8,7 +8,7 @@ plain function call inside the CyanHouse backend instead of a second
 network hop to a separate service.
 
 Not every topic is on that one Arduino any more, though — standalone ESP32
-boards (desk.local, ...) are joining as separate devices reached over HTTP
+boards (desk, ...) are joining as separate devices reached over HTTP
 instead of serial. TOPIC_DEVICE says which device handles each topic;
 ESP32_HOSTS resolves an ESP32 device name to its address. Adding a device
 means adding one line to each, no other code changes.
@@ -51,10 +51,10 @@ TOPIC_DEVICE: dict[str, str] = {
     "strips": "desk",
 }
 
-# ESP32 device name -> base URL (mDNS hostname, matching the .local names
-# used by the standalone ping-monitoring script). Add new boards here.
+# ESP32 device name -> base URL. Boards have fixed IPs (last octet set in each
+# sketch's CyanDevice constructor); mDNS is not used. Add new boards here.
 ESP32_HOSTS: dict[str, str] = {
-    "desk": "http://desk.local",
+    "desk": "http://192.168.178.253",
 }
 
 # arduino_scripts/desk/desk.ino registers its route as "/strip" (singular) —

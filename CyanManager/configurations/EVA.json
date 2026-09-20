@@ -447,7 +447,7 @@
             }
         },
         "STT service": {
-            "enabled": true,
+            "enabled": false,
             "parameters": {
                 "Whisper Model": "large",
                 "URL": "https://openrouter.ai/api/v1/chat/completions",
