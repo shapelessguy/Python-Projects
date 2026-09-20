@@ -6,6 +6,7 @@ import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKeys
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import java.security.KeyStore
 import java.util.Base64
 
 /** The username+token pair, kept in EncryptedSharedPreferences (backed by the
@@ -17,17 +18,37 @@ object Auth {
     private val _credential = MutableStateFlow<String?>(null)
     val credential: StateFlow<String?> = _credential
 
+    private const val FILE = "diary_secret"
+
     fun init(context: Context) {
-        val alias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
-        prefs = EncryptedSharedPreferences.create(
-            "diary_secret",
-            alias,
+        prefs = try {
+            open(context)
+        } catch (e: Exception) {
+            // The stored keyset can't be decrypted -- typically a file restored
+            // from a backup (or left by a previous install) whose Keystore
+            // master key no longer exists. Unrecoverable, and not worth
+            // crashing at launch over: drop the file and key and start clean,
+            // which just means logging in again.
+            context.deleteSharedPreferences(FILE)
+            runCatching {
+                KeyStore.getInstance("AndroidKeyStore").apply {
+                    load(null)
+                    deleteEntry(MasterKeys.AES256_GCM_SPEC.keystoreAlias)
+                }
+            }
+            open(context)
+        }
+        _credential.value = prefs.getString(KEY, null)
+    }
+
+    private fun open(context: Context): SharedPreferences =
+        EncryptedSharedPreferences.create(
+            FILE,
+            MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC),
             context,
             EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
             EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
         )
-        _credential.value = prefs.getString(KEY, null)
-    }
 
     fun encode(username: String, token: String): String =
         Base64.getEncoder().encodeToString("$username:$token".toByteArray(Charsets.UTF_8))
