@@ -16,13 +16,16 @@ export interface ControlItem {
   tint?: string; // icon accent colour
 }
 
-export type ControlMode = "ALL" | "LIGHTS" | "AUDIO" | "PC";
-export const MODES: ControlMode[] = ["ALL", "LIGHTS", "AUDIO", "PC"];
+// VOICES is different from the rest: no static catalogue in MODE_CONFIGS -- its
+// buttons are whatever voices CyanManager reports, polled while the mode is open.
+export type ControlMode = "ALL" | "LIGHTS" | "AUDIO" | "PC" | "VOICES";
+export const MODES: ControlMode[] = ["ALL", "LIGHTS", "AUDIO", "PC", "VOICES"];
 export const MODE_ICON: Record<ControlMode, string> = {
   ALL: "▦",
   LIGHTS: "💡",
   AUDIO: "🔊",
   PC: "🖥",
+  VOICES: "🗣",
 };
 
 /** A separator line is drawn above this row in that mode's grid. */
@@ -38,7 +41,7 @@ const GREEN = "#46a758";
 const MAGENTA = "#e93d82";
 const BLUE = "#4c9be8";
 
-export const MODE_CONFIGS: Record<Exclude<ControlMode, "ALL">, ControlItem[]> = {
+export const MODE_CONFIGS: Record<Exclude<ControlMode, "ALL" | "VOICES">, ControlItem[]> = {
   LIGHTS: [
     { label: "UV OFF", icon: "⚫", topic: "lights", command: "off", room: true, row: 0, col: 0 },
     { label: "UV AUTO", icon: "🔵", topic: "lights", command: "auto", room: true, row: 0, col: 1, tint: CYAN },

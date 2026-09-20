@@ -3,6 +3,7 @@ import pythoncom
 import sounddevice as sd
 import numpy as np
 import pygame
+import io
 import os
 import random
 import threading
@@ -105,6 +106,19 @@ def play_audio(audio_path, volume, n_loops=1, start_at=0.0):
 
 _voice_lock = threading.Lock()
 _last_voice_file = {}
+VOICE_EXTENSIONS = (".wav", ".mp4", ".m4a")
+
+
+def _decode_to_wav(path):
+    """Wav bytes of the first audio stream of `path`, decoded by ffmpeg (found on PATH, as whisper does)."""
+    result = subprocess.run(
+        ["ffmpeg", "-v", "error", "-nostdin", "-i", path, "-vn", "-f", "wav", "-"],
+        capture_output=True,
+        creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+    )
+    if result.returncode != 0 or not result.stdout:
+        raise RuntimeError(f"ffmpeg could not decode '{os.path.basename(path)}': {result.stderr.decode(errors='replace').strip()}")
+    return result.stdout
 
 
 def list_voices():
@@ -115,25 +129,30 @@ def list_voices():
 
 
 def play_voice(voice):
-    """Start a random wav from voices/<voice> without blocking, cutting off anything already playing.
+    """Start a random clip from voices/<voice> without blocking, cutting off anything already playing.
 
-    Raises KeyError if the voice folder doesn't exist, FileNotFoundError if it has no wav.
+    Raises KeyError if the voice folder doesn't exist, FileNotFoundError if it has no playable file.
     Returns the file name that was picked.
     """
     if voice not in list_voices():
         raise KeyError(voice)
     folder = os.path.join(VOICES_PATH, voice)
-    wavs = sorted(f for f in os.listdir(folder) if f.lower().endswith(".wav"))
-    if not wavs:
-        raise FileNotFoundError(f"No wav files in voice '{voice}'")
+    audio_files = sorted(f for f in os.listdir(folder) if f.lower().endswith(VOICE_EXTENSIONS))
+    if not audio_files:
+        raise FileNotFoundError(f"No {'/'.join(VOICE_EXTENSIONS)} files in voice '{voice}'")
 
     with _voice_lock:
         # avoid playing the same clip twice in a row when there is a choice
-        candidates = [f for f in wavs if f != _last_voice_file.get(voice)] or wavs
+        candidates = [f for f in audio_files if f != _last_voice_file.get(voice)] or audio_files
         chosen = random.choice(candidates)
         _last_voice_file[voice] = chosen
+        path = os.path.join(folder, chosen)
         pygame.mixer.init()
-        pygame.mixer.music.load(os.path.join(folder, chosen))
+        if chosen.lower().endswith(".wav"):
+            pygame.mixer.music.load(path)
+        else:
+            # pygame can't decode AAC (mp4/m4a) -> let ffmpeg turn it into wav in memory
+            pygame.mixer.music.load(io.BytesIO(_decode_to_wav(path)), "wav")
         pygame.mixer.music.set_volume(1.0)
         pygame.mixer.music.play()
     return chosen

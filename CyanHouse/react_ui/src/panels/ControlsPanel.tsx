@@ -62,6 +62,34 @@ export function ControlsPanel() {
     };
   }, []);
 
+  // Voices CyanManager offers right now: only refreshed while the VOICES mode is
+  // open; an unreachable backend/manager keeps the last known list.
+  const [voices, setVoices] = useState<string[]>([]);
+  useEffect(() => {
+    if (mode !== "VOICES") return;
+    let alive = true;
+    const tick = () =>
+      api
+        .controlVoices()
+        .then((v) => alive && setVoices(v))
+        .catch(() => {});
+    tick();
+    const id = window.setInterval(tick, INFO_POLL_MS);
+    return () => {
+      alive = false;
+      window.clearInterval(id);
+    };
+  }, [mode]);
+
+  const playVoice = async (name: string) => {
+    try {
+      await api.controlPlayVoice(name);
+      flash(`✓ ${name}`);
+    } catch {
+      flash(`✕ ${name} failed`);
+    }
+  };
+
   const run = async (it: ControlItem, extra?: Record<string, unknown>) => {
     try {
       const res = it.room
@@ -78,7 +106,7 @@ export function ControlsPanel() {
     }
   };
 
-  const items = mode === "ALL" ? allItems() : MODE_CONFIGS[mode];
+  const items = mode === "ALL" ? allItems() : mode === "VOICES" ? [] : MODE_CONFIGS[mode];
   // Rows at/after the separator shift down one grid row to make room for it.
   const sepRow = mode === "ALL" ? undefined : SEPARATOR_BEFORE_ROW[mode];
   const gridRowOf = (row: number) => row + 1 + (sepRow !== undefined && row >= sepRow ? 1 : 0);
@@ -182,7 +210,14 @@ export function ControlsPanel() {
             </button>
           );
         })}
+        {mode === "VOICES" &&
+          voices.map((name) => (
+            <button key={name} className="ctl-btn voice" onClick={() => playVoice(name)}>
+              <span className="ctl-lbl">{name}</span>
+            </button>
+          ))}
       </div>
+      {mode === "VOICES" && voices.length === 0 && <p className="muted small">No voices available</p>}
     </div>
   );
 }

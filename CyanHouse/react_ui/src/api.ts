@@ -271,6 +271,10 @@ export const api = {
         ? { method: "POST", headers: JSON_HEADERS, body: JSON.stringify(body) }
         : { method: "POST" },
     ).then(j<ControlsInfo>),
+  /** Voice names currently available on CyanManager (its `voices/` sub-folders). */
+  controlVoices: () => f("/api/controls/voices").then(j<string[]>),
+  controlPlayVoice: (name: string) =>
+    f(`/api/controls/voices/${encodeURIComponent(name)}`, { method: "POST" }).then(j<unknown>),
 
   // Every diary mutation replies with the full month snapshot for `month`.
   columns: () => f("/api/personal/columns").then(j<Column[]>),

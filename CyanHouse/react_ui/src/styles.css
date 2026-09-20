@@ -263,6 +263,7 @@ button.link:hover { color: var(--text); }
   background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px;
   color: var(--text); cursor: pointer; text-align: center;
 }
+.ctl-btn.voice { min-height: 62px; padding: 8px; } /* text-only, so shorter than the icon cells */
 .ctl-btn:hover { border-color: #3a414f; }
 .ctl-btn:active { background: var(--panel); }
 .ctl-btn.on { border-color: var(--accent); }
