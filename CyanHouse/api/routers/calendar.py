@@ -1,8 +1,8 @@
 """Calendar — personal + shared events, entirely local (no external account).
 Every event belongs to a calendar: a user's own (starting with an
 auto-created "Default", plus any they name themselves) are visible only to
-them, while the one shared calendar is visible to every CyanHouse user.
-Self-contained module: own DB, own version counter — see
+them, unless flagged `shared`, in which case they're visible to every
+CyanHouse user. Self-contained module: own DB, own version counter — see
 api/services/calendar.py and food.py's router for the template this follows.
 """
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -39,7 +39,7 @@ def get_calendars(user: str = Depends(require_user)):
 def create_calendar(body: CalendarIn, user: str = Depends(require_user)):
     try:
         with calendar.connect() as conn:
-            return calendar.create_calendar(conn, user, body.name, body.color)
+            return calendar.create_calendar(conn, user, body.name, body.color, body.shared)
     except calendar.CalendarError as e:
         raise HTTPException(status_code=e.status_code, detail=str(e))
 
@@ -48,7 +48,7 @@ def create_calendar(body: CalendarIn, user: str = Depends(require_user)):
 def patch_calendar(calendar_id: int, body: CalendarPatch, user: str = Depends(require_user)):
     try:
         with calendar.connect() as conn:
-            return calendar.update_calendar(conn, user, calendar_id, body.name, body.color)
+            return calendar.update_calendar(conn, user, calendar_id, body.name, body.color, body.shared)
     except calendar.CalendarError as e:
         raise HTTPException(status_code=e.status_code, detail=str(e))
 

@@ -37,6 +37,13 @@ data class Calendar(
     val name: String,
     val color: String,
     val shared: Boolean,
+    // Whether the current user may rename/recolor/delete/(un-)share this
+    // calendar -- true for one they own, or for the original owner-less
+    // "Shared" calendar (predates per-calendar sharing) which answers to
+    // everyone since nobody in particular owns it. False only for a
+    // calendar someone else owns and has shared with them. See
+    // api/services/calendar.py's list_calendars.
+    val mine: Boolean = false,
 )
 
 @Serializable
@@ -96,10 +103,10 @@ data class EventBody(
 )
 
 @Serializable
-data class CalendarBody(val name: String, val color: String? = null)
+data class CalendarBody(val name: String, val color: String? = null, val shared: Boolean = false)
 
 @Serializable
-data class CalendarPatchBody(val name: String? = null, val color: String? = null)
+data class CalendarPatchBody(val name: String? = null, val color: String? = null, val shared: Boolean? = null)
 
 // ── food service ─────────────────────────────────────────────────────────
 @Serializable

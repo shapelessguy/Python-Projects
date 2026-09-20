@@ -148,6 +148,12 @@ export interface Calendar {
   name: string;
   color: string;
   shared: boolean;
+  // Whether the current user may rename/recolor/delete/(un-)share this
+  // calendar -- true for one they own, or for the original owner-less
+  // "Shared" calendar (predates per-calendar sharing) which answers to
+  // everyone since nobody in particular owns it. False only for a calendar
+  // someone else owns and has shared with them.
+  mine: boolean;
 }
 
 export interface CalendarEvent {
@@ -227,9 +233,9 @@ export const api = {
     f("/api/forecast/overview?" + new URLSearchParams({ city, range })).then(j<OverviewResponse>),
 
   calendars: () => f("/api/calendar/calendars").then(j<Calendar[]>),
-  createCalendar: (name: string, color?: string) =>
-    f("/api/calendar/calendars", { method: "POST", headers: JSON_HEADERS, body: JSON.stringify({ name, color }) }).then(j<Calendar[]>),
-  patchCalendar: (id: number, body: { name?: string; color?: string }) =>
+  createCalendar: (name: string, color?: string, shared?: boolean) =>
+    f("/api/calendar/calendars", { method: "POST", headers: JSON_HEADERS, body: JSON.stringify({ name, color, shared }) }).then(j<Calendar[]>),
+  patchCalendar: (id: number, body: { name?: string; color?: string; shared?: boolean }) =>
     f(`/api/calendar/calendars/${id}`, { method: "PATCH", headers: JSON_HEADERS, body: JSON.stringify(body) }).then(j<Calendar[]>),
   deleteCalendar: (id: number) =>
     f(`/api/calendar/calendars/${id}`, { method: "DELETE" }).then(j<Calendar[]>),

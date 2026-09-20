@@ -100,8 +100,10 @@ class EventPatch(BaseModel):
 class CalendarIn(BaseModel):
     name: str = Field(min_length=1)
     color: Optional[str] = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")
+    shared: StrictBool = False
 
 
 class CalendarPatch(BaseModel):
     name: Optional[str] = None
     color: Optional[str] = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")
+    shared: Optional[StrictBool] = None

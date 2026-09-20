@@ -104,6 +104,13 @@ class CalendarViewModel : ViewModel() {
             .onFailure { error = it.message }
     }
 
+    fun toggleShared(id: Int, shared: Boolean) = viewModelScope.launch {
+        calendars = calendars.map { if (it.id == id) it.copy(shared = shared) else it } // instant icon feedback
+        runCatching { Api.patchCalendar(id, shared = shared) }
+            .onSuccess { calendars = it }
+            .onFailure { error = it.message }
+    }
+
     fun deleteCalendar(id: Int) = viewModelScope.launch {
         runCatching { Api.deleteCalendar(id) }
             .onSuccess { cals ->

@@ -190,16 +190,16 @@ object Api {
     //    only) — every mutation replies with the affected month's snapshot ──
     suspend fun calendars(): List<Calendar> = client.get(u("/api/calendar/calendars")).body()
 
-    suspend fun createCalendar(name: String, color: String? = null): List<Calendar> =
+    suspend fun createCalendar(name: String, color: String? = null, shared: Boolean = false): List<Calendar> =
         client.post(u("/api/calendar/calendars")) {
             contentType(ContentType.Application.Json)
-            setBody(CalendarBody(name, color))
+            setBody(CalendarBody(name, color, shared))
         }.body()
 
-    suspend fun patchCalendar(id: Int, name: String? = null, color: String? = null): List<Calendar> =
+    suspend fun patchCalendar(id: Int, name: String? = null, color: String? = null, shared: Boolean? = null): List<Calendar> =
         client.patch(u("/api/calendar/calendars/$id")) {
             contentType(ContentType.Application.Json)
-            setBody(CalendarPatchBody(name, color))
+            setBody(CalendarPatchBody(name, color, shared))
         }.body()
 
     suspend fun deleteCalendar(id: Int): List<Calendar> =

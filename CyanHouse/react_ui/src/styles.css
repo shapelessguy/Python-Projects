@@ -32,7 +32,7 @@ button.ghost { background: transparent; }
 button.danger { border-color: #6b2b2b; color: #ff9b9b; }
 button:disabled { opacity: 0.45; cursor: default; }
 
-input:not([type="range"]), select, textarea {
+input:not([type="range"]):not([type="color"]):not([type="checkbox"]):not(.react-time-picker__inputGroup__input), select, textarea {
   background: var(--panel);
   color: var(--text);
   border: 1px solid var(--line);
@@ -760,6 +760,9 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
 .cal-swatch::-webkit-color-swatch-wrapper { padding: 0; border-radius: 50%; overflow: hidden; }
 .cal-swatch::-webkit-color-swatch { border: none; border-radius: 50%; }
 .cal-swatch::-moz-color-swatch { border: none; border-radius: 50%; }
+.cal-swatch:disabled { cursor: default; opacity: 0.6; }
+.cal-cal-share { padding: 0 4px; font-size: 0.8rem; flex: none; }
+.cal-cal-share:disabled { opacity: 0.55; cursor: default; }
 .cal-cal-delete { padding: 0 4px; font-size: 0.8rem; flex: none; }
 .cal-cal-add { border-top: 1px solid var(--line); margin-top: 4px; padding-top: 8px; }
 .cal-new-cal-input { flex: 1 1 auto; padding: 3px 6px; min-width: 0; }

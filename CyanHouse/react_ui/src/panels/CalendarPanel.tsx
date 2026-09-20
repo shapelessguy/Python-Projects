@@ -2,7 +2,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import TimePicker from "react-time-picker";
 import "react-time-picker/dist/TimePicker.css";
 import { api, Calendar, CalendarEvent, EventInput, RecurFreq, useVersionPoll } from "../api";
+import { currentUsername } from "../auth";
 import { readCookie, writeCookie } from "../cookies";
+
+// Mirrors the backend's SHARING_ADMIN (api/services/calendar.py) -- only
+// this user may share/un-share a calendar or delete one that's already
+// shared. Purely a UI hint to avoid offering controls that would 403; the
+// backend is what actually enforces it.
+const SHARING_ADMIN = "cian_cl";
 
 const TODAY = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD, local
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -250,6 +257,7 @@ function linkifyText(text: string): JSX.Element[] {
 }
 
 export function CalendarPanel() {
+  const isSharingAdmin = currentUsername() === SHARING_ADMIN;
   const { calendar } = useVersionPoll();
   const [view, setViewState] = useState<ViewMode>(loadView);
   const setView = (v: ViewMode) => {
@@ -342,6 +350,10 @@ export function CalendarPanel() {
   const recolorCalendar = (id: number, color: string) => {
     setCalendars((prev) => prev.map((c) => (c.id === id ? { ...c, color } : c))); // instant swatch feedback
     api.patchCalendar(id, { color }).then(setCalendars).catch((e) => setError(String(e)));
+  };
+  const toggleShared = (id: number, shared: boolean) => {
+    setCalendars((prev) => prev.map((c) => (c.id === id ? { ...c, shared } : c))); // instant icon feedback
+    api.patchCalendar(id, { shared }).then(setCalendars).catch((e) => setError(String(e)));
   };
   const [calendarsOpen, setCalendarsOpen] = useState(false);
   const [confirmDeleteCal, setConfirmDeleteCal] = useState<Calendar | null>(null);
@@ -500,12 +512,27 @@ export function CalendarPanel() {
                         type="color"
                         className="cal-swatch"
                         value={c.color}
+                        disabled={!c.mine}
                         title={`${c.name} colour`}
                         onChange={(e) => recolorCalendar(c.id, e.target.value)}
                       />
                       <span className="cal-cal-name">{c.name}</span>
                     </label>
-                    {!c.shared && (
+                    <button
+                      className="ghost cal-cal-share"
+                      disabled={!isSharingAdmin || !c.mine}
+                      title={
+                        !isSharingAdmin
+                          ? `Only ${SHARING_ADMIN} can share or un-share a calendar`
+                          : c.mine
+                            ? c.shared ? `${c.name} is shared — click to make it private` : `${c.name} is private — click to share it`
+                            : `${c.name} is shared with you`
+                      }
+                      onClick={() => isSharingAdmin && c.mine && toggleShared(c.id, !c.shared)}
+                    >
+                      {c.shared ? "👥" : "👤"}
+                    </button>
+                    {c.mine && (!c.shared || isSharingAdmin) && (
                       <button
                         className="ghost cal-cal-delete"
                         title={`Delete ${c.name}`}
