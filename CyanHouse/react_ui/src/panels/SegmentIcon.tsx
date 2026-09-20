@@ -8,7 +8,7 @@ interface Props {
 
 const RAIN_BAR_X = [10, 14, 18, 22, 26];
 
-/** Sun (opacity = daylight * (1 - cloud fraction)), with a soft halo behind
+/** Sun (opacity = daylight * (1 - cloud fraction squared)), with a soft halo behind
  * it at the same opacity, overlapped by a cloud (opacity = cloud fraction,
  * so it fades from invisible to solid gray) with blue rain bars below it --
  * bar count from rain_level, bar opacity from rain probability (hidden at 5%
@@ -20,7 +20,7 @@ const RAIN_BAR_X = [10, 14, 18, 22, 26];
  * always draw at least one bar. */
 export function SegmentIcon({ solarLight, cloudCoverPct, rainLevel, precipProb, size = 32 }: Props) {
   const cloudFrac = Math.max(0, Math.min(1, (cloudCoverPct ?? 0) / 100));
-  const sunOpacity = Math.max(0, Math.min(1, solarLight * (1 - cloudFrac)));
+  const sunOpacity = Math.max(0, Math.min(1, solarLight * (1 - cloudFrac * cloudFrac)));
   const prob = precipProb ?? 0;
   const rainOpacity = prob <= 5 ? 0 : Math.max(0.2, prob / 100);
   const bars = rainLevel <= 0 && rainOpacity > 0 ? 1 : Math.max(0, Math.min(RAIN_BAR_X.length, rainLevel));

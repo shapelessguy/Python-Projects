@@ -122,7 +122,7 @@ private val WIND_COLOR = Color(0xFF9FB4C7)
 private val TRACK_COLOR = Color(0xFF2A2F3A)
 private val RAIN_BAR_X = listOf(10f, 14f, 18f, 22f, 26f)
 
-/** Sun (opacity = daylight * (1 - cloud fraction)) with a soft halo, overlapped
+/** Sun (opacity = daylight * (1 - cloud fraction squared)) with a soft halo, overlapped
  *  by a cloud (opacity = cloud fraction) with rain bars below it -- bar count
  *  from rain_level, bar opacity from rain probability. Direct port of
  *  SegmentIcon.tsx's 36x36 viewBox. */
@@ -136,7 +136,7 @@ fun SegmentIcon(
     size: Dp = 26.dp,
 ) {
     val cloudFrac = ((cloudCoverPct ?: 0f) / 100f).coerceIn(0f, 1f)
-    val sunOpacity = (solarLight * (1 - cloudFrac)).coerceIn(0f, 1f)
+    val sunOpacity = (solarLight * (1 - cloudFrac * cloudFrac)).coerceIn(0f, 1f)
     val prob = precipProb ?: 0f
     val rainOpacity = if (prob <= 5f) 0f else max(0.2f, prob / 100f)
     // rain_level buckets by amount (mm), which can floor to 0 even at a high
