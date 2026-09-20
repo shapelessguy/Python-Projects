@@ -3,7 +3,6 @@ import psutil
 import time
 import subprocess
 import json
-import threading
 from datetime import datetime
 
 

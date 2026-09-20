@@ -25,14 +25,19 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -48,13 +53,18 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diary.net.MouseSocket
+import com.diary.net.isOnWifi
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
@@ -63,8 +73,40 @@ private const val SENSITIVITY = 2f
 
 private enum class MouseMode { MOUSE, KEYBOARD }
 
+/** The mouse only works over the LAN (it talks straight to CyanManager, see
+ *  MouseSocket), so off Wi-Fi there's nothing to try -- show a hint instead of
+ *  spinning on a socket that can't connect. Polled every second so it loads
+ *  the moment Wi-Fi comes back; [MouseContent] leaving the composition on a
+ *  drop also closes the socket. */
 @Composable
 fun MouseScreen() {
+    val context = LocalContext.current
+    var onWifi by remember { mutableStateOf(isOnWifi(context)) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            onWifi = isOnWifi(context)
+            delay(1000)
+        }
+    }
+    if (onWifi) {
+        MouseContent()
+    } else {
+        Column(
+            Modifier.fillMaxSize().padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Icon(
+                Icons.Default.WifiOff, contentDescription = null, modifier = Modifier.size(48.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text("Connect to Wi-Fi to use the mouse", fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+@Composable
+private fun MouseContent() {
     val connected by MouseSocket.connected.collectAsState()
     val lastError by MouseSocket.lastError.collectAsState()
 
@@ -80,6 +122,7 @@ fun MouseScreen() {
     }
 
     var mode by rememberSaveable { mutableStateOf(MouseMode.MOUSE) }
+    val controlsVm: ControlsViewModel = viewModel()
     // Device rotation, not container aspect ratio -- the container's own height
     // shrinks when the keyboard opens (imePadding below), which was flipping this
     // into "landscape" mode in portrait any time the keyboard was up.
@@ -97,19 +140,29 @@ fun MouseScreen() {
     ) {
         if (landscape) {
             Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Column(Modifier.width(120.dp).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ModeChip(mode == MouseMode.MOUSE, "🖱 Mouse", Modifier.fillMaxWidth()) { mode = MouseMode.MOUSE }
-                    ModeChip(mode == MouseMode.KEYBOARD, "⌨ Keyboard", Modifier.fillMaxWidth()) { mode = MouseMode.KEYBOARD }
+                // Wider than the bare tabs need: the volume card's −/slider/+
+                // row has to leave the slider itself some usable width.
+                Column(Modifier.width(200.dp).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    // FilterChip pads itself out to Material's 48dp minimum touch
+                    // target -- ~16dp of dead space above and below each chip,
+                    // which is what was pushing the Right button off short
+                    // (phone landscape) screens. Off for these two only.
+                    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
+                        ModeChip(mode == MouseMode.MOUSE, "🖱 Mouse", Modifier.fillMaxWidth()) { mode = MouseMode.MOUSE }
+                        ModeChip(mode == MouseMode.KEYBOARD, "⌨ Keyboard", Modifier.fillMaxWidth()) { mode = MouseMode.KEYBOARD }
+                    }
+                    if (connected) VolumeCard(VOLUME_ITEM, controlsVm, Modifier.fillMaxWidth(), padding = 6.dp)
                     Spacer(Modifier.weight(1f))
+                    if (connected) ArrowKeys(Modifier.fillMaxWidth())
                     if (mode == MouseMode.MOUSE) {
-                        ClickButton("Right", Modifier.height(64.dp).fillMaxWidth()) { MouseSocket.click("right") }
+                        ClickButton("Right", Modifier.height(44.dp).fillMaxWidth()) { MouseSocket.click("right") }
                     }
                 }
-                MouseModeArea(connected, lastError, mode, Modifier.weight(1f).fillMaxHeight())
+                MouseModeArea(connected, lastError, mode, Modifier.weight(1f).fillMaxHeight(), controlsVm, inlineExtras = false)
             }
         } else {
             Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                MouseModeArea(connected, lastError, mode, Modifier.weight(1f).fillMaxWidth())
+                MouseModeArea(connected, lastError, mode, Modifier.weight(1f).fillMaxWidth(), controlsVm, inlineExtras = true)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
                     ModeChip(mode == MouseMode.MOUSE, "🖱 Mouse", Modifier) { mode = MouseMode.MOUSE }
                     ModeChip(mode == MouseMode.KEYBOARD, "⌨ Keyboard", Modifier) { mode = MouseMode.KEYBOARD }
@@ -127,12 +180,24 @@ fun MouseScreen() {
  *  (a real failure) -- never both, and neither while still trying to connect for
  *  the first time, when a spinner takes the main area instead (matching how every
  *  other section shows its own loading state, rather than a status label sitting
- *  over the pad on every normal launch). */
+ *  over the pad on every normal launch).
+ *
+ *  [inlineExtras] puts the volume bar under the window buttons and the arrow
+ *  keys under the pad -- portrait only; landscape moves both into the left
+ *  column instead (see MouseContent). */
 @Composable
-private fun MouseModeArea(connected: Boolean, lastError: String?, mode: MouseMode, modifier: Modifier) {
+private fun MouseModeArea(
+    connected: Boolean,
+    lastError: String?,
+    mode: MouseMode,
+    modifier: Modifier,
+    controlsVm: ControlsViewModel,
+    inlineExtras: Boolean,
+) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (connected) {
             WindowButtons()
+            if (inlineExtras) VolumeCard(VOLUME_ITEM, controlsVm, Modifier.fillMaxWidth())
         } else if (lastError != null) {
             Text("Not connected: $lastError", fontSize = 12.sp, color = MaterialTheme.colorScheme.error)
         }
@@ -153,6 +218,31 @@ private fun MouseModeArea(connected: Boolean, lastError: String?, mode: MouseMod
                 lastError == null -> CircularProgressIndicator()
             }
         }
+        if (connected && inlineExtras) ArrowKeys(Modifier.fillMaxWidth())
+    }
+}
+
+private val VOLUME_ITEM: ControlItem = MODE_CONFIGS.getValue(ControlMode.AUDIO).first { it.slider }
+
+/** Left/Right arrow keystrokes sent to the PC (CyanManager's `keyboard` lib
+ *  takes the names "left"/"right"). */
+@Composable
+private fun ArrowKeys(modifier: Modifier) {
+    Row(modifier, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        KeyButton(Icons.Default.KeyboardArrowLeft, "Left arrow", Modifier.weight(1f)) { MouseSocket.key("left") }
+        KeyButton(Icons.Default.KeyboardArrowRight, "Right arrow", Modifier.weight(1f)) { MouseSocket.key("right") }
+    }
+}
+
+@Composable
+private fun KeyButton(icon: ImageVector, description: String, modifier: Modifier, onClick: () -> Unit) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = modifier.height(36.dp),
+        shape = RoundedCornerShape(10.dp),
+        contentPadding = PaddingValues(0.dp),
+    ) {
+        Icon(icon, contentDescription = description)
     }
 }
 

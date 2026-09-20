@@ -24,6 +24,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
@@ -39,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -104,10 +106,12 @@ fun ControlsScreen(vm: ControlsViewModel = viewModel()) {
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalArrangement = Arrangement.spacedBy(0.dp),
         ) {
-            ControlMode.entries.forEach { m ->
+            // No ALL chip: ALL is simply "nothing selected" -- tap the selected
+            // chip again to deselect it and get back to everything.
+            ControlMode.entries.filter { it != ControlMode.ALL }.forEach { m ->
                 FilterChip(
                     selected = vm.mode == m,
-                    onClick = { vm.selectMode(m) },
+                    onClick = { vm.selectMode(if (vm.mode == m) ControlMode.ALL else m) },
                     label = { Text("${modeIcon(m)} ${m.name}") },
                 )
             }
@@ -133,7 +137,8 @@ fun ControlsScreen(vm: ControlsViewModel = viewModel()) {
             }
         } else {
             val items = MODE_CONFIGS[vm.mode].orEmpty()
-            items.groupBy { it.row }.toSortedMap().forEach { (_, rowItems) ->
+            items.groupBy { it.row }.toSortedMap().forEach { (row, rowItems) ->
+                if (SEPARATOR_BEFORE_ROW[vm.mode] == row) HorizontalDivider(Modifier.padding(vertical = 2.dp))
                 Row(
                     Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -154,6 +159,57 @@ fun ControlsScreen(vm: ControlsViewModel = viewModel()) {
     }
 }
 
+/** The OS-volume card (label + −/slider/+) -- shared by the Controls > Audio
+ *  screen and the Mouse screen, both driven by the same [ControlsViewModel]
+ *  (and its 1s volume poll). [item] is the "OS Volume" slider [ControlItem]. */
+@Composable
+fun VolumeCard(item: ControlItem, vm: ControlsViewModel, modifier: Modifier, padding: Dp = 10.dp) {
+    val device = vm.info.device ?: ""
+    val polled = (vm.info.volume ?: 0.0).toFloat().coerceIn(0f, 1f)
+    var local by remember { mutableStateOf(polled) }
+    LaunchedEffect(polled) { if (!vm.dragging) local = polled }
+    Column(
+        modifier
+            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(10.dp))
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(10.dp))
+            .padding(padding),
+    ) {
+        Text(
+            "${item.icon} OS Volume" +
+                (if (device.isNotEmpty()) ": $device" else "") +
+                " · ${(local * 100).roundToInt()}%",
+            fontSize = 12.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        fun commit(v: Float) {
+            vm.dragging = true
+            local = v.coerceIn(0f, 1f)
+            vm.run(
+                item,
+                buildJsonObject { put("slide_value", local) },
+                "OS Volume: ${(local * 100).roundToInt()}%",
+            )
+        }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            NudgeButton("−") { commit(local - 0.01f) }
+            Slider(
+                value = local,
+                onValueChange = { vm.dragging = true; local = it },
+                valueRange = 0f..1f,
+                onValueChangeFinished = { commit(local) },
+                modifier = Modifier.weight(1f),
+            )
+            NudgeButton("+") { commit(local + 0.01f) }
+        }
+    }
+}
+
+
 @Composable
 private fun ControlCell(
     item: ControlItem,
@@ -161,51 +217,12 @@ private fun ControlCell(
     modifier: Modifier,
     minHeight: Dp = 84.dp,
 ) {
-    val device = vm.info.device ?: ""
-
     if (item.slider) {
-        val polled = (vm.info.volume ?: 0.0).toFloat().coerceIn(0f, 1f)
-        var local by remember { mutableStateOf(polled) }
-        LaunchedEffect(polled) { if (!vm.dragging) local = polled }
-        Column(
-            modifier
-                .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(10.dp))
-                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(10.dp))
-                .padding(10.dp),
-        ) {
-            Text(
-                "${item.icon} OS Volume" +
-                    (if (device.isNotEmpty()) ": $device" else "") +
-                    " · ${(local * 100).roundToInt()}%",
-                fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            fun commit(v: Float) {
-                vm.dragging = true
-                local = v.coerceIn(0f, 1f)
-                vm.run(
-                    item,
-                    buildJsonObject { put("slide_value", local) },
-                    "OS Volume: ${(local * 100).roundToInt()}%",
-                )
-            }
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                NudgeButton("−") { commit(local - 0.01f) }
-                Slider(
-                    value = local,
-                    onValueChange = { vm.dragging = true; local = it },
-                    valueRange = 0f..1f,
-                    onValueChangeFinished = { commit(local) },
-                    modifier = Modifier.weight(1f),
-                )
-                NudgeButton("+") { commit(local + 0.01f) }
-            }
-        }
+        VolumeCard(item, vm, modifier)
         return
     }
+
+    val device = vm.info.device ?: ""
 
     val active = (item.label == "Speaker" && device.contains("speaker", ignoreCase = true)) ||
         (item.label == "PHONES" && device.contains("headphone", ignoreCase = true))

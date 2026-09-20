@@ -283,6 +283,7 @@ button.link:hover { color: var(--text); }
 }
 .ctl-nudge:hover { border-color: #3a414f; }
 .ctl-nudge:active { background: var(--panel-2); }
+.ctl-sep { width: 100%; margin: 2px 0; border: 0; border-top: 1px solid var(--line); }
 
 /* ── personal ────────────────────────────────────────────── */
 .personal { align-items: stretch; }

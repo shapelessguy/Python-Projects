@@ -1,1 +1,0 @@
-dotnet publish Xm4Battery.csproj /p:PublishProfile=Properties\PublishProfiles\FolderProfile.pubxml

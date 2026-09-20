@@ -6,6 +6,7 @@ import {
   MODE_CONFIGS,
   MODE_ICON,
   MODES,
+  SEPARATOR_BEFORE_ROW,
   allItems,
 } from "../controls";
 
@@ -78,14 +79,19 @@ export function ControlsPanel() {
   };
 
   const items = mode === "ALL" ? allItems() : MODE_CONFIGS[mode];
+  // Rows at/after the separator shift down one grid row to make room for it.
+  const sepRow = mode === "ALL" ? undefined : SEPARATOR_BEFORE_ROW[mode];
+  const gridRowOf = (row: number) => row + 1 + (sepRow !== undefined && row >= sepRow ? 1 : 0);
   const device = info.device ?? "";
   const vol = info.volume ?? 0;
 
   return (
     <div className="panel controls">
       <div className="ctl-modes">
-        {MODES.map((m) => (
-          <button key={m} className={m === mode ? "active" : ""} onClick={() => setMode(m)}>
+        {/* No ALL chip: ALL is simply "nothing selected" -- click the selected
+            chip again to deselect it and get back to everything. */}
+        {MODES.filter((m) => m !== "ALL").map((m) => (
+          <button key={m} className={m === mode ? "active" : ""} onClick={() => setMode(m === mode ? "ALL" : m)}>
             <span aria-hidden>{MODE_ICON[m]}</span> {m}
           </button>
         ))}
@@ -93,6 +99,7 @@ export function ControlsPanel() {
       <p className="muted small ctl-status">{status || " "}</p>
 
       <div className={"ctl-grid" + (mode === "ALL" ? " all" : "")}>
+        {sepRow !== undefined && <hr className="ctl-sep" style={{ gridRow: sepRow + 1, gridColumn: "1 / -1" }} />}
         {items.map((it) => {
           // Per-mode views keep CyanControls' fixed 3-column row/col layout (its
           // gaps are intentional) — AUDIO's slider has colSpan 3, so it fills the
@@ -103,7 +110,7 @@ export function ControlsPanel() {
                 ? { gridColumn: "span 2" }
                 : undefined
               : {
-                  gridRow: (it.row ?? 0) + 1,
+                  gridRow: gridRowOf(it.row ?? 0),
                   gridColumn:
                     it.colSpan && it.colSpan > 1
                       ? `${(it.col ?? 0) + 1} / span ${it.colSpan}`

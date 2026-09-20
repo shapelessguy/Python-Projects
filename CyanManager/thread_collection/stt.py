@@ -12,7 +12,7 @@ from piper import download_voices
 from utils import Parameter, wait, ENV_PATH
 from functions.audio import get_current_audio_info
 from piper import PiperVoice
-from PyQt5.QtWidgets import QLineEdit
+from PyQt5.QtWidgets import QLineEdit, QComboBox
 from registered_functions import RegisteredFunctions
 
 
@@ -119,6 +119,43 @@ def askLLM(thread_manager, text: str) -> tuple[str, str | None, dict | None]:
         return "An error on the LLM provider has occurred", None, None
 
 
+def transcribe_movie(thread_manager, video_path: str, language: str | None = None, progress: dict | None = None) -> dict | None:
+    if not thread_manager.signal.whisper_model:
+        return None
+
+    import tqdm as tqdm_module
+
+    # whisper/transcribe.py does `import tqdm` then calls `tqdm.tqdm(...)`,
+    # so the thing to patch is the tqdm *class* inside that module, not the
+    # module reference itself.
+    original_tqdm_cls = tqdm_module.tqdm
+
+    class _ProgressTQDM(original_tqdm_cls):
+        def update(self, n=1):
+            super().update(n)
+            if progress is not None and self.total:
+                progress["percent"] = round(100 * self.n / self.total, 1)
+
+    # verbose=False turns on whisper's own frame-count progress bar (instead
+    # of it being silent, or printing every transcribed segment); we swap in
+    # a tqdm subclass that also mirrors that percentage into `progress`.
+    tqdm_module.tqdm = _ProgressTQDM
+    try:
+        return thread_manager.signal.whisper_model.transcribe(
+            video_path, language=language, fp16=True, verbose=False,
+            beam_size=5,  # beam search instead of greedy decoding on the first (temperature=0) pass
+            best_of=5,    # sample 5 candidates and keep the best on temperature-fallback passes
+            # Long silence/music stretches otherwise make Whisper loop, repeating
+            # the last phrase it locked onto every ~30s window. condition_on_previous_text
+            # is what carries that bad context forward; the silence threshold gives
+            # it an explicit way to recognize "nothing said here" instead of guessing.
+            condition_on_previous_text=False,
+            hallucination_silence_threshold=2.0,
+        )
+    finally:
+        tqdm_module.tqdm = original_tqdm_cls
+
+
 def transcribe(thread_manager, audio_int16: np.ndarray) -> str | None:
     if not thread_manager.signal.whisper_model:
         return None
@@ -138,6 +175,7 @@ def transcribe(thread_manager, audio_int16: np.ndarray) -> str | None:
 
 NAME = "STT service"
 PARAMETERS = {
+    "Whisper Model": Parameter("", QComboBox, ["small", "medium", "large"]),
     "URL": Parameter("", QLineEdit),
     "Token": Parameter("", QLineEdit),
     "Model": Parameter("", QLineEdit),
@@ -152,9 +190,10 @@ def get_info():
 
 def entrypoint(thread_manager):
     signal = thread_manager.signal
+    params = [x for x in signal.get_threads() if x.name == NAME][0].parameters
 
     download_voices.download_voice(VOICE_NAME, VOICE_DIR)  # no-op if already downloaded
-    signal.whisper_model = whisper.load_model("small").to("cuda")
+    signal.whisper_model = whisper.load_model(params.get('Whisper Model', '')).to("cuda")
     signal.piper_voice = PiperVoice.load(str(VOICE_DIR / f"{VOICE_NAME}.onnx"))
     signal.tools = build_tools(signal)
     print("Whisper loaded")

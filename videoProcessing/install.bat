@@ -83,4 +83,12 @@ if %ERRORLEVEL% neq 0 (
     pause
     exit /b 1
 )
+
+echo Installing generateSrt...
+call %~dp0generateSrt\install_generateSrt.bat
+if %ERRORLEVEL% neq 0 (
+    powershell -Command "Write-Host 'ERROR: install_generateSrt failed!' -ForegroundColor Red"
+    pause
+    exit /b 1
+)
 pause

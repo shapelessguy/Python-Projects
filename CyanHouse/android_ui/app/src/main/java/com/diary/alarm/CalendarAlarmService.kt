@@ -238,20 +238,20 @@ class CalendarAlarmService : Service() {
         if (!Prefs.dailyOverviewEnabled || !environmentVisible) return
         val today = LocalDate.now().toString()
         if (Prefs.lastDailyOverviewDate == today) return
-        if (LocalTime.now().hour < DAILY_OVERVIEW_HOUR) return
+        if (LocalTime.now() < DAILY_OVERVIEW_TIME) return
         Prefs.lastDailyOverviewDate = today
         scope.launch { showWeatherOverview() }
     }
 
+    /** No screen-on/off split, unlike a calendar alarm's [RingMode]: an overlay
+     *  window can be added while the screen is off -- it just can't wake it,
+     *  nor draw over a secure lock screen -- so it's simply already there,
+     *  waiting, the moment the screen is turned on and unlocked. That's the
+     *  point: a morning glance seen first thing, not a wake-up. */
     private suspend fun showWeatherOverview() {
         val city = resolveOverviewCity() ?: return
         withContext(Dispatchers.Main) {
-            val screenOn = (getSystemService(Context.POWER_SERVICE) as PowerManager).isInteractive
-            if (screenOn) {
-                weatherOverlay.show(city, Prefs.overviewRange) { weatherOverlay.hide() }
-            } else {
-                AlarmNotifications.notifyWeather(this@CalendarAlarmService)
-            }
+            weatherOverlay.show(city, Prefs.overviewRange) { weatherOverlay.hide() }
         }
     }
 
@@ -313,7 +313,7 @@ class CalendarAlarmService : Service() {
         const val DATA_POLL_INTERVAL_MS = 2 * 60 * 1000L
         const val ACTIVE_POLL_INTERVAL_MS = 2 * 1000L
         const val ALARM_CHECK_INTERVAL_MS = 1000L
-        const val DAILY_OVERVIEW_HOUR = 7
+        val DAILY_OVERVIEW_TIME: LocalTime = LocalTime.of(7, 0)
 
         fun ensureStarted(context: Context) {
             ContextCompat.startForegroundService(context, Intent(context, CalendarAlarmService::class.java))

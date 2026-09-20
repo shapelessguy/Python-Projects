@@ -3,7 +3,7 @@ from utils import Thread
 from functools import partial
 from PyQt5.QtCore import QTime, Qt
 from PyQt5.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QTimeEdit, QCheckBox,
+    QWidget, QVBoxLayout, QHBoxLayout, QTimeEdit, QCheckBox, QComboBox,
     QLineEdit, QFormLayout, QGroupBox, QPushButton, QLabel, QSizePolicy
 )
 suspend_change = True
@@ -111,6 +111,15 @@ class ServiceItemWidget(QWidget):
                 params_layout.addRow(checkbox)
                 self.param_widgets[k] = lambda cb=checkbox: cb.isChecked()
                 checkbox.stateChanged.connect(lambda _, ui_manager=ui_manager: saveThreads(ui_manager))
+            
+            elif param.type == QComboBox:
+                combo = QComboBox()
+                combo.addItems(param.categ)
+                if value in param.categ:
+                    combo.setCurrentText(value)
+                params_layout.addRow(k.capitalize() + ":", combo)
+                self.param_widgets[k] = lambda cb=combo: cb.currentText()
+                combo.currentTextChanged.connect(lambda _, ui_manager=ui_manager: saveThreads(ui_manager))
         
         group_layout.addLayout(params_layout)
     

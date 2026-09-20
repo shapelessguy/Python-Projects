@@ -43,11 +43,11 @@ import com.diary.ui.OverviewBoard
 import com.diary.ui.OverviewToolbar
 import com.diary.ui.theme.AppTheme
 
-/** Screen-on-only weather-overview overlay -- same SYSTEM_ALERT_WINDOW
- *  mechanism and screen-on/off split as [RingOverlay] (see its docs): needs
- *  the screen already on, so [CalendarAlarmService] falls back to a plain
- *  notification when it's off instead (unlike a calendar alarm, this isn't
- *  urgent enough to justify a full-screen wake).
+/** Daily weather-overview overlay -- same SYSTEM_ALERT_WINDOW mechanism as
+ *  [RingOverlay] (see its docs for why it can't wake the screen or cover a
+ *  secure lock screen), but deliberately with no screen-off fallback: added
+ *  while the screen is off, it simply persists until dismissed, so it's the
+ *  first thing visible once the screen is turned on and unlocked.
  *
  *  Hosts the same Compose [OverviewBoard] EnvironmentScreen's Overview tab
  *  uses, rather than duplicating its Canvas-drawn icons in hand-built Views

@@ -411,7 +411,7 @@
             "enabled": true,
             "parameters": {}
         },
-        "API Server": {
+        "API Server (port 10000)": {
             "enabled": true,
             "parameters": {}
         },
@@ -430,6 +430,10 @@
             "enabled": true,
             "parameters": {}
         },
+        "Mouse Server": {
+            "enabled": true,
+            "parameters": {}
+        },
         "PC_CONNECTED_DEVICES": {
             "enabled": true,
             "parameters": {}
@@ -445,6 +449,7 @@
         "STT service": {
             "enabled": true,
             "parameters": {
+                "Whisper Model": "large",
                 "URL": "https://openrouter.ai/api/v1/chat/completions",
                 "Token": "OPENROUTER_KEY",
                 "Model": "gemini-3.5-flash-lite"
@@ -459,10 +464,6 @@
                 "Shutdown to": "08:00",
                 "Shutdown": false
             }
-        },
-        "XM4-1000": {
-            "enabled": false,
-            "parameters": {}
         }
     }
 }
