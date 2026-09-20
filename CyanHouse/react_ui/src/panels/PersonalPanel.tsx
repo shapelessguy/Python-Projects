@@ -2,10 +2,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api, Column, ColType, MonthData, useVersionPoll } from "../api";
 import { ColumnManager } from "./ColumnManager";
 
-const TODAY = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD, local
+// YYYY-MM-DD, local. A function (not a module constant) so a tab left open
+// across midnight doesn't keep highlighting the day it was loaded on.
+function todayIso(): string {
+  return new Date().toLocaleDateString("en-CA");
+}
 
 function currentMonth(): string {
-  return TODAY.slice(0, 7);
+  return todayIso().slice(0, 7);
 }
 
 function addMonths(month: string, delta: number): string {
@@ -29,6 +33,11 @@ type Draft = Record<string, Record<string, unknown>>;
 export function PersonalPanel() {
   const { diary } = useVersionPoll();
   const [month, setMonth] = useState(currentMonth);
+  const [today, setToday] = useState(todayIso);
+  useEffect(() => {
+    const id = window.setInterval(() => setToday(todayIso()), 30_000);
+    return () => window.clearInterval(id);
+  }, []);
   const [data, setData] = useState<MonthData | null>(null);
   const [draft, setDraft] = useState<Draft>({});
   const [error, setError] = useState<string | null>(null);
@@ -123,7 +132,7 @@ export function PersonalPanel() {
               {data.rows.map((row) => {
                 const merged = { ...row.values, ...(draft[row.date] || {}) };
                 return (
-                  <tr key={row.date} className={row.date === TODAY ? "today" : ""}>
+                  <tr key={row.date} className={row.date === today ? "today" : ""}>
                     <td className="sticky-col date">{weekdayDay(row.date)}</td>
                     {columns.map((c) => (
                       <td key={c.key} className={c.type === "text" ? "text-col" : "fill-col"}>

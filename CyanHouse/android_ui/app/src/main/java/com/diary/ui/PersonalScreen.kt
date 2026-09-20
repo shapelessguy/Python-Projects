@@ -32,16 +32,19 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -49,6 +52,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.delay
 import com.diary.net.Column as ApiColumn
 import com.diary.net.DayRow
 import com.diary.net.asBool
@@ -71,7 +75,15 @@ fun PersonalScreen(vm: PersonalViewModel = viewModel()) {
     val data = vm.data
     var showColumns by remember { mutableStateOf(false) }
     var editing by remember { mutableStateOf<Pair<String, ApiColumn>?>(null) }
-    val today = remember { LocalDate.now().toString() }
+    // Re-checked every 30s so a screen left open across midnight moves the
+    // highlighted row to the new day instead of staying on the one it opened on.
+    var today by remember { mutableStateOf(LocalDate.now().toString()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(30_000)
+            today = LocalDate.now().toString()
+        }
+    }
     val hScroll = rememberScrollState()
 
     Column(Modifier.fillMaxSize()) {
@@ -255,10 +267,22 @@ private fun EditCellDialog(
                 }
                 else -> OutlinedTextField(
                     value = text,
-                    onValueChange = { text = it },
+                    // Number cells: a comma (a decimal-comma keyboard's separator)
+                    // becomes a dot -- left as is it'd fail toDoubleOrNull below
+                    // and silently save an empty cell.
+                    onValueChange = {
+                        text = if (column.type == "number")
+                            it.replace(',', '.').filter { c -> c.isDigit() || c == '.' || c == '-' }
+                        else it
+                    },
                     singleLine = column.type != "text",
                     keyboardOptions = KeyboardOptions(
                         keyboardType = if (column.type == "number") KeyboardType.Number else KeyboardType.Text,
+                    ),
+                    // The theme's default outline is too dark against the dialog.
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedBorderColor = Color.White.copy(alpha = 0.7f),
+                        focusedBorderColor = Color.White,
                     ),
                     modifier = Modifier.fillMaxWidth(),
                 )
