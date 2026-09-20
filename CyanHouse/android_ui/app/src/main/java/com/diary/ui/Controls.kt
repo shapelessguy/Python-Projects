@@ -4,13 +4,16 @@ package com.diary.ui
  *  A "room" item is POSTed to /api/controls/room/{topic} as {command}; a
  *  "function" item to /api/controls/fn/{command}. Sliders add {slide_value:0..1}. */
 
-enum class ControlMode { ALL, LIGHTS, AUDIO, PC }
+/** VOICES is different from the rest: it has no static catalogue in [MODE_CONFIGS] --
+ *  its buttons are whatever voices CyanManager reports, polled while the mode is open. */
+enum class ControlMode { ALL, LIGHTS, AUDIO, PC, VOICES }
 
 fun modeIcon(m: ControlMode): String = when (m) {
     ControlMode.ALL -> "▦"
     ControlMode.LIGHTS -> "💡"
     ControlMode.AUDIO -> "🔊"
     ControlMode.PC -> "🖥"
+    ControlMode.VOICES -> "🗣"
 }
 
 data class ControlItem(

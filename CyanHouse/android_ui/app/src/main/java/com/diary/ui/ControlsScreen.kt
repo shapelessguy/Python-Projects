@@ -82,6 +82,25 @@ class ControlsViewModel : ViewModel() {
         }
     }
 
+    /** Voices CyanManager offers right now. Only refreshed while the VOICES mode is
+     *  selected; an unreachable backend/manager keeps the last known list. */
+    var voices by mutableStateOf<List<String>>(emptyList()); private set
+
+    init {
+        viewModelScope.launch {
+            while (true) {
+                if (mode == ControlMode.VOICES) runCatching { Api.controlVoices() }.getOrNull()?.let { voices = it }
+                delay(1000)
+            }
+        }
+    }
+
+    fun playVoice(name: String) = viewModelScope.launch {
+        runCatching { Api.controlPlayVoice(name) }
+            .onSuccess { status = "✓ $name" }
+            .onFailure { status = "✕ $name failed" }
+    }
+
     fun run(item: ControlItem, extra: JsonObject? = null, note: String? = null) = viewModelScope.launch {
         runCatching {
             if (item.room) Api.controlRoom(item.topic, item.command, extra)
@@ -133,6 +152,20 @@ fun ControlsScreen(vm: ControlsViewModel = viewModel()) {
                     // slider spans 2 cells (150 + 8 gap + 150); everything else one cell.
                     // Taller buttons here (~1.5x the per-mode height).
                     ControlCell(it, vm, Modifier.width(if (it.slider) 308.dp else 150.dp), minHeight = 126.dp)
+                }
+            }
+        } else if (vm.mode == ControlMode.VOICES) {
+            if (vm.voices.isEmpty()) {
+                Text(
+                    "No voices available",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            vm.voices.chunked(3).forEach { rowVoices ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    rowVoices.forEach { name -> VoiceCell(name, vm, Modifier.weight(1f)) }
+                    repeat(3 - rowVoices.size) { Spacer(Modifier.weight(1f)) }
                 }
             }
         } else {
@@ -247,6 +280,26 @@ private fun ControlCell(
                 textAlign = TextAlign.Center,
             )
         }
+    }
+}
+
+/** Text-only button, so shorter than the icon cells of the other modes. */
+@Composable
+private fun VoiceCell(name: String, vm: ControlsViewModel, modifier: Modifier) {
+    OutlinedButton(
+        onClick = { vm.playVoice(name) },
+        modifier = modifier.heightIn(min = 60.dp),
+        shape = RoundedCornerShape(10.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+    ) {
+        Text(
+            name,
+            fontSize = 12.sp,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            fontWeight = FontWeight.Medium,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 

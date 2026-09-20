@@ -21,6 +21,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
+import io.ktor.http.encodeURLPathPart
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNull
@@ -116,6 +117,13 @@ object Api {
                 setBody(body)
             }
         }.body()
+
+    /** Voice names currently available on CyanManager (its `voices/` sub-folders). */
+    suspend fun controlVoices(): List<String> = client.get(u("/api/controls/voices")).body()
+
+    suspend fun controlPlayVoice(name: String) {
+        client.post(u("/api/controls/voices/${name.encodeURLPathPart()}"))
+    }
 
     // ── personal (every mutation replies with the full month snapshot) ──
     suspend fun month(month: String): MonthData =
