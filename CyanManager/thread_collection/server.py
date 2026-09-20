@@ -5,7 +5,7 @@ import time
 import uuid
 import numpy as np
 import base64
-from functions.audio import get_current_audio_info
+from functions.audio import get_current_audio_info, list_voices, play_voice
 from utils import wait
 from flask import Flask, jsonify, request
 from whisper.utils import get_writer
@@ -150,6 +150,22 @@ def entrypoint(thread_manager):
             result = funcs[name].run()
         
         return jsonify({"status": "ok", "ran": name, "result": str(result), "info": get_info()})
+
+    @app.route("/voices", methods=["GET"])
+    def get_voices():
+        return jsonify(list_voices())
+
+    @app.route("/voices/<name>/play", methods=["POST"])
+    def play_voice_(name):
+        try:
+            file = play_voice(name)
+        except KeyError:
+            return jsonify({"error": f"Voice '{name}' not found"}), 404
+        except FileNotFoundError as e:
+            return jsonify({"error": str(e)}), 404
+        except Exception as e:
+            return jsonify({"status": "error", "error": str(e)}), 500
+        return jsonify({"status": "ok", "voice": name, "file": file})
 
     server = threading.Thread(target=lambda: app.run(host="0.0.0.0", port=PORT), daemon=True)
     server.start()

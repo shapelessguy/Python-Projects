@@ -4,9 +4,11 @@ import sounddevice as sd
 import numpy as np
 import pygame
 import os
+import random
+import threading
 from utils import SV_EXE_PATH, TIMER_EXE, notify
 from pycaw.pycaw import AudioUtilities
-from utils import AUDIO_PATH
+from utils import AUDIO_PATH, VOICES_PATH
 
 
 volume_ticks = []
@@ -99,6 +101,42 @@ def play_audio(audio_path, volume, n_loops=1, start_at=0.0):
     pygame.mixer.music.unpause()
     while pygame.mixer.music.get_busy():
         pygame.time.Clock().tick(10)
+
+
+_voice_lock = threading.Lock()
+_last_voice_file = {}
+
+
+def list_voices():
+    """Names of the sub-folders of VOICES_PATH; each one is a voice."""
+    if not os.path.isdir(VOICES_PATH):
+        return []
+    return sorted(d for d in os.listdir(VOICES_PATH) if os.path.isdir(os.path.join(VOICES_PATH, d)))
+
+
+def play_voice(voice):
+    """Start a random wav from voices/<voice> without blocking, cutting off anything already playing.
+
+    Raises KeyError if the voice folder doesn't exist, FileNotFoundError if it has no wav.
+    Returns the file name that was picked.
+    """
+    if voice not in list_voices():
+        raise KeyError(voice)
+    folder = os.path.join(VOICES_PATH, voice)
+    wavs = sorted(f for f in os.listdir(folder) if f.lower().endswith(".wav"))
+    if not wavs:
+        raise FileNotFoundError(f"No wav files in voice '{voice}'")
+
+    with _voice_lock:
+        # avoid playing the same clip twice in a row when there is a choice
+        candidates = [f for f in wavs if f != _last_voice_file.get(voice)] or wavs
+        chosen = random.choice(candidates)
+        _last_voice_file[voice] = chosen
+        pygame.mixer.init()
+        pygame.mixer.music.load(os.path.join(folder, chosen))
+        pygame.mixer.music.set_volume(1.0)
+        pygame.mixer.music.play()
+    return chosen
 
 
 def ring_alarm(signal, verbose=False):

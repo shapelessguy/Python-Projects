@@ -8,6 +8,8 @@ panels stay same-origin and behind the dashboard login:
 
     POST /api/controls/room/{topic}  ->  api.services.room.send(topic, command)
     POST /api/controls/fn/{name}     ->  {CONTROLS_FN_URL}/functions/{name}/run   body: optional
+    GET  /api/controls/voices        ->  {CONTROLS_FN_URL}/voices  (list of voice names)
+    POST /api/controls/voices/{name} ->  {CONTROLS_FN_URL}/voices/{name}/play
     GET  /api/controls/info          ->  {CONTROLS_FN_URL}/info
 
 Contract picked up by ``api/main.py`` auto-discovery: only `router` and
@@ -15,6 +17,7 @@ Contract picked up by ``api/main.py`` auto-discovery: only `router` and
 counter, so `versions()` isn't needed.
 """
 from typing import Any
+from urllib.parse import quote
 
 import requests
 from fastapi import APIRouter, HTTPException
@@ -74,6 +77,18 @@ async def room_command(topic: str, body: dict[str, Any] | None = None):
 async def fn(name: str, body: dict[str, Any] | None = None):
     return await run_in_threadpool(
         _forward, "POST", CONTROLS_FN_URL, f"/functions/{name}/run", body if body else None
+    )
+
+
+@router.get("/voices")
+async def voices():
+    return await run_in_threadpool(_forward, "GET", CONTROLS_FN_URL, "/voices", None)
+
+
+@router.post("/voices/{name}")
+async def play_voice(name: str):
+    return await run_in_threadpool(
+        _forward, "POST", CONTROLS_FN_URL, f"/voices/{quote(name, safe='')}/play", None
     )
 
 
