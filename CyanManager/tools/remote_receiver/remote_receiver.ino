@@ -152,7 +152,7 @@ void loop() {
     else if (command.substring(0, 5) == "strip") { sendStrip(command.substring(5, command.length())); }
   }
   if (IrReceiver.decode()) {
-
+    IrReceiver.printIRResultShort(&Serial);
     uint16_t addr = IrReceiver.decodedIRData.address;
     uint8_t  cmd  = IrReceiver.decodedIRData.command;
     bool isRepeatLike = (cmd == 0xFF) || (addr == 0 && cmd == 0);

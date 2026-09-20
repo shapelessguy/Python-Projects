@@ -51,6 +51,18 @@ void sendHisense(String c) {
   else { Serial.println("bad command"); }
 }
 
+void sendFan(String c){
+  Serial.println("Fan command: " + c);
+  uint16_t address = 0x0000;
+
+  if (c.equals("on")) IrSender.sendNEC(address, 0x44, 2);
+  else if (c.equals("off")) IrSender.sendNEC(address, 0x46, 2);
+  else if (c.equals("mode")) IrSender.sendNEC(address, 0x15, 2);
+  else if (c.equals("timer")) IrSender.sendNEC(address, 0x16, 2);
+  else if (c.equals("swing")) IrSender.sendNEC(address, 0x08, 2);
+  else { Serial.println("bad command"); }
+}
+
 void sendAudio(String c){
   Serial.println("Audio command: " + c);
   uint16_t address = 0xA002;
@@ -108,6 +120,7 @@ void loop() {
     else if (command.substring(0, 5) == "strip") sendStrip(command.substring(5, command.length()));
     else if (command.substring(0, 2) == "tv") sendHisense(command.substring(2, command.length()));
     else if (command.substring(0, 5) == "audio") sendAudio(command.substring(5, command.length()));
+    else if (command.substring(0, 3) == "fan") sendFan(command.substring(3, command.length()));
 
     else { Serial.println("bad command"); }
   }
