@@ -2,7 +2,9 @@
 #include "../libraries/CyanDevice/CyanDevice.h"
 
 const int IP_LAST_OCTET = 254;
-const int IR_PIN = 17;
+const int IR_PIN = 15;
+const int LIGHT_PIN = 2;
+bool lightsOn = false;
 
 WebServer server(80);
 CyanDevice device(WIFI_SSID, WIFI_PASSWORD, IP_LAST_OCTET);
@@ -25,6 +27,15 @@ struct IRDevice {
 };
 
 bool audioSpecial(const String& c);
+
+bool lightsSpecial(const String& c) {
+  if      (c.equals("on"))     lightsOn = true;
+  else if (c.equals("off"))    lightsOn = false;
+  else if (c.equals("toggle")) lightsOn = !lightsOn;
+  else return false;
+  digitalWrite(LIGHT_PIN, lightsOn ? HIGH : LOW);
+  return true;
+}
 
 static const IRCommand TV_COMMANDS[] = {
   { "ok",    0x15, 1 },
@@ -63,6 +74,7 @@ static const IRCommand FAN_COMMANDS[] = {
 };
 
 static const IRDevice IR_DEVICES[] = {
+  { "lights", 0, nullptr, 0, lightsSpecial },
   { "tv",    ADDR_TV,    TV_COMMANDS,    COUNT_OF(TV_COMMANDS),    nullptr      },
   { "audio", ADDR_AUDIO, AUDIO_COMMANDS, COUNT_OF(AUDIO_COMMANDS), audioSpecial },
   { "top",   ADDR_TOP,   TOP_COMMANDS,   COUNT_OF(TOP_COMMANDS),   nullptr      },
@@ -105,6 +117,8 @@ bool sendIR(const IRDevice& dev, const String& c) {
 void deviceSetup() {
   IrSender.begin(IR_PIN);
   IrSender.enableIROut(38);
+  pinMode(LIGHT_PIN, OUTPUT);
+  digitalWrite(LIGHT_PIN, LOW);
 }
 
 void deviceLoop() {
