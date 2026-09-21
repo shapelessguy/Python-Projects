@@ -105,9 +105,10 @@ class RegisteredFunctions:
     PLAY_PAUSE=HandleFunction(play_pause, description="Play or pause current media")
     TURN_ON_MOUSEPAD = HandleFunction(turn_on_mousepad)
     TURN_OFF_MOUSEPAD = HandleFunction(turn_off_mousepad)
+    TURN_ON_MOTHERBOARD = HandleFunction(turn_on_motherboard)
+    TURN_OFF_MOTHERBOARD = HandleFunction(turn_off_motherboard)
     TURN_ON_STRIPS = HandleFunction(strips_on)
     TURN_OFF_STRIPS = HandleFunction(strips_off)
-    STRIPS_CYAN = HandleFunction(strips_cyan)
 
     def __init__(self, signal):
         for attr_value in self.__class__.__dict__.values():

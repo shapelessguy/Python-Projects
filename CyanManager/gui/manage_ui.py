@@ -8,6 +8,7 @@ from screeninfo import get_monitors
 from gui.theme import dark_stylesheet
 from gui.tab_general import set_gen_layout
 from gui.tab_applications import set_apps_layout
+from gui.session_end import SessionEndFilter
 from PyQt5.QtCore import QObject, pyqtSignal, Qt, QSize
 from PyQt5.QtWidgets import QMainWindow, QApplication, QSystemTrayIcon, QMenu, QWidget, QTextEdit, QVBoxLayout, QPushButton, QGraphicsScene
 from PyQt5.QtGui import QIcon, QPixmap
@@ -239,6 +240,12 @@ class UI:
         self.bridge.show_notification.connect(self._show_notification)
         self.bridge.hide_notification.connect(self._hide_notification)
         self.ui = ui
+
+        # Windows only sends the session-end messages to windows that exist natively, even hidden ones
+        MainWindow.winId()
+        self.session_end_filter = SessionEndFilter(self.signal)
+        app.installNativeEventFilter(self.session_end_filter)
+        app.aboutToQuit.connect(self.session_end_filter.turn_off)
 
         self.tray = QSystemTrayIcon(QIcon(os.path.join(os.path.dirname(os.path.dirname(__file__)), "icons", "cyan_system_manager.ico")), app)
         menu = QMenu()

@@ -3,7 +3,7 @@ import threading
 import keyring
 import ctypes
 from functions.audio import play_audio
-from thread_collection.pc_connected_devices import set_mousepad_color
+from thread_collection.pc_connected_devices import set_mousepad_color, set_motherboard_color
 
 
 def get_snapshot(signal, verbose=False):
@@ -43,6 +43,16 @@ def turn_on_mousepad(signal, verbose=False):
 def turn_off_mousepad(signal, verbose=False):
     print("mousepad Off")
     set_mousepad_color((0, 0, 0))
+
+
+def turn_on_motherboard(signal, verbose=False):
+    print("motherboard On")
+    set_motherboard_color((0, 180, 255))
+
+
+def turn_off_motherboard(signal, verbose=False):
+    print("motherboard Off")
+    set_motherboard_color((0, 0, 0))
 
 
 class POINT(ctypes.Structure):

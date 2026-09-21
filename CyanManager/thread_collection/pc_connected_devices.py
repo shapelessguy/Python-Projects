@@ -12,7 +12,12 @@ OPENRGB_PORT = 6743
 
 def set_mousepad_color(color):
     global pending_message
-    pending_message = color
+    pending_message = (DeviceType.MOUSEMAT, color)
+
+
+def set_motherboard_color(color):
+    global pending_message
+    pending_message = (DeviceType.MOTHERBOARD, color)
 
 
 def is_openrgb_running():
@@ -24,28 +29,41 @@ def is_openrgb_running():
             return False
 
 
+def start_openrgb():
+    try:
+        openrgb_path = r"C:\Program Files\OpenRGB\OpenRGB.exe"
+        cmd = [openrgb_path, "--server", "--startminimized", "--server-port", f"{OPENRGB_PORT}"]
+        proc = subprocess.Popen(cmd, creationflags=0x08000000, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        print(f"OpenRGB started on port {OPENRGB_PORT}, process id: {proc.pid}")
+    except:
+        print(f"OpenRGB on '{openrgb_path}' not found!")
+
+
+def set_device_color(device_type, color):
+    client = OpenRGBClient(address='127.0.0.1', port=OPENRGB_PORT)
+    try:
+        devices = [d for d in client.devices if d.type == device_type]
+        devices[0].set_color(RGBColor(*color))
+    finally:
+        client.disconnect()
+
+
 def entrypoint(thread_manager):
     global pending_message
     pending_message = None
-    
+
     if not is_openrgb_running():
-        try:
-            openrgb_path = r"C:\Program Files\OpenRGB\OpenRGB.exe"
-            cmd = [openrgb_path, "--server", "--startminimized", "--server-port", f"{OPENRGB_PORT}"]
-            proc = subprocess.Popen(cmd, creationflags=0x08000000, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            print(f"OpenRGB started on port {OPENRGB_PORT}, process id: {proc.pid}")
-        except:
-            print(f"OpenRGB on '{openrgb_path}' not found!")
+        start_openrgb()
 
     while thread_manager.signal.is_alive() and not thread_manager.to_kill:
         if pending_message:
             try:
                 client = OpenRGBClient(address='127.0.0.1', port=6743)
-                mousepads = [d for d in client.devices if d.type == DeviceType.MOUSEMAT]
-                mousepad = mousepads[0]
-                color = pending_message
+                devices = [d for d in client.devices if d.type == pending_message[0]]
+                target = devices[0]
+                color = pending_message[1]
                 pending_message = None
-                mousepad.set_color(RGBColor(*color))
+                target.set_color(RGBColor(*color))
                 client.disconnect()
             except:
                 import traceback
