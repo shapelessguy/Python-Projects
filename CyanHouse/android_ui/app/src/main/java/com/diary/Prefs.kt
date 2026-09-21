@@ -17,7 +17,7 @@ object Prefs {
         get() = sp?.getInt("foodZoomPct", 50) ?: 50
         set(v) { sp?.edit()?.putInt("foodZoomPct", v)?.apply() }
 
-    /** Last-open Controls mode (ALL / LIGHTS / UV / AUDIO / TV / PC). */
+    /** Last-open Controls mode (ALL / GROW / AUDIO / PC / VOICES). */
     var controlsMode: String
         get() = sp?.getString("controlsMode", "ALL") ?: "ALL"
         set(v) { sp?.edit()?.putString("controlsMode", v)?.apply() }

@@ -1,6 +1,6 @@
 """CC (Cyan Controls) home-automation — a plug-and-play router module.
 
-The Room actuator (top/lights/strip/tv/audio -> Arduino over serial) runs
+The Room actuator (top/lights/strip/tv/audio -> ESP32 boards over HTTP) runs
 in-process — see api/services/room.py, ported from old_roomserver. The fn
 service is still a separate process on the LAN (CONTROLS_FN_HOST in secrets.json),
 reached the same way CyanControls always did, just proxied here so the
@@ -13,8 +13,8 @@ panels stay same-origin and behind the dashboard login:
     GET  /api/controls/info          ->  {CONTROLS_FN_URL}/info
 
 Contract picked up by ``api/main.py`` auto-discovery: only `router` and
-`init()` (starts the Room actuator's serial connection) — no DB, no version
-counter, so `versions()` isn't needed.
+`init()` (starts the Room actuator's lights-auto scheduler) — no DB, no
+version counter, so `versions()` isn't needed.
 """
 from typing import Any
 from urllib.parse import quote

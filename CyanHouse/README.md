@@ -108,8 +108,8 @@ users start from the default `schema.json` / `units.json` with unrated dishes.
 - `POST /api/forecast/refresh` → re-fetch now, bump `forecast`
 - `GET  /api/controls/info` → OS volume + active audio device (polled ~1 s)
 - `POST /api/controls/room/{topic}` `{command, ...}` → the Room actuator
-  (in-process, `api/services/room.py`), sent to the Arduino over
-  `ARDUINO_DEVICE` from `secrets.json`
+  (in-process, `api/services/room.py`), sent over HTTP to the relevant ESP32
+  board (`ESP32_HOSTS` in `room.py`)
 - `POST /api/controls/fn/{name}` `{...}?` → forwards to `…/functions/{name}/run`
   on the function server (`CONTROLS_FN_HOST`/`CONTROLS_FN_PORT`, a LAN host)
 - `GET/POST/PATCH/DELETE /api/personal/columns[/{key}]`

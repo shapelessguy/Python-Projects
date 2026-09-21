@@ -18,21 +18,21 @@ export interface ControlItem {
 
 // VOICES is different from the rest: no static catalogue in MODE_CONFIGS -- its
 // buttons are whatever voices CyanManager reports, polled while the mode is open.
-export type ControlMode = "ALL" | "LIGHTS" | "AUDIO" | "PC" | "VOICES";
-export const MODES: ControlMode[] = ["ALL", "LIGHTS", "AUDIO", "PC", "VOICES"];
+export type ControlMode = "ALL" | "GROW" | "AUDIO" | "PC" | "VOICES";
+export const MODES: ControlMode[] = ["ALL", "GROW", "AUDIO", "PC", "VOICES"];
 export const MODE_ICON: Record<ControlMode, string> = {
   ALL: "▦",
-  LIGHTS: "💡",
+  GROW: "🌱",
   AUDIO: "🔊",
   PC: "🖥",
   VOICES: "🗣",
 };
 
-/** A separator line is drawn above this row in that mode's grid. */
-export const SEPARATOR_BEFORE_ROW: Partial<Record<ControlMode, number>> = {
-  LIGHTS: 1,
-  AUDIO: 2,
-  PC: 2,
+/** Separator lines are drawn above these rows in that mode's grid. */
+export const SEPARATOR_BEFORE_ROW: Partial<Record<ControlMode, number[]>> = {
+  GROW: [1, 3],
+  AUDIO: [2],
+  PC: [2],
 };
 
 const CYAN = "#22b8cf";
@@ -42,7 +42,7 @@ const MAGENTA = "#e93d82";
 const BLUE = "#4c9be8";
 
 export const MODE_CONFIGS: Record<Exclude<ControlMode, "ALL" | "VOICES">, ControlItem[]> = {
-  LIGHTS: [
+  GROW: [
     { label: "UV OFF", icon: "⚫", topic: "lights", command: "off", room: true, row: 0, col: 0 },
     { label: "UV AUTO", icon: "🔵", topic: "lights", command: "auto", room: true, row: 0, col: 1, tint: CYAN },
     { label: "UV ON", icon: "🟣", topic: "lights", command: "on", room: true, row: 0, col: 2, tint: MAGENTA },
@@ -52,12 +52,17 @@ export const MODE_CONFIGS: Record<Exclude<ControlMode, "ALL" | "VOICES">, Contro
     { label: "Bright -", icon: "🔅", topic: "top", command: "bright-", room: true, row: 2, col: 0 },
     { label: "Bright +", icon: "🔆", topic: "top", command: "bright+", room: true, row: 2, col: 1 },
     { label: "Col Loop", icon: "🌈", topic: "top", command: "col_loop", room: true, row: 2, col: 2, tint: CYAN },
+    { label: "Fan OFF", icon: "🌀", topic: "fan", command: "off", room: true, row: 3, col: 0, tint: RED },
+    { label: "Fan Swing", icon: "🔃", topic: "fan", command: "swing", room: true, row: 3, col: 1, tint: BLUE },
+    { label: "Fan ON", icon: "🌀", topic: "fan", command: "on", room: true, row: 3, col: 2, tint: GREEN },
+    { label: "Fan Mode", icon: "🌬️", topic: "fan", command: "mode", room: true, row: 4, col: 1, tint: CYAN },
   ],
   AUDIO: [
     { label: "PHONES", icon: "🎧", topic: "", command: "HEADPHONES", room: false, row: 0, col: 0, tint: BLUE },
     { label: "PLAY", icon: "⏯", topic: "", command: "PLAY_PAUSE", room: false, row: 0, col: 1, tint: GREEN },
     { label: "Speaker", icon: "🔊", topic: "", command: "SPEAKERS", room: false, row: 0, col: 2, tint: CYAN },
     { label: "HW Vol -", icon: "🔉", topic: "audio", command: "vol-", room: true, row: 1, col: 0 },
+    { label: "AUDIO PWR", icon: "⏻", topic: "audio", command: "on/off", room: true, row: 1, col: 1, tint: RED },
     { label: "HW Vol +", icon: "🔊", topic: "audio", command: "vol+", room: true, row: 1, col: 2 },
     { label: "OS Volume", icon: "🔊", topic: "", command: "SET_VOLUME", room: false, row: 2, col: 0, colSpan: 3, slider: true },
     { label: "Prev", icon: "⏮", topic: "", command: "PREV", room: false, row: 3, col: 0 },

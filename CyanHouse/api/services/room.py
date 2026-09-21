@@ -2,32 +2,26 @@
 
 The legacy RoomServer ran as its own Flask process and forwarded validated
 commands to an Arduino over a serial port as a raw ASCII string, e.g.
-`"topbright+"`, `"lightson"`, `"tvpower"`. This keeps the exact same wire
-protocol (so the existing Arduino sketch needs no changes) but runs as a
-plain function call inside the CyanHouse backend instead of a second
-network hop to a separate service.
-
-Not every topic is on that one Arduino any more, though — standalone ESP32
-boards (desk, ...) are joining as separate devices reached over HTTP
-instead of serial. TOPIC_DEVICE says which device handles each topic;
-ESP32_HOSTS resolves an ESP32 device name to its address. Adding a device
-means adding one line to each, no other code changes.
+`"topbright+"`, `"lightson"`, `"tvpower"`. The Arduino has since been
+replaced by an ESP32 (arduino_scripts/server/server.ino) reached over HTTP,
+same as the other standalone ESP32 boards (desk, ...) — so every topic now
+goes over HTTP. TOPIC_DEVICE says which device handles each topic;
+ESP32_HOSTS resolves a device name to its address. Adding a device means
+adding one line to each, no other code changes.
 
 The lights auto on/off schedule (old state.json) is reimplemented here in
-Python — the Arduino sketch itself only understands "on"/"off" for lights
-(see arduino/arduino.ino's sendPlantLights), so "auto" is never written to
-the serial port; instead the schedule is saved and a background poller
-re-evaluates it once a minute and writes plain on/off. Not ported: the
-`announce` topic (tied to a separate Telegram-bot/announcements system) —
-out of scope here.
+Python — the ESP32 sketch itself only understands "on"/"off" for lights
+(see server.ino's lightsSpecial), so "auto" is never sent over HTTP; instead
+the schedule is saved and a background poller re-evaluates it once a minute
+and sends plain on/off. Not ported: the `announce` topic (tied to a separate
+Telegram-bot/announcements system) — out of scope here.
 """
 import json
 import threading
 import time
 from datetime import datetime, time as dtime
 import requests
-import serial
-from api.config import API_DATA_DIR, ARDUINO_DEVICE
+from api.config import API_DATA_DIR
 
 
 # Exact allow-lists from the old actuators.py callbacks, plus "strips" (was
@@ -42,11 +36,12 @@ TOPIC_COMMANDS: dict[str, set[str]] = {
     },
     "tv": {"power", "ok"},
     "audio": {"on/off", "vol+", "vol-", "mute", "level", "effect", "input"},
+    "fan": {"on", "off", "mode", "timer", "swing"},
 }
 
-# Which physical device handles each topic. "arduino" (the default for any
-# topic not listed) is the one serial-connected board below; any other name
-# is looked up in ESP32_HOSTS and reached over HTTP instead.
+# Which physical device handles each topic. "main" (the default for any
+# topic not listed) is arduino_scripts/server/server.ino, the ESP32 that
+# replaced the serial-connected Arduino.
 TOPIC_DEVICE: dict[str, str] = {
     "strips": "desk",
 }
@@ -54,19 +49,15 @@ TOPIC_DEVICE: dict[str, str] = {
 # ESP32 device name -> base URL. Boards have fixed IPs (last octet set in each
 # sketch's CyanDevice constructor); mDNS is not used. Add new boards here.
 ESP32_HOSTS: dict[str, str] = {
+    "main": "http://192.168.178.254",
     "desk": "http://192.168.178.253",
 }
 
 # arduino_scripts/desk/desk.ino registers its route as "/strip" (singular) —
 # unrelated to and unchanged by the API-facing topic name above ("strips"),
-# so it's translated back here, same idea as the old arduino wire-prefix
-# translation this replaced.
+# so it's translated back here. server.ino's routes ("lights"/"top"/"tv"/
+# "audio") already match their topic names, so no entry is needed for those.
 _ESP32_ROUTE = {"strips": "strip"}
-
-_RECONNECT_SECONDS = 5
-
-_lock = threading.Lock()
-_serial: "serial.Serial | None" = None
 
 # Lights auto-schedule. Only CyanManager's RoomServer thread has time-picker
 # fields for "from"/"to" (see its PARAMETERS) — the CyanHouse GUI's/APK's
@@ -89,9 +80,8 @@ class RoomError(Exception):
 
 
 def init() -> None:
-    """Start the background connection attempt. A no-op when no device is
-    configured — commands then fail with a clear 503 instead of the app
-    hanging at startup waiting for hardware that may not be plugged in."""
+    """Load the persisted lights-auto schedule and resume its poller if it
+    was left enabled."""
     global _auto_state
     try:
         _auto_state = json.loads(_AUTO_STATE_PATH.read_text())
@@ -99,44 +89,6 @@ def init() -> None:
         _auto_state = {"from": None, "to": None, "enabled": False}
     if _auto_state.get("enabled"):
         _start_auto_poller()
-    if not ARDUINO_DEVICE or serial is None:
-        return
-    threading.Thread(target=_connect_loop, daemon=True).start()
-
-
-def _connect_loop() -> None:
-    global _serial
-    while True:
-        try:
-            conn = serial.Serial(
-                port=ARDUINO_DEVICE,
-                baudrate=9600,
-                bytesize=8,
-                timeout=1,
-                stopbits=serial.STOPBITS_ONE,
-            )
-        except Exception:
-            time.sleep(_RECONNECT_SECONDS)
-            continue
-        with _lock:
-            _serial = conn
-        return
-
-
-def _write_raw(topic: str, command: str) -> None:
-    global _serial
-    with _lock:
-        conn = _serial
-    if conn is None:
-        raise RoomError("Arduino not connected yet — still reconnecting", status_code=503)
-    try:
-        with _lock:
-            conn.write(f"{topic}{command}\r\n".encode("ascii"))
-    except Exception as e:
-        with _lock:
-            _serial = None
-        threading.Thread(target=_connect_loop, daemon=True).start()
-        raise RoomError(f"serial write failed: {e}", status_code=502)
 
 
 def _send_to_esp32(device: str, topic: str, command: str) -> None:
@@ -159,8 +111,7 @@ def _in_window(now: dtime, start: dtime, end: dtime) -> bool:
 
 def _auto_tick() -> None:
     """Re-apply the saved schedule. Silent no-op if auto isn't enabled or
-    the Arduino is briefly disconnected — the next tick (or the next
-    reconnect) catches up."""
+    the board is briefly unreachable — the next tick catches up."""
     with _auto_lock:
         state = dict(_auto_state)
     if not state.get("enabled") or not state.get("from") or not state.get("to"):
@@ -169,7 +120,7 @@ def _auto_tick() -> None:
     start = dtime.fromisoformat(state["from"])
     end = dtime.fromisoformat(state["to"])
     try:
-        _write_raw("lights", "on" if _in_window(now, start, end) else "off")
+        _send_to_esp32("main", "lights", "on" if _in_window(now, start, end) else "off")
     except RoomError:
         pass
 
@@ -236,9 +187,8 @@ def _clear_lights_auto() -> None:
 
 
 def send(topic: str, command: str, set_auto_time: dict | None = None) -> dict:
-    """Validate and forward one command to the right device (Arduino over
-    serial, or an ESP32 over HTTP). Blocking I/O — call via run_in_threadpool
-    from the router."""
+    """Validate and forward one command to the right ESP32 over HTTP.
+    Blocking I/O — call via run_in_threadpool from the router."""
     allowed = TOPIC_COMMANDS.get(topic)
     if allowed is None:
         raise RoomError(f"unknown topic {topic!r}")
@@ -252,15 +202,6 @@ def send(topic: str, command: str, set_auto_time: dict | None = None) -> dict:
         # flipping it back at the next poll.
         _clear_lights_auto()
 
-    device = TOPIC_DEVICE.get(topic, "arduino")
-    if device != "arduino":
-        _send_to_esp32(device, topic, command)
-        return {"msg": f"{topic} [value={command}] sent to {device}."}
-
-    if ARDUINO_DEVICE and serial is None:
-        raise RoomError("pyserial not installed", status_code=503)
-    if not ARDUINO_DEVICE:
-        raise RoomError("Arduino not connected — set ARDUINO_DEVICE in secrets.json", status_code=503)
-
-    _write_raw(topic, command)
-    return {"msg": f"{topic} [value={command}] sent to arduino."}
+    device = TOPIC_DEVICE.get(topic, "main")
+    _send_to_esp32(device, topic, command)
+    return {"msg": f"{topic} [value={command}] sent to {device}."}

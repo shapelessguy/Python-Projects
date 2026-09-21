@@ -93,11 +93,10 @@ if PUBLIC_HOST:
     DEV_ORIGINS += [f"http://{PUBLIC_HOST}:{API_PORT}", f"https://{PUBLIC_HOST}"]
 
 # ── controls (CyanControls home automation) ────────────────────────────────
-# The Room actuator (top/lights/strip/tv/audio -> Arduino over serial) now runs
-# in-process — see api/services/room.py — so it only needs the device path.
+# The Room actuator (top/lights/strip/tv/audio -> ESP32 boards over HTTP) runs
+# in-process — see api/services/room.py — board addresses are hardcoded there
+# (ESP32_HOSTS), same as the fn service below.
 # The fn service is still a separate process, reached over the LAN.
-ARDUINO_DEVICE = os.environ.get("ARDUINO_DEVICE", "").strip()
-
 CONTROLS_FN_HOST = os.environ.get("CONTROLS_FN_HOST", "").strip()  # e.g. LAN IP
 CONTROLS_FN_PORT = os.environ.get("CONTROLS_FN_PORT", "").strip()
 CONTROLS_FN_URL = f"http://{CONTROLS_FN_HOST}:{CONTROLS_FN_PORT}" if CONTROLS_FN_HOST else ""

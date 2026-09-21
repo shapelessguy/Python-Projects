@@ -77,8 +77,7 @@ cp secrets.json.example secrets.json
 nano secrets.json
 ```
 
-Fill in for *this* machine specifically: `PUBLIC_HOST`, `ARDUINO_DEVICE`
-(e.g. `/dev/ttyUSB0`, or blank if no Arduino attached yet),
+Fill in for *this* machine specifically: `PUBLIC_HOST`,
 `CONTROLS_FN_HOST`/`CONTROLS_FN_PORT`,
 `DATA_DIR` (blank unless you want data elsewhere), `SERPER_API_KEY`,
 `OPENROUTER_KEY`/`LLM_FOOD_MODEL`.

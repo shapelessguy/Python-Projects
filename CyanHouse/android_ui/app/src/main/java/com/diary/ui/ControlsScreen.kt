@@ -171,7 +171,7 @@ fun ControlsScreen(vm: ControlsViewModel = viewModel()) {
         } else {
             val items = MODE_CONFIGS[vm.mode].orEmpty()
             items.groupBy { it.row }.toSortedMap().forEach { (row, rowItems) ->
-                if (SEPARATOR_BEFORE_ROW[vm.mode] == row) HorizontalDivider(Modifier.padding(vertical = 2.dp))
+                if (row in SEPARATOR_BEFORE_ROW[vm.mode].orEmpty()) HorizontalDivider(Modifier.padding(vertical = 2.dp))
                 Row(
                     Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),

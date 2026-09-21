@@ -107,9 +107,9 @@ export function ControlsPanel() {
   };
 
   const items = mode === "ALL" ? allItems() : mode === "VOICES" ? [] : MODE_CONFIGS[mode];
-  // Rows at/after the separator shift down one grid row to make room for it.
-  const sepRow = mode === "ALL" ? undefined : SEPARATOR_BEFORE_ROW[mode];
-  const gridRowOf = (row: number) => row + 1 + (sepRow !== undefined && row >= sepRow ? 1 : 0);
+  // Rows at/after each separator shift down one grid row per separator to make room for it.
+  const sepRows = (mode === "ALL" ? undefined : SEPARATOR_BEFORE_ROW[mode]) ?? [];
+  const gridRowOf = (row: number) => row + 1 + sepRows.filter((s) => s <= row).length;
   const device = info.device ?? "";
   const vol = info.volume ?? 0;
 
@@ -127,7 +127,13 @@ export function ControlsPanel() {
       <p className="muted small ctl-status">{status || " "}</p>
 
       <div className={"ctl-grid" + (mode === "ALL" ? " all" : "")}>
-        {sepRow !== undefined && <hr className="ctl-sep" style={{ gridRow: sepRow + 1, gridColumn: "1 / -1" }} />}
+        {sepRows.map((s) => (
+          <hr
+            key={s}
+            className="ctl-sep"
+            style={{ gridRow: s + 1 + sepRows.filter((o) => o < s).length, gridColumn: "1 / -1" }}
+          />
+        ))}
         {items.map((it) => {
           // Per-mode views keep CyanControls' fixed 3-column row/col layout (its
           // gaps are intentional) — AUDIO's slider has colSpan 3, so it fills the

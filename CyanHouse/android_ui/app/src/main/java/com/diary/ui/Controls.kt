@@ -6,11 +6,11 @@ package com.diary.ui
 
 /** VOICES is different from the rest: it has no static catalogue in [MODE_CONFIGS] --
  *  its buttons are whatever voices CyanManager reports, polled while the mode is open. */
-enum class ControlMode { ALL, LIGHTS, AUDIO, PC, VOICES }
+enum class ControlMode { ALL, GROW, AUDIO, PC, VOICES }
 
 fun modeIcon(m: ControlMode): String = when (m) {
     ControlMode.ALL -> "▦"
-    ControlMode.LIGHTS -> "💡"
+    ControlMode.GROW -> "🌱"
     ControlMode.AUDIO -> "🔊"
     ControlMode.PC -> "🖥"
     ControlMode.VOICES -> "🗣"
@@ -36,7 +36,7 @@ private const val MAGENTA = 0xFFE93D82L
 private const val BLUE = 0xFF4C9BE8L
 
 val MODE_CONFIGS: Map<ControlMode, List<ControlItem>> = mapOf(
-    ControlMode.LIGHTS to listOf(
+    ControlMode.GROW to listOf(
         ControlItem("UV OFF", "⚫", "lights", "off", true, 0, 0),
         ControlItem("UV AUTO", "🔵", "lights", "auto", true, 0, 1, tint = CYAN),
         ControlItem("UV ON", "🟣", "lights", "on", true, 0, 2, tint = MAGENTA),
@@ -46,12 +46,17 @@ val MODE_CONFIGS: Map<ControlMode, List<ControlItem>> = mapOf(
         ControlItem("Bright -", "🔅", "top", "bright-", true, 2, 0),
         ControlItem("Bright +", "🔆", "top", "bright+", true, 2, 1),
         ControlItem("Col Loop", "🌈", "top", "col_loop", true, 2, 2, tint = CYAN),
+        ControlItem("Fan OFF", "🌀", "fan", "off", true, 3, 0, tint = RED),
+        ControlItem("Fan Swing", "🔃", "fan", "swing", true, 3, 1, tint = BLUE),
+        ControlItem("Fan ON", "🌀", "fan", "on", true, 3, 2, tint = GREEN),
+        ControlItem("Fan Mode", "🌬️", "fan", "mode", true, 4, 1, tint = CYAN),
     ),
     ControlMode.AUDIO to listOf(
         ControlItem("PHONES", "🎧", "", "HEADPHONES", false, 0, 0, tint = BLUE),
         ControlItem("PLAY", "⏯", "", "PLAY_PAUSE", false, 0, 1, tint = GREEN),
         ControlItem("Speaker", "🔊", "", "SPEAKERS", false, 0, 2, tint = CYAN),
         ControlItem("HW Vol -", "🔉", "audio", "vol-", true, 1, 0),
+        ControlItem("AUDIO PWR", "⏻", "audio", "on/off", true, 1, 1, tint = RED),
         ControlItem("HW Vol +", "🔊", "audio", "vol+", true, 1, 2),
         ControlItem("OS Volume", "🔊", "", "SET_VOLUME", false, 2, 0, colSpan = 3, slider = true),
         ControlItem("Prev", "⏮", "", "PREV", false, 3, 0),
@@ -81,9 +86,9 @@ fun allControlItems(): List<ControlItem> {
     return out
 }
 
-/** A separator line is drawn above this row in that mode's grid. */
-val SEPARATOR_BEFORE_ROW: Map<ControlMode, Int> = mapOf(
-    ControlMode.LIGHTS to 1,
-    ControlMode.AUDIO to 2,
-    ControlMode.PC to 2,
+/** Separator lines are drawn above these rows in that mode's grid. */
+val SEPARATOR_BEFORE_ROW: Map<ControlMode, List<Int>> = mapOf(
+    ControlMode.GROW to listOf(1, 3),
+    ControlMode.AUDIO to listOf(2),
+    ControlMode.PC to listOf(2),
 )
