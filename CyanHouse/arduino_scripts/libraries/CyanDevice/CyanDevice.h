@@ -1,8 +1,15 @@
 #pragma once
 #include <WiFi.h>
 #include <WebServer.h>
+#include <ArduinoOTA.h>
 #include "credentials.h"
 #include "esp_wifi.h"
+
+// Password required to flash over WiFi. Define OTA_PASSWORD in credentials.h to
+// use a separate one; otherwise the WiFi password is reused.
+#ifndef OTA_PASSWORD
+#define OTA_PASSWORD WIFI_PASSWORD
+#endif
 
 extern WebServer server;
 
@@ -52,6 +59,8 @@ public:
       connectWiFi();
       return;
     }
+    beginOTA();
+    ArduinoOTA.handle();
     server.handleClient();
     deviceLoop();
   }
@@ -60,9 +69,32 @@ private:
   const char* _ssid;
   const char* _password;
   uint8_t _lastOctet;
+  bool _otaStarted = false;
 
   static constexpr uint8_t NET[3] = {192, 168, 178};  // network prefix
   static constexpr uint8_t GATEWAY = 1;               // router, also used as DNS
+
+  // Flash over WiFi: the first upload must be USB, later ones can target the
+  // device's IP (arduino-cli: --port <ip> --protocol network --upload-field password=<pw>).
+  // Needs a partition scheme with two app slots (not "Huge APP (no OTA)").
+  // Started from loop() once connected, so a failed boot connect doesn't disable OTA.
+  void beginOTA() {
+    if (_otaStarted) return;
+    _otaStarted = true;
+    ArduinoOTA.setMdnsEnabled(false);  // uploads go by IP
+    ArduinoOTA.setPassword(OTA_PASSWORD);
+    ArduinoOTA.onStart([]() { Serial.println(F("OTA update starting")); });
+    ArduinoOTA.onEnd([]() { Serial.println(F("\nOTA done, rebooting")); });
+    ArduinoOTA.onError([](ota_error_t e) { Serial.printf("OTA error %u\n", e); });
+    ArduinoOTA.onProgress([](unsigned int done, unsigned int total) {
+      static uint8_t lastPct = 255;
+      uint8_t pct = done * 100 / total;
+      if (pct / 10 != lastPct / 10) Serial.printf("OTA %u%%\n", pct);
+      lastPct = pct;
+    });
+    ArduinoOTA.begin();
+    Serial.println(F("OTA ready"));
+  }
 
   void connectWiFi() {
     if (_lastOctet) {
