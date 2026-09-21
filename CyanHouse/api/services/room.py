@@ -17,6 +17,7 @@ and sends plain on/off. Not ported: the `announce` topic (tied to a separate
 Telegram-bot/announcements system) — out of scope here.
 """
 import json
+import re
 import threading
 import time
 from datetime import datetime, time as dtime
@@ -38,6 +39,14 @@ TOPIC_COMMANDS: dict[str, set[str]] = {
     "audio": {"on/off", "vol+", "vol-", "mute", "level", "effect", "input"},
     "fan": {"on", "off", "mode", "timer", "swing"},
 }
+
+# Topics whose ESP32 also accepts a raw 2-hex-digit IR command byte (e.g.
+# "09") alongside the named commands above — server.ino's topSpecial() sends
+# it straight to the remote's address. Lets the API reach remote buttons
+# (Top's color buttons: Cyan/Purple/Red/Green/Blue/Yellow, ...) that have no
+# named TOP_COMMANDS entry, without enumerating every one here and on the ESP32.
+TOPIC_RAW_CODE: set[str] = {"top"}
+_RAW_CODE_RE = re.compile(r"^[0-9A-Fa-f]{2}$")
 
 # Which physical device handles each topic. "main" (the default for any
 # topic not listed) is arduino_scripts/server/server.ino, the ESP32 that
@@ -192,7 +201,8 @@ def send(topic: str, command: str, set_auto_time: dict | None = None) -> dict:
     allowed = TOPIC_COMMANDS.get(topic)
     if allowed is None:
         raise RoomError(f"unknown topic {topic!r}")
-    if command not in allowed:
+    is_raw_code = topic in TOPIC_RAW_CODE and _RAW_CODE_RE.fullmatch(command)
+    if command not in allowed and not is_raw_code:
         raise RoomError(f"command {command!r} not recognized for topic {topic!r}")
 
     if topic == "lights":

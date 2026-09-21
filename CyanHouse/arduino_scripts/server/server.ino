@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include <IRremote.hpp>
 #include "../libraries/CyanDevice/CyanDevice.h"
 
@@ -27,6 +28,7 @@ struct IRDevice {
 };
 
 bool audioSpecial(const String& c);
+bool topSpecial(const String& c);
 
 bool lightsSpecial(const String& c) {
   if      (c.equals("on"))     lightsOn = true;
@@ -77,9 +79,20 @@ static const IRDevice IR_DEVICES[] = {
   { "lights", 0, nullptr, 0, lightsSpecial },
   { "tv",    ADDR_TV,    TV_COMMANDS,    COUNT_OF(TV_COMMANDS),    nullptr      },
   { "audio", ADDR_AUDIO, AUDIO_COMMANDS, COUNT_OF(AUDIO_COMMANDS), audioSpecial },
-  { "top",   ADDR_TOP,   TOP_COMMANDS,   COUNT_OF(TOP_COMMANDS),   nullptr      },
+  { "top",   ADDR_TOP,   TOP_COMMANDS,   COUNT_OF(TOP_COMMANDS),   topSpecial   },
   { "fan",   ADDR_FAN,   FAN_COMMANDS,   COUNT_OF(FAN_COMMANDS),   nullptr      },
 };
+
+// A bare 2-hex-digit command (e.g. "09") sends that raw NEC command byte
+// straight to the Top remote's address -- lets the API reach color buttons
+// (Cyan/Purple/Red/Green/Blue/Yellow, ...) that have no named TOP_COMMANDS
+// entry, without having to enumerate every button on the remote here.
+bool topSpecial(const String& c) {
+  if (c.length() != 2 || !isxdigit((unsigned char)c[0]) || !isxdigit((unsigned char)c[1])) return false;
+  const uint8_t code = strtoul(c.c_str(), nullptr, 16);
+  IrSender.sendNEC(ADDR_TOP, code, 1);
+  return true;
+}
 
 bool audioSpecial(const String& c) {
   if (c.startsWith("setvol")) {
