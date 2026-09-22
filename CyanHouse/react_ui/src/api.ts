@@ -131,6 +131,10 @@ export interface Versions {
   food: number;
   forecast: number;
   calendar: number;
+  /** Bumps when a staging folder's contents change -- the backend watches
+   *  them every few seconds, so the existing once-a-second version poll is
+   *  enough to keep the file list honest. */
+  prep: number;
 }
 
 // null = every panel (the default, unrestricted); otherwise the explicit
@@ -139,6 +143,10 @@ export interface Versions {
 export interface Me {
   username: string;
   visible_panels: string[] | null;
+  /** Opt-in permissions, default off — unlike visible_panels, which narrows
+   *  a default of "everything". Used to hide actions the user cannot take
+   *  rather than letting them discover it from a 403. */
+  permissions: Record<string, boolean>;
 }
 
 export type RecurFreq = "daily" | "weekly" | "monthly" | "yearly";
@@ -224,12 +232,21 @@ export interface MovieItem {
 
 export interface MovieTrack {
   id: number;
+  /** Stable across uploads and deletions, unlike `id`, which is this track's
+   *  position in the list. Delays are stored against this. */
+  key: string;
   label: string;
   language: string;
   /** Subtitles only: "text" (SRT/ASS) or "image" (PGS/VobSub). Both are
    *  burned into the picture server-side -- the distinction is only there
    *  for the label. */
   kind?: "text" | "image";
+  /** Where the track came from: muxed into the file, found next to it in the
+   *  movie folder, or uploaded here. Only "uploaded" ones can be deleted --
+   *  a file sitting in the library isn't ours to remove. */
+  source?: "embedded" | "folder" | "uploaded";
+  /** Present only on uploaded tracks; the handle the delete endpoint takes. */
+  upload_id?: string;
   default?: boolean;
 }
 
@@ -252,6 +269,84 @@ export interface MovieInfo {
   /** Whether this file's video can be sent as-is, and if not, why not. */
   remux: { ok: boolean; reason: string };
   encoder: string;
+}
+
+/** One browsable folder: the real library, a staging inbox, or the folder an
+ *  area's finished films land in. */
+export interface MovieSource {
+  key: string;
+  label: string;
+  path: string;
+  kind: "library" | "inbox" | "output";
+  ready: boolean;
+}
+
+export interface StagingArea {
+  name: string;
+  inbox: string;
+  library: string;
+  ready: boolean;
+  problem: string;
+}
+
+/** One file in a staging folder — everything there, not only the films. */
+export interface StagedFile {
+  path: string;
+  folder: string;
+  name: string;
+  size: number;
+  modified: number;
+  kind: "video" | "image" | "subtitle" | "text" | "binary";
+  readable: boolean;
+  /** Videos only: streamable through the normal player. */
+  movie_id?: string;
+}
+
+export interface PrepTrack {
+  key: string;
+  type: "video" | "audio" | "subtitle";
+  index?: number;
+  codec: string;
+  label: string;
+  keep: boolean;
+  language: string;
+  language_guessed?: boolean;
+  delay_ms: number;
+  default: boolean;
+  external?: string;
+  cover_art?: boolean;
+}
+
+/** A proposed preparation: what the film is, and what the muxed file gets. */
+export interface PrepPlan {
+  area?: string;
+  folder: string;
+  video: string;
+  /** Where a successful remux lands. Shown before committing, because an
+   *  area that omits `library` in secrets.json defaults to the real one. */
+  destination?: string;
+  movie_id?: string;
+  title: string;
+  year: string;
+  tmdb_id: number | null;
+  target: string;
+  duration: number;
+  size: number;
+  tracks: PrepTrack[];
+  junk: string[];
+  extra_videos: string[];
+  conflicts: string[];
+  error?: string;
+}
+
+export interface TmdbCandidate {
+  id: number;
+  title: string;
+  original_title: string;
+  year: string;
+  name: string;
+  overview: string;
+  poster: string | null;
 }
 
 export const api = {
@@ -322,6 +417,26 @@ export const api = {
     f("/api/movies/list" + (refresh ? "?refresh=true" : "")).then(j<MovieItem[]>),
   movieInfo: (id: string) =>
     f("/api/movies/info?" + new URLSearchParams({ id })).then(j<MovieInfo>),
+  /** Attach subtitle files to a film. Stored server-side under the film's
+   *  fingerprint, never written into the movie folder. Replies with the
+   *  refreshed MovieInfo. No content-type header on purpose: the browser has
+   *  to set it itself so the multipart boundary matches the body.
+   *
+   *  Takes a list because VobSub is two files -- a `.idx` and its `.sub` --
+   *  that are one subtitle and have to arrive together. */
+  uploadMovieSubtitle: (id: string, files: File[]) => {
+    const body = new FormData();
+    for (const file of files) body.append("files", file);
+    return f("/api/movies/subtitles?" + new URLSearchParams({ id }), {
+      method: "POST",
+      body,
+    }).then(j<MovieInfo>);
+  },
+  deleteMovieSubtitle: (id: string, sub: string) =>
+    f("/api/movies/subtitles?" + new URLSearchParams({ id, sub }), {
+      method: "DELETE",
+    }).then(j<MovieInfo>),
+
   /** Fire-and-forget teardown of a client's transcode. `keepalive` so it
    *  still goes out from a page that is being unloaded. */
   movieStop: (sid: string) =>
@@ -329,6 +444,35 @@ export const api = {
       method: "POST",
       keepalive: true,
     }).catch(() => {}),
+
+  // ── movie preparation (staging folders) ────────────────────────────
+  prepAreas: () => f("/api/prep/areas").then(j<{ areas: StagingArea[]; sources: MovieSource[]; tmdb: boolean; languages: { code: string; name: string }[] }>),
+  prepFiles: (area: string) =>
+    f("/api/prep/files?" + new URLSearchParams({ area })).then(j<{ files: StagedFile[] }>),
+  prepScan: (area: string) =>
+    f("/api/prep/scan?" + new URLSearchParams({ area })).then(j<{ films: PrepPlan[] }>),
+  prepText: (area: string, path: string) =>
+    f("/api/prep/text?" + new URLSearchParams({ area, path }))
+      .then(j<{ name: string; size: number; encoding: string; text: string }>),
+  prepInfo: (area: string, path: string) =>
+    f("/api/prep/info?" + new URLSearchParams({ area, path })).then(j<Record<string, any>>),
+  prepRawUrl: (area: string, path: string) =>
+    "/api/prep/raw?" + new URLSearchParams({ area, path }),
+  prepIdentify: (title: string, year: string) =>
+    f("/api/prep/identify?" + new URLSearchParams({ title, year }))
+      .then(j<{ confident: boolean; match: TmdbCandidate | null; candidates: TmdbCandidate[] }>),
+  /** Move a film's folder to another configured folder — a staging inbox,
+   *  a staging output, or the library itself. Needs the `publish` permission. */
+  prepMove: (id: string, to: string) =>
+    f("/api/prep/move?" + new URLSearchParams({ id, to }), { method: "POST" })
+      .then(j<{ moved: string; to: string; size: number }>),
+  prepProgress: (area: string, target: string) =>
+    f("/api/prep/progress?" + new URLSearchParams({ area, target }))
+      .then(j<{ percent: number | null; running: boolean }>),
+  prepExecute: (area: string, plan: PrepPlan) =>
+    f("/api/prep/execute?" + new URLSearchParams({ area }), {
+      method: "POST", headers: JSON_HEADERS, body: JSON.stringify(plan),
+    }).then(j<{ output: string; size: number; seconds: number; trashed: string[] }>),
 
   // Every diary mutation replies with the full month snapshot for `month`.
   columns: () => f("/api/personal/columns").then(j<Column[]>),
@@ -355,7 +499,7 @@ export const api = {
 /** Poll GET /api/version every second so the UI refetches on any DB change,
  *  including ones made from another client (e.g. the future Android app). */
 export function useVersionPoll(intervalMs = 1000): Versions {
-  const [v, setV] = useState<Versions>({ diary: 0, weather: 0, food: 0, forecast: 0, calendar: 0 });
+  const [v, setV] = useState<Versions>({ diary: 0, weather: 0, food: 0, forecast: 0, calendar: 0, prep: 0 });
   const ref = useRef(v);
   ref.current = v;
 
@@ -370,7 +514,8 @@ export function useVersionPoll(intervalMs = 1000): Versions {
             next.weather !== ref.current.weather ||
             next.food !== ref.current.food ||
             next.forecast !== ref.current.forecast ||
-            next.calendar !== ref.current.calendar)
+            next.calendar !== ref.current.calendar ||
+            next.prep !== ref.current.prep)
         ) {
           setV(next);
         }
@@ -397,8 +542,13 @@ export function useVersionPoll(intervalMs = 1000): Versions {
  *  is false until that first reply lands (or fails); callers should hold
  *  off rendering/mounting any panel content until then, since `visible` is
  *  meaningless -- neither "restricted" nor "unrestricted" -- before that. */
-export function useVisibility(): { visible: string[] | null; loaded: boolean } {
+export function useVisibility(): {
+  visible: string[] | null;
+  loaded: boolean;
+  permissions: Record<string, boolean>;
+} {
   const [visible, setVisible] = useState<string[] | null>(null);
+  const [permissions, setPermissions] = useState<Record<string, boolean>>({});
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -409,6 +559,7 @@ export function useVisibility(): { visible: string[] | null; loaded: boolean } {
         .then((me) => {
           if (!alive) return;
           setVisible(me.visible_panels);
+          setPermissions(me.permissions || {});
           setLoaded(true);
         })
         .catch(() => {
@@ -424,5 +575,5 @@ export function useVisibility(): { visible: string[] | null; loaded: boolean } {
     };
   }, []);
 
-  return { visible, loaded };
+  return { visible, loaded, permissions };
 }

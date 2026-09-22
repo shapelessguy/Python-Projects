@@ -92,6 +92,34 @@ def visible_panels(user: str) -> set[str] | None:
     return set(vis) if vis is not None else None
 
 
+def has_permission(user: str, name: str) -> bool:
+    """A named, opt-in permission from `permissions.<name>`.
+
+    Unlike `visibility`, which narrows a default of "everything", these
+    default to **off**: publishing moves files into the real library, so it
+    is granted deliberately or not at all."""
+    perms = (USERS.get(user) or {}).get("permissions") or {}
+    return bool(perms.get(name))
+
+
+def granted(user: str) -> dict[str, bool]:
+    """The opt-in permissions this user holds, for /api/me — so a client can
+    hide an action it isn't allowed to take rather than discovering it from
+    a 403."""
+    perms = (USERS.get(user) or {}).get("permissions") or {}
+    return {k: bool(v) for k, v in perms.items() if k != "visibility"}
+
+
+def require_permission(name: str):
+    """Dependency factory: 403s a user without the named permission."""
+    def _dep(user: str = Depends(require_user)) -> str:
+        if not has_permission(user, name):
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN, f"not permitted to {name}")
+        return user
+    return _dep
+
+
 def require_panel(panel: str):
     """Dependency factory for `app.include_router(..., dependencies=[...])`:
     401s an unauthenticated caller (via the nested require_user) same as

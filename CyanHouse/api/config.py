@@ -15,10 +15,16 @@ if str(PROJECT_DIR) not in sys.path:
 
 
 def _load_secrets(path: Path) -> dict:
-    """Every top-level key except "users" becomes an environment variable
-    (real environment variables still win, same as the old .env loader) --
-    see secrets.json.example. "users" is returned as-is for api/auth.py
-    (SECRET_USERS below) rather than becoming an env var itself."""
+    """Every top-level scalar becomes an environment variable (real
+    environment variables still win, same as the old .env loader) -- see
+    secrets.json.example.
+
+    Objects and lists are skipped: an env var is a string, and `str()` of a
+    dict is not something anything can read back. They stay in the returned
+    data for whoever wants them -- "users" for api/auth.py, "movie_staging"
+    for the movie prep workflow -- which is also why the skip is by *type*
+    rather than a list of known key names that has to be edited every time
+    another structured setting is added."""
     if not path.exists():
         return {}
     try:
@@ -27,7 +33,7 @@ def _load_secrets(path: Path) -> dict:
         print(f"WARNING: couldn't parse {path}: {e}")
         return {}
     for key, value in data.items():
-        if key == "users":
+        if isinstance(value, (dict, list)):
             continue
         os.environ.setdefault(key, str(value))
     return data
@@ -84,7 +90,27 @@ CALENDAR_DB = Path(os.environ.get("CALENDAR_DB", API_DATA_DIR / "calendar.db"))
 # extracted subtitle tracks — so it lives under the normal data root and can
 # be deleted at any time.
 MOVIES_DIR = Path(os.environ.get("MOVIES_DIR", "/mnt/pangea/Video/Movies"))
+# Staging areas for films that are not library-ready yet: each is an inbox of
+# "dirty" downloads plus where a finished one should land. This is where the
+# remuxing actually happens -- MOVIES_DIR itself holds files that are already
+# done and is only ever read. Shaped as
+#   {"<name>": {"inbox": "/path/in", "output": "/path/out"}}
+# "output" may be omitted to prepare straight into MOVIES_DIR; "library" is
+# accepted as the older spelling of the same key.
+MOVIE_STAGING: dict = _SECRETS.get("movie_staging", {})
 MOVIES_CACHE_DIR = Path(os.environ.get("MOVIES_CACHE_DIR", API_DATA_DIR / "movies_cache"))
+# Durable, unlike MOVIES_CACHE_DIR above: subtitles uploaded through the UI
+# and the index linking them to films live here, and deleting it loses work
+# that cannot be regenerated. Kept out of the library itself so the movie
+# folders stay exactly as they are.
+MOVIES_DATA_DIR = Path(os.environ.get("MOVIES_DATA_DIR", API_DATA_DIR / "movies"))
+# A text subtitle is ~150 KB; anything near this is not one.
+MOVIES_SUB_MAX_BYTES = int(os.environ.get("MOVIES_SUB_MAX_BYTES", str(8 * 1024 * 1024)))
+# Bitmap subtitles are whole images and genuinely large — the VobSub payloads
+# in this library run to 11 MB, and a PGS track for a long film more.
+MOVIES_SUB_IMAGE_MAX_BYTES = int(
+    os.environ.get("MOVIES_SUB_IMAGE_MAX_BYTES", str(64 * 1024 * 1024))
+)
 MOVIES_SCAN_TTL = int(os.environ.get("MOVIES_SCAN_TTL", "600"))
 # "auto" picks h264_nvenc when this ffmpeg build + GPU actually accept it
 # (probed once at startup), else libx264. Force one explicitly to skip that.
@@ -98,6 +124,11 @@ MOVIES_MAX_STREAMS = int(os.environ.get("MOVIES_MAX_STREAMS", "2"))
 MOVIES_IDLE_TIMEOUT = int(os.environ.get("MOVIES_IDLE_TIMEOUT", "1800"))
 FFMPEG = os.environ.get("FFMPEG", "ffmpeg").strip()
 FFPROBE = os.environ.get("FFPROBE", "ffprobe").strip()
+
+# ── film metadata (TMDb) — used to turn a release name into the canonical
+# "Title (Year)" the library is organised by. Optional: without it the prep
+# workflow still runs, it just can't correct a name it was given.
+TMDB_API_KEY = os.environ.get("TMDB_API_KEY", "").strip()
 
 # Loopback only. nginx runs with network_mode: host and proxies to
 # 127.0.0.1:API_PORT, so it is the only thing that needs to reach the backend

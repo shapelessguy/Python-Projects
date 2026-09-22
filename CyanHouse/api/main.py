@@ -21,7 +21,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from api import routers as _routers_pkg
-from api.auth import require_panel, require_user, visible_panels
+from api.auth import granted, require_panel, require_user, visible_panels
 from api.config import DEV_ORIGINS, FRONTEND_DIST
 from api.db import connect, diary_version_key, get_version, init_db
 
@@ -173,7 +173,9 @@ def me(user: str = Depends(require_user)):
     the hard way from a 403 the first time it fetches its own data. null =
     unrestricted (every panel); otherwise the explicit allowed list."""
     vis = visible_panels(user)
-    return {"username": user, "visible_panels": sorted(vis) if vis is not None else None}
+    return {"username": user,
+            "visible_panels": sorted(vis) if vis is not None else None,
+            "permissions": granted(user)}
 
 
 for _mod in ROUTER_MODULES:

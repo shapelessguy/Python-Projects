@@ -9,12 +9,12 @@ Contract picked up by ``api/main.py`` auto-discovery: ``router`` and
 the library is the filesystem, and the panel refetches it on demand rather
 than off the version poll.
 """
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from fastapi.responses import StreamingResponse
 from starlette.concurrency import run_in_threadpool
 
 from api.auth import require_user
-from api.services import movies
+from api.services import movie_subs, movies
 
 router = APIRouter(prefix="/api/movies", tags=["movies"])
 
@@ -45,6 +45,67 @@ async def movie_info(id: str = Query(...), _user: str = Depends(require_user)):
         raise _wrap(e)
 
 
+@router.post("/subtitles")
+async def upload_subtitle(
+    id: str = Query(...),
+    files: list[UploadFile] = File(...),
+    _user: str = Depends(require_user),
+):
+    """Attach one or more subtitle files to a film.
+
+    A list rather than a single file because VobSub is two files — `.idx` and
+    `.sub` — that only mean anything together. Text formats, `.sup` and a
+    VobSub pair can all arrive in the same request.
+
+    Everything is stored under MOVIES_DATA_DIR and linked by the film's
+    fingerprint, never written into the library — the movie folders stay
+    exactly as they are. Replies with the film's refreshed track list so the
+    caller can just re-render its dropdown."""
+    payload = [(f.filename or "", await f.read()) for f in files]
+    try:
+        return await run_in_threadpool(_store_subtitle, id, payload)
+    except movie_subs.SubtitleError as e:
+        raise HTTPException(e.status_code, str(e))
+    except movies.MovieError as e:
+        raise _wrap(e)
+
+
+def _store_subtitle(movie_id: str, payload: list[tuple[str, bytes]]) -> dict:
+    path = movies.resolve(movie_id)
+    meta = movies.info(movie_id)
+    movie_subs.add(
+        movies.fingerprint(path), meta["title"],
+        str(path.relative_to(movies.MOVIES_DIR)), payload,
+    )
+    # The probe is cached per (path, mtime, size) and the film itself hasn't
+    # changed, so the new track would not otherwise show up.
+    movies.forget(movie_id)
+    return movies.info(movie_id)
+
+
+@router.delete("/subtitles")
+async def delete_subtitle(
+    id: str = Query(...),
+    sub: str = Query(..., min_length=1, max_length=64),
+    _user: str = Depends(require_user),
+):
+    """Remove an uploaded subtitle. Only ever touches this service's own
+    store — a subtitle found in the movie folder isn't ours to delete."""
+    try:
+        return await run_in_threadpool(_drop_subtitle, id, sub)
+    except movie_subs.SubtitleError as e:
+        raise HTTPException(e.status_code, str(e))
+    except movies.MovieError as e:
+        raise _wrap(e)
+
+
+def _drop_subtitle(movie_id: str, upload_id: str) -> dict:
+    path = movies.resolve(movie_id)
+    movie_subs.remove(movies.fingerprint(path), upload_id)
+    movies.forget(movie_id)
+    return movies.info(movie_id)
+
+
 @router.get("/stream")
 async def stream(
     id: str = Query(...),
@@ -53,6 +114,12 @@ async def stream(
     a: int | None = Query(None, ge=0),
     s: int | None = Query(None, ge=0),
     h: int = Query(movies.DEFAULT_HEIGHT, ge=0, le=2160),  # 0 = "Original" (stream copy)
+    # Milliseconds, signed. Positive pushes the track later, negative earlier
+    # -- the same sense a desktop player's subtitle-delay control uses. Capped
+    # at +/-10 minutes, which is far past any real desync and keeps a typo
+    # from seeking ffmpeg somewhere absurd.
+    sd: int = Query(0, ge=-600000, le=600000),
+    ad: int = Query(0, ge=-600000, le=600000),
     _user: str = Depends(require_user),
 ):
     """The stream itself: fragmented MP4, no byte ranges, starting at ``t``.
@@ -68,7 +135,8 @@ async def stream(
         # the threadpool, while `open_stream` must stay on the event loop —
         # its async generator is what makes a dropped connection kill the
         # transcode instead of orphaning it.
-        cmd = await run_in_threadpool(movies.prepare, id, sid, t, a, s, h)
+        cmd = await run_in_threadpool(
+            movies.prepare, id, sid, t, a, s, h, sd / 1000.0, ad / 1000.0)
         chunks = await movies.open_stream(sid, cmd)
     except movies.MovieError as e:
         raise _wrap(e)
@@ -79,6 +147,8 @@ async def stream(
             "Accept-Ranges": "none",
             "Cache-Control": "no-store",
             "X-Stream-Offset": f"{t:.3f}",
+            "X-Sub-Delay-Ms": str(sd),
+            "X-Audio-Delay-Ms": str(ad),
         },
     )
 

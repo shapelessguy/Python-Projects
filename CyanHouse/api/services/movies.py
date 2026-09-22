@@ -45,6 +45,7 @@ import atexit
 import hashlib
 import json
 import os
+import re
 import shutil
 import signal
 import subprocess
@@ -64,7 +65,9 @@ from api.config import (
     MOVIES_IDLE_TIMEOUT,
     MOVIES_MAX_STREAMS,
     MOVIES_SCAN_TTL,
+    MOVIE_STAGING,
 )
+from api.services import movie_subs
 
 VIDEO_EXT = {
     ".mkv", ".mp4", ".m4v", ".avi", ".mov", ".webm", ".wmv",
@@ -118,26 +121,58 @@ class MovieError(Exception):
 
 
 # ── library ──────────────────────────────────────────────────────────────
-def _encode_id(path: Path) -> str:
-    """The id *is* the path relative to MOVIES_DIR, percent-encoded so it
-    survives a query string. Keeping it readable (rather than hashing) means
-    a stream URL stays valid across restarts and says what it points at."""
-    return quote(str(path.relative_to(MOVIES_DIR)), safe="")
+def roots() -> dict[str, Path]:
+    """Every folder a movie id may point into.
+
+    The library is the unnamed root; each staging area adds its inbox, so a
+    film can be *played* while it is still being prepared — which is the
+    point of the whole arrangement: you check the subtitle timing in the
+    player and only then commit the remux."""
+    out = {"": MOVIES_DIR}
+    for name, cfg in (MOVIE_STAGING or {}).items():
+        if not name:
+            continue
+        inbox = str((cfg or {}).get("inbox") or "").strip()
+        if inbox:
+            out[name] = Path(inbox).expanduser()
+        # The area's output folder is addressable too, so a film that has
+        # been prepared can still be played and inspected without moving it.
+        # "output" is the current key, "library" the older spelling — kept in
+        # step with movie_prep.areas(), which cannot be imported here without
+        # a cycle.
+        dest = str((cfg or {}).get("output") or (cfg or {}).get("library") or "").strip()
+        out[f"{name}:library"] = Path(dest).expanduser() if dest else MOVIES_DIR
+    return out
+
+
+def _encode_id(path: Path, root_name: str = "") -> str:
+    """The id *is* the path relative to its root, percent-encoded so it
+    survives a query string, prefixed with `@<area>/` when that root isn't
+    the library. Keeping it readable (rather than hashing) means a stream URL
+    stays valid across restarts and says what it points at."""
+    rel = str(path.relative_to(roots()[root_name]))
+    return quote(f"@{root_name}/{rel}" if root_name else rel, safe="")
 
 
 def resolve(movie_id: str) -> Path:
-    """Decode an id back to a file, refusing anything that escapes the
-    library root — the id arrives from the client, so `../` is a given."""
+    """Decode an id back to a file, refusing anything that escapes its root —
+    the id arrives from the client, so `../` is a given."""
     rel = unquote(movie_id or "").strip()
     if not rel:
         raise MovieError("missing movie id")
+    root_name = ""
+    if rel.startswith("@"):
+        root_name, _, rel = rel[1:].partition("/")
+    available = roots()
+    if root_name not in available:
+        raise MovieError(f"unknown movie area {root_name!r}", 404)
     try:
-        path = (MOVIES_DIR / rel).resolve()
-        root = MOVIES_DIR.resolve()
+        root = available[root_name].resolve()
+        path = (root / rel).resolve()
     except OSError as e:
         raise MovieError(f"bad movie id: {e}")
     if root != path and root not in path.parents:
-        raise MovieError("movie id outside the library", 403)
+        raise MovieError("movie id outside its folder", 403)
     if not path.is_file():
         raise MovieError("no such movie", 404)
     return path
@@ -209,6 +244,35 @@ def list_movies(refresh: bool = False) -> list[dict]:
         return out
 
 
+def _sub_canvas(idx_path: Path) -> tuple[int | None, int | None]:
+    """The canvas a bitmap sidecar was authored against, from its .idx."""
+    try:
+        raw = _run([FFPROBE, "-v", "error", "-print_format", "json",
+                    "-show_streams", "-select_streams", "s", str(idx_path)],
+                   _PROBE_TIMEOUT)
+        streams = json.loads(raw).get("streams", [])
+        if streams:
+            return streams[0].get("width"), streams[0].get("height")
+    except Exception:
+        pass
+    return None, None
+
+
+def _sub_label(n: int, language: str, fmt: str, flags: list[str],
+               source: str, name: str = "") -> str:
+    """What the dropdown shows. Language first because that is what anyone is
+    actually choosing by; the source last because it is the tiebreaker when
+    the same language shows up embedded, in the folder and uploaded."""
+    lang = language_name(language)
+    bits = [lang or (Path(name).stem if name else "Unknown")]
+    if flags:
+        bits.append(" ".join(sorted(flags)))
+    parts = [" ".join(bits), fmt or "?"]
+    if source != "embedded":
+        parts.append(source)
+    return f"{n + 1}. " + " · ".join(p for p in parts if p)
+
+
 # ── probe ────────────────────────────────────────────────────────────────
 def _run(cmd: list[str], timeout: int) -> str:
     try:
@@ -239,27 +303,237 @@ def _label(kind: str, n: int, codec: str, tags: dict, extra: str = "") -> str:
     return f"{n + 1}. " + " · ".join(bits)
 
 
-def _sidecar_subs(video: Path) -> list[Path]:
-    """Subtitle files sitting next to the film (``Movie.en.srt``). Ones named
-    after it win; if none are, every subtitle file in the folder is offered,
-    since a folder here holds exactly one film anyway."""
-    found = []
+def _folder_subs(video: Path) -> list[dict]:
+    """Subtitle files sitting next to the film, the way a desktop player finds
+    them — including the ones that aren't text.
+
+    Three things this has to get right:
+
+    * **VobSub pairs.** ``.idx`` + ``.sub`` are one subtitle in two files: the
+      ``.idx`` carries the index and the canvas size, the ``.sub`` the bitmaps.
+      ffmpeg is handed the ``.idx``; offering the ``.sub`` separately would
+      produce a track that looks selectable and renders nothing.
+    * **Ownership.** A subtitle belongs to the video it is named after. With
+      one video in the folder — which is every folder in this library — that
+      is simply all of them, and it has to be, or a file called
+      ``Vietnamese.srt`` would be discarded for not repeating the title.
+      With several videos, the longest matching stem wins and unmatched files
+      belong to none, which is the case this rule exists for.
+    * **Language.** A sidecar's language lives in its filename and nowhere
+      else, so it is read here or not at all.
+    """
+    folder = video.parent
     try:
-        entries = sorted(video.parent.iterdir(), key=lambda p: p.name.lower())
+        entries = sorted(folder.iterdir(), key=lambda p: p.name.lower())
     except OSError:
         return []
+
+    videos, subs = [], []
     for entry in entries:
         try:
-            if entry.is_file() and entry.suffix.lower() in SUB_EXT:
-                found.append(entry)
+            if not entry.is_file():
+                continue
         except OSError:
             continue
-    named = [p for p in found if p.stem.lower().startswith(video.stem.lower())]
-    return named or found
+        ext = entry.suffix.lower()
+        if ext in VIDEO_EXT:
+            videos.append(entry)
+        elif ext in SUB_EXT or ext == ".idx":
+            subs.append(entry)
+
+    idx_stems = {e.stem.lower() for e in subs if e.suffix.lower() == ".idx"}
+    out = []
+    for entry in subs:
+        ext = entry.suffix.lower()
+        if ext == ".sub":
+            # Only meaningful through its .idx. A .sub with no .idx beside it
+            # is unusable, not merely awkward, so it is dropped either way.
+            continue
+        if ext == ".idx" and entry.stem.lower() not in idx_stems:
+            continue
+
+        if len(videos) > 1:
+            owner = max(
+                (v for v in videos if entry.stem.lower().startswith(v.stem.lower())),
+                key=lambda v: len(v.stem), default=None,
+            )
+            if owner != video:
+                continue
+
+        lang, flags = parse_sub_name(entry.name, video.stem)
+        out.append({
+            "path": entry,
+            "kind": "image" if ext == ".idx" else "text",
+            "language": lang,
+            "flags": flags,
+            "name": entry.name,
+            "format": "VobSub" if ext == ".idx" else ext.lstrip(".").upper(),
+        })
+    return out
+
+
+# ── identity ─────────────────────────────────────────────────────────────
+# Enough of the file to be unique, cheap enough to compute on a network mount:
+# two 64 KB reads and the size, rather than hashing 19 GB at 30 MB/s.
+_FP_CHUNK = 64 * 1024
+_fp_cache: dict[str, str] = {}
+_fp_lock = threading.Lock()
+
+
+def fingerprint(path: Path) -> str:
+    """A stable id for a film, derived from the file itself rather than from
+    where it happens to live.
+
+    Uploaded subtitles are stored outside the library and linked to a film by
+    this, so it has to survive the things that happen to a media folder:
+    renaming, reorganising, moving the whole library to another disk. A path
+    would not. A full content hash would, but costs ten minutes on a 19 GB
+    file — while size plus the head and tail is unique across any real
+    library and costs two reads."""
+    st = path.stat()
+    key = f"{path}|{st.st_mtime_ns}|{st.st_size}"
+    with _fp_lock:
+        hit = _fp_cache.get(key)
+    if hit:
+        return hit
+    h = hashlib.sha1(str(st.st_size).encode())
+    with path.open("rb") as f:
+        h.update(f.read(_FP_CHUNK))
+        if st.st_size > _FP_CHUNK * 2:
+            f.seek(-_FP_CHUNK, os.SEEK_END)
+            h.update(f.read(_FP_CHUNK))
+    out = h.hexdigest()[:16]
+    with _fp_lock:
+        _fp_cache[key] = out
+    return out
+
+
+# ── subtitle naming ──────────────────────────────────────────────────────
+# Sidecar subtitles carry their language in the filename and nowhere else, so
+# this is the only chance to read it. Both the 2- and 3-letter codes turn up
+# in the wild, and so do plain English names.
+# Display name -> every spelling that turns up in a filename or a stream tag:
+# ISO 639-1, and both ISO 639-2 variants (bibliographic `ger`/`fre`, and
+# terminological `deu`/`fra`), because subtitle files in the wild use all of
+# them interchangeably. The display name itself is also a valid spelling —
+# this library has files called `Vietnamese.srt` and `Serbian.srt`.
+LANGUAGES: dict[str, list[str]] = {
+    "English": ["en", "eng"],
+    "Italian": ["it", "ita"],
+    "French": ["fr", "fre", "fra"],
+    "Spanish": ["es", "spa"],
+    "German": ["de", "ger", "deu"],
+    "Portuguese": ["pt", "por"],
+    "Dutch": ["nl", "dut", "nld"],
+    "Russian": ["ru", "rus"],
+    "Polish": ["pl", "pol"],
+    "Swedish": ["sv", "swe"],
+    "Norwegian": ["no", "nor"],
+    "Danish": ["da", "dan"],
+    "Finnish": ["fi", "fin"],
+    "Icelandic": ["is", "ice", "isl"],
+    "Greek": ["el", "gre", "ell"],
+    "Czech": ["cs", "cze", "ces"],
+    "Slovak": ["sk", "slo", "slk"],
+    "Slovenian": ["sl", "slv"],
+    "Hungarian": ["hu", "hun"],
+    "Romanian": ["ro", "rum", "ron"],
+    "Bulgarian": ["bg", "bul"],
+    "Croatian": ["hr", "hrv"],
+    "Serbian": ["sr", "srp"],
+    "Bosnian": ["bs", "bos"],
+    "Macedonian": ["mk", "mac", "mkd"],
+    "Albanian": ["sq", "alb", "sqi"],
+    "Ukrainian": ["uk", "ukr"],
+    "Turkish": ["tr", "tur"],
+    "Hebrew": ["he", "heb"],
+    "Arabic": ["ar", "ara"],
+    "Persian": ["fa", "per", "fas"],
+    "Kurdish": ["ku", "kur"],
+    "Hindi": ["hi", "hin"],
+    "Bengali": ["bn", "ben"],
+    "Tamil": ["ta", "tam"],
+    "Urdu": ["ur", "urd"],
+    "Thai": ["th", "tha"],
+    "Vietnamese": ["vi", "vie"],
+    "Indonesian": ["id", "ind"],
+    "Malay": ["ms", "may", "msa"],
+    "Filipino": ["tl", "tgl", "fil"],
+    "Chinese": ["zh", "chi", "zho"],
+    "Japanese": ["ja", "jpn"],
+    "Korean": ["ko", "kor"],
+    "Estonian": ["et", "est"],
+    "Latvian": ["lv", "lav"],
+    "Lithuanian": ["lt", "lit"],
+    "Catalan": ["ca", "cat"],
+}
+
+# Spellings that aren't codes at all — what people actually type, including
+# one misspelling this library contains (`Servian.srt`).
+_LANGUAGE_ALIASES = {
+    "brazilian": "Portuguese", "brasil": "Portuguese", "ptbr": "Portuguese",
+    "italiano": "Italian", "esp": "Spanish", "castellano": "Spanish",
+    "espanol": "Spanish", "deutsch": "German", "francais": "French",
+    "farsi": "Persian", "servian": "Serbian", "simplified": "Chinese",
+    "traditional": "Chinese", "mandarin": "Chinese", "cantonese": "Chinese",
+    "latino": "Spanish", "nederlands": "Dutch", "svenska": "Swedish",
+}
+
+_LOOKUP: dict[str, str] = {}
+for _display, _codes in LANGUAGES.items():
+    _LOOKUP[_display.lower()] = _display
+    for _c in _codes:
+        _LOOKUP[_c] = _display
+_LOOKUP.update(_LANGUAGE_ALIASES)
+
+# Tags that qualify a track rather than name it.
+_SUB_FLAGS = {"forced", "sdh", "cc", "hi", "foreign"}
+
+
+def language_name(code: str) -> str:
+    """"ita" / "it" / "Italiano" -> "Italian". Anything unrecognised comes
+    back upper-cased rather than blank, so an odd code still labels a track."""
+    code = (code or "").strip().lower()
+    return _LOOKUP.get(code, code.upper() if code else "")
+
+
+def parse_sub_name(name: str, video_stem: str) -> tuple[str, list[str]]:
+    """Pull a language and any flags out of a sidecar filename.
+
+    ``A Star Is Born (2018).fr.forced.srt`` -> ("fra", ["forced"])
+    ``Brazilian Portuguese.srt``            -> ("por", [])
+
+    Whatever is left of the name after stripping the film's own title is what
+    carries the meaning, so that part is what gets inspected — but a file
+    named after nothing but its language works too, which is what a folder
+    like Downfall's `Vietnamese.srt` relies on."""
+    stem = Path(name).stem
+    trimmed = stem[len(video_stem):] if stem.lower().startswith(video_stem.lower()) else stem
+    tokens = [t for t in re.split(r"[.\-_ \[\]()]+", trimmed.lower()) if t]
+    lang, flags = "", []
+    for token in tokens:
+        if token in _SUB_FLAGS:
+            flags.append(token)
+        elif not lang and token in _LOOKUP:
+            lang = _LOOKUP[token]
+    return lang, flags
 
 
 _probe_cache: dict[str, dict] = {}
 _probe_lock = threading.Lock()
+
+
+def forget(movie_id: str) -> None:
+    """Drop a film's cached probe. The probe key is (path, mtime, size), which
+    is exactly right for the file and exactly wrong for the subtitles attached
+    to it from outside — uploading one changes nothing about the film."""
+    try:
+        path = resolve(movie_id)
+    except MovieError:
+        return
+    st = path.stat()
+    with _probe_lock:
+        _probe_cache.pop(f"{path}|{st.st_mtime_ns}|{st.st_size}", None)
 
 
 def info(movie_id: str) -> dict:
@@ -310,6 +584,7 @@ def info(movie_id: str) -> dict:
             audio.append(
                 {
                     "id": n,
+                    "key": f"audio:{n}",
                     "language": _lang(tags),
                     "label": _label("a", n, s.get("codec_name", "?"), tags,
                                     f"{ch}ch" if ch else ""),
@@ -323,6 +598,7 @@ def info(movie_id: str) -> dict:
             subs.append(
                 {
                     "id": n,
+                    "key": f"embedded:{n}",
                     "stream": n,          # index among subtitle streams
                     "external": None,
                     "kind": "image" if image else "text",
@@ -333,25 +609,66 @@ def info(movie_id: str) -> dict:
                     # two or the subtitles fall off the bottom of the picture.
                     "width": s.get("width"),
                     "height": s.get("height"),
+                    "source": "embedded",
                     "language": _lang(tags),
-                    "label": _label("s", n, codec, tags, "image" if image else ""),
+                    "label": _sub_label(
+                        n, _lang(tags), CODEC_NAMES.get(codec, codec.upper()),
+                        [f for f in ("forced", "hearing_impaired")
+                         if (s.get("disposition") or {}).get(f)],
+                        "embedded", (tags.get("title") or "").strip(),
+                    ),
                 }
             )
 
-    for extra in _sidecar_subs(path):
+    for found in _folder_subs(path):
         n = len(subs)
-        subs.append(
-            {
-                "id": n,
-                "stream": None,
-                "external": str(extra),
-                "kind": "text",
-                "width": None,
-                "height": None,
-                "language": "",
-                "label": f"{n + 1}. {extra.name} · file",
-            }
-        )
+        width = height = None
+        if found["kind"] == "image":
+            # A VobSub's canvas is almost never the video's size, and the
+            # overlay has to reconcile the two -- see build_command. The .idx
+            # states it, so ask.
+            width, height = _sub_canvas(found["path"])
+        subs.append({
+            "id": n,
+            "stream": None,
+            "external": str(found["path"]),
+            "key": f"folder:{found['name']}",
+            "source": "folder",
+            "kind": found["kind"],
+            "width": width,
+            "height": height,
+            "language": found["language"],
+            "label": _sub_label(n, found["language"], found["format"],
+                                found["flags"], "folder", found["name"]),
+        })
+
+    for record in movie_subs.for_movie(fingerprint(path)):
+        n = len(subs)
+        stored = movie_subs.path_for(fingerprint(path), record)
+        if not stored.exists():
+            continue  # index and disk disagree; the file is what matters
+        lang, flags = parse_sub_name(record["name"], path.stem)
+        kind = record.get("kind", "text")
+        # Uploaded bitmaps need the same canvas reconciliation as ones found
+        # in the folder — a .sup or .idx states the size it was authored for,
+        # and it is rarely the video's.
+        width, height = _sub_canvas(stored) if kind == "image" else (None, None)
+        subs.append({
+            "id": n,
+            "stream": None,
+            "external": str(stored),
+            "key": f"uploaded:{record['id']}",
+            "source": "uploaded",
+            "upload_id": record["id"],
+            "kind": kind,
+            "width": width,
+            "height": height,
+            "language": lang,
+            "label": _sub_label(n, lang,
+                                "VobSub" if record.get("aux") else
+                                Path(record["name"]).suffix.lstrip(".").upper(),
+                                flags, "uploaded", record["name"]),
+        })
 
     if video is None:
         raise MovieError("no video stream in that file", 422)
@@ -530,7 +847,8 @@ TONEMAP = [
 
 
 def build_command(path: Path, meta: dict, start: float, audio: int | None,
-                  sub: int | None, height: int) -> list[str]:
+                  sub: int | None, height: int, sub_delay: float = 0.0,
+                  audio_delay: float = 0.0) -> list[str]:
     vid = meta["video"]
     subs = meta["subtitles"]
     chosen = subs[sub] if sub is not None and 0 <= sub < len(subs) else None
@@ -556,8 +874,18 @@ def build_command(path: Path, meta: dict, start: float, audio: int | None,
         cmd += ["-ss", f"{start:.3f}"]
     cmd += ["-i", str(path)]
 
+    # A bitmap sidecar (.idx/.sub) is a second file, so it becomes a second
+    # input — and it needs the same -ss, or its timestamps would start at zero
+    # while the video starts at `start` and every subtitle would appear early
+    # by exactly the seek distance.
+    if chosen and chosen["kind"] == "image" and chosen["external"]:
+        if start > 0:
+            cmd += ["-ss", f"{start:.3f}"]
+        cmd += ["-i", chosen["external"]]
+
     if not remux:
-        cmd += ["-filter_complex", _video_graph(path, meta, start, chosen, height),
+        cmd += ["-filter_complex",
+                _video_graph(path, meta, start, chosen, height, sub_delay),
                 "-map", "[v]"]
     else:
         cmd += ["-map", "0:v:0"]
@@ -567,7 +895,17 @@ def build_command(path: Path, meta: dict, start: float, audio: int | None,
         # Downmix to stereo: browsers can decode 5.1 AAC but most people are
         # listening on two channels, where a straight passthrough buries the
         # dialogue in the centre channel.
-        cmd += ["-map", f"0:a:{track}", "-c:a", "aac", "-ac", "2", "-b:a", abr]
+        cmd += ["-map", f"0:a:{track}"]
+        if audio_delay:
+            # Positive means the audio should arrive later, so it is padded
+            # with that much silence; negative means it is running late
+            # already, so the head is trimmed off. asetpts rebases afterwards
+            # because atrim leaves the original timestamps behind, which the
+            # muxer would otherwise honour and undo the trim.
+            ms = int(round(audio_delay * 1000))
+            cmd += ["-af", f"adelay=all=1:delays={ms}ms" if ms > 0
+                    else f"atrim=start={abs(audio_delay):.3f},asetpts=PTS-STARTPTS"]
+        cmd += ["-c:a", "aac", "-ac", "2", "-b:a", abr]
     else:
         cmd += ["-an"]
 
@@ -601,8 +939,12 @@ def build_command(path: Path, meta: dict, start: float, audio: int | None,
 
 
 def _video_graph(path: Path, meta: dict, start: float, chosen: dict | None,
-                 height: int) -> str:
-    """The -filter_complex for a transcode, ending in [v]."""
+                 height: int, sub_delay: float = 0.0) -> str:
+    """The -filter_complex for a transcode, ending in [v].
+
+    ``sub_delay`` is in seconds, positive meaning the subtitles should appear
+    *later*. It is applied differently for the two subtitle kinds, because
+    they reach the graph by different routes — see below."""
     vid = meta["video"]
     vw, vh = vid.get("width") or 0, vid.get("height") or 0
     image_sub = bool(chosen and chosen["kind"] == "image")
@@ -616,25 +958,50 @@ def _video_graph(path: Path, meta: dict, start: float, chosen: dict | None,
 
     if image_sub:
         # Bitmap subtitles carry absolute coordinates on the canvas they were
-        # authored for, and overlay honours them literally. That canvas is
-        # frequently taller than the video — a 2.40:1 film encoded at
-        # 1920x800 commonly ships 1920x1080 subtitles positioned down in the
-        # letterbox bar, which then land below row 800 and get cropped away.
-        # So reconcile the two coordinate spaces before overlaying, and only
-        # scale to the requested size afterwards.
+        # authored for, and overlay honours them literally — so the two
+        # coordinate spaces have to be made one before overlaying.
+        #
+        # The canvas differs from the video in two quite different ways, and
+        # treating them alike gets one of them badly wrong:
+        #
+        #   1920x1080 subs over 1920x800 video — same width. The film was
+        #   encoded with the letterbox cropped off; the subtitles still sit
+        #   where the bar used to be. Give the picture the bar back.
+        #
+        #   1920x1080 subs over 720x384 video — different width. Same film at
+        #   a different size, nothing cropped. Padding to 1920x1080 here would
+        #   strand a small picture in the middle of a huge black frame.
+        #
+        # Matching widths first tells them apart: scale the subtitle canvas so
+        # its width equals the video's, and whatever height that lands on is
+        # in the video's own units. If it is taller, the difference really is
+        # letterbox and the picture gets padded to meet it.
         pre += tonemap
         sw = chosen.get("width") or 0
         sh = chosen.get("height") or 0
-        sub_in = f"[0:s:{chosen['stream']}]"
+        # Input 1 when the bitmaps came from a sidecar file, input 0 when
+        # they were muxed into the film.
+        sub_in = "[1:s:0]" if chosen["external"] else f"[0:s:{chosen['stream']}]"
         extra = ""
-        if sw > vw or sh > vh:
-            # Give the picture back the frame the subtitles expect. The bars
-            # this adds are the ones the player would draw anyway.
-            pre.append(f"pad={max(sw, vw)}:{max(sh, vh)}:(ow-iw)/2:(oh-ih)/2")
-        elif sw and sh and (sw < vw or sh < vh):
-            # Authored smaller (DVD subs over an upscaled encode): stretch the
-            # subtitle canvas onto the picture instead.
-            extra = f"{sub_in}scale={vw}:{vh}[sub];"
+        steps: list[str] = []
+        if sw and sh and vw and vh and (sw, sh) != (vw, vh):
+            scaled_h = max(1, round(sh * vw / sw))
+            canvas_h = max(vh, scaled_h)
+            # rgba before scaling: the decoded bitmaps are paletted, and
+            # resampling without an alpha channel would fill the transparent
+            # area with solid colour and black out the picture behind it.
+            steps = [f"format=rgba", f"scale={vw}:{scaled_h}"]
+            if scaled_h < canvas_h:
+                steps.append(f"pad={vw}:{canvas_h}:(ow-iw)/2:(oh-ih)/2:color=0x00000000")
+            if canvas_h > vh:
+                pre.append(f"pad={vw}:{canvas_h}:(ow-iw)/2:(oh-ih)/2")
+        # Bitmaps arrive as their own stream, so the delay is simply a shift
+        # of that stream's timestamps — push them forward and they land on
+        # later frames. Applied first, before any resampling.
+        if sub_delay:
+            steps.insert(0, f"setpts=PTS+{sub_delay:.3f}/TB")
+        if steps:
+            extra = f"{sub_in}{','.join(steps)}[sub];"
             sub_in = "[sub]"
         base = ",".join(pre) if pre else "null"
         return (f"{extra}[0:v:0]{base}[base];"
@@ -648,12 +1015,16 @@ def _video_graph(path: Path, meta: dict, start: float, chosen: dict | None,
     pre += tonemap
     if chosen:  # text subtitles, burned in at the output size
         ass = _escape_for_filter(_text_sub_file(path, chosen))
-        if start > 0:
-            # libass renders against the *file's* clock; put the frames back
-            # on it for the duration of this filter, then rebase to zero.
-            pre.append(f"setpts=PTS+{start:.3f}/TB")
+        # libass renders against the *file's* clock, so the frames are put
+        # back on it for the duration of this filter and rebased afterwards.
+        # The delay rides on that same shift: asking libass for the cue at
+        # (t - delay) instead of t is what makes a subtitle appear `delay`
+        # seconds later. Positive shifts subtitles later, negative earlier.
+        shift = start - sub_delay
+        if shift:
+            pre.append(f"setpts=PTS+{shift:.3f}/TB")
         pre.append(f"subtitles=filename='{ass}'")
-        if start > 0:
+        if shift:
             pre.append("setpts=PTS-STARTPTS")
     pre.append("format=yuv420p")
     return f"[0:v:0]{','.join(pre)}[v]"
@@ -726,7 +1097,8 @@ def _reap_idle() -> None:
 
 
 def prepare(movie_id: str, sid: str, start: float = 0.0, audio: int | None = None,
-            sub: int | None = None, height: int = DEFAULT_HEIGHT) -> list[str]:
+            sub: int | None = None, height: int = DEFAULT_HEIGHT,
+            sub_delay: float = 0.0, audio_delay: float = 0.0) -> list[str]:
     """Everything that blocks — resolving the path, ffprobe, and extracting a
     subtitle track if this is the first time anyone asked for it. Belongs in a
     threadpool; `open_stream` below must not block the event loop."""
@@ -734,7 +1106,8 @@ def prepare(movie_id: str, sid: str, start: float = 0.0, audio: int | None = Non
     meta = info(movie_id)
     duration = meta["duration"]
     start = max(0.0, min(start, max(0.0, duration - 1))) if duration else max(0.0, start)
-    return build_command(path, meta, start, audio, sub, height)
+    return build_command(path, meta, start, audio, sub, height,
+                         sub_delay, audio_delay)
 
 
 async def open_stream(sid: str, cmd: list[str]):

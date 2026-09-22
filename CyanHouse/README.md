@@ -139,6 +139,24 @@ users start from the default `schema.json` / `units.json` with unrated dishes.
   fragmented MP4 (H.264 + stereo AAC, `h264_nvenc` when the GPU takes it),
   starting at `t` seconds with subtitle track `s` **burned into the picture**
 - `POST /api/movies/stop?sid=` → kill that client's transcode
+- `POST /api/movies/subtitles?id=` (multipart `files`) → attach subtitles to a
+  film: `.srt`/`.ass`/`.ssa`/`.vtt` text, `.sup` (Blu-ray PGS), or a VobSub
+  `.idx` **together with** its `.sub` — either half alone is refused, since
+  neither is a usable subtitle on its own. `DELETE /api/movies/subtitles?id=&sub=`
+  removes one. Both reply with the refreshed `/info`
+
+  Uploads are stored under `MOVIES_DATA_DIR` (durable — *not* the throwaway
+  `MOVIES_CACHE_DIR`) and linked to the film by a **fingerprint**: sha1 of the
+  file's size plus its first and last 64 KB. That's ~25 ms against ~27 s for a
+  full hash of a 3.7 GB film, and unlike a path it survives renaming or
+  reorganising the library. The movie folders themselves are never written to.
+
+  `/info` merges three sources into one track list, each tagged `source`:
+  `embedded` (muxed in), `folder` (sitting next to the film, found the way a
+  desktop player finds them — including `.idx`/`.sub` VobSub pairs, whose
+  `.sub` half is deliberately not offered separately), and `uploaded`. Only
+  `uploaded` tracks can be deleted. Language and flags (`forced`, `sdh`) are
+  parsed out of sidecar filenames, which is the only place they exist.
 
   The stream has no byte ranges and no index, so the browser cannot seek it:
   seeking, changing audio/subtitle track and changing quality are all "start a
