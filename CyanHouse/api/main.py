@@ -145,7 +145,7 @@ async def version_headers(request, call_next):
         user = getattr(request.state, "username", None)  # set by require_user
         for name, value in _collect_versions(user).items():
             response.headers[f"X-{name.capitalize()}-Version"] = str(value)
-    elif path.startswith("/assets/"):
+    elif path.startswith("/assets/") or path.startswith("/ui/assets/"):
         # Vite content-hashes these filenames, so a new build is always a new
         # URL -- safe to let the browser cache them forever.
         response.headers.setdefault("Cache-Control", "public, max-age=31536000, immutable")
@@ -182,4 +182,17 @@ for _mod in ROUTER_MODULES:
     app.include_router(_mod.router, dependencies=[Depends(dep)])
 
 if FRONTEND_DIST.is_dir():
+    # The SPA is built with vite `base: "/ui/"`, so index.html asks for
+    # /ui/assets/... . In production nginx strips that prefix before proxying
+    # (`location /ui/ { proxy_pass .../; }`), which is why the root mount
+    # below is what serves those requests there.
+    #
+    # Hitting this port directly — no nginx, e.g. http://localhost:8000 while
+    # developing — nothing strips the prefix, so the bundle 404s and the page
+    # renders blank with a correct <title>. Mounting the same directory at
+    # /ui as well makes both work: the root mount keeps serving nginx's
+    # stripped paths, and this one answers the /ui/... URLs the HTML actually
+    # contains. Registered first because Starlette matches mounts in order
+    # and the "/" mount below would otherwise swallow everything.
+    app.mount("/ui", StaticFiles(directory=str(FRONTEND_DIST), html=True), name="spa-ui")
     app.mount("/", StaticFiles(directory=str(FRONTEND_DIST), html=True), name="spa")

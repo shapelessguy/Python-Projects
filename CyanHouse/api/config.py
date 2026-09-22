@@ -77,8 +77,35 @@ OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 # ── calendar service (self-contained: own DB) — no external account, local only
 CALENDAR_DB = Path(os.environ.get("CALENDAR_DB", API_DATA_DIR / "calendar.db"))
 
-# uvicorn bind address — always all interfaces, not a per-deployment knob.
-HOST = "0.0.0.0"
+# ── movies service (on-demand ffmpeg transcode of a local film library) ───
+# No DB and no index: the library is the filesystem. MOVIES_DIR is scanned on
+# demand (cached for MOVIES_SCAN_TTL seconds), everything else is derived from
+# ffprobe per file. MOVIES_CACHE_DIR only ever holds throwaway artefacts —
+# extracted subtitle tracks — so it lives under the normal data root and can
+# be deleted at any time.
+MOVIES_DIR = Path(os.environ.get("MOVIES_DIR", "/mnt/pangea/Video/Movies"))
+MOVIES_CACHE_DIR = Path(os.environ.get("MOVIES_CACHE_DIR", API_DATA_DIR / "movies_cache"))
+MOVIES_SCAN_TTL = int(os.environ.get("MOVIES_SCAN_TTL", "600"))
+# "auto" picks h264_nvenc when this ffmpeg build + GPU actually accept it
+# (probed once at startup), else libx264. Force one explicitly to skip that.
+MOVIES_ENCODER = os.environ.get("MOVIES_ENCODER", "auto").strip()
+# Each stream is one ffmpeg process pinning several cores; two at once is
+# already most of this box.
+MOVIES_MAX_STREAMS = int(os.environ.get("MOVIES_MAX_STREAMS", "2"))
+# How long a stream may go unread before it's killed. A paused film reads
+# nothing, so this is also the longest a pause survives — after that,
+# pressing play just restarts the transcode where it left off.
+MOVIES_IDLE_TIMEOUT = int(os.environ.get("MOVIES_IDLE_TIMEOUT", "1800"))
+FFMPEG = os.environ.get("FFMPEG", "ffmpeg").strip()
+FFPROBE = os.environ.get("FFPROBE", "ffprobe").strip()
+
+# Loopback only. nginx runs with network_mode: host and proxies to
+# 127.0.0.1:API_PORT, so it is the only thing that needs to reach the backend
+# and everything from outside arrives over TLS on 443. Binding all interfaces
+# instead would publish the entire API — including the movie streams — in
+# cleartext to anyone on the LAN, for no benefit. Overridable for the case
+# where something genuinely has to reach it from another machine.
+HOST = os.environ.get("API_HOST", "127.0.0.1").strip()
 API_PORT = int(os.environ.get("API_PORT", "8000"))
 WEB_PORT = int(os.environ.get("WEB_PORT", "5173"))
 PUBLIC_HOST = os.environ.get("PUBLIC_HOST", "").strip()

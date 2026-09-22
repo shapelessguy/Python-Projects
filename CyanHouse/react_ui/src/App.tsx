@@ -4,12 +4,13 @@ import { EnvironmentPanel } from "./panels/EnvironmentPanel";
 import { PersonalPanel } from "./panels/PersonalPanel";
 import { FoodPanel } from "./panels/FoodPanel";
 import { CalendarPanel } from "./panels/CalendarPanel";
+import { MoviesPanel } from "./panels/MoviesPanel";
 import { AlarmOverlay } from "./AlarmOverlay";
 import { useVisibility } from "./api";
 import { currentUsername, logout } from "./auth";
 import { readCookie, writeCookie } from "./cookies";
 
-type PanelId = "controls" | "environment" | "personal" | "food" | "calendar";
+type PanelId = "controls" | "environment" | "personal" | "food" | "calendar" | "movies";
 
 const PANELS: { id: PanelId; label: string; render: () => JSX.Element }[] = [
   { id: "controls", label: "🎛 Controls", render: () => <ControlsPanel /> },
@@ -17,6 +18,7 @@ const PANELS: { id: PanelId; label: string; render: () => JSX.Element }[] = [
   { id: "personal", label: "🗂 Personal", render: () => <PersonalPanel /> },
   { id: "food", label: "🍽 Food", render: () => <FoodPanel /> },
   { id: "calendar", label: "📅 Calendar", render: () => <CalendarPanel /> },
+  { id: "movies", label: "🎬 Movies", render: () => <MoviesPanel /> },
 ];
 
 const LAST_SECTION_COOKIE = "last_section";
@@ -50,8 +52,13 @@ export default function App() {
   // in their list.
   const active = visible.find((p) => p.id === panel) ?? visible[0];
 
+  // Both of these own their own scrolling: the environment charts and the
+  // movie library are each taller than the viewport, and only that column --
+  // not the page -- should get a scrollbar.
+  const fixedHeight = active?.id === "environment" || active?.id === "movies";
+
   return (
-    <div className={"app" + (active?.id === "environment" ? " app--fixed" : "")}>
+    <div className={"app" + (fixedHeight ? " app--fixed" : "")}>
       <header className="topbar">
         <nav className="switcher">
           {loaded && visible.map((p) => (

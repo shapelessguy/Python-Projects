@@ -215,6 +215,45 @@ export interface EventInput {
   alarm_snooze_until?: number | null;
 }
 
+export interface MovieItem {
+  id: string;
+  title: string;
+  file: string;
+  size: number;
+}
+
+export interface MovieTrack {
+  id: number;
+  label: string;
+  language: string;
+  /** Subtitles only: "text" (SRT/ASS) or "image" (PGS/VobSub). Both are
+   *  burned into the picture server-side -- the distinction is only there
+   *  for the label. */
+  kind?: "text" | "image";
+  default?: boolean;
+}
+
+export interface MovieInfo {
+  id: string;
+  title: string;
+  file: string;
+  /** Seconds, from ffprobe. The <video> element can't know this -- the
+   *  stream it gets is a fragmented MP4 with no index -- so every position
+   *  the player shows is measured against this, not video.duration. */
+  duration: number;
+  size: number;
+  video: { codec: string; width: number; height: number; hdr: boolean; pix_fmt: string };
+  audio: MovieTrack[];
+  subtitles: MovieTrack[];
+  /** Selectable output heights. A leading 0 is the "Original" rung: the
+   *  video stream is copied to the browser untouched, no re-encoding. Only
+   *  present when `remux.ok`. */
+  heights: number[];
+  /** Whether this file's video can be sent as-is, and if not, why not. */
+  remux: { ok: boolean; reason: string };
+  encoder: string;
+}
+
 export const api = {
   version: () => f("/api/version").then(j<Versions>),
   me: () => f("/api/me").then(j<Me>),
@@ -275,6 +314,21 @@ export const api = {
   controlVoices: () => f("/api/controls/voices").then(j<string[]>),
   controlPlayVoice: (name: string) =>
     f(`/api/controls/voices/${encodeURIComponent(name)}`, { method: "POST" }).then(j<unknown>),
+
+  // ── movies — see api/services/movies.py. `id` is already percent-encoded
+  // server-side; URLSearchParams encodes it a second time, which Starlette
+  // undoes on the way in, so the backend still receives exactly that id.
+  movies: (refresh = false) =>
+    f("/api/movies/list" + (refresh ? "?refresh=true" : "")).then(j<MovieItem[]>),
+  movieInfo: (id: string) =>
+    f("/api/movies/info?" + new URLSearchParams({ id })).then(j<MovieInfo>),
+  /** Fire-and-forget teardown of a client's transcode. `keepalive` so it
+   *  still goes out from a page that is being unloaded. */
+  movieStop: (sid: string) =>
+    fetch("/api/movies/stop?" + new URLSearchParams({ sid }), {
+      method: "POST",
+      keepalive: true,
+    }).catch(() => {}),
 
   // Every diary mutation replies with the full month snapshot for `month`.
   columns: () => f("/api/personal/columns").then(j<Column[]>),

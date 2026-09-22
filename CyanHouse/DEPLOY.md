@@ -15,6 +15,24 @@ sudo apt install -y python3 python3-venv python3-pip
 sudo apt install -y tmux
 ```
 
+## 2b. Install ffmpeg (Movies panel)
+
+The Movies panel transcodes on demand — without these two binaries on `PATH`
+the panel's tab still appears but every stream 503s.
+
+```bash
+sudo apt install -y ffmpeg
+ffmpeg -hide_banner -encoders | grep nvenc    # GPU encoder available?
+```
+
+`h264_nvenc` is used automatically when the GPU actually accepts it (probed
+once at startup with a one-frame clip — an ffmpeg build listing the encoder
+proves nothing if the driver or the card is too old), otherwise it falls back
+to `libx264` on the CPU. Force one with `MOVIES_ENCODER` in `secrets.json`.
+Note HEVC *decoding* is separate: a pre-Maxwell-gen2 card (e.g. the Quadro
+M2000M) decodes x265 rips on the CPU no matter what, which is the real cost
+on a 1080p HEVC file.
+
 ## 3. Install a .venv
 
 Shared across the `sharedCode` monorepo, one level above `CyanHouse` (matches
@@ -80,7 +98,14 @@ nano secrets.json
 Fill in for *this* machine specifically: `PUBLIC_HOST`,
 `CONTROLS_FN_HOST`/`CONTROLS_FN_PORT`,
 `DATA_DIR` (blank unless you want data elsewhere), `SERPER_API_KEY`,
-`OPENROUTER_KEY`/`LLM_FOOD_MODEL`.
+`OPENROUTER_KEY`/`LLM_FOOD_MODEL`, `MOVIES_DIR` (the film library — defaults
+to `/mnt/pangea/Video/Movies`, see step 11).
+
+Optional movie knobs, all with working defaults: `MOVIES_ENCODER`
+(`auto`), `MOVIES_MAX_STREAMS` (`2` concurrent transcodes),
+`MOVIES_IDLE_TIMEOUT` (`1800` s before an unread stream is killed — this is
+also how long a paused film survives), `MOVIES_SCAN_TTL` (`600` s between
+library rescans).
 
 And real user credentials under `"users"` — without at least one entry, the
 app falls back to `dev`/`dev` (logs a warning), not something you want exposed
@@ -100,7 +125,7 @@ python3 -c "import secrets; print(secrets.token_hex(16))"   # generate a token
 ```
 
 Each user's `permissions` dict optionally takes a `visibility` list (panel
-ids: `controls`, `environment`, `personal`, `food`, `calendar`) restricting
+ids: `controls`, `environment`, `personal`, `food`, `calendar`, `movies`) restricting
 which panels/APIs that user can reach — omit it entirely for "sees everything"
 (the default).
 
@@ -142,7 +167,9 @@ without killing it).
 Same reverse-proxy setup as the Windows `nginx/` folder (`/ui`, `/api`,
 `/cyan_pc`), containerized instead of installing an nginx binary on the box.
 Runs with `network_mode: host`, so it reaches the FastAPI backend
-(`python -m api`, port 8000) on this same machine at `127.0.0.1:8000`
+(`python -m api`, port `API_PORT` from secrets.json) on this same machine at
+`127.0.0.1:<API_PORT>` — the backend binds loopback only, so nginx is the only
+way in and every client reaches it over TLS on 443
 unchanged, and binds 80/443 directly on the host.
 
 Prerequisites: Docker + Docker Compose installed, DNS (your `PUBLIC_HOST`

@@ -9,8 +9,8 @@ serves both the React web UI and (later) an Android app.
     main.py           app entry: auto-discovers routers/, serves react_ui/dist at /
     db.py             SQLite store (api/data/diary.db, auto-seeded from api/seed/)
     models.py         Pydantic request/response models
-    services/         weather.py (CSV cache + refresh), forecast.py, diary.py (CRUD), food.py
-    routers/          controls.py, environment.py, forecast.py, personal.py, food.py
+    services/         weather.py (CSV cache + refresh), forecast.py, diary.py (CRUD), food.py, movies.py
+    routers/          controls.py, environment.py, forecast.py, personal.py, food.py, movies.py
     seed/             schema.json, units.json, entries.csv, food.json + food_images/
   react_ui/         Vite + React + TypeScript frontend (Plotly charts)
   android_ui/       Jetpack Compose Android client for the same API (see its README)
@@ -48,7 +48,7 @@ python -m api                        # binds API_PORT from secrets.json (default
 
 `python -m api` is the way to run it — it reads `API_PORT` / `HOST` from
 `secrets.json`. The bare `uvicorn api.main:app` form works too but ignores
-`secrets.json` and defaults to port 8000, so pass `--port 10001` (matching
+`secrets.json` and defaults to port 18000, so pass `--port 10001` (matching
 `secrets.json`) or the web UI's `/api` proxy won't find it.
 
 Frontend:
@@ -129,6 +129,25 @@ users start from the default `schema.json` / `units.json` with unrated dishes.
 - `GET  /api/food/image-search?q=&num=` → server-side proxy to serper.dev
   (needs `SERPER_API_KEY` in `secrets.json`; the key never reaches the clients)
 - `GET  /api/food/images/{file}` → a stored dish image
+- `GET  /api/movies/list[?refresh=true]` → the films under `MOVIES_DIR`
+  (`/mnt/pangea/Video/Movies`), one entry per folder — the biggest video file
+  in it wins. Cached for `MOVIES_SCAN_TTL`
+- `GET  /api/movies/info?id=` → ffprobe: duration, video codec/size/HDR, and
+  the audio + subtitle tracks to choose between (sidecar `.srt`/`.ass` files
+  next to the film are listed alongside the embedded ones)
+- `GET  /api/movies/stream?id=&sid=&t=&a=&s=&h=` → a live transcode as a
+  fragmented MP4 (H.264 + stereo AAC, `h264_nvenc` when the GPU takes it),
+  starting at `t` seconds with subtitle track `s` **burned into the picture**
+- `POST /api/movies/stop?sid=` → kill that client's transcode
+
+  The stream has no byte ranges and no index, so the browser cannot seek it:
+  seeking, changing audio/subtitle track and changing quality are all "start a
+  new one at `t`", and the panel adds `t` back on to `video.currentTime`
+  itself. `sid` identifies a client so its previous transcode is killed rather
+  than left running — at most `MOVIES_MAX_STREAMS` (2) at a time, plus a
+  reaper for streams nobody is reading. See `api/services/movies.py` for why
+  burn-in, and for the `setpts` sandwich that keeps text subtitles honest
+  after a seek.
 
 Every mutating call returns the fresh collection (columns list / month rows) so
 the UI updates from the response without waiting for the next poll. Interactive

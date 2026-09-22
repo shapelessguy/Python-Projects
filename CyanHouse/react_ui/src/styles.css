@@ -890,3 +890,112 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
   padding: 1px 4px; font-size: 0.82em;
 }
 
+
+/* ── movies ──────────────────────────────────────────────── */
+/* Two columns that both fill the viewport height (App adds `.app--fixed`
+ * for this panel): the library scrolls on its own, the player stays put
+ * beside it so picking a different film never moves the picture. */
+.panel.movies { height: 100%; align-items: stretch; outline: none; }
+.mv-library {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+}
+.mv-search { display: flex; gap: 6px; flex: 0 0 auto; }
+.mv-search button { flex: 0 0 auto; }
+.mv-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+}
+.mv-item {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  padding: 7px 12px;
+}
+.mv-item:hover { background: var(--panel-2); border-color: var(--line); }
+.mv-item.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.mv-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mv-size { flex: 0 0 auto; font-size: 0.75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.mv-item.active .mv-size { color: #ffd9d9; }
+
+.mv-player {
+  flex: 0 0 640px;
+  max-width: 50vw;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  overflow-y: auto;
+}
+/* Fixed 16:9 box whether or not anything is playing, so the controls below
+ * don't jump every time a film is picked or the picture's aspect changes. */
+.mv-stage {
+  position: relative;
+  flex: 0 0 auto;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.mv-video { width: 100%; height: 100%; object-fit: contain; background: #000; display: block; }
+.mv-placeholder {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+}
+.mv-spinner {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  color: var(--text);
+  pointer-events: none;
+}
+.mv-meta h2 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mv-meta p { margin: 2px 0 0; }
+.mv-scrub { display: flex; align-items: center; gap: 10px; }
+.mv-time { flex: 0 0 auto; font-size: 0.8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.mv-transport { display: flex; align-items: center; gap: 6px; }
+.mv-volume { display: flex; align-items: center; gap: 6px; margin-left: auto; width: 130px; }
+.mv-tracks { display: flex; gap: 8px; }
+.mv-tracks label { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.mv-tracks select { width: 100%; }
+.mv-hint { margin: 0; }
+
+@media (max-width: 1100px) {
+  /* Below this the two columns starve each other; stack them and let the
+   * page scroll normally instead (App's fixed-height shell still applies,
+   * so the whole panel scrolls as one). */
+  .panel.movies { flex-direction: column; overflow-y: auto; }
+  .mv-player { flex: 0 0 auto; max-width: none; width: 100%; overflow: visible; }
+  .mv-library { min-height: 300px; }
+}
+.mv-note { margin: 0; color: #ffcf8b; }
