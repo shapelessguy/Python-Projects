@@ -141,8 +141,8 @@ def transcribe_movie(thread_manager, video_path: str, language: str | None = Non
     # a tqdm subclass that also mirrors that percentage into `progress`.
     tqdm_module.tqdm = _ProgressTQDM
     try:
-        return thread_manager.signal.whisper_model.transcribe(
-            video_path, language=language, fp16=True, verbose=False,
+        options = dict(
+            language=language, fp16=True, verbose=False,
             beam_size=5,  # beam search instead of greedy decoding on the first (temperature=0) pass
             best_of=5,    # sample 5 candidates and keep the best on temperature-fallback passes
             # Long silence/music stretches otherwise make Whisper loop, repeating
@@ -152,6 +152,14 @@ def transcribe_movie(thread_manager, video_path: str, language: str | None = Non
             condition_on_previous_text=False,
             hallucination_silence_threshold=2.0,
         )
+        try:
+            return thread_manager.signal.whisper_model.transcribe(video_path, **options)
+        except RuntimeError as e:
+            # openai-whisper bug: beam search + word timestamps can crash at random; greedy doesn't
+            if "key.size(1) == value.size(1)" not in str(e):
+                raise
+            return thread_manager.signal.whisper_model.transcribe(
+                video_path, **options | {"beam_size": None, "best_of": None})
     finally:
         tqdm_module.tqdm = original_tqdm_cls
 

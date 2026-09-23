@@ -130,6 +130,7 @@ def shutdown_monitors(signal, verbose=False):
     top_heart(signal, verbose)
     time.sleep(1)
     top_leds(signal, verbose)
+    turn_off_mousepad(signal, verbose)
 
 
 def turn_on_monitors(signal, verbose=False):
@@ -138,11 +139,12 @@ def turn_on_monitors(signal, verbose=False):
     for s in screens:
         monitor_names.append(s.name)
         
+    top_heart(signal, verbose)
     strips_on(signal, verbose)
     turn_on_motherboard(signal, verbose)
-    subprocess.run([MULTIMONITOR_EXE_PATH, "/TurnOn"] + monitor_names)
-    top_heart(signal, verbose)
+    time.sleep(0.1)
     turn_on_mousepad(signal, verbose)
+    subprocess.run([MULTIMONITOR_EXE_PATH, "/TurnOn"] + monitor_names)
 
 
 def point_in_rect(px, py, rx, ry, width, height):
