@@ -4,6 +4,7 @@ import { FileView, FileTree, MoviesHome, PrepIdentity, PrepCommit, DRAG_TYPE, fm
 import { useVersionPoll, useVisibility } from "../api";
 import { entriesFrom, walkEntries, useUploads } from "../uploads";
 import { readCookie, writeCookie } from "../cookies";
+import { currentUsername } from "../auth";
 
 /** The stream is a transcode piped into a fragmented MP4: no byte ranges, no
  *  index, so the browser can't seek it and `video.duration` is meaningless.
@@ -375,6 +376,19 @@ export function MoviesPanel() {
       bye();
     };
   }, []);
+
+  /** A click on empty space in the left column lets go of everything: the
+   *  film or file open on the right (which goes back to the help text) and
+   *  any ticked rows. Clicks on a row, a button, a field or a menu are that
+   *  thing's own business. */
+  const clearOnEmpty = (e: React.MouseEvent) => {
+    const t = e.target as HTMLElement;
+    if (t.closest(".mv-node, .mv-item, button, input, select, a, label, .mv-menu, .mv-panehead")) return;
+    if (!selected && !viewFile && !picked.size) return;
+    stop();
+    setSelected(null); setInfo(null); setViewFile(null);
+    setPicked(new Set()); setPickedArea(""); setPrepNote("");
+  };
 
   const switchTab = (next: string) => {
     setExternal("");
@@ -982,6 +996,26 @@ export function MoviesPanel() {
     return q ? movies.filter((m) => m.title.toLowerCase().includes(q)) : movies;
   }, [movies, query]);
 
+  /** What the help text on the right is filled in with: the open tab's
+   *  folders and what this user may do there. */
+  const helpContext = useMemo(() => {
+    const g = groups.find((x) => x.key === tab);
+    const lib = sources.find((x) => x.kind === "library");
+    const main = tab === "" ? lib : g ? tabTarget(g) : undefined;
+    return {
+      template: tab === "" ? "movies" : g?.todo ? "workspace" : "output",
+      description: main?.description,
+      vars: {
+        name: tab === "" ? (lib?.label ?? "Movies") : (g?.label ?? tab),
+        inbox: g?.todo?.path ?? "",
+        output: tab === "" ? (lib?.path ?? "") : (g?.done?.path ?? ""),
+        user: currentUsername() ?? "",
+      },
+      flags: { publish: publisher, edit: main ? canEditArea(main.key) : false },
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, groups, sources, publisher]);
+
   const duration = info?.duration ?? 0;
   const shown = scrub ?? position;
 
@@ -1142,7 +1176,7 @@ export function MoviesPanel() {
           // and its output underneath, splitting the height between them.
           // Dragging from one into the other is how a finished film leaves
           // the queue, so they are drop targets for each other.
-          <div className="mv-panes">
+          <div className="mv-panes" onClick={clearOnEmpty}>
             {panes.map((pane) => (
               <div className={"mv-pane " + pane.role} key={pane.key}>
                 {panes.length > 1 && (
@@ -1180,7 +1214,7 @@ export function MoviesPanel() {
             ))}
           </div>
         ) : (
-        <ul className="mv-list">
+        <ul className="mv-list" onClick={clearOnEmpty}>
           {filtered.map((m) => (
             <li key={m.id}>
               <button
@@ -1337,7 +1371,7 @@ export function MoviesPanel() {
         ) : !selected ? (
           // Nothing picked: the panel's resting state is a document, not an
           // empty player nobody can press.
-          <MoviesHome />
+          <MoviesHome help={helpContext} />
         ) : (
         <>
         <div

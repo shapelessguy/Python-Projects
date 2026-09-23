@@ -4,7 +4,7 @@ import { marked } from "marked";
 // Deliberately a file rather than a string in here: it is meant to be
 // written as prose and edited as prose. `?raw` hands it over as text and
 // Vite rebuilds when it changes.
-import homeText from "./movies-home.md?raw";
+import { readCookie, writeCookie } from "../cookies";
 import { api, PrepPlan, RemuxJob, StagedFile, TmdbCandidate } from "../api";
 
 /** The right-hand panel for anything in a staging folder that isn't a film.
@@ -78,14 +78,76 @@ export function FileView({ area, file }: { area: string; file: StagedFile }) {
  *  A document rather than a placeholder line: this is the panel's resting
  *  state, which makes it the one place in here with room to say something
  *  worth reading. Empty for now — the text lives in movies-home.md. */
-export function MoviesHome() {
+/** What the right-hand panel says while nothing is picked: how to use the
+ *  tab that is open.
+ *
+ *  The texts are templates in ./help, one per kind of folder and language
+ *  (`<name>.en.md`, `<name>.it.md`): "movies" for the film library,
+ *  "workspace" for a folder with an inbox and an output, "output" for one
+ *  with only an output. What makes each folder's text its own is its
+ *  `description` in secrets.json's movie_staging, filled in as
+ *  `{{description}}`.
+ *
+ *  Templates take `{{name}}`, `{{description}}`, `{{inbox}}`, `{{output}}`,
+ *  `{{user}}`, and
+ *  blocks shown only when a flag is on (`{{#publish}}…{{/publish}}`) or off
+ *  (`{{^publish}}…{{/publish}}`). The flags are what this user may do —
+ *  `publish` (the publish permission) and `edit` (may change this folder) —
+ *  so the text only describes what they can actually do. */
+const HELP_FILES = import.meta.glob("./help/*.md", { query: "?raw", import: "default", eager: true }) as
+  Record<string, string>;
+type HelpLang = "en" | "it";
+const HELP_LANG_COOKIE = "help_lang";
+
+export interface HelpContext {
+  template: string;
+  vars: Record<string, string>;
+  flags: Record<string, boolean>;
+  /** The folder's description, per language. */
+  description?: Record<string, string>;
+}
+
+function helpSource(template: string, lang: HelpLang): string {
+  return HELP_FILES[`./help/${template}.${lang}.md`] ?? HELP_FILES[`./help/${template}.en.md`]
+    ?? HELP_FILES[`./help/output.${lang}.md`] ?? "";
+}
+
+function renderTemplate(src: string, { vars, flags }: Pick<HelpContext, "vars" | "flags">): string {
+  return src
+    .replace(/\{\{([#^])(\w+)\}\}([\s\S]*?)\{\{\/\2\}\}/g,
+      (_m, sign: string, key: string, body: string) => (!!flags[key] === (sign === "#") ? body : ""))
+    .replace(/\{\{(\w+)\}\}/g, (_m, key: string) => vars[key] ?? "");
+}
+
+export function MoviesHome({ help }: { help: HelpContext }) {
+  const [lang, setLangState] = useState<HelpLang>(
+    () => (readCookie(HELP_LANG_COOKIE) === "it" ? "it" : "en"));
+  const setLang = (l: HelpLang) => {
+    setLangState(l);
+    writeCookie(HELP_LANG_COOKIE, l);
+  };
+  const key = JSON.stringify(help);
   const html = useMemo(() => {
-    const raw = marked.parse(homeText, { async: false, breaks: true }) as string;
-    return DOMPurify.sanitize(raw);
-  }, []);
-  if (!homeText.trim()) return <div className="mv-home empty" />;
-  // eslint-disable-next-line react/no-danger
-  return <div className="mv-home markdown" dangerouslySetInnerHTML={{ __html: html }} />;
+    const d = help.description ?? {};
+    const description = d[lang] ?? d.en ?? Object.values(d)[0] ?? "";
+    const md = renderTemplate(helpSource(help.template, lang),
+                              { flags: help.flags, vars: { ...help.vars, description } });
+    return DOMPurify.sanitize(marked.parse(md, { async: false, breaks: true }) as string);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, lang]);
+  return (
+    <div className="mv-home">
+      <div className="mv-homelang">
+        {(["en", "it"] as const).map((l) => (
+          <button key={l} className={"ghost" + (lang === l ? " active" : "")} onClick={() => setLang(l)}>
+            {l.toUpperCase()}
+          </button>
+        ))}
+      </div>
+      {/* eslint-disable-next-line react/no-danger */}
+      <div className="markdown" dangerouslySetInnerHTML={{ __html: html }} />
+    </div>
+  );
 }
 
 /** Naming the film: what it is, and whether that is settled.

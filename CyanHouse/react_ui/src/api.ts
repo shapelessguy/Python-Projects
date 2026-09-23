@@ -291,6 +291,9 @@ export interface MovieSource {
    *  area share it, which is what pairs them into a column. */
   group: string;
   ready: boolean;
+  /** What the folder is for, per language — secrets.json's `description`,
+   *  shown in the panel's help text. */
+  description?: Record<string, string>;
 }
 
 export interface StagingArea {

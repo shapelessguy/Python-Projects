@@ -93,11 +93,18 @@ def areas() -> dict[str, dict]:
         dest = cfg.get("output") or cfg.get("library") or MOVIES_DIR
         library = Path(str(dest)).expanduser()
         ready = bool(inbox and inbox.is_dir())
+        # What this folder is for, in words, shown in the panel's help text
+        # (react_ui/src/panels/help): {"en": ..., "it": ...}, or one string
+        # for both languages.
+        desc = cfg.get("description") or ""
+        description = ({str(k): str(v) for k, v in desc.items()} if isinstance(desc, dict)
+                       else {"en": str(desc), "it": str(desc)} if desc else {})
         out[name] = {
             "name": name,
             "inbox": str(inbox) if inbox else "",
             "library": str(library),
             "ready": ready,
+            "description": description,
             "problem": "" if ready else (
                 f"inbox not found: {inbox}" if inbox else "no inbox configured"),
         }
@@ -149,7 +156,7 @@ def sources() -> list[dict]:
             out.append({
                 "key": name, "label": name, "short": name,
                 "path": cfg["inbox"], "kind": "inbox", "role": "todo",
-                "group": name, "ready": cfg["ready"],
+                "group": name, "ready": cfg["ready"], "description": cfg["description"],
             })
         library = Path(cfg["library"])
         out.append({
@@ -160,7 +167,7 @@ def sources() -> list[dict]:
             "key": f"{name}:library", "label": f"{name} / {library.name or library}",
             "short": library.name or str(library),
             "path": str(library), "kind": "output", "role": "done",
-            "group": name, "ready": library.is_dir(),
+            "group": name, "ready": library.is_dir(), "description": cfg["description"],
         })
     return out
 

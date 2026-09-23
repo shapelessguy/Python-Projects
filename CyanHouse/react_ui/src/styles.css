@@ -1175,8 +1175,11 @@ input.mv-rename {
 .mv-node.picked.active { background: var(--accent); }
 
 /* The right panel at rest: a document, so it gets a document's measure. */
-.mv-home { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 2px 4px; }
-.mv-home.empty { opacity: 0; }
+.mv-home { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 2px 4px; position: relative; }
+/* EN / IT, in the top right corner of the text. */
+.mv-homelang { float: right; display: flex; gap: 2px; margin: 0 0 6px 8px; }
+.mv-homelang button { padding: 1px 7px; font-size: 0.72rem; }
+.mv-home ol, .mv-home ul { padding-left: 1.3em; }
 .mv-home h1 { font-size: 1.15rem; margin: 0 0 8px; }
 .mv-home h2 { font-size: 0.98rem; margin: 14px 0 6px; }
 .mv-home p, .mv-home li { font-size: 0.85rem; line-height: 1.5; }
