@@ -57,10 +57,15 @@ async def upload_subtitle(
     `.sub` — that only mean anything together. Text formats, `.sup` and a
     VobSub pair can all arrive in the same request.
 
+    Partial success is the normal answer, not an error: drop eight subtitles
+    in and the two that are really a .nfo and a screenshot are named and
+    skipped while the other six are stored. So the reply is always the
+    refreshed track list plus what was taken and what was not — a whole
+    batch is only refused when the *film* cannot be resolved.
+
     Everything is stored under MOVIES_DATA_DIR and linked by the film's
     fingerprint, never written into the library — the movie folders stay
-    exactly as they are. Replies with the film's refreshed track list so the
-    caller can just re-render its dropdown."""
+    exactly as they are."""
     payload = [(f.filename or "", await f.read()) for f in files]
     try:
         return await run_in_threadpool(_store_subtitle, id, payload)
@@ -73,14 +78,24 @@ async def upload_subtitle(
 def _store_subtitle(movie_id: str, payload: list[tuple[str, bytes]]) -> dict:
     path = movies.resolve(movie_id)
     meta = movies.info(movie_id)
-    movie_subs.add(
-        movies.fingerprint(path), meta["title"],
-        str(path.relative_to(movies.MOVIES_DIR)), payload,
+    try:
+        where = str(path.relative_to(movies.MOVIES_DIR))
+    except ValueError:
+        # Not in the film library: a staging folder, or the series library.
+        # Only a human-readable hint in the index — the fingerprint is what
+        # actually links the subtitle to the film — so the absolute path is
+        # a fine answer, and raising here turned an upload onto a staged
+        # film into a 500.
+        where = str(path)
+    result = movie_subs.add(
+        movies.fingerprint(path), meta["title"], where, payload,
     )
-    # The probe is cached per (path, mtime, size) and the film itself hasn't
-    # changed, so the new track would not otherwise show up.
-    movies.forget(movie_id)
-    return movies.info(movie_id)
+    if result["accepted"]:
+        # The probe is cached per (path, mtime, size) and the film itself hasn't
+        # changed, so the new track would not otherwise show up.
+        movies.forget(movie_id)
+        meta = movies.info(movie_id)
+    return {"info": meta, **result}
 
 
 @router.delete("/subtitles")

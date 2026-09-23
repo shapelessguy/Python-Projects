@@ -19,6 +19,7 @@ truncated — the worst case is losing the last edit, not the file.
 """
 import json
 import os
+import re
 import threading
 import time
 import uuid
@@ -89,22 +90,67 @@ def for_movie(fingerprint: str) -> list[dict]:
     return list(entry.get("subtitles", [])) if entry else []
 
 
-def _group(files: list[tuple[str, bytes]]) -> list[dict]:
-    """Turn the uploaded files into subtitle tracks.
+# What each format has to actually contain. An extension is a claim, not
+# evidence: a .srt that is really a RAR, or a .sup that is really a JPEG,
+# passes an extension check and then renders nothing — and the only place
+# that failure surfaces is a stalled ffmpeg minutes later. Cheaper to look
+# at the bytes now and say which file was wrong.
+_MICRODVD = re.compile(rb"^\s*\{\s*-?\d+\s*\}\s*\{\s*-?\d+\s*\}", re.M)
+_SUBVIEWER = re.compile(rb"^\s*\d{2}:\d{2}:\d{2}[.,]\d{2}", re.M)
+
+
+def _looks_like(ext: str, data: bytes) -> str:
+    """Empty when the bytes look like that format; otherwise why they don't."""
+    head = data[:64 * 1024]
+    if ext == ".sup":
+        # PGS: every segment starts with the magic "PG".
+        return "" if head[:2] == b"PG" else "not a PGS subtitle (no PG header)"
+    if ext == VOBSUB_IDX:
+        return ("" if b"timestamp:" in head.lower()
+                else "not a VobSub index (no timestamp lines)")
+    text = head.lower()
+    if ext in (".srt", ".vtt"):
+        return "" if b"-->" in text else "no subtitle timings in it (no '-->' lines)"
+    if ext in (".ass", ".ssa"):
+        return ("" if b"dialogue:" in text or b"[script info]" in text
+                else "no dialogue lines in it")
+    return ""
+
+
+def _looks_like_text_sub(data: bytes) -> bool:
+    """A .sub with no .idx beside it is not automatically half a VobSub —
+    MicroDVD and SubViewer both use the same extension for a plain text
+    subtitle, and both turn up in downloads."""
+    head = data[:64 * 1024]
+    return bool(_MICRODVD.search(head) or _SUBVIEWER.search(head))
+
+
+def _group(files: list[tuple[str, bytes]]) -> tuple[list[dict], list[dict]]:
+    """Turn the uploaded files into subtitle tracks, and say what was thrown
+    out and why.
 
     Everything is one file per track except VobSub, where the .idx and .sub
-    sharing a stem are one track. A half of a pair on its own is an error
-    worth naming: silently accepting it would produce a track that appears in
-    the list and renders nothing."""
+    sharing a stem are one track.
+
+    Nothing raises here. Dropping ten subtitles at once and having the whole
+    batch refused because one of them was a .nfo is not a useful answer — the
+    nine good ones are still good, so the bad ones are named and the rest go
+    through."""
+    rejected: list[dict] = []
     by_ext: dict[str, list[tuple[str, bytes]]] = {}
+
+    def reject(name: str, why: str) -> None:
+        rejected.append({"name": Path(name or "?").name or "?", "reason": why})
+
     for name, data in files:
         ext = Path(name or "").suffix.lower()
         if ext not in ALLOWED_EXT:
-            raise SubtitleError(
-                f"{ext or Path(name).name!r} isn't a subtitle format this can render "
-                f"({', '.join(sorted(TEXT_EXT | IMAGE_EXT))}, or an .idx + .sub pair)",
-                415,
-            )
+            reject(name, f"{ext or 'that'} is not a subtitle format this can render "
+                         f"({', '.join(sorted(TEXT_EXT | IMAGE_EXT))}, or an .idx + .sub pair)")
+            continue
+        if not data:
+            reject(name, "the file is empty")
+            continue
         by_ext.setdefault(ext, []).append((name, data))
 
     groups: list[dict] = []
@@ -112,85 +158,111 @@ def _group(files: list[tuple[str, bytes]]) -> list[dict]:
     sub = {Path(n).stem.lower(): (n, d) for n, d in by_ext.pop(VOBSUB_SUB, [])}
     for stem in sorted(set(idx) | set(sub)):
         if stem not in idx:
-            raise SubtitleError(
-                f"{sub[stem][0]} needs its .idx as well — a .sub alone has no index "
-                f"or timings. Select both files.", 400)
+            name, data = sub[stem]
+            # Same extension, two unrelated formats — so before complaining
+            # about a missing .idx, check whether this is a text subtitle
+            # that simply happens to be called .sub.
+            if _looks_like_text_sub(data):
+                groups.append({"kind": "text", "primary": (name, data), "aux": None})
+            else:
+                reject(name, "a .sub on its own has no index or timings — "
+                             "drop its .idx in as well")
+            continue
         if stem not in sub:
-            raise SubtitleError(
-                f"{idx[stem][0]} needs its .sub as well — an .idx alone has no "
-                f"images. Select both files.", 400)
+            name, data = idx[stem]
+            reject(name, "an .idx on its own has no images — drop its .sub in as well")
+            continue
+        why = _looks_like(VOBSUB_IDX, idx[stem][1])
+        if why:
+            reject(idx[stem][0], why)
+            continue
         groups.append({"kind": "image", "primary": idx[stem], "aux": sub[stem]})
 
     for ext, items in by_ext.items():
         for name, data in items:
+            why = _looks_like(ext, data)
+            if why:
+                reject(name, why)
+                continue
             groups.append({
                 "kind": "text" if ext in TEXT_EXT else "image",
                 "primary": (name, data), "aux": None,
             })
-    if not groups:
-        raise SubtitleError("no subtitle files in that upload")
-    return groups
+    return groups, rejected
 
 
 def add(fingerprint: str, title: str, rel_path: str,
-        files: list[tuple[str, bytes]]) -> list[dict]:
-    """Store one or more uploaded subtitles and link them to the film."""
-    groups = _group(files)
+        files: list[tuple[str, bytes]]) -> dict:
+    """Store whatever of this upload is usable, and report the rest.
+
+    Returns ``{"accepted": [record, ...], "rejected": [{name, reason}, ...]}``
+    — a partial success is the normal outcome when several files are dropped
+    at once, so it is the shape of every answer rather than an exception."""
+    groups, rejected = _group(files)
     folder = _root() / "subtitles" / fingerprint
-    folder.mkdir(parents=True, exist_ok=True)
 
     records = []
     for group in groups:
         name, data = group["primary"]
         ext = Path(name).suffix.lower()
-        total = len(data) + (len(group["aux"][1]) if group["aux"] else 0)
-        if not total:
-            raise SubtitleError(f"{Path(name).name} is empty")
-        cap = MOVIES_SUB_MAX_BYTES if group["kind"] == "text" else MOVIES_SUB_IMAGE_MAX_BYTES
-        if total > cap:
-            raise SubtitleError(
-                f"{Path(name).name} is {total // (1024 * 1024)} MB — too large "
-                f"for a subtitle ({cap // (1024 * 1024)} MB limit)", 413)
+        try:
+            total = len(data) + (len(group["aux"][1]) if group["aux"] else 0)
+            cap = (MOVIES_SUB_MAX_BYTES if group["kind"] == "text"
+                   else MOVIES_SUB_IMAGE_MAX_BYTES)
+            if total > cap:
+                raise SubtitleError(
+                    f"it is {total // (1024 * 1024)} MB — too large for a subtitle "
+                    f"({cap // (1024 * 1024)} MB limit)", 413)
 
-        sub_id = uuid.uuid4().hex[:12]
-        if group["kind"] == "text":
-            # Decoded here rather than inside ffmpeg, where a binary file
-            # surfaces as a stalled stream instead of a message, and written
-            # back as UTF-8 so the render path never guesses an encoding.
-            text = _decode(data)
-            if not text.strip():
-                raise SubtitleError(f"{Path(name).name} has no text in it")
-            (folder / f"{sub_id}{ext}").write_text(text, encoding="utf-8")
-        else:
-            # Bitmap payloads are binary; byte-exact or not at all.
-            (folder / f"{sub_id}{ext}").write_bytes(data)
+            sub_id = uuid.uuid4().hex[:12]
+            folder.mkdir(parents=True, exist_ok=True)
+            if group["kind"] == "text":
+                # Decoded here rather than inside ffmpeg, where a binary file
+                # surfaces as a stalled stream instead of a message, and written
+                # back as UTF-8 so the render path never guesses an encoding.
+                text = _decode(data)
+                if not text.strip():
+                    raise SubtitleError("there is no text in it")
+                (folder / f"{sub_id}{ext}").write_text(text, encoding="utf-8")
+            else:
+                # Bitmap payloads are binary; byte-exact or not at all.
+                (folder / f"{sub_id}{ext}").write_bytes(data)
 
-        record = {
-            "id": sub_id,
-            "file": f"{sub_id}{ext}",
-            "kind": group["kind"],
-            "name": Path(name).name,
-            "uploaded_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
-            "bytes": total,
-        }
-        if group["aux"]:
-            # Same stem on purpose: the vobsub demuxer finds the .sub by
-            # replacing the .idx's extension, so renaming them apart would
-            # break the pair.
-            (folder / f"{sub_id}{VOBSUB_SUB}").write_bytes(group["aux"][1])
-            record["aux"] = f"{sub_id}{VOBSUB_SUB}"
-        records.append(record)
+            record = {
+                "id": sub_id,
+                "file": f"{sub_id}{ext}",
+                "kind": group["kind"],
+                "name": Path(name).name,
+                "uploaded_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
+                "bytes": total,
+            }
+            if group["aux"]:
+                # Same stem on purpose: the vobsub demuxer finds the .sub by
+                # replacing the .idx's extension, so renaming them apart would
+                # break the pair.
+                (folder / f"{sub_id}{VOBSUB_SUB}").write_bytes(group["aux"][1])
+                record["aux"] = f"{sub_id}{VOBSUB_SUB}"
+            records.append(record)
+        except SubtitleError as e:
+            rejected.append({"name": Path(name).name, "reason": str(e)})
+        except Exception as e:
+            # One file failing to store is that file's problem. Turning it
+            # into a 500 would lose the ones that did store, and tell the
+            # person nothing about which of them went wrong.
+            rejected.append({"name": Path(name).name,
+                             "reason": f"could not be stored ({e})"})
 
-    with _lock:
-        index = _load()
-        entry = index["movies"].setdefault(fingerprint, {"subtitles": []})
-        # Kept for humans reading the index by hand; the fingerprint is what
-        # actually resolves the link, so these going stale costs nothing.
-        entry["title"] = title
-        entry["path"] = rel_path
-        entry["subtitles"].extend(records)
-        _save(index)
-    return records
+    if records:
+        with _lock:
+            index = _load()
+            entry = index["movies"].setdefault(fingerprint, {"subtitles": []})
+            # Kept for humans reading the index by hand; the fingerprint is what
+            # actually resolves the link, so these going stale costs nothing.
+            entry["title"] = title
+            entry["path"] = rel_path
+            entry["subtitles"].extend(records)
+            _save(index)
+    return {"accepted": records, "rejected": rejected}
 
 
 def remove(fingerprint: str, sub_id: str) -> None:

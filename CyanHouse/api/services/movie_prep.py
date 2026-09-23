@@ -36,8 +36,10 @@ which an MKV remuxed from AVI commonly does.
 """
 import hashlib
 import json
+import os
 import re
 import shutil
+import signal
 import subprocess
 import threading
 import time
@@ -47,10 +49,11 @@ from pathlib import Path
 from api.config import (
     FFMPEG,
     FFPROBE,
+    MOVIES_DATA_DIR,
     MOVIES_DIR,
     MOVIE_STAGING,
 )
-from api.services import movies
+from api.services import movies, prep_configs
 
 VIDEO_EXT = movies.VIDEO_EXT
 SUB_EXT = movies.SUB_EXT | {".idx"}
@@ -76,45 +79,88 @@ def areas() -> dict[str, dict]:
     the whole reason this is configuration and not a constant."""
     out: dict[str, dict] = {}
     for name, cfg in (MOVIE_STAGING or {}).items():
-        inbox = Path(str(cfg.get("inbox", ""))).expanduser()
+        cfg = cfg or {}
+        # An area may have no inbox at all — just somewhere finished work is
+        # kept. That has to stay *empty*, not become a path: Path("") is ".",
+        # which is this process's working directory, i.e. the project folder
+        # with secrets.json in it. Treating it as an inbox made that folder
+        # browsable, readable and deletable from the panel.
+        raw_inbox = str(cfg.get("inbox") or "").strip()
+        inbox = Path(raw_inbox).expanduser() if raw_inbox else None
         # "output" is where finished films are moved to. "library" is the
         # older spelling and still works, because renaming a config key
         # should not silently change where files land.
         dest = cfg.get("output") or cfg.get("library") or MOVIES_DIR
         library = Path(str(dest)).expanduser()
+        ready = bool(inbox and inbox.is_dir())
         out[name] = {
             "name": name,
-            "inbox": str(inbox),
+            "inbox": str(inbox) if inbox else "",
             "library": str(library),
-            "ready": inbox.is_dir(),
-            "problem": "" if inbox.is_dir() else f"inbox not found: {inbox}",
+            "ready": ready,
+            "problem": "" if ready else (
+                f"inbox not found: {inbox}" if inbox else "no inbox configured"),
         }
     return out
+
+
+def is_inbox(name: str) -> bool:
+    """Whether this source key is a staging inbox — an area name with an
+    inbox configured. Outputs are "<area>:library"; the film library is ""."""
+    cfg = areas().get(name)
+    return bool(cfg and cfg["inbox"])
+
+
+def output_of(inbox_name: str) -> str:
+    """The source key of the output an inbox's finished films go to."""
+    return f"{inbox_name}:library"
+
+
+def workspace_of(key: str) -> str | None:
+    """The staging area a folder is part of, when that area is a working
+    pair — an inbox and the output its finished films go to. Both halves
+    belong to it. An area with only an output (the series library) is not a
+    workspace: it is somewhere finished work is kept, not somewhere it is
+    done. Neither is the film library."""
+    name = key[: -len(":library")] if key.endswith(":library") else key
+    return name if is_inbox(name) else None
 
 
 def sources() -> list[dict]:
     """Every folder the panel can browse, in the order it should show them.
 
-    The real library first, named after the folder it actually is rather than
-    the word "Library" — and each staging area contributes both its inbox and
-    the folder its finished films land in, because seeing what came out is
-    part of trusting what went in."""
+    Each entry carries `group` and `role` so the panel can pair them up: a
+    staging area is an inbox and the folder its finished films land in, and
+    the panel gives the pair one tab and shows both folders at once, the
+    inbox above the output. `role` is what the folder is *for* — work
+    waiting, or work done — which decides which half it goes in.
+
+    An area may configure an output and no inbox (somewhere finished films
+    are kept, with nothing staged into it); then it simply has no inbox
+    entry, rather than a dead button that can never be ready."""
     out = [{
         "key": "", "label": MOVIES_DIR.name or str(MOVIES_DIR),
-        "path": str(MOVIES_DIR), "kind": "library", "ready": MOVIES_DIR.is_dir(),
+        "short": MOVIES_DIR.name or str(MOVIES_DIR),
+        "path": str(MOVIES_DIR), "kind": "library", "role": "done",
+        "group": "", "ready": MOVIES_DIR.is_dir(),
     }]
     for name, cfg in areas().items():
-        out.append({
-            "key": name, "label": name, "path": cfg["inbox"],
-            "kind": "inbox", "ready": cfg["ready"],
-        })
+        if cfg["inbox"]:
+            out.append({
+                "key": name, "label": name, "short": name,
+                "path": cfg["inbox"], "kind": "inbox", "role": "todo",
+                "group": name, "ready": cfg["ready"],
+            })
         library = Path(cfg["library"])
         out.append({
             # Qualified by the area: every area's output folder tends to be
-            # called the same thing, and two buttons reading "library" say
-            # nothing about which one you are about to open.
+            # called the same thing, and two destinations reading "library"
+            # say nothing about which one you are about to move into.
+            # `short` is for where the area is already obvious from context.
             "key": f"{name}:library", "label": f"{name} / {library.name or library}",
-            "path": str(library), "kind": "output", "ready": library.is_dir(),
+            "short": library.name or str(library),
+            "path": str(library), "kind": "output", "role": "done",
+            "group": name, "ready": library.is_dir(),
         })
     return out
 
@@ -124,6 +170,14 @@ def area(name: str) -> tuple[Path, Path]:
 
     A name ending ":library" addresses that area's *output* folder as the
     thing to browse — the same plumbing, pointed the other way."""
+    # The film library is browsable the same way a staging folder is —
+    # same listing, same viewer, same rename and move. It is not a staging
+    # area, so it has no separate output: a file there is already where it
+    # belongs.
+    if name == "":
+        if not MOVIES_DIR.is_dir():
+            raise PrepError(f"movie library not found: {MOVIES_DIR}", 503)
+        return MOVIES_DIR, MOVIES_DIR
     if name.endswith(":library"):
         found = areas().get(name[: -len(":library")])
         if found:
@@ -604,36 +658,25 @@ def _verify_mkv(output: Path, plan: dict) -> list[str]:
 # "Progress: 42%" as it works; ffmpeg's copy path does not report usefully, so
 # its percent stays None and the UI shows an indeterminate bar rather than a
 # number it would have to invent.
-_progress: dict[str, dict] = {}
-_progress_lock = threading.Lock()
-
-
-def progress(key: str) -> dict:
-    with _progress_lock:
-        return dict(_progress.get(key) or {"percent": None, "running": False})
-
-
-def _set_progress(key: str, **fields) -> None:
-    if not key:
-        return
-    with _progress_lock:
-        _progress.setdefault(key, {"percent": None, "running": False}).update(fields)
-
-
+# ── running the muxer ────────────────────────────────────────────────────
+# The queue that decides *when* a remux runs is api/services/remux_queue.py;
+# this is only how one runs.
 _PROGRESS_RE = re.compile(rb"Progress:\s*(\d+)%")
 
 
-def _run_muxer(cmd: list[str], key: str, mkvmerge: bool) -> subprocess.CompletedProcess:
-    """Run the mux, publishing progress as it goes.
+def _run_muxer(cmd: list[str], mkvmerge: bool, report) -> subprocess.CompletedProcess:
+    """Run the mux, reporting its percentage as it goes.
 
     mkvmerge writes its percentage to stdout with carriage returns rather
     than newlines, so this reads raw chunks instead of lines — readline()
     would block until the whole run finished and report 0% throughout."""
-    _set_progress(key, percent=0, running=True, error="")
     # bufsize=0: an unbuffered pipe, so progress arrives as mkvmerge writes
     # it rather than in one block at the end.
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0)
+    # Kept so a restart can find a mux it has lost track of, and stop it.
+    report(pid=proc.pid, percent=0)
     tail = b""
+    last = -1
     try:
         while True:
             # With bufsize=0 this is a raw FileIO, so read() is one syscall
@@ -646,21 +689,76 @@ def _run_muxer(cmd: list[str], key: str, mkvmerge: bool) -> subprocess.Completed
             tail = (tail + chunk)[-4096:]
             if mkvmerge:
                 found = _PROGRESS_RE.findall(chunk)
-                if found:
-                    _set_progress(key, percent=int(found[-1]))
+                # Only a change is worth a write to disk.
+                if found and int(found[-1]) != last:
+                    last = int(found[-1])
+                    report(percent=last)
     finally:
         err = proc.stderr.read() if proc.stderr else b""
         proc.wait()
-        _set_progress(key, running=False)
+        report(pid=None)
     return subprocess.CompletedProcess(cmd, proc.returncode, tail, err)
 
 
-def execute(plan: dict, dest_root: Path, dry_run: bool = False) -> dict:
-    """Mux, verify, then tidy up — in that order, and only in that order."""
-    folder = Path(plan["folder"])
-    target = plan["target"]
-    if not target:
+def _within(root: Path, path: Path) -> bool:
+    return path == root or root in path.parents
+
+
+def _checked_paths(plan: dict, inbox: Path) -> tuple[Path, Path]:
+    """The plan arrives from the browser, and every path in it is a path this
+    process will read from and then clear away. So each one is resolved and
+    held to the inbox it claims to come from — the film's folder, its video,
+    every external track. Returns (folder, video)."""
+    if not isinstance(plan, dict) or not isinstance(plan.get("tracks"), list):
+        raise PrepError("that is not a remux plan")
+    for key in ("folder", "video"):
+        if not isinstance(plan.get(key), str):
+            raise PrepError(f"the plan has no {key}")
+    root = inbox.resolve()
+    folder = Path(plan["folder"]).resolve()
+    video = Path(plan["video"]).resolve()
+    if not _within(root, folder):
+        raise PrepError("that film is not in this inbox", 403)
+    if not _within(folder, video) or not video.is_file():
+        raise PrepError("the plan's video is not in the film's folder", 403)
+    for t in plan["tracks"]:
+        ext = t.get("external") if isinstance(t, dict) else None
+        if ext and not _within(folder, Path(ext).resolve()):
+            raise PrepError("a track in the plan comes from outside the film's folder", 403)
+    return folder, video
+
+
+def _checked_plan(plan: dict, inbox: Path) -> tuple[Path, Path, str]:
+    """`_checked_paths`, plus the one thing a remux needs that saving does
+    not: a name it can be written under — one plain file name. Returns
+    (folder, video, target)."""
+    folder, video = _checked_paths(plan, inbox)
+    target = plan.get("target")
+    if not isinstance(target, str) or not target.strip():
         raise PrepError("the film has no target name yet")
+    target = target.strip()
+    if _check_name(target) != target:
+        # Refused rather than quietly tidied: the name is also the job's
+        # label, and a quietly changed one would not match what was shown.
+        raise PrepError(f"{target!r} is not usable as a file name")
+    return folder, video, target
+
+
+def execute(plan: dict, dest_root: Path, dry_run: bool = False,
+            inbox: Path | None = None, report=None) -> dict:
+    """Mux, verify, then tidy up — in that order, and only in that order.
+
+    `report(**fields)` is told the phase and percentage as it goes; the job
+    runner passes one, a dry run does not need it."""
+    report = report or (lambda **_: None)
+    if inbox is None:
+        raise PrepError("no inbox to check the plan against", 500)
+    folder, video, target = _checked_plan(plan, inbox)
+    # A video lying loose in the inbox has the inbox itself as its "folder".
+    # Clearing that folder afterwards would sweep up every other download
+    # waiting there and remove the inbox — so a loose film clears only what
+    # is its own: the video and the sidecars the plan named.
+    loose = folder == inbox.resolve()
     conflicts = _conflicts(plan["tracks"])
     if conflicts:
         raise PrepError("; ".join(conflicts))
@@ -683,41 +781,56 @@ def execute(plan: dict, dest_root: Path, dry_run: bool = False) -> dict:
     use_mkvmerge = have_mkvmerge()
     cmd = (build_remux_mkvmerge if use_mkvmerge else build_remux)(plan, temp_path)
     if dry_run:
-        return {"command": cmd, "output": str(output), "conflicts": conflicts}
+        return {"command": cmd, "output": str(output), "temp": str(temp_path),
+                "conflicts": conflicts}
 
     out_dir.mkdir(parents=True, exist_ok=True)
     temp = temp_path
     started = time.time()
-    key = f"{plan.get('area', '')}:{target}"
-    res = _run_muxer(cmd, key, use_mkvmerge)
+    report(phase="muxing")
+    res = _run_muxer(cmd, use_mkvmerge, report)
     # mkvmerge returns 1 for warnings with a perfectly good file; only >=2 is
     # a real failure. ffmpeg has no such distinction.
     if (res.returncode >= 2) if use_mkvmerge else (res.returncode != 0):
         _unlink(temp)
+        _drop_if_empty(out_dir)
         tail = (res.stderr or res.stdout).decode("utf-8", "replace").strip().splitlines()[-4:]
         raise PrepError("mux failed: " + " | ".join(tail), 502)
 
+    report(phase="verifying", percent=100)
     problems = verify(temp, plan)
     if problems:
         _unlink(temp)
+        _drop_if_empty(out_dir)
         raise PrepError("mux produced the wrong file: " + "; ".join(problems), 502)
 
+    report(phase="tidying")
     shutil.move(str(temp), str(output))
 
     # Only now is anything removed, and even then it is moved, not deleted:
     # the one irreversible step in this pipeline deserves an undo.
-    trash = folder.parent / TRASH_DIR / time.strftime("%Y-%m-%d_%H-%M-%S") / folder.name
-    trash.mkdir(parents=True, exist_ok=True)
+    stamp = time.strftime("%Y-%m-%d_%H-%M-%S")
     moved = []
-    for leftover in sorted(folder.rglob("*")):
-        if leftover.is_file():
-            rel = leftover.relative_to(folder)
-            (trash / rel).parent.mkdir(parents=True, exist_ok=True)
-            shutil.move(str(leftover), str(trash / rel))
-            moved.append(str(rel))
-    shutil.rmtree(folder, ignore_errors=True)
+    if loose:
+        trash = folder / TRASH_DIR / stamp / video.stem
+        own = [video] + [Path(t["external"]).resolve() for t in plan["tracks"]
+                         if isinstance(t, dict) and t.get("external")]
+        for leftover in own:
+            if leftover.is_file():
+                trash.mkdir(parents=True, exist_ok=True)
+                shutil.move(str(leftover), str(trash / leftover.name))
+                moved.append(leftover.name)
+    else:
+        trash = folder.parent / TRASH_DIR / stamp / folder.name
+        trash.mkdir(parents=True, exist_ok=True)
+        for leftover in sorted(folder.rglob("*")):
+            if leftover.is_file():
+                rel = leftover.relative_to(folder)
+                (trash / rel).parent.mkdir(parents=True, exist_ok=True)
+                shutil.move(str(leftover), str(trash / rel))
+                moved.append(str(rel))
+        shutil.rmtree(folder, ignore_errors=True)
 
-    _set_progress(key, percent=100, running=False)
     return {
         "muxer": "mkvmerge" if use_mkvmerge else "ffmpeg",
         "output": str(output),
@@ -726,6 +839,17 @@ def execute(plan: dict, dest_root: Path, dry_run: bool = False) -> dict:
         "trashed": moved,
         "trash": str(trash),
     }
+
+
+def _drop_if_empty(folder: Path) -> None:
+    """The output folder is made before the mux starts, so a mux that fails
+    leaves it behind empty — and an empty folder named after a film reads
+    as a film that is there. rmdir refuses anything with content, which is
+    exactly the guard wanted: this never removes a real film's folder."""
+    try:
+        folder.rmdir()
+    except OSError:
+        pass
 
 
 def _unlink(path: Path) -> None:
@@ -851,6 +975,19 @@ def version() -> int:
         return _version
 
 
+def _bump() -> None:
+    """Announce a change this process made itself.
+
+    The watcher only fingerprints the staging inboxes — walking the whole
+    film and series libraries every five seconds over a network mount would
+    cost far more than it is worth. Everything that renames or moves
+    something calls this instead, so the panel refreshes immediately without
+    anything being polled."""
+    global _version
+    with _watch_lock:
+        _version += 1
+
+
 def _signature(root: Path) -> str:
     """Names, sizes and mtimes — no ffprobe. Enough to notice a file added,
     removed, renamed or still being copied in."""
@@ -873,6 +1010,14 @@ def _watch() -> None:
     global _version
     while True:
         changed = False
+        # The set of folders itself, not only what is in them: a path
+        # corrected in secrets.json, or a mount that has come back, should
+        # reach the panel without anyone reloading the page.
+        shape = json.dumps(sources(), sort_keys=True)
+        with _watch_lock:
+            if _signatures.get("\x00sources") != shape:
+                _signatures["\x00sources"] = shape
+                changed = True
         for name, cfg in areas().items():
             if not cfg["ready"]:
                 continue
@@ -892,35 +1037,73 @@ def init() -> None:
 
 
 def scan_area(name: str) -> list[dict]:
-    """Every film waiting in one staging area, with its proposed plan.
+    """Every film waiting in one staging area, with its proposed plan —
+    and whatever was already decided about it laid over the top.
 
-    Cached against the folder fingerprint, so this stays cheap while nothing
-    changes and re-probes the moment something does."""
+    The analysis is cached against the folder fingerprint, so this stays
+    cheap while nothing changes and re-probes the moment something does.
+    The saved decisions are applied on every call instead, outside that
+    cache: saving one changes nothing on disk that the fingerprint would
+    notice, and a stale overlay would hand the queue last minute's choice."""
     inbox, library = area(name)
     sig = _signature(inbox)
     with _watch_lock:
         hit = _scan_cache.get(name)
-        if hit and hit[0] == sig:
-            return hit[1]
+    if hit and hit[0] == sig:
+        base = hit[1]
+    else:
+        base = []
+        for candidate in scan(inbox):
+            try:
+                plan = analyse(candidate)
+            except Exception as e:
+                base.append({"folder": str(candidate.folder), "error": str(e)[:200],
+                             "target": candidate.folder.name, "tracks": []})
+                continue
+            plan["area"] = name
+            plan["destination"] = str(library)
+            # So the player can stream it straight from the staging folder --
+            # checking a subtitle's timing before committing the remux is the
+            # entire reason this is in the same app as the player.
+            plan["movie_id"] = movies._encode_id(Path(plan["video"]), name)
+            # What its saved decisions are filed under: the file, not its path.
+            try:
+                plan["fingerprint"] = movies.fingerprint(Path(plan["video"]))
+            except OSError:
+                plan["fingerprint"] = ""
+            base.append(plan)
+        with _watch_lock:
+            _scan_cache[name] = (sig, base)
 
     out = []
-    for candidate in scan(inbox):
-        try:
-            plan = analyse(candidate)
-        except Exception as e:
-            out.append({"folder": str(candidate.folder), "error": str(e)[:200],
-                        "target": candidate.folder.name, "tracks": []})
-            continue
-        plan["area"] = name
-        plan["destination"] = str(library)
-        # So the player can stream it straight from the staging folder --
-        # checking a subtitle's timing before committing the remux is the
-        # entire reason this is in the same app as the player.
-        plan["movie_id"] = movies._encode_id(Path(plan["video"]), name)
+    for plan in base:
+        fp = plan.get("fingerprint")
+        if fp and not plan.get("error"):
+            plan = prep_configs.overlay(plan, prep_configs.get(fp))
+            plan["conflicts"] = _conflicts(plan["tracks"])
         out.append(plan)
-    with _watch_lock:
-        _scan_cache[name] = (sig, out)
     return out
+
+
+def find_plan(area_name: str, fingerprint: str) -> dict | None:
+    """One film's current plan, by fingerprint — found wherever it now sits
+    in its inbox, since the folder may have been renamed since it was
+    queued."""
+    for plan in scan_area(area_name):
+        if plan.get("fingerprint") == fingerprint and not plan.get("error"):
+            return plan
+    return None
+
+
+def save_plan(area_name: str, plan: dict) -> dict:
+    """Remember what was decided about a film. The plan comes from the
+    browser, so it is checked against the inbox like any other: only a film
+    that is really in there can have decisions filed for it."""
+    inbox, _ = area(area_name)
+    _, video = _checked_paths(plan, inbox)
+    fp = movies.fingerprint(video)
+    prep_configs.save(fp, plan, where=str(video))
+    return {"fingerprint": fp}
 
 
 # ── browsing a staging folder ────────────────────────────────────────────
@@ -949,40 +1132,107 @@ def file_kind(path: Path) -> str:
     return "binary"
 
 
+# A folder someone downloaded into is not tidy: the film can sit loose in
+# the root, or three levels down next to a "Subs" folder, a sample and a
+# screenshot gallery. So nothing is assumed about the shape — the whole
+# subtree is walked and handed over flat, and the panel rebuilds the tree
+# from the paths. The cap is only there so that pointing an area at
+# something enormous by mistake cannot hang the browser.
+BROWSE_MAX_ENTRIES = 20000
+
+
 def browse(area_name: str) -> list[dict]:
-    """Every file in a staging area, classified, newest folder first."""
-    inbox, _ = area(area_name)
+    """Everything in a browsable folder — the files *and* the folders.
+
+    Folders are listed in their own right, not merely implied by the files
+    under them: an empty one is still somewhere you can drop a file, and a
+    tree that silently loses folders as they empty is a tree you cannot
+    trust."""
+    root, _ = area(area_name)
     out: list[dict] = []
-    for path in sorted(inbox.rglob("*")):
-        if TRASH_DIR in path.parts or path.name.startswith("."):
-            continue
-        if not path.is_file():
-            continue
-        try:
-            st = path.stat()
-        except OSError:
-            continue
-        kind = file_kind(path)
-        rel = path.relative_to(inbox)
-        entry = {
-            "path": str(rel),
-            "folder": str(rel.parent) if str(rel.parent) != "." else "",
-            "name": path.name,
-            "size": st.st_size,
-            "modified": int(st.st_mtime),
-            "kind": kind,
-            "readable": kind in ("text", "subtitle") and st.st_size <= TEXT_MAX_BYTES,
-        }
-        if kind == "video":
+    # Folder sizes are the sum of what is under them, accumulated as the
+    # walk goes rather than re-walked per folder.
+    sizes: dict[str, int] = {}
+    counts: dict[str, int] = {}
+    truncated = False
+
+    for dirpath, dirnames, filenames in os.walk(root):
+        here = Path(dirpath)
+        # Pruned in place, which is what stops os.walk descending into them.
+        dirnames[:] = sorted(
+            d for d in dirnames if d != TRASH_DIR and not d.startswith("."))
+        if len(out) >= BROWSE_MAX_ENTRIES:
+            truncated = True
+            break
+
+        for name in dirnames:
+            rel = (here / name).relative_to(root)
             try:
-                entry["movie_id"] = movies._encode_id(path, area_name)
-            except (ValueError, KeyError):
-                # A file the player cannot address is still worth listing —
-                # losing the whole folder listing because one id could not be
-                # built is a bad trade.
-                entry["kind"] = "binary"
-                entry["playable_error"] = "not reachable from a configured root"
-        out.append(entry)
+                st = (here / name).stat()
+            except OSError:
+                continue
+            out.append({
+                "path": str(rel),
+                "folder": str(rel.parent) if str(rel.parent) != "." else "",
+                "name": name,
+                "size": 0,          # filled in below, once its files are known
+                "modified": int(st.st_mtime),
+                "kind": "folder",
+                "readable": False,
+                "children": 0,
+            })
+
+        for name in sorted(filenames):
+            if name.startswith("."):
+                continue
+            path = here / name
+            if not path.is_file():   # a broken symlink lists as a filename
+                continue
+            try:
+                st = path.stat()
+            except OSError:
+                continue
+            kind = file_kind(path)
+            rel = path.relative_to(root)
+            parent = str(rel.parent) if str(rel.parent) != "." else ""
+            entry = {
+                "path": str(rel),
+                "folder": parent,
+                "name": name,
+                "size": st.st_size,
+                "modified": int(st.st_mtime),
+                "kind": kind,
+                "readable": kind in ("text", "subtitle") and st.st_size <= TEXT_MAX_BYTES,
+            }
+            if kind == "video":
+                try:
+                    entry["movie_id"] = movies._encode_id(path, area_name)
+                except (ValueError, KeyError):
+                    # A file the player cannot address is still worth listing —
+                    # losing the whole folder listing because one id could not be
+                    # built is a bad trade.
+                    entry["kind"] = "binary"
+                    entry["playable_error"] = "not reachable from a configured root"
+            out.append(entry)
+
+            # Every ancestor of this file grows by its size.
+            walk = rel.parent
+            while str(walk) != ".":
+                key = str(walk)
+                sizes[key] = sizes.get(key, 0) + st.st_size
+                walk = walk.parent
+
+    for entry in out:
+        if entry["kind"] == "folder":
+            entry["size"] = sizes.get(entry["path"], 0)
+    for entry in out:
+        if entry["folder"]:
+            counts[entry["folder"]] = counts.get(entry["folder"], 0) + 1
+    for entry in out:
+        if entry["kind"] == "folder":
+            entry["children"] = counts.get(entry["path"], 0)
+    if truncated:
+        print(f"prep: {area_name!r} has more than {BROWSE_MAX_ENTRIES} entries; listing truncated")
     return out
 
 
@@ -1072,8 +1322,10 @@ def move_film(movie_id: str, to_key: str) -> dict:
 
     # An inbox holds dirty downloads waiting to be prepared; putting a
     # finished film back into one would queue it for work it has already had.
-    # Destinations are outputs and the library only.
-    if to_key and not to_key.endswith(":library"):
+    # Destinations are the libraries and the staging outputs only — and an
+    # area's *name* is exactly the key of its inbox, which is what this
+    # checks against.
+    if to_key in areas():
         raise PrepError(
             f"{to_key!r} is a staging inbox — films move out of those, not into them",
             400)
@@ -1116,4 +1368,180 @@ def move_film(movie_id: str, to_key: str) -> dict:
         "was_folder": moving.is_dir() if moving.exists() else True,
         "size": sum(p.stat().st_size for p in dest.rglob("*") if p.is_file())
                 if dest.is_dir() else dest.stat().st_size,
+    }
+
+
+# ── rearranging a folder from the panel ──────────────────────────────────
+# Downloads arrive badly organised: the film three levels down, the
+# subtitles in a "Subs" folder next to it, everything named after the
+# release group. Fixing that by hand meant a shell; these two do it from the
+# tree instead. Both are deliberately conservative — they never overwrite,
+# never merge, and never leave the roots they were given.
+def resolve_entry(area_name: str, rel: str, must_exist: bool = True) -> Path:
+    """A file *or folder* inside a browsable root, refusing anything that
+    escapes it. `resolve_in_area` is the file-only version, kept because the
+    viewer endpoints genuinely only ever want files."""
+    root, _ = area(area_name)
+    root = root.resolve()
+    rel = (rel or "").strip().strip("/")
+    try:
+        path = (root / rel).resolve()
+    except OSError as e:
+        raise PrepError(f"bad path: {e}")
+    if root != path and root not in path.parents:
+        raise PrepError("path outside the folder", 403)
+    if must_exist and not path.exists():
+        raise PrepError(f"no such file or folder: {rel}", 404)
+    return path
+
+
+# Characters a filename cannot carry here: the path separator, and the ones
+# Windows refuses — the library is read by machines that are not this one.
+_BAD_NAME_CHARS = set('/\\:*?"<>|')
+
+
+def _check_name(name: str) -> str:
+    name = (name or "").strip().rstrip(".")
+    if not name:
+        raise PrepError("a name is required")
+    if name in (".", ".."):
+        raise PrepError(f"{name!r} is not a name")
+    bad = sorted(set(name) & _BAD_NAME_CHARS)
+    if bad:
+        raise PrepError(f"a name cannot contain {' '.join(bad)}")
+    if any(ord(c) < 32 for c in name):
+        raise PrepError("a name cannot contain control characters")
+    if len(name.encode("utf-8")) > 255:
+        raise PrepError("that name is too long for a filesystem")
+    return name
+
+
+def rename_entry(area_name: str, rel: str, new_name: str) -> dict:
+    """Rename one file or folder in place. The name only — moving is the
+    other function, and conflating them makes a typo in a path silently
+    relocate something."""
+    path = resolve_entry(area_name, rel)
+    name = _check_name(new_name)
+    if name == path.name:
+        return {"path": rel, "renamed": False, "new_path": rel, "name": name}
+    dest = path.parent / name
+    if dest.exists():
+        raise PrepError(f"{name!r} already exists in this folder", 409)
+    path.rename(dest)
+    _bump()
+    root, _ = area(area_name)
+    new_rel = str(dest.resolve().relative_to(root.resolve()))
+    return {"path": rel, "renamed": True, "new_path": new_rel, "name": name,
+            "is_dir": dest.is_dir()}
+
+
+def move_entry(from_area: str, from_rel: str, to_area: str, to_rel: str) -> dict:
+    """Move a file or folder into another folder, possibly in another root.
+
+    `to_rel` names the *destination folder*, "" being that root itself. The
+    moved thing keeps its name — a move that also renames is two intentions
+    in one gesture, and dragging is not precise enough to express the
+    second."""
+    src = resolve_entry(from_area, from_rel)
+    dst_dir = resolve_entry(to_area, to_rel)
+    if not dst_dir.is_dir():
+        raise PrepError("the destination is not a folder", 400)
+    if src == dst_dir:
+        raise PrepError("a folder cannot be moved into itself", 400)
+    # Dragging a folder onto something inside it would move the destination
+    # out from under the thing being moved.
+    if src in dst_dir.parents:
+        raise PrepError("a folder cannot be moved into itself", 400)
+    if src.parent == dst_dir:
+        raise PrepError(f"{src.name!r} is already there", 409)
+
+    dest = dst_dir / src.name
+    if dest.exists():
+        raise PrepError(
+            f"{src.name!r} already exists in the destination — "
+            f"rename one of them first", 409)
+    # shutil.move copies and deletes when the two are on different
+    # filesystems, which is what makes a staging folder on the local disk
+    # able to feed a library on the network mount.
+    shutil.move(str(src), str(dest))
+    _bump()
+    root, _ = area(to_area)
+    return {
+        "moved": src.name,
+        "from": from_rel,
+        "to_area": to_area,
+        "new_path": str(dest.resolve().relative_to(root.resolve())),
+        "is_dir": dest.is_dir(),
+    }
+
+
+def delete_entry(area_name: str, rel: str) -> dict:
+    """Delete a file, or a folder and everything in it. For good.
+
+    Not moved to `.trash` like `execute` does with the sources it replaces:
+    that exists because a remux can go wrong in ways you only notice later,
+    while this is someone looking at a file and saying to remove it. The
+    panel asks twice, and that is the whole safety net — which is why the
+    count and the size come back, so the answer can say what actually went."""
+    path = resolve_entry(area_name, rel)
+    root, _ = area(area_name)
+    root = root.resolve()
+    if path == root:
+        raise PrepError("that is the folder itself, not something in it", 400)
+
+    files = [p for p in path.rglob("*") if p.is_file()] if path.is_dir() else [path]
+    size = 0
+    for p in files:
+        try:
+            size += p.stat().st_size
+        except OSError:
+            pass
+    count = len(files)
+    name = path.name
+    was_dir = path.is_dir()
+
+    if was_dir:
+        shutil.rmtree(path)
+    else:
+        path.unlink()
+    _bump()
+    return {"removed": name, "path": rel, "is_dir": was_dir,
+            "files": count, "size": size}
+
+
+def _device_for(mount: Path) -> str:
+    """The device behind a mount point, from /proc/mounts. Only used to name
+    a mount whose own path has no useful last component — "/" being the one
+    that matters here."""
+    try:
+        with open("/proc/mounts", encoding="utf-8") as fh:
+            for line in fh:
+                parts = line.split()
+                if len(parts) >= 2 and parts[1] == str(mount):
+                    return Path(parts[0]).name
+    except OSError:
+        pass
+    return ""
+
+
+def disk_usage(area_name: str) -> dict:
+    """Which disk this folder is on, and how much of it is left.
+
+    Shown beside the search box because the question it answers — "can I
+    still put a 40 GB remux here?" — is asked in front of the folder, not in
+    a terminal. The name is the mount point's own last component, which is
+    what these disks are actually called (/mnt/pangea -> "pangea")."""
+    root, _ = area(area_name)
+    root = root.resolve()
+    usage = shutil.disk_usage(root)
+    mount = root
+    while not os.path.ismount(mount) and mount.parent != mount:
+        mount = mount.parent
+    return {
+        "name": mount.name or _device_for(mount) or str(mount),
+        "mount": str(mount),
+        "path": str(root),
+        "total": usage.total,
+        "free": usage.free,
+        "used": usage.used,
     }

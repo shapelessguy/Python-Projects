@@ -14,10 +14,22 @@ if str(PROJECT_DIR) not in sys.path:
     sys.path.insert(0, str(PROJECT_DIR))
 
 
+# Which keys this loader put into the environment last time it ran. An env
+# var it planted itself is not "the environment" -- it is a stale copy of
+# this very file, and treating it as an override is what makes editing
+# secrets.json appear to do nothing: `python -m api` runs uvicorn with
+# reload=True, the parent process loads this module (for API_PORT), and every
+# reloaded child inherits the parent's environment. With a plain setdefault
+# the child then keeps whatever the file said when the *service* started,
+# for as long as the service runs.
+_PLANTED = "CYANHOUSE_SECRET_ENV"
+
+
 def _load_secrets(path: Path) -> dict:
-    """Every top-level scalar becomes an environment variable (real
-    environment variables still win, same as the old .env loader) -- see
-    secrets.json.example.
+    """Every top-level scalar becomes an environment variable -- see
+    secrets.json.example. A real environment variable still wins, same as the
+    old .env loader; one this loader planted on an earlier start does not,
+    because that is just an older copy of the file being read now.
 
     Objects and lists are skipped: an env var is a string, and `str()` of a
     dict is not something anything can read back. They stay in the returned
@@ -32,10 +44,16 @@ def _load_secrets(path: Path) -> dict:
     except Exception as e:
         print(f"WARNING: couldn't parse {path}: {e}")
         return {}
+    planted = {k for k in os.environ.get(_PLANTED, "").split(",") if k}
+    fresh = []
     for key, value in data.items():
         if isinstance(value, (dict, list)):
             continue
-        os.environ.setdefault(key, str(value))
+        if key in os.environ and key not in planted:
+            continue  # set from outside: that genuinely outranks the file
+        os.environ[key] = str(value)
+        fresh.append(key)
+    os.environ[_PLANTED] = ",".join(fresh)
     return data
 
 
@@ -96,7 +114,9 @@ MOVIES_DIR = Path(os.environ.get("MOVIES_DIR", "/mnt/pangea/Video/Movies"))
 # done and is only ever read. Shaped as
 #   {"<name>": {"inbox": "/path/in", "output": "/path/out"}}
 # "output" may be omitted to prepare straight into MOVIES_DIR; "library" is
-# accepted as the older spelling of the same key.
+# accepted as the older spelling of the same key. "inbox" may be omitted
+# too: an entry with only an output is somewhere finished work is kept and
+# browsed (the series library is configured this way), with nothing staged.
 MOVIE_STAGING: dict = _SECRETS.get("movie_staging", {})
 MOVIES_CACHE_DIR = Path(os.environ.get("MOVIES_CACHE_DIR", API_DATA_DIR / "movies_cache"))
 # Durable, unlike MOVIES_CACHE_DIR above: subtitles uploaded through the UI

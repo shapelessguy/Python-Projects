@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { api, MovieInfo, MovieItem, MovieTrack, MovieSource, PrepPlan, StagedFile } from "../api";
-import { FileView, PrepIdentity, PrepCommit, KIND_ICON, byFolder, fmtSize } from "./StagingView";
+import { api, MovieInfo, MovieItem, MovieTrack, MovieSource, PrepPlan, RemuxJob, StagedFile } from "../api";
+import { FileView, FileTree, MoviesHome, PrepIdentity, PrepCommit, DRAG_TYPE, fmtSize, selectionRoots } from "./StagingView";
 import { useVersionPoll, useVisibility } from "../api";
+import { entriesFrom, walkEntries, useUploads } from "../uploads";
 
 /** The stream is a transcode piped into a fragmented MP4: no byte ranges, no
  *  index, so the browser can't seek it and `video.duration` is meaningless.
@@ -78,6 +79,10 @@ function fmt(seconds: number): string {
   return h ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
 }
 
+/** What a pane with nothing ticked in it is handed — one shared empty set, so
+ *  the other pane re-renders only when its own selection actually changes. */
+const NO_PICK: Set<string> = new Set();
+
 function gb(bytes: number): string {
   return `${(bytes / 1e9).toFixed(1)} GB`;
 }
@@ -90,19 +95,84 @@ export function MoviesPanel() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const stageRef = useRef<HTMLDivElement | null>(null);
 
-  // "" is the library; anything else is a staging area from secrets.json.
+  // Which tab is open: "" for the film library, or the name of a staging
+  // area — which shows its inbox and its output together, or just the one
+  // it has (the series library is an area with only an output).
+  const [tab, setTab] = useState("");
+  // The folder the right-hand panel's content comes from. With a staging
+  // area open that is one of *two* folders, so it is set by whichever pane
+  // was clicked in, not by the tab.
   const [source, setSource] = useState("");
   const [sources, setSources] = useState<MovieSource[]>([]);
   const [languages, setLanguages] = useState<{ code: string; name: string }[]>([]);
-  const [staged, setStaged] = useState<StagedFile[]>([]);
+  // One listing per visible pane, keyed by source key.
+  const [listings, setListings] = useState<Record<string, StagedFile[]>>({});
+  const [paneErrors, setPaneErrors] = useState<Record<string, string>>({});
   const [plans, setPlans] = useState<Record<string, PrepPlan>>({});
   const [viewFile, setViewFile] = useState<StagedFile | null>(null);
   const [prepNote, setPrepNote] = useState("");
-  const sourceKind = sources.find((x) => x.key === source)?.kind ?? "library";
+  // Rearranging happens in the left column and has to be answered there:
+  // `prepNote` lives inside the player, which is replaced wholesale by the
+  // file viewer — exactly what is on screen while you are renaming things.
+  const [treeNote, setTreeNote] = useState<{ text: string; bad: boolean } | null>(null);
+  // Ticked rows, by path, and the pane they were ticked in. One pane at a
+  // time: a selection spanning an inbox and an output would make "delete
+  // these" mean two different folders at once.
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [pickedArea, setPickedArea] = useState("");
+  const [bulkTo, setBulkTo] = useState("");
+  const [bulkBusy, setBulkBusy] = useState("");
+  // Same two-click confirm the context menu uses; disarms whenever the
+  // selection changes, so it can never carry over to a different set.
+  const [armedDelete, setArmedDelete] = useState(false);
+  // Which upload batch is expanded to show its files. One at a time: the
+  // tray is a status line, not a second file browser.
+  const [openBatch, setOpenBatch] = useState("");
+  const [space, setSpace] = useState<
+    { name: string; mount: string; path: string; total: number; free: number } | null>(null);
   const versions = useVersionPoll();
   const { permissions } = useVisibility();
-  const [moveTo, setMoveTo] = useState("");
-  const [publishing, setPublishing] = useState("");
+  // Which tab a drag is currently hovering, so it can say so.
+  const [dropTab, setDropTab] = useState("");
+  // The server's remux queue — running whether or not this page is open.
+  // Held here only to draw it; the server is the record.
+  const [jobs, setJobs] = useState<RemuxJob[]>([]);
+  const [queueOpen, setQueueOpen] = useState(false);
+  const running = jobs.find((j) => j.state === "running") ?? null;
+  const waiting = jobs.filter((j) => j.state === "queued");
+  const busyQueue = !!running || waiting.length > 0;
+
+  /** The tabs: one per library, one per staging area. An area is its inbox
+   *  and its output together — either may be missing — and opening it shows
+   *  both, the work waiting above the work done. */
+  const groups = useMemo(() => {
+    const out: { key: string; label: string; todo?: MovieSource; done?: MovieSource }[] = [];
+    const at = new Map<string, number>();
+    for (const x of sources) {
+      // The libraries have no pair; they key on their own source key.
+      const key = x.kind === "inbox" || x.kind === "output" ? x.group : x.key;
+      let i = at.get(key);
+      if (i === undefined) {
+        i = out.length;
+        at.set(key, i);
+        out.push({ key, label: x.kind === "inbox" || x.kind === "output" ? x.group : x.label });
+      }
+      if (x.role === "todo") out[i].todo = x;
+      else out[i].done = x;
+    }
+    return out;
+  }, [sources]);
+
+  /** The folders the open tab shows, top to bottom. Empty for the film
+   *  library, which is a flat list of films rather than a tree. */
+  const panes = useMemo(() => {
+    if (tab === "") return [] as MovieSource[];
+    const g = groups.find((x) => x.key === tab);
+    return [g?.todo, g?.done].filter(Boolean) as MovieSource[];
+  }, [groups, tab]);
+  const paneKeys = panes.map((x) => x.key).join("|");
+  const inbox = panes.find((x) => x.kind === "inbox");
+
   const [movies, setMovies] = useState<MovieItem[]>([]);
   const [listError, setListError] = useState("");
   const [query, setQuery] = useState("");
@@ -122,6 +192,9 @@ export function MoviesPanel() {
   // one from the same position instead.
   const [dead, setDead] = useState(false);
   const [note, setNote] = useState("");
+  // Whether `note` is a complaint or a confirmation — the same line carries
+  // both, and a rejected upload should not read like a success.
+  const [noteBad, setNoteBad] = useState(false);
   const [subBusy, setSubBusy] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [delays, setDelays] = useState<Delays>({});
@@ -138,31 +211,122 @@ export function MoviesPanel() {
 
   useEffect(() => {
     api.movies().then(setMovies).catch((e) => setListError(String(e)));
+  }, []);
+
+  // Which folders exist is configuration, and configuration changes: it is
+  // re-read on the same counter the listings use, so correcting a path in
+  // secrets.json moves the tabs rather than waiting for a page reload.
+  useEffect(() => {
     api.prepAreas()
       .then((r) => { setSources(r.sources); setLanguages(r.languages); })
       .catch(() => {});
+  }, [versions.prep]);
+
+  /** Re-read every visible pane. Both at once because a move between them
+   *  changes both, and a half-updated pair shows a file in two places. */
+  const loadPanes = useCallback(async (keys: string[]) => {
+    const results = await Promise.all(keys.map((k) =>
+      api.prepFiles(k)
+        .then((r) => ({ k, files: r.files, error: "" }))
+        .catch((e) => ({ k, files: [] as StagedFile[], error: String(e).replace(/^Error:\s*/, "") }))));
+    setListings(Object.fromEntries(results.map((r) => [r.k, r.files])));
+    setPaneErrors(Object.fromEntries(results.filter((r) => r.error).map((r) => [r.k, r.error])));
+    return Object.fromEntries(results.map((r) => [r.k, r.files])) as Record<string, StagedFile[]>;
   }, []);
 
   // The backend watches the staging folders and bumps `prep` when they
   // change, so this refetches on a real change rather than on a timer.
   useEffect(() => {
-    if (!source) return;
+    if (!paneKeys) return;
     let alive = true;
     setListError("");
-    api.prepFiles(source)
-      .then((r) => alive && setStaged(r.files))
-      .catch((e) => alive && setListError(String(e)));
-    if (sourceKind !== "inbox") { setPlans({}); return () => { alive = false; }; }
-    api.prepScan(source)
+    loadPanes(paneKeys.split("|")).catch(() => {});
+    // Only an inbox has films waiting to be prepared; an output's films are
+    // already done, so there is no plan to fetch for them.
+    if (!inbox) { setPlans({}); return () => { alive = false; }; }
+    api.prepScan(inbox.key)
       .then((r) => {
         if (!alive) return;
-        const next: Record<string, PrepPlan> = {};
-        for (const p of r.films) if (p.movie_id) next[p.movie_id] = p;
-        setPlans(next);
+        // A film being edited right now keeps the local copy: the server's
+        // copy is at most one save behind it, and taking the server's would
+        // undo the last keystroke.
+        setPlans((mine) => {
+          const next: Record<string, PrepPlan> = {};
+          for (const p of r.films) {
+            if (!p.movie_id) continue;
+            next[p.movie_id] = unsaved.current.has(p.movie_id) && mine[p.movie_id]
+              ? mine[p.movie_id] : p;
+          }
+          return next;
+        });
       })
       .catch(() => {});
     return () => { alive = false; };
-  }, [source, sourceKind, versions.prep]);
+  }, [paneKeys, inbox?.key, versions.prep, loadPanes]);
+
+  // Kept next to the search box because "can I still put a 40 GB remux
+  // here?" is a question you ask in front of the folder. Refetched on the
+  // same signal the listing uses, so a delete or a remux moves the number.
+  // For a pair it is the inbox's disk — where the next download lands.
+  useEffect(() => {
+    let alive = true;
+    api.prepSpace(panes[0]?.key ?? "")
+      .then((r) => alive && setSpace(r))
+      .catch(() => alive && setSpace(null));
+    return () => { alive = false; };
+  }, [paneKeys, versions.prep]);
+
+  // Asked for whenever the folders change — queueing, starting and finishing
+  // a remux all bump that counter, so a remux queued from another browser
+  // shows up here too — and then followed once a second while anything is
+  // running or waiting.
+  // Plans with a save still to go out, by movie id — kept safe from being
+  // overwritten by a refetch until the server has them.
+  const unsaved = useRef(new Set<string>());
+  const saveTimers = useRef(new Map<string, number>());
+  const saveNow = (plan: PrepPlan): Promise<void> => {
+    const id = plan.movie_id!;
+    return api.prepSavePlan(plan.area!, plan)
+      .then(() => undefined)
+      .catch((e) => setPrepNote(`Could not save: ${String(e).replace(/^Error:\s*/, "")}`))
+      .finally(() => {
+        // Another edit may have been scheduled while this one was in the
+        // air; the film stays protected until that one has gone too.
+        if (!saveTimers.current.has(id)) unsaved.current.delete(id);
+      });
+  };
+  const scheduleSave = (plan: PrepPlan) => {
+    const id = plan.movie_id;
+    if (!id || !plan.area) return;
+    unsaved.current.add(id);
+    window.clearTimeout(saveTimers.current.get(id));
+    saveTimers.current.set(id, window.setTimeout(() => {
+      saveTimers.current.delete(id);
+      saveNow(plan);
+    }, 300));
+  };
+  /** Send anything still waiting — before Remux all, which works from what
+   *  the server has saved, not from what is on this screen. */
+  const flushSaves = async () => {
+    const pending = [...saveTimers.current.keys()];
+    const sends = pending.map((id) => {
+      window.clearTimeout(saveTimers.current.get(id));
+      saveTimers.current.delete(id);
+      const plan = plans[id];
+      return plan ? saveNow(plan) : Promise.resolve();
+    });
+    await Promise.all(sends);
+  };
+
+  const loadJobs = useCallback(() => {
+    api.prepJobs().then((r) => setJobs(r.jobs)).catch(() => {});
+  }, []);
+  useEffect(loadJobs, [versions.prep, loadJobs]);
+  useEffect(() => {
+    if (!busyQueue) return;
+    const t = window.setInterval(loadJobs, 1000);
+    return () => window.clearInterval(t);
+  }, [busyQueue, loadJobs]);
 
   const stop = useCallback(() => {
     setPlaying(null);
@@ -185,25 +349,274 @@ export function MoviesPanel() {
     };
   }, []);
 
-  const switchSource = (next: string) => {
-    // Re-clicking the tab you are already on would clear the list without
-    // refetching it: the effect that reloads keys off `source` changing, so
-    // nothing would bring the files back.
-    if (next === source) return;
+  const switchTab = (next: string) => {
+    // Re-clicking the tab you are already on would clear the lists without
+    // refetching them: the effect that reloads keys off the panes changing,
+    // so nothing would bring the files back.
+    if (next === tab) return;
     stop();
-    setSource(next);
+    setTab(next);
+    const g = groups.find((x) => x.key === next);
+    setSource(g?.todo?.key ?? g?.done?.key ?? next);
     setSelected(null); setInfo(null); setViewFile(null);
-    setStaged([]); setPlans({}); setPrepNote(""); setQuery("");
+    setListings({}); setPaneErrors({}); setPlans({});
+    setPrepNote(""); setQuery(""); setTreeNote(null); setSpace(null);
+    setPicked(new Set()); setPickedArea(""); setBulkTo("");
   };
 
-  const pickFile = (f: StagedFile) => {
+  // Who may change what — the same rule as may_change / may_move in
+  // api/routers/prep.py, which is what actually enforces it; this only keeps
+  // the panel from offering what the server would refuse.
+  //
+  // A staging area with an inbox is a workspace: its two folders, the work
+  // waiting and the work done, are open to anyone — rename, delete, upload,
+  // reorganise, remux, and move between the two. Everything past that
+  // needs the publish permission.
+  const publisher = !!permissions.publish;
+  /** The workspace a folder belongs to, or null for the shelf. */
+  const workspaceOf = (key: string): string | null => {
+    const x = sources.find((s) => s.key === key);
+    if (!x) return null;
+    if (x.kind === "inbox") return x.key;
+    if (x.kind === "output" && sources.some((s) => s.kind === "inbox" && s.group === x.group)) return x.group;
+    return null;
+  };
+  /** Both folders of a workspace. */
+  const workspaceFolders = (ws: string) =>
+    sources.filter((s) => s.group === ws && (s.kind === "inbox" || s.kind === "output")).map((s) => s.key);
+  const canEditArea = (area: string) => publisher || workspaceOf(area) !== null;
+  /** Which folders' entries may be dropped into `area`. */
+  const acceptsFrom = (area: string): "*" | string[] => {
+    if (publisher) return "*";
+    const ws = workspaceOf(area);
+    return ws ? workspaceFolders(ws) : [];
+  };
+
+  /** Re-read the panes after something moved, was renamed or was deleted,
+   *  and follow whatever the right-hand panel was showing to its new path —
+   *  the file is the same file, and having it vanish because it was renamed
+   *  is exactly the wrong answer. `now` is null when it is simply gone. */
+  const afterRearrange = async (
+    was: string, now: string | null, fromArea: string, toArea: string,
+  ) => {
+    const moved = (path: string) => path === was || path.startsWith(was + "/");
+    const follow = (path: string) => (now === null ? null : now + path.slice(was.length));
+
+    // Its id encodes its path, so a film that moved is no longer addressable
+    // under the id being streamed.
+    const playingPath = (listings[fromArea] ?? []).find((f) => f.movie_id === selected?.id)?.path;
+    if (playingPath && moved(playingPath)) { stop(); setSelected(null); setInfo(null); }
+
+    const fresh = await loadPanes(panes.map((x) => x.key));
+    if (viewFile && source === fromArea && moved(viewFile.path)) {
+      const to = follow(viewFile.path);
+      const next = to !== null ? (fresh[toArea] ?? []).find((f) => f.path === to) : undefined;
+      // Followed into the other pane: the right panel now reads from there.
+      if (next) setSource(toArea);
+      setViewFile(next ?? null);
+    }
+  };
+
+  // A finished upload puts a file in a folder being looked at, so the
+  // listings have to catch up. The backend bumps its counter too, but that
+  // is a poll away and this is instant.
+  const refreshListing = useCallback(() => {
+    if (paneKeys) loadPanes(paneKeys.split("|")).catch(() => {});
+  }, [paneKeys, loadPanes]);
+  const uploads = useUploads(refreshListing);
+
+  useEffect(() => { setArmedDelete(false); }, [picked]);
+
+  // When a remux finishes, the film it was for is gone from the inbox — its
+  // sources are in the trash and the result is in the output. Anything still
+  // showing it would be showing a file that is no longer there.
+  /** Queue every ready film in an inbox, and say which were left out and
+   *  why — a film not yet identified is the usual one. */
+  const remuxAll = async (area: string) => {
+    setTreeNote(null);
+    try {
+      await flushSaves();
+      const r = await api.prepRemuxAll(area);
+      loadJobs();
+      const left = r.skipped.map((x) => `${x.folder} (${x.reason.replace(`${x.folder}: `, "")})`);
+      say(`Queued ${r.queued.length} film${r.queued.length === 1 ? "" : "s"}` +
+          (left.length ? `. Not queued: ${left.join("; ")}` : ""),
+          r.queued.length === 0 && left.length > 0);
+    } catch (e) { failed(e); }
+  };
+
+  const failedCount = jobs.filter((j) => j.state === "failed").length;
+  const phaseText = (j: RemuxJob) =>
+    j.phase === "verifying" ? `Checking ${j.target}`
+      : j.phase === "tidying" ? `Moving ${j.target}`
+      : `Remuxing ${j.target}`;
+
+  // The menu closes on any click outside it, or Escape — like the tree's.
+  useEffect(() => {
+    if (!queueOpen) return;
+    const close = () => setQueueOpen(false);
+    const key = (e: KeyboardEvent) => e.key === "Escape" && setQueueOpen(false);
+    window.addEventListener("click", close);
+    window.addEventListener("keydown", key);
+    return () => { window.removeEventListener("click", close); window.removeEventListener("keydown", key); };
+  }, [queueOpen]);
+
+  const lastRunning = useRef<string | null>(null);
+  useEffect(() => {
+    const was = lastRunning.current;
+    lastRunning.current = running?.id ?? null;
+    if (!was || was === running?.id) return;
+    const ended = jobs.find((j) => j.id === was);
+    if (ended?.state === "done" && selected?.id === ended.movie_id) {
+      stop(); setSelected(null); setInfo(null);
+    }
+    if (paneKeys) loadPanes(paneKeys.split("|")).catch(() => {});
+  }, [running?.id, jobs]);
+
+  const say = (text: string, bad = false) => setTreeNote({ text, bad });
+  const failed = (e: unknown) => say(String(e).replace(/^Error:\s*/, ""), true);
+
+  const labelOf = (key: string) => sources.find((x) => x.key === key)?.label ?? key;
+
+  /** What a pane's tree can do, bound to that pane's folder. Moves take the
+   *  area they come *from* separately, because the two panes of a pair are
+   *  two folders and dragging between them is the whole point of showing
+   *  them together. */
+  const actionsFor = (area: string) => ({
+    move: (paths: string[], to: string, fromArea: string) =>
+      moveMany(fromArea, paths, area, to,
+               fromArea === area ? (to || "the top level") : `${labelOf(area)}${to ? " / " + to : ""}`),
+    rename: async (path: string, name: string) => {
+      setTreeNote(null);
+      try {
+        const r = await api.prepRename(area, path, name);
+        say(`Renamed to ${r.name}`);
+        await afterRearrange(path, r.new_path, area, area);
+      } catch (e) { failed(e); }
+    },
+    upload: (dt: DataTransfer, to: string) => {
+      // Read *before* any await: the DataTransfer is emptied the moment the
+      // drop handler returns, and an entry taken from it afterwards is null.
+      const entries = entriesFrom(dt);
+      setTreeNote(null);
+      walkEntries(entries, dt).then((found) => {
+        if (!found.length) { say("Nothing usable in that drop", true); return; }
+        uploads.add(found, area, to);
+        const bytes = found.reduce((n, p) => n + p.file.size, 0);
+        say(`Uploading ${found.length} file${found.length === 1 ? "" : "s"} ` +
+            `(${fmtSize(bytes)}) → ${labelOf(area)}${to ? " / " + to : ""}`);
+      }).catch((e) => failed(e));
+    },
+    remove: (paths: string[]) => deletePaths(area, paths),
+    moveTo: (paths: string[], toArea: string) =>
+      moveMany(area, paths, toArea, "", labelOf(toArea)),
+  });
+
+  /** Where a right-click in `area` can send things: every other folder that
+   *  exists, or — without the publish permission — the other half of the
+   *  same workspace. */
+  const destinationsFor = (area: string) => {
+    const ws = workspaceOf(area);
+    return sources
+      .filter((x) => x.ready && x.key !== area)
+      .filter((x) => publisher || (ws !== null && workspaceOf(x.key) === ws))
+      .map((x) => ({ key: x.key, label: x.label }));
+  };
+
+  /** Dropping onto a tab moves the thing into that tab's folder — its inbox
+   *  for a staging area, since that is where incoming work goes. */
+  const dropOnTab = async (e: React.DragEvent, target: MovieSource) => {
+    e.preventDefault();
+    setDropTab("");
+    const raw = e.dataTransfer.getData(DRAG_TYPE);
+    if (!raw) return;
+    let from: { area: string; paths: string[] };
+    try {
+      from = JSON.parse(raw);
+    } catch { return; }
+    if (from.area === target.key) return;
+    await moveMany(from.area, from.paths ?? [], target.key, "", target.label);
+  };
+
+  /** Delete these. Sequential for the same reason moving is: each one can
+   *  fail on its own terms, and you should be told which. */
+  const deletePaths = async (area: string, paths: string[]) => {
+    setArmedDelete(false);
+    setTreeNote(null);
+    setBulkBusy("Deleting…");
+    let gone = 0;
+    let files = 0;
+    let bytes = 0;
+    const problems: string[] = [];
+    let last = "";
+    for (const path of paths) {
+      try {
+        const r = await api.prepDelete(area, path);
+        gone += 1; files += r.files; bytes += r.size; last = path;
+      } catch (e) {
+        problems.push(String(e).replace(/^Error:\s*/, ""));
+      }
+    }
+    setBulkBusy("");
+    setPicked(new Set());
+    if (last) await afterRearrange(last, null, area, area);
+    const head = paths.length === 1 && gone === 1
+      ? `Deleted ${paths[0].split("/").pop()} — ${files} file${files === 1 ? "" : "s"}, ${fmtSize(bytes)} freed`
+      : `Deleted ${gone} of ${paths.length} — ${files} file${files === 1 ? "" : "s"}, ${fmtSize(bytes)} freed`;
+    say(problems.length ? `${head}. ${problems[0]}` : head, gone === 0);
+  };
+
+  /** One move per item, sequentially: they are renames on a filesystem, the
+   *  failures are per-item (a name already taken at the destination), and a
+   *  batch that stops at the first one would leave you guessing which of
+   *  twenty files actually went. */
+  const moveMany = async (
+    fromArea: string, paths: string[], toArea: string, to: string, label: string,
+  ) => {
+    setTreeNote(null);
+    setBulkBusy("Moving…");
+    let moved = 0;
+    let last: { was: string; now: string } | null = null;
+    const problems: string[] = [];
+    for (const path of paths) {
+      try {
+        const r = await api.prepMovePath(fromArea, path, toArea, to);
+        moved += 1;
+        last = { was: path, now: r.new_path };
+      } catch (e) {
+        problems.push(String(e).replace(/^Error:\s*/, ""));
+      }
+    }
+    setBulkBusy("");
+    setPicked(new Set());
+    if (last) await afterRearrange(last.was, last.now, fromArea, toArea);
+    else if (!problems.length) return;
+    const head = `Moved ${moved} of ${paths.length} → ${label}`;
+    if (problems.length) say(`${head}. ${problems[0]}`, moved === 0);
+    else say(head);
+  };
+
+  /** Where a drop on a tab lands: the folder itself for a library, the inbox
+   *  for a staging area (or its output, if it has no inbox). */
+  const tabTarget = (g: { todo?: MovieSource; done?: MovieSource }) => g.todo ?? g.done;
+
+  /** Open a file from one of the panes. `area` is which pane: an inbox and
+   *  its output can hold the same relative path, so the path alone does not
+   *  say which file this is. */
+  const pickFile = (f: StagedFile, area: string) => {
+    // A plain click drops the selection within its own tree; one in the
+    // *other* pane has to drop it too, or ticks left in the inbox would
+    // quietly survive into the next Delete.
+    if (picked.size && pickedArea !== area) setPicked(new Set());
     if (f.kind === "video" && f.movie_id) {
-      if (selected?.id === f.movie_id) return;   // already open
+      if (selected?.id === f.movie_id) return;   // already open (the id carries the area)
+      setSource(area);
       setViewFile(null);
       pick({ id: f.movie_id, title: f.name, file: f.name, size: f.size });
     } else {
-      if (viewFile?.path === f.path) return;     // already showing
+      if (viewFile?.path === f.path && source === area) return;   // already showing
       stop();
+      setSource(area);
       setSelected(null); setInfo(null);
       setViewFile(f);
     }
@@ -367,22 +780,34 @@ export function MoviesPanel() {
   };
 
   /** Upload subtitles, then select the first one added — you picked the
-   *  file because you want to watch with it. */
+   *  file because you want to watch with it.
+   *
+   *  Dropping a whole folder of subtitles in is normal, and so is a .nfo or
+   *  a screenshot coming along with them. The server takes what it can read
+   *  and names the rest, so this reports both rather than treating one bad
+   *  file as a failed upload. */
   const uploadSub = async (files: File[]) => {
     if (!selected || !files.length) return;
     setSubBusy(true);
-    setNote("");
+    setNote(""); setNoteBad(false);
     try {
-      const meta = await api.uploadMovieSubtitle(selected.id, files);
-      setInfo(meta);
-      const added = meta.subtitles[meta.subtitles.length - 1];
-      if (added) {
-        if (playing) play({ sub: added.id });
-        else setSub(added.id);
+      const r = await api.uploadMovieSubtitle(selected.id, files);
+      setInfo(r.info);
+      if (r.accepted.length) {
+        const added = r.info.subtitles[r.info.subtitles.length - 1];
+        if (added) {
+          if (playing) play({ sub: added.id });
+          else setSub(added.id);
+        }
       }
-      setNote(`Added ${files.map((f) => f.name).join(" + ")}.`);
+      const took = r.accepted.length
+        ? `Added ${r.accepted.map((a) => a.name).join(", ")}.` : "";
+      const left = r.rejected.map((x) => `${x.name}: ${x.reason}`).join(" · ");
+      setNote([took, left && `Skipped — ${left}`].filter(Boolean).join(" "));
+      setNoteBad(!r.accepted.length);
     } catch (e) {
       setNote(String(e).replace(/^Error:\s*/, ""));
+      setNoteBad(true);
     } finally {
       setSubBusy(false);
     }
@@ -409,8 +834,15 @@ export function MoviesPanel() {
 
   const plan = source && selected ? plans[selected.id] : undefined;
 
-  const setPlan = (next: PrepPlan) =>
-    selected && setPlans((all) => ({ ...all, [selected.id]: next }));
+  /** Every change to a plan is also sent to the server, which is what makes
+   *  it survive a reload, show up in other browsers, and be what a queued
+   *  remux actually uses. Sent a moment after the last change rather than on
+   *  every keystroke of a title. */
+  const setPlan = (next: PrepPlan) => {
+    if (!selected) return;
+    setPlans((all) => ({ ...all, [selected.id]: next }));
+    scheduleSave(next);
+  };
 
   /** Assigning a language takes it from whoever else had it. One track per
    *  language is the rule, so rather than let two claim the same code and
@@ -457,13 +889,33 @@ export function MoviesPanel() {
     if (isActive && playing) play({ delays: next });
   };
 
+  /** Uploads grouped by the drop that started them. */
+  const batches = useMemo(() => {
+    const out: { batch: string; label: string; jobs: typeof uploads.jobs; size: number; sent: number }[] = [];
+    const index = new Map<string, number>();
+    for (const job of uploads.jobs) {
+      let at = index.get(job.batch);
+      if (at === undefined) {
+        at = out.length;
+        index.set(job.batch, at);
+        out.push({ batch: job.batch, label: job.batchLabel, jobs: [], size: 0, sent: 0 });
+      }
+      out[at].jobs.push(job);
+      out[at].size += job.size;
+      out[at].sent += job.status === "done" ? job.size : job.sent;
+    }
+    return out;
+  }, [uploads.jobs]);
+
+  const uploadSummary = useMemo(() => {
+    const moving = uploads.jobs.filter((j) => j.status === "uploading" || j.status === "queued");
+    if (!moving.length) return `${uploads.jobs.length} finished`;
+    const left = moving.reduce((n, j) => n + (j.size - j.sent), 0);
+    return `Uploading ${moving.length} of ${uploads.jobs.length} — ${fmtSize(left)} to go`;
+  }, [uploads.jobs]);
+
   const activeSub = sub === null ? null : info?.subtitles[sub] ?? null;
   const canDelete = activeSub?.source === "uploaded";
-
-  const stagedFiltered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return q ? staged.filter((f) => (f.folder + "/" + f.name).toLowerCase().includes(q)) : staged;
-  }, [staged, query]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -476,26 +928,123 @@ export function MoviesPanel() {
   return (
     <div className="panel movies">
       <section className="mv-library">
-        {sources.length > 1 && (
+        {groups.length > 1 && (
+          // One tab per library, one per staging area. An area's tab opens
+          // its inbox and its output together, one above the other.
           <div className="mv-sources">
-            {sources.map((x) => (
+            {groups.map((g) => {
+              const target = tabTarget(g);
+              const ready = !!(g.todo?.ready || g.done?.ready);
+              // Only an area with something waiting in it is marked as one.
+              // A folder that just holds finished work — the series library,
+              // any output-only entry — looks like the film library, because
+              // that is what it is.
+              const kind = g.todo ? (g.done ? "pair" : "inbox") : "library";
+              return (
+                <button
+                  key={g.key}
+                  className={(tab === g.key ? "active " : "") + "mv-src-" + kind +
+                             (dropTab === g.key ? " dropping" : "")}
+                  title={[g.todo?.path, g.done?.path].filter(Boolean).join("\n")}
+                  disabled={!ready}
+                  onClick={() => switchTab(g.key)}
+                  // Dragging something onto another tab moves it there — into
+                  // the library, or into an area's inbox.
+                  onDragOver={(e) => {
+                    // Another tab is never a folder's own output — that sits
+                    // in the same tab — so only a publisher can drop here.
+                    if (!publisher || !target?.ready || g.key === tab) return;
+                    if (!e.dataTransfer.types.includes(DRAG_TYPE)) return;
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = "move";
+                    setDropTab(g.key);
+                  }}
+                  onDragLeave={() => setDropTab((cur) => (cur === g.key ? "" : cur))}
+                  onDrop={(e) => target && dropOnTab(e, target).finally(() => setDropTab(""))}
+                >
+                  {g.label}
+                </button>
+              );
+            })}
+            {/* The remux queue, at the far end of the tab row: visible from
+                every tab whatever is selected, because it is happening on
+                the server regardless. The running one is shown outright; the
+                button opens the whole queue. */}
+            <div className="mv-queue">
+              {running && (
+                <button className="mv-jobpill" onClick={() => switchTab(running.area)}
+                        title={`${running.target}\nfrom ${running.folder} — click to open its area`}>
+                  <span className="mv-ring" aria-hidden />
+                  <span className="mv-jobtext">{phaseText(running)}</span>
+                  <span className="mv-jobmeter"><span style={{ width: `${running.percent ?? 0}%` }} /></span>
+                  <span className="mv-jobpct">{running.percent ?? 0}%</span>
+                </button>
+              )}
               <button
-                key={x.key}
-                className={
-                  (source === x.key ? "active " : "") + "mv-src-" + x.kind
-                }
-                title={x.ready ? x.path : `not found: ${x.path}`}
-                disabled={!x.ready}
-                onClick={() => switchSource(x.key)}
+                className={"mv-queuebtn" + (queueOpen ? " open" : "") + (failedCount ? " failed" : "")}
+                title="Remux queue"
+                onClick={(e) => { e.stopPropagation(); setQueueOpen((o) => !o); }}
               >
-                {x.label}
+                <span aria-hidden>☰</span>
+                {waiting.length > 0 && <span className="mv-queuecount">{waiting.length}</span>}
+                {failedCount > 0 && <span className="mv-queuefail" title="failed">!</span>}
               </button>
-            ))}
+              {queueOpen && (
+                <div className="mv-queuemenu" onClick={(e) => e.stopPropagation()}>
+                  <div className="mv-queuehead">
+                    <span>Remux queue</span>
+                    {jobs.some((j) => j.state !== "queued" && j.state !== "running") && (
+                      <button className="ghost" onClick={() => api.prepClearJobs().then((r) => setJobs(r.jobs)).catch(() => {})}>
+                        clear finished
+                      </button>
+                    )}
+                  </div>
+                  {jobs.length === 0 && <p className="muted small mv-queueempty">Nothing queued.</p>}
+                  <ul>
+                    {jobs.map((j) => (
+                      <li key={j.id} className={"mv-qrow " + j.state} title={j.error || j.output || j.folder}>
+                        <span className="mv-qstate" aria-hidden>
+                          {j.state === "running" ? <span className="mv-ring" />
+                            : j.state === "queued" ? `#${j.position}`
+                            : j.state === "done" ? "✔" : j.state === "failed" ? "✘" : "■"}
+                        </span>
+                        <span className="mv-qtext">
+                          <span className="mv-qtarget">{j.target}</span>
+                          <span className="mv-qsub">
+                            {j.state === "running" ? phaseText(j)
+                              : j.state === "queued" ? `${labelOf(j.area)} · ${j.folder}`
+                              : j.state === "done" ? `done${j.finished && j.started ? ` in ${Math.round(j.finished - j.started)}s` : ""}`
+                              : j.state === "failed" ? j.error
+                              : "stopped"}
+                          </span>
+                          {j.state === "running" && (
+                            <span className="mv-jobmeter wide"><span style={{ width: `${j.percent ?? 0}%` }} /></span>
+                          )}
+                        </span>
+                        <button
+                          className="ghost mv-qx"
+                          disabled={(j.state === "running" && j.phase !== "muxing" && j.phase !== "")
+                                    || ((j.state === "running" || j.state === "queued") && !canEditArea(j.area))}
+                          title={j.state === "running" ? "Stop — the source is left as it was"
+                            : j.state === "queued" ? "Take it out of the queue" : "Clear"}
+                          onClick={() => api.prepRemoveJob(j.id).then(loadJobs)
+                            .catch((e) => setTreeNote({ text: String(e).replace(/^Error:\s*/, ""), bad: true }))}
+                        >
+                          {j.state === "running" ? "stop" : "✕"}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
           </div>
         )}
         <div className="mv-search">
           <input
-            placeholder={source ? `Search ${staged.length || ""} files…` : `Search ${movies.length || ""} movies…`}
+            placeholder={tab
+              ? `Search ${Object.values(listings).reduce((n, l) => n + l.length, 0) || ""} files…`
+              : `Search ${movies.length || ""} movies…`}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
@@ -506,40 +1055,62 @@ export function MoviesPanel() {
           >
             ⟳
           </button>
+          {space && (
+            <span
+              className="mv-space"
+              title={`${space.path}\nis on ${space.mount} (${space.name}) — `
+                     + `${fmtSize(space.free)} free of ${fmtSize(space.total)}`}
+            >
+              <b>{space.name}</b> · {fmtSize(space.free)} free of {fmtSize(space.total)}
+            </span>
+          )}
         </div>
         {listError && <p className="error small">{listError}</p>}
-        {source ? (
-          // A staging folder shows *everything* — the subtitles about to be
-          // embedded, the release notes, the junk — because deciding what to
-          // keep means being able to look at it.
-          <ul className="mv-list mv-files">
-            {byFolder(stagedFiltered).map(([folder, files]) => (
-              <li key={folder}>
-                <div className="mv-folder" title={folder}>{folder}</div>
-                <ul>
-                  {files.map((f) => (
-                    <li key={f.path}>
-                      <button
-                        className={
-                          "mv-item mv-file" +
-                          ((viewFile?.path === f.path || (f.movie_id && selected?.id === f.movie_id))
-                            ? " active" : "")
-                        }
-                        onClick={() => pickFile(f)}
-                      >
-                        <span className="mv-kind" aria-hidden>{KIND_ICON[f.kind] ?? "▪"}</span>
-                        <span className="mv-title">{f.name}</span>
-                        <span className="mv-size">{fmtSize(f.size)}</span>
+        {treeNote && (
+          <p className={(treeNote.bad ? "error" : "muted") + " small mv-note"}>{treeNote.text}</p>
+        )}
+        {tab ? (
+          // A library is one tree; a staging area is two, the inbox on top
+          // and its output underneath, splitting the height between them.
+          // Dragging from one into the other is how a finished film leaves
+          // the queue, so they are drop targets for each other.
+          <div className="mv-panes">
+            {panes.map((pane) => (
+              <div className={"mv-pane " + pane.role} key={pane.key}>
+                {panes.length > 1 && (
+                  <div className="mv-panehead" title={pane.path}>
+                    <span className="mv-panerole">{pane.role === "todo" ? "to process" : "done"}</span>
+                    <span className="mv-panepath">{pane.path}</span>
+                    {pane.kind === "inbox" && canEditArea(pane.key) && (
+                      <button className="mv-remuxall" onClick={() => remuxAll(pane.key)}
+                              title="Queue every film here that is identified and ready">
+                        REMUX ALL
                       </button>
-                    </li>
-                  ))}
-                </ul>
-              </li>
+                    )}
+                  </div>
+                )}
+                {paneErrors[pane.key] ? (
+                  <p className="error small mv-paneerror">{paneErrors[pane.key]}</p>
+                ) : (
+                  <FileTree
+                    key={pane.key}
+                    area={pane.key}
+                    files={listings[pane.key] ?? []}
+                    query={query}
+                    activePath={source === pane.key ? viewFile?.path ?? null : null}
+                    activeMovieId={selected?.id ?? null}
+                    canEdit={canEditArea(pane.key)}
+                    onPick={(f) => pickFile(f, pane.key)}
+                    actions={actionsFor(pane.key)}
+                    picked={pickedArea === pane.key ? picked : NO_PICK}
+                    onPicked={(next) => { setPickedArea(pane.key); setPicked(next); }}
+                    destinations={destinationsFor(pane.key)}
+                    acceptsFrom={acceptsFrom(pane.key)}
+                  />
+                )}
+              </div>
             ))}
-            {!stagedFiltered.length && !listError && (
-              <li className="muted small">Nothing in this folder.</li>
-            )}
-          </ul>
+          </div>
         ) : (
         <ul className="mv-list">
           {filtered.map((m) => (
@@ -556,11 +1127,135 @@ export function MoviesPanel() {
           {!filtered.length && !listError && <li className="muted small">No matches.</li>}
         </ul>
         )}
+        {/* What to do with a selection, under the tree it was made in.
+            Absent until something is ticked, so it costs no height the rest
+            of the time. */}
+        {canEditArea(pickedArea) && picked.size > 0 && (
+          <div className="mv-bulk">
+            <span className="mv-bulkcount">
+              {selectionRoots(picked).length} selected{panes.length > 1 ? ` in ${sources.find((x) => x.key === pickedArea)?.short ?? ""}` : ""}
+            </span>
+            <select value={bulkTo} onChange={(e) => setBulkTo(e.target.value)} disabled={!!bulkBusy}>
+              <option value="">move to…</option>
+              {/* Every other folder — including the other pane of this
+                  pair, which is where a finished film usually goes, and for
+                  someone without the publish permission the only one. */}
+              {destinationsFor(pickedArea).map((x) => (
+                <option key={x.key} value={x.key}>{x.label}</option>
+              ))}
+            </select>
+            <button
+              disabled={!bulkTo || !!bulkBusy}
+              onClick={() => {
+                const target = sources.find((x) => x.key === bulkTo);
+                if (target) moveMany(pickedArea, selectionRoots(picked), target.key, "", target.label);
+                setBulkTo("");
+              }}
+            >
+              {bulkBusy || "MOVE"}
+            </button>
+            <button
+              className={"mv-bulkdel" + (armedDelete ? " armed" : "")}
+              disabled={!!bulkBusy}
+              title="Deletes them — there is no undo"
+              onClick={() => (armedDelete ? deletePaths(pickedArea, selectionRoots(picked)) : setArmedDelete(true))}
+            >
+              {armedDelete ? `Delete ${selectionRoots(picked).length}? click again` : "DELETE"}
+            </button>
+            <button className="ghost" onClick={() => setPicked(new Set())}>clear</button>
+          </div>
+        )}
+
+        {/* What is going up, under the folder it is going into. Grouped by
+            drop: a folder is one row with one stop button, however many
+            files it turned out to hold. */}
+        {uploads.jobs.length > 0 && (
+          <div className="mv-uploads">
+            <div className="mv-uploadhead">
+              <span>{uploadSummary}</span>
+              <button className="ghost" onClick={uploads.clear} title="Clear the finished rows">✕</button>
+            </div>
+            <ul>
+              {batches.map((b) => {
+                const pct = b.size ? Math.round((b.sent / b.size) * 100) : 0;
+                const running = b.jobs.some((j) => j.status === "uploading" || j.status === "queued");
+                const failed = b.jobs.filter((j) => j.status === "error").length;
+                const open = openBatch === b.batch;
+                return (
+                  <li key={b.batch} className={"mv-batch" + (running ? " running" : "")}>
+                    <div className="mv-job">
+                      <button
+                        className="ghost mv-twist"
+                        title={open ? "Hide the files" : "Show the files"}
+                        onClick={() => setOpenBatch(open ? "" : b.batch)}
+                      >
+                        {open ? "▾" : "▸"}
+                      </button>
+                      <span className="mv-jobname">
+                        {b.label}
+                        {b.jobs.length > 1 && <span className="muted"> · {b.jobs.length} files</span>}
+                      </span>
+                      <span className="mv-jobbar">
+                        <span className="mv-jobfill" style={{ width: `${pct}%` }} />
+                      </span>
+                      <span className="mv-jobstate">
+                        {running ? `${pct}%` : failed ? `${failed} failed` : fmtSize(b.size)}
+                      </span>
+                      {running && (
+                        <button className="ghost" title="Stop this upload" onClick={() => uploads.cancelBatch(b.batch)}>✕</button>
+                      )}
+                    </div>
+                    {open && (
+                      <ul className="mv-batchfiles">
+                        {b.jobs.map((j) => (
+                          <li key={j.id} className={"mv-job " + j.status} title={j.error || j.relPath}>
+                            <span className="mv-jobname">{j.relPath}</span>
+                            <span className="mv-jobbar">
+                              <span
+                                className="mv-jobfill"
+                                style={{ width: `${j.size ? Math.round((j.sent / j.size) * 100) : 0}%` }}
+                              />
+                            </span>
+                            <span className="mv-jobstate">
+                              {j.status === "done" ? fmtSize(j.size)
+                                : j.status === "error" ? "failed"
+                                : j.status === "cancelled" ? "stopped"
+                                : j.status === "queued" ? "waiting"
+                                : `${j.size ? Math.round((j.sent / j.size) * 100) : 0}%`}
+                            </span>
+                            {(j.status === "uploading" || j.status === "queued") && (
+                              <button className="ghost" title="Cancel this file" onClick={() => uploads.cancel(j.id)}>✕</button>
+                            )}
+                            {j.status === "error" && (
+                              <button className="ghost" title={j.error} onClick={() => uploads.retry(j.id)}>retry</button>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+            {uploads.jobs.some((j) => j.status === "error") && (
+              <p className="error small">
+                {uploads.jobs.find((j) => j.status === "error")?.error}
+              </p>
+            )}
+          </div>
+        )}
       </section>
 
       <aside
         className={"mv-player" + (dragging ? " dropping" : "")}
-        onDragOver={(e) => { if (selected) { e.preventDefault(); setDragging(true); } }}
+        // Only real files from outside the page. An entry being dragged
+        // around the tree carries its own type and is none of this zone's
+        // business.
+        onDragOver={(e) => {
+          if (!selected || !e.dataTransfer.types.includes("Files")) return;
+          e.preventDefault();
+          setDragging(true);
+        }}
         onDragLeave={() => setDragging(false)}
         onDrop={(e) => {
           e.preventDefault();
@@ -571,6 +1266,10 @@ export function MoviesPanel() {
       >
         {viewFile ? (
           <FileView area={source} file={viewFile} />
+        ) : !selected ? (
+          // Nothing picked: the panel's resting state is a document, not an
+          // empty player nobody can press.
+          <MoviesHome />
         ) : (
         <>
         <div
@@ -689,7 +1388,7 @@ export function MoviesPanel() {
         </div>
 
         {streamError && <p className="error small">{streamError}</p>}
-        {note && <p className="muted small mv-note">{note}</p>}
+        {note && <p className={(noteBad ? "error" : "muted") + " small mv-note"}>{note}</p>}
 
         <div className="mv-tracks">
           <div className="mv-quality">
@@ -714,7 +1413,7 @@ export function MoviesPanel() {
           {plan && (
             <PrepIdentity
               plan={plan}
-              onPlan={(p) => setPlans((all) => ({ ...all, [selected!.id]: p }))}
+              onPlan={setPlan}
             />
           )}
 
@@ -759,42 +1458,6 @@ export function MoviesPanel() {
             }}
           />
         </div>
-        {/* Moving between folders is the one action that can put a file into
-            the real library, so it has its own permission and is simply
-            absent for anyone without it. Destinations are the same folders
-            the panel browses, minus wherever the film already is. */}
-        {selected && permissions.publish && (
-          <div className="mv-move">
-            <span className="muted small">Move to:</span>
-            <select value={moveTo} onChange={(e) => setMoveTo(e.target.value)}>
-              <option value="">choose a folder…</option>
-              {sources
-                // Inboxes are excluded: they are where unprepared downloads
-                // wait, not somewhere a finished film belongs.
-                .filter((x) => x.ready && x.kind !== "inbox" && x.key !== source)
-                .map((x) => (
-                  <option key={x.key} value={x.key}>{x.label}</option>
-                ))}
-            </select>
-            <button
-              disabled={!moveTo || !!publishing}
-              title={moveTo ? `Move this film's folder into ${sources.find((x) => x.key === moveTo)?.path}` : "Pick a destination"}
-              onClick={async () => {
-                setPublishing("Moving…");
-                try {
-                  const r = await api.prepMove(selected.id, moveTo);
-                  setPrepNote(`Moved ${r.moved} → ${r.to}`);
-                  setMoveTo("");
-                  stop(); setSelected(null); setInfo(null);
-                } catch (e) {
-                  setPrepNote(String(e).replace(/^Error:\s*/, ""));
-                } finally { setPublishing(""); }
-              }}
-            >
-              {publishing || "MOVE"}
-            </button>
-          </div>
-        )}
         {prepNote && <p className="muted small mv-note">{prepNote}</p>}
         {/* Last, and pushed to the foot of the column — it is the irreversible
             step, and it reads better with air above it. */}
@@ -802,7 +1465,10 @@ export function MoviesPanel() {
           <PrepCommit
             area={source}
             plan={plan}
-            onDone={(msg) => { setPrepNote(msg); stop(); setSelected(null); setInfo(null); }}
+            allowed={canEditArea(source)}
+            job={jobs.find((j) => (j.state === "queued" || j.state === "running")
+                                   && (j.fingerprint === plan.fingerprint || j.movie_id === plan.movie_id)) ?? null}
+            onChanged={loadJobs}
           />
         )}
 

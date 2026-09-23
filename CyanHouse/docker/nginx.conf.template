@@ -91,6 +91,27 @@ http {
             proxy_set_header X-Forwarded-Proto $scheme;
         }
 
+        # Resumable uploads (tus). Its own block for three reasons: the
+        # default 1 MB client_max_body_size would reject every chunk, request
+        # buffering would spool each one to disk before the backend saw it
+        # (doubling the write for a file that is already gigabytes), and a
+        # slow link needs longer than the default 60s to push one across.
+        # The cap is deliberately a little above the backend's own
+        # MAX_CHUNK_BYTES, so an over-large chunk is refused by the
+        # application with a message rather than by nginx with a bare 413.
+        location /api/uploads {
+            proxy_pass http://127.0.0.1:${API_PORT}/api/uploads;
+            proxy_http_version 1.1;
+            client_max_body_size 64m;
+            proxy_request_buffering off;
+            proxy_read_timeout 600s;
+            proxy_send_timeout 600s;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
         # FastAPI backend — routers are already prefixed /api/... , so this
         # keeps the prefix as-is (no trailing slash on proxy_pass).
         location /api/ {

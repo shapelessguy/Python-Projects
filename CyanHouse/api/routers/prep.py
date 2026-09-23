@@ -20,8 +20,8 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from fastapi.responses import FileResponse
 from starlette.concurrency import run_in_threadpool
 
-from api.auth import require_permission, require_user
-from api.services import movie_prep, movies, tmdb
+from api.auth import has_permission, require_permission, require_user
+from api.services import movie_prep, movies, remux_queue, tmdb
 
 router = APIRouter(prefix="/api/prep", tags=["prep"])
 
@@ -31,6 +31,7 @@ PANEL = "movies"  # same permission as the Movies panel it lives in
 
 def init() -> None:
     movie_prep.init()
+    remux_queue.init()
 
 
 def versions(user: str | None) -> dict[str, int]:
@@ -77,17 +78,76 @@ async def identify(
         raise _wrap(e)
 
 
-@router.post("/execute")
+@router.post("/execute", status_code=202)
 async def execute(
     area: str = Query(...),
     plan: dict = Body(...),
-    _user: str = Depends(require_user),
+    user: str = Depends(require_user),
 ):
-    """Mux, verify, then move the leftovers to the area's trash — in that
-    order. Nothing is deleted outright, so a bad run is recoverable."""
+    """Queue one film for remuxing, and save the plan it was queued with.
+
+    Always accepted when the film *can* be remuxed — the queue runs them in
+    order — and refused at once when it cannot (not identified, a name
+    already taken), so the answer is never a job that fails a second later.
+
+    Allowed wherever moving is: it takes a film out of an inbox and puts the
+    result in that inbox's own output, which is a move within its workspace."""
+    may_move(user, area, movie_prep.output_of(area))
     try:
-        _, library = movie_prep.area(area)
-        return await run_in_threadpool(movie_prep.execute, plan, library)
+        return await run_in_threadpool(remux_queue.enqueue, area, plan, user)
+    except movie_prep.PrepError as e:
+        raise _wrap(e)
+
+
+@router.post("/remux_all", status_code=202)
+async def remux_all(area: str = Query(...), user: str = Depends(require_user)):
+    """Queue every film in an inbox that is ready, and say why each of the
+    rest is not."""
+    may_move(user, area, movie_prep.output_of(area))
+    try:
+        return await run_in_threadpool(remux_queue.enqueue_all, area, user)
+    except movie_prep.PrepError as e:
+        raise _wrap(e)
+
+
+@router.get("/jobs")
+async def remux_jobs(_user: str = Depends(require_user)):
+    """The queue: what is running, what is waiting, and what has finished."""
+    return {"jobs": remux_queue.jobs()}
+
+
+@router.delete("/jobs/{job_id}")
+async def remove_job(job_id: str, user: str = Depends(require_user)):
+    """Drop a queued remux, stop a running one, or clear a finished one.
+    Whoever may queue in that area may take out of it."""
+    try:
+        where = remux_queue.job_area(job_id)
+        may_move(user, where, movie_prep.output_of(where))
+        return await run_in_threadpool(remux_queue.remove, job_id)
+    except movie_prep.PrepError as e:
+        raise _wrap(e)
+
+
+@router.post("/jobs/clear")
+async def clear_jobs(_user: str = Depends(require_user)):
+    """Forget every finished remux. The queue itself is untouched."""
+    await run_in_threadpool(remux_queue.clear_finished)
+    return {"jobs": remux_queue.jobs()}
+
+
+@router.put("/plan")
+async def save_plan(
+    area: str = Query(...),
+    plan: dict = Body(...),
+    user: str = Depends(require_user),
+):
+    """Remember what was decided about a film — its name, and which tracks it
+    keeps, in which language, at what delay. Sent on every change, so the
+    decisions outlive the tab they were made in, and a queued remux uses the
+    latest of them when its turn comes."""
+    may_change(user, area)
+    try:
+        return await run_in_threadpool(movie_prep.save_plan, area, plan)
     except movie_prep.PrepError as e:
         raise _wrap(e)
 
@@ -101,8 +161,8 @@ async def preview(
     """The exact command that would run, and anything still blocking it.
     Cheap, and it makes the mux inspectable before it touches a file."""
     try:
-        _, library = movie_prep.area(area)
-        return await run_in_threadpool(movie_prep.execute, plan, library, True)
+        inbox, library = movie_prep.area(area)
+        return await run_in_threadpool(movie_prep.execute, plan, library, True, inbox)
     except movie_prep.PrepError as e:
         raise _wrap(e)
 
@@ -148,13 +208,96 @@ async def raw_file(area: str = Query(...), path: str = Query(...),
     return FileResponse(resolved, headers={"Cache-Control": "no-store"})
 
 
-@router.get("/progress")
-async def mux_progress(area: str = Query(...), target: str = Query(...),
-                       _user: str = Depends(require_user)):
-    """How far along a mux is. Polled while /execute is in flight — that call
-    blocks until the file is written and verified, so the percentage has to
-    come from somewhere else."""
-    return movie_prep.progress(f"{area}:{target}")
+@router.get("/space")
+async def disk_space(area: str = Query(...), _user: str = Depends(require_user)):
+    """The disk this folder lives on: what it is called, and how full."""
+    try:
+        return await run_in_threadpool(movie_prep.disk_usage, area)
+    except movie_prep.PrepError as e:
+        raise _wrap(e)
+
+
+# Who may change what.
+#
+# A staging area with an inbox is a workspace: its two folders — the work
+# waiting and the work done — are open to anyone who can see them. Rename,
+# delete, upload, reorganise, remux, and move freely *between those two*.
+# What needs the publish permission is everything past that: sending work to
+# another area, and any change to a folder that is not part of a workspace
+# (the film library, the series library, any output-only entry). That is the
+# shelf, not the workbench.
+#
+# Looking is always open: browsing, reading, playing.
+def _publisher(user: str) -> bool:
+    return has_permission(user, "publish")
+
+
+def may_change(user: str, area: str) -> None:
+    """Rename, delete, upload, move within — anything that stays in `area`."""
+    if _publisher(user) or movie_prep.workspace_of(area):
+        return
+    raise HTTPException(403, "outside a staging workspace, changes need the publish permission")
+
+
+def may_move(user: str, from_area: str, to_area: str) -> None:
+    """A move changes both ends, so both are judged: without the publish
+    permission, both have to be halves of the same workspace."""
+    if _publisher(user):
+        return
+    here = movie_prep.workspace_of(from_area)
+    if not here:
+        raise HTTPException(403, "outside a staging workspace, changes need the publish permission")
+    if movie_prep.workspace_of(to_area) != here:
+        raise HTTPException(
+            403, "without the publish permission, things move only within their own workspace")
+
+
+@router.post("/rename")
+async def rename_entry(
+    area: str = Query(...),
+    path: str = Query(...),
+    name: str = Query(..., min_length=1, max_length=255),
+    user: str = Depends(require_user),
+):
+    """Rename one file or folder where it sits."""
+    may_change(user, area)
+    try:
+        return await run_in_threadpool(movie_prep.rename_entry, area, path, name)
+    except movie_prep.PrepError as e:
+        raise _wrap(e)
+
+
+@router.post("/movepath")
+async def move_entry(
+    area: str = Query(..., description="the area the thing is in now"),
+    path: str = Query(..., description="what to move, relative to that area"),
+    to_area: str = Query(..., description="the area to move it into"),
+    to: str = Query("", description="destination folder in that area; '' is its root"),
+    user: str = Depends(require_user),
+):
+    """Move a file or folder into another folder — the drag-and-drop in the
+    tree. Both ends are checked: taking something out of a folder is as much
+    a change to it as putting something in."""
+    may_move(user, area, to_area)
+    try:
+        return await run_in_threadpool(movie_prep.move_entry, area, path, to_area, to)
+    except movie_prep.PrepError as e:
+        raise _wrap(e)
+
+
+@router.post("/delete")
+async def delete_entry(
+    area: str = Query(...),
+    path: str = Query(...),
+    user: str = Depends(require_user),
+):
+    """Delete a file, or a folder and everything under it. For good — the
+    panel asks twice before it calls this."""
+    may_change(user, area)
+    try:
+        return await run_in_threadpool(movie_prep.delete_entry, area, path)
+    except movie_prep.PrepError as e:
+        raise _wrap(e)
 
 
 @router.post("/move")

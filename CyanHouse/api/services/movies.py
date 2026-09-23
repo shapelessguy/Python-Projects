@@ -178,6 +178,26 @@ def resolve(movie_id: str) -> Path:
     return path
 
 
+def _title_for(path: Path) -> str:
+    """What to call this file.
+
+    One folder per film is the film library's convention, so a folder
+    holding one video names it and the release-encoded filename stays out of
+    sight. A folder holding several is a series season or a collection —
+    naming every episode "Breaking Bad" says nothing about which one is
+    playing — so there the file names itself. Decided by looking, rather
+    than by which configured folder it sits in, so it holds wherever a
+    series happens to be kept."""
+    if path.parent == MOVIES_DIR:
+        return path.stem
+    try:
+        videos = sum(1 for p in path.parent.iterdir()
+                     if p.suffix.lower() in VIDEO_EXT and not p.name.startswith("."))
+    except OSError:
+        videos = 1
+    return path.parent.name if videos <= 1 else path.stem
+
+
 def _main_video_file(folder: Path) -> Path | None:
     """One folder = one film, so the biggest video file in it is the film —
     which also skips the sample/extra/behind-the-scenes clips some rips ship
@@ -220,6 +240,10 @@ def list_movies(refresh: bool = False) -> list[dict]:
             raise MovieError(f"movie library not found at {MOVIES_DIR}", 503)
         out: list[dict] = []
         for entry in sorted(MOVIES_DIR.iterdir(), key=lambda p: p.name.lower()):
+            # `.trash` holds what the panel removed, and the biggest video in
+            # it would otherwise be listed as a film called ".trash".
+            if entry.name.startswith("."):
+                continue
             try:
                 if entry.is_dir():
                     path = _main_video_file(entry)
@@ -677,7 +701,7 @@ def info(movie_id: str) -> dict:
 
     out = {
         "id": movie_id,
-        "title": path.parent.name if path.parent != MOVIES_DIR else path.stem,
+        "title": _title_for(path),
         "file": path.name,
         "duration": float(fmt.get("duration") or 0.0),
         "size": st.st_size,

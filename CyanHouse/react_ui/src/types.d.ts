@@ -6,3 +6,9 @@ declare module "react-plotly.js/factory" {
 }
 
 declare module "plotly.js-dist-min";
+
+/** `import text from "./x.md?raw"` -- Vite inlines the file as a string. */
+declare module "*.md?raw" {
+  const content: string;
+  export default content;
+}

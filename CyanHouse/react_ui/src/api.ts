@@ -276,8 +276,20 @@ export interface MovieInfo {
 export interface MovieSource {
   key: string;
   label: string;
+  /** The label without the area name in front, for when the area is already
+   *  named by the button sitting above this one. */
+  short: string;
   path: string;
+  /** "library" is the film library, shown as a flat list of films. Every
+   *  other folder — a staging inbox, an output, the series library — is
+   *  browsed as a tree. */
   kind: "library" | "inbox" | "output";
+  /** What the folder is for: work waiting, or work finished. The panel
+   *  stacks one above the other. */
+  role: "todo" | "done";
+  /** Which staging area this belongs to; the inbox and the output of one
+   *  area share it, which is what pairs them into a column. */
+  group: string;
   ready: boolean;
 }
 
@@ -289,17 +301,31 @@ export interface StagingArea {
   problem: string;
 }
 
-/** One file in a staging folder — everything there, not only the films. */
+/** One entry in a browsable folder — every file *and* every folder, not just
+ *  the films. The list is flat and the panel rebuilds the tree from `path`:
+ *  a download can be three levels deep or loose in the root, and assuming a
+ *  shape is how a browser ends up hiding things. */
 export interface StagedFile {
   path: string;
   folder: string;
   name: string;
   size: number;
   modified: number;
-  kind: "video" | "image" | "subtitle" | "text" | "binary";
+  kind: "folder" | "video" | "image" | "subtitle" | "text" | "binary";
   readable: boolean;
+  /** Folders only: how many entries are directly inside. */
+  children?: number;
   /** Videos only: streamable through the normal player. */
   movie_id?: string;
+}
+
+/** What an upload did with each file it was given. Partial success is normal
+ *  — drop a folder's worth of subtitles in and the .nfo among them is named
+ *  and skipped rather than failing the batch. */
+export interface SubtitleUpload {
+  info: MovieInfo;
+  accepted: { id: string; name: string; kind: "text" | "image" }[];
+  rejected: { name: string; reason: string }[];
 }
 
 export interface PrepTrack {
@@ -317,6 +343,33 @@ export interface PrepTrack {
   cover_art?: boolean;
 }
 
+/** One entry in the server's remux queue. The server is the record — it
+ *  keeps the queue on disk — and every browser only draws it. */
+export interface RemuxJob {
+  id: string;
+  /** The inbox it came from; also the tab it belongs to. */
+  area: string;
+  fingerprint: string;
+  movie_id: string;
+  target: string;
+  /** The film's folder in the inbox, for recognising it. */
+  folder: string;
+  output: string;
+  by: string;
+  created: number;
+  started: number | null;
+  finished: number | null;
+  state: "queued" | "running" | "done" | "failed" | "cancelled";
+  phase: "" | "muxing" | "verifying" | "tidying" | "done";
+  percent: number | null;
+  error: string;
+  attempts: number;
+  /** Queued only: its place in line, 1 being next. */
+  position?: number;
+  /** Set when asking to queue a film that already was. */
+  already?: boolean;
+}
+
 /** A proposed preparation: what the film is, and what the muxed file gets. */
 export interface PrepPlan {
   area?: string;
@@ -326,6 +379,10 @@ export interface PrepPlan {
    *  area that omits `library` in secrets.json defaults to the real one. */
   destination?: string;
   movie_id?: string;
+  /** What its saved decisions are filed under: the file, not its path. */
+  fingerprint?: string;
+  /** Whether saved decisions were applied to it. */
+  saved?: boolean;
   title: string;
   year: string;
   tmdb_id: number | null;
@@ -430,7 +487,7 @@ export const api = {
     return f("/api/movies/subtitles?" + new URLSearchParams({ id }), {
       method: "POST",
       body,
-    }).then(j<MovieInfo>);
+    }).then(j<SubtitleUpload>);
   },
   deleteMovieSubtitle: (id: string, sub: string) =>
     f("/api/movies/subtitles?" + new URLSearchParams({ id, sub }), {
@@ -466,13 +523,49 @@ export const api = {
   prepMove: (id: string, to: string) =>
     f("/api/prep/move?" + new URLSearchParams({ id, to }), { method: "POST" })
       .then(j<{ moved: string; to: string; size: number }>),
-  prepProgress: (area: string, target: string) =>
-    f("/api/prep/progress?" + new URLSearchParams({ area, target }))
-      .then(j<{ percent: number | null; running: boolean }>),
+  /** Rename one file or folder where it sits. Inside the real libraries this
+   *  needs the `publish` permission; a staging folder is open. */
+  prepRename: (area: string, path: string, name: string) =>
+    f("/api/prep/rename?" + new URLSearchParams({ area, path, name }), { method: "POST" })
+      .then(j<{ renamed: boolean; new_path: string; name: string; is_dir: boolean }>),
+  /** Move a file or folder into another folder — the tree's drag and drop.
+   *  `to` is the destination *folder*, "" being that area's root. */
+  prepMovePath: (area: string, path: string, toArea: string, to: string) =>
+    f("/api/prep/movepath?" + new URLSearchParams({ area, path, to_area: toArea, to }),
+      { method: "POST" })
+      .then(j<{ moved: string; new_path: string; to_area: string; is_dir: boolean }>),
+  /** Remove a file, or a folder and everything under it. Not an unlink: it
+   *  moves to that area's `.trash`, which the listing hides. */
+  prepDelete: (area: string, path: string) =>
+    f("/api/prep/delete?" + new URLSearchParams({ area, path }), { method: "POST" })
+      .then(j<{ removed: string; is_dir: boolean; files: number; size: number; trash: string }>),
+  /** The disk this folder sits on — what it is called, and how full. */
+  prepSpace: (area: string) =>
+    f("/api/prep/space?" + new URLSearchParams({ area }))
+      .then(j<{ name: string; mount: string; path: string; total: number; free: number; used: number }>),
+  /** Queue a film for remuxing, saving the plan it was queued with. Always
+   *  accepted if the film *can* be remuxed; refused at once if it cannot. */
   prepExecute: (area: string, plan: PrepPlan) =>
     f("/api/prep/execute?" + new URLSearchParams({ area }), {
       method: "POST", headers: JSON_HEADERS, body: JSON.stringify(plan),
-    }).then(j<{ output: string; size: number; seconds: number; trashed: string[] }>),
+    }).then(j<RemuxJob>),
+  /** Queue every film in an inbox that is ready; the rest come back with
+   *  the reason each is not. */
+  prepRemuxAll: (area: string) =>
+    f("/api/prep/remux_all?" + new URLSearchParams({ area }), { method: "POST" })
+      .then(j<{ queued: RemuxJob[]; skipped: { folder: string; reason: string }[] }>),
+  /** The queue: running first, then waiting in order, then finished. */
+  prepJobs: () => f("/api/prep/jobs").then(j<{ jobs: RemuxJob[] }>),
+  /** Drop a queued remux, stop a running one, or clear a finished one. */
+  prepRemoveJob: (id: string) =>
+    f(`/api/prep/jobs/${encodeURIComponent(id)}`, { method: "DELETE" }).then(j<RemuxJob>),
+  prepClearJobs: () => f("/api/prep/jobs/clear", { method: "POST" }).then(j<{ jobs: RemuxJob[] }>),
+  /** Remember what was decided about a film — sent on every change, so the
+   *  server always has the latest, and a queued remux uses it. */
+  prepSavePlan: (area: string, plan: PrepPlan) =>
+    f("/api/prep/plan?" + new URLSearchParams({ area }), {
+      method: "PUT", headers: JSON_HEADERS, body: JSON.stringify(plan),
+    }).then(j<{ fingerprint: string }>),
 
   // Every diary mutation replies with the full month snapshot for `month`.
   columns: () => f("/api/personal/columns").then(j<Column[]>),
