@@ -9,3 +9,4 @@ nginx/
 dev_test_media/
 data/
 scripts/backup.log
+docker/pyload/

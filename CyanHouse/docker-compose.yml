@@ -25,3 +25,29 @@ services:
     # cert is within its renewal window.
     entrypoint: >
       sh -c "trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $${!}; done"
+
+  # pyLoad-ng: hoster/debrid downloads, laid out like qBittorrent's: work in
+  # progress under /mnt/pangea/temp, finished packages (extracted, if they
+  # were archives) moved into /mnt/pangea/downloads beside the torrents —
+  # by docker/pyload-overrides/move_to_complete.sh.
+  # Its web UI is only published on the
+  # loopback — the Media panel's Downloads tab reaches it through the API
+  # (api/routers/pyload.py), behind the CyanHouse login; nothing else can.
+  pyload:
+    image: lscr.io/linuxserver/pyload-ng:latest
+    container_name: cyanhouse-pyload
+    restart: unless-stopped
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Berlin
+    ports:
+      - "127.0.0.1:8100:8000"
+    volumes:
+      - ./docker/pyload/config:/config
+      # The whole drive, once: in progress (/pangea/temp/pyload) and finished
+      # (/pangea/downloads) then share a mount, so the move is a rename, not
+      # a copy of every byte to the same disk.
+      - /mnt/pangea:/pangea
+      - ./docker/pyload-overrides/svc-pyload-run:/etc/s6-overlay/s6-rc.d/svc-pyload/run:ro
+      - ./docker/pyload-overrides/move_to_complete.sh:/config/scripts/archive_processed/move_to_complete.sh:ro

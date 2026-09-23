@@ -178,3 +178,10 @@ if PUBLIC_HOST:
 CONTROLS_FN_HOST = os.environ.get("CONTROLS_FN_HOST", "").strip()  # e.g. LAN IP
 CONTROLS_FN_PORT = os.environ.get("CONTROLS_FN_PORT", "").strip()
 CONTROLS_FN_URL = f"http://{CONTROLS_FN_HOST}:{CONTROLS_FN_PORT}" if CONTROLS_FN_HOST else ""
+
+# ── qBittorrent ────────────────────────────────────────────────────────────
+# Its Web UI, served to the Media panel through /api/qbt/ (api/routers/qbt.py)
+# so it sits behind the CyanHouse login instead of being exposed on its own.
+QBT_URL = os.environ.get("QBT_URL", "http://127.0.0.1:8081").strip().rstrip("/")
+# pyLoad-ng (docker-compose.yml's `pyload`), served the same way under /api/pyload/.
+PYLOAD_URL = os.environ.get("PYLOAD_URL", "http://127.0.0.1:8100").strip().rstrip("/")

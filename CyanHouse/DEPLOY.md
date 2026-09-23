@@ -125,7 +125,7 @@ python3 -c "import secrets; print(secrets.token_hex(16))"   # generate a token
 ```
 
 Each user's `permissions` dict optionally takes a `visibility` list (panel
-ids: `controls`, `environment`, `personal`, `food`, `calendar`, `movies`) restricting
+ids: `controls`, `environment`, `personal`, `food`, `calendar`, `movies` — the latter is the Media panel) restricting
 which panels/APIs that user can reach — omit it entirely for "sees everything"
 (the default).
 

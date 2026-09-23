@@ -18,7 +18,10 @@ const PANELS: { id: PanelId; label: string; render: () => JSX.Element }[] = [
   { id: "personal", label: "🗂 Personal", render: () => <PersonalPanel /> },
   { id: "food", label: "🍽 Food", render: () => <FoodPanel /> },
   { id: "calendar", label: "📅 Calendar", render: () => <CalendarPanel /> },
-  { id: "movies", label: "🎬 Movies", render: () => <MoviesPanel /> },
+  // Still keyed "movies": that id is the permission name in secrets.json's
+  // visibility lists and the backend's require_panel, so renaming the label
+  // alone keeps every existing account's access as it was.
+  { id: "movies", label: "🎬 Media", render: () => <MoviesPanel /> },
 ];
 
 const LAST_SECTION_COOKIE = "last_section";
@@ -53,7 +56,7 @@ export default function App() {
   const active = visible.find((p) => p.id === panel) ?? visible[0];
 
   // Both of these own their own scrolling: the environment charts and the
-  // movie library are each taller than the viewport, and only that column --
+  // media library are each taller than the viewport, and only that column --
   // not the page -- should get a scrollbar.
   const fixedHeight = active?.id === "environment" || active?.id === "movies";
 

@@ -133,7 +133,12 @@ async def version_headers(request, call_next):
     # Static asset responses (e.g. stored food images) don't need the version
     # headers and shouldn't pay for a DB read per request; skip them so their
     # own Cache-Control survives untouched.
-    if path.startswith("/api") and "/images/" not in path:
+    if path.startswith(("/api/qbt/", "/api/pyload/")):
+        # Someone else's app passed through verbatim (api/services/webproxy.py): it
+        # sets its own caching, and its UI polls every couple of seconds —
+        # no point reading every version counter for each of those.
+        pass
+    elif path.startswith("/api") and "/images/" not in path:
         # Per-user data behind a same-origin cookie: never let the browser reuse
         # one user's API response for another (e.g. after logging out and back
         # in as someone else).

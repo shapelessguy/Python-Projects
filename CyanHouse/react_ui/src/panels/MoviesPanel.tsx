@@ -3,6 +3,7 @@ import { api, MovieInfo, MovieItem, MovieTrack, MovieSource, PrepPlan, RemuxJob,
 import { FileView, FileTree, MoviesHome, PrepIdentity, PrepCommit, DRAG_TYPE, fmtSize, selectionRoots } from "./StagingView";
 import { useVersionPoll, useVisibility } from "../api";
 import { entriesFrom, walkEntries, useUploads } from "../uploads";
+import { readCookie, writeCookie } from "../cookies";
 
 /** The stream is a transcode piped into a fragmented MP4: no byte ranges, no
  *  index, so the browser can't seek it and `video.duration` is meaningless.
@@ -19,6 +20,17 @@ import { entriesFrom, walkEntries, useUploads } from "../uploads";
 type Delays = Record<string, number>;
 
 const DELAY_KEY = "movies.delays";
+const EXTERNAL_COOKIE = "media_external";
+
+/** Other programs' own web UIs, shown in place of the library: qBittorrent
+ *  and pyLoad, each reverse-proxied by the API (api/routers/qbt.py,
+ *  api/routers/pyload.py) behind the same login as the rest of this page —
+ *  and same-origin with it, which both insist on before they can be framed. */
+const EXTERNAL = [
+  { key: "torrents", label: "🧲 Torrents", url: "/api/qbt/", title: "qBittorrent" },
+  { key: "downloads", label: "⬇ Downloads", url: "/api/pyload/", title: "pyLoad" },
+] as const;
+type External = (typeof EXTERNAL)[number]["key"];
 
 function loadDelays(movieId: string): Delays {
   try {
@@ -99,6 +111,21 @@ export function MoviesPanel() {
   // area — which shows its inbox and its output together, or just the one
   // it has (the series library is an area with only an output).
   const [tab, setTab] = useState("");
+  // Which other program's UI is shown in place of everything under the tab
+  // row, if any. It sits on top of the library rather than replacing it:
+  // whatever is open or playing underneath is still there when you come back.
+  const [external, setExternalState] = useState<External | "">(() => {
+    const v = readCookie(EXTERNAL_COOKIE);
+    return EXTERNAL.some((x) => x.key === v) ? (v as External) : "";
+  });
+  // Each is only loaded once first asked for, then kept, so flipping back
+  // and forth doesn't reload it every time.
+  const [opened, setOpened] = useState<Set<string>>(() => new Set(external ? [external] : []));
+  const setExternal = (next: External | "") => {
+    setExternalState(next);
+    writeCookie(EXTERNAL_COOKIE, next);
+    if (next) setOpened((o) => (o.has(next) ? o : new Set(o).add(next)));
+  };
   // The folder the right-hand panel's content comes from. With a staging
   // area open that is one of *two* folders, so it is set by whichever pane
   // was clicked in, not by the tab.
@@ -350,6 +377,7 @@ export function MoviesPanel() {
   }, []);
 
   const switchTab = (next: string) => {
+    setExternal("");
     // Re-clicking the tab you are already on would clear the lists without
     // refetching them: the effect that reloads keys off the panes changing,
     // so nothing would bring the files back.
@@ -927,119 +955,127 @@ export function MoviesPanel() {
 
   return (
     <div className="panel movies">
-      <section className="mv-library">
-        {groups.length > 1 && (
-          // One tab per library, one per staging area. An area's tab opens
-          // its inbox and its output together, one above the other.
-          <div className="mv-sources">
-            {groups.map((g) => {
-              const target = tabTarget(g);
-              const ready = !!(g.todo?.ready || g.done?.ready);
-              // Only an area with something waiting in it is marked as one.
-              // A folder that just holds finished work — the series library,
-              // any output-only entry — looks like the film library, because
-              // that is what it is.
-              const kind = g.todo ? (g.done ? "pair" : "inbox") : "library";
-              return (
-                <button
-                  key={g.key}
-                  className={(tab === g.key ? "active " : "") + "mv-src-" + kind +
-                             (dropTab === g.key ? " dropping" : "")}
-                  title={[g.todo?.path, g.done?.path].filter(Boolean).join("\n")}
-                  disabled={!ready}
-                  onClick={() => switchTab(g.key)}
-                  // Dragging something onto another tab moves it there — into
-                  // the library, or into an area's inbox.
-                  onDragOver={(e) => {
-                    // Another tab is never a folder's own output — that sits
-                    // in the same tab — so only a publisher can drop here.
-                    if (!publisher || !target?.ready || g.key === tab) return;
-                    if (!e.dataTransfer.types.includes(DRAG_TYPE)) return;
-                    e.preventDefault();
-                    e.dataTransfer.dropEffect = "move";
-                    setDropTab(g.key);
-                  }}
-                  onDragLeave={() => setDropTab((cur) => (cur === g.key ? "" : cur))}
-                  onDrop={(e) => target && dropOnTab(e, target).finally(() => setDropTab(""))}
-                >
-                  {g.label}
-                </button>
-              );
-            })}
-            {/* The remux queue, at the far end of the tab row: visible from
-                every tab whatever is selected, because it is happening on
-                the server regardless. The running one is shown outright; the
-                button opens the whole queue. */}
-            <div className="mv-queue">
-              {running && (
-                <button className="mv-jobpill" onClick={() => switchTab(running.area)}
-                        title={`${running.target}\nfrom ${running.folder} — click to open its area`}>
-                  <span className="mv-ring" aria-hidden />
-                  <span className="mv-jobtext">{phaseText(running)}</span>
-                  <span className="mv-jobmeter"><span style={{ width: `${running.percent ?? 0}%` }} /></span>
-                  <span className="mv-jobpct">{running.percent ?? 0}%</span>
-                </button>
-              )}
-              <button
-                className={"mv-queuebtn" + (queueOpen ? " open" : "") + (failedCount ? " failed" : "")}
-                title="Remux queue"
-                onClick={(e) => { e.stopPropagation(); setQueueOpen((o) => !o); }}
-              >
-                <span aria-hidden>☰</span>
-                {waiting.length > 0 && <span className="mv-queuecount">{waiting.length}</span>}
-                {failedCount > 0 && <span className="mv-queuefail" title="failed">!</span>}
-              </button>
-              {queueOpen && (
-                <div className="mv-queuemenu" onClick={(e) => e.stopPropagation()}>
-                  <div className="mv-queuehead">
-                    <span>Remux queue</span>
-                    {jobs.some((j) => j.state !== "queued" && j.state !== "running") && (
-                      <button className="ghost" onClick={() => api.prepClearJobs().then((r) => setJobs(r.jobs)).catch(() => {})}>
-                        clear finished
-                      </button>
-                    )}
-                  </div>
-                  {jobs.length === 0 && <p className="muted small mv-queueempty">Nothing queued.</p>}
-                  <ul>
-                    {jobs.map((j) => (
-                      <li key={j.id} className={"mv-qrow " + j.state} title={j.error || j.output || j.folder}>
-                        <span className="mv-qstate" aria-hidden>
-                          {j.state === "running" ? <span className="mv-ring" />
-                            : j.state === "queued" ? `#${j.position}`
-                            : j.state === "done" ? "✔" : j.state === "failed" ? "✘" : "■"}
-                        </span>
-                        <span className="mv-qtext">
-                          <span className="mv-qtarget">{j.target}</span>
-                          <span className="mv-qsub">
-                            {j.state === "running" ? phaseText(j)
-                              : j.state === "queued" ? `${labelOf(j.area)} · ${j.folder}`
-                              : j.state === "done" ? `done${j.finished && j.started ? ` in ${Math.round(j.finished - j.started)}s` : ""}`
-                              : j.state === "failed" ? j.error
-                              : "stopped"}
-                          </span>
-                          {j.state === "running" && (
-                            <span className="mv-jobmeter wide"><span style={{ width: `${j.percent ?? 0}%` }} /></span>
-                          )}
-                        </span>
-                        <button
-                          className="ghost mv-qx"
-                          disabled={(j.state === "running" && j.phase !== "muxing" && j.phase !== "")
-                                    || ((j.state === "running" || j.state === "queued") && !canEditArea(j.area))}
-                          title={j.state === "running" ? "Stop — the source is left as it was"
-                            : j.state === "queued" ? "Take it out of the queue" : "Clear"}
-                          onClick={() => api.prepRemoveJob(j.id).then(loadJobs)
-                            .catch((e) => setTreeNote({ text: String(e).replace(/^Error:\s*/, ""), bad: true }))}
-                        >
-                          {j.state === "running" ? "stop" : "✕"}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+      {/* One tab per library, one per staging area — an area's tab opens
+          its inbox and its output together, one above the other — then
+          the torrent client. Spans the whole panel, above both columns,
+          so the torrent client gets the full width when it is open. */}
+      <div className="mv-sources">
+        {groups.map((g) => {
+          const target = tabTarget(g);
+          const ready = !!(g.todo?.ready || g.done?.ready);
+          // Only an area with something waiting in it is marked as one.
+          // A folder that just holds finished work — the series library,
+          // any output-only entry — looks like the film library, because
+          // that is what it is.
+          const kind = g.todo ? (g.done ? "pair" : "inbox") : "library";
+          return (
+            <button
+              key={g.key}
+              className={(tab === g.key && !external ? "active " : "") + "mv-src-" + kind +
+                         (dropTab === g.key ? " dropping" : "")}
+              title={[g.todo?.path, g.done?.path].filter(Boolean).join("\n")}
+              disabled={!ready}
+              onClick={() => switchTab(g.key)}
+              // Dragging something onto another tab moves it there — into
+              // the library, or into an area's inbox.
+              onDragOver={(e) => {
+                // Another tab is never a folder's own output — that sits
+                // in the same tab — so only a publisher can drop here.
+                if (!publisher || !target?.ready || g.key === tab) return;
+                if (!e.dataTransfer.types.includes(DRAG_TYPE)) return;
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "move";
+                setDropTab(g.key);
+              }}
+              onDragLeave={() => setDropTab((cur) => (cur === g.key ? "" : cur))}
+              onDrop={(e) => target && dropOnTab(e, target).finally(() => setDropTab(""))}
+            >
+              {g.label}
+            </button>
+          );
+        })}
+        <span className="mv-srcsep" aria-hidden />
+        {EXTERNAL.map((x) => (
+          <button key={x.key} className={external === x.key ? "active" : ""}
+                  onClick={() => setExternal(x.key)}>
+            {x.label}
+          </button>
+        ))}
+        {/* The remux queue, at the far end of the tab row: visible from
+            every tab whatever is selected, because it is happening on
+            the server regardless. The running one is shown outright; the
+            button opens the whole queue. */}
+        <div className="mv-queue">
+          {running && (
+            <button className="mv-jobpill" onClick={() => switchTab(running.area)}
+                    title={`${running.target}\nfrom ${running.folder} — click to open its area`}>
+              <span className="mv-ring" aria-hidden />
+              <span className="mv-jobtext">{phaseText(running)}</span>
+              <span className="mv-jobmeter"><span style={{ width: `${running.percent ?? 0}%` }} /></span>
+              <span className="mv-jobpct">{running.percent ?? 0}%</span>
+            </button>
+          )}
+          <button
+            className={"mv-queuebtn" + (queueOpen ? " open" : "") + (failedCount ? " failed" : "")}
+            title="Remux queue"
+            onClick={(e) => { e.stopPropagation(); setQueueOpen((o) => !o); }}
+          >
+            <span aria-hidden>☰</span>
+            {waiting.length > 0 && <span className="mv-queuecount">{waiting.length}</span>}
+            {failedCount > 0 && <span className="mv-queuefail" title="failed">!</span>}
+          </button>
+          {queueOpen && (
+            <div className="mv-queuemenu" onClick={(e) => e.stopPropagation()}>
+              <div className="mv-queuehead">
+                <span>Remux queue</span>
+                {jobs.some((j) => j.state !== "queued" && j.state !== "running") && (
+                  <button className="ghost" onClick={() => api.prepClearJobs().then((r) => setJobs(r.jobs)).catch(() => {})}>
+                    clear finished
+                  </button>
+                )}
+              </div>
+              {jobs.length === 0 && <p className="muted small mv-queueempty">Nothing queued.</p>}
+              <ul>
+                {jobs.map((j) => (
+                  <li key={j.id} className={"mv-qrow " + j.state} title={j.error || j.output || j.folder}>
+                    <span className="mv-qstate" aria-hidden>
+                      {j.state === "running" ? <span className="mv-ring" />
+                        : j.state === "queued" ? `#${j.position}`
+                        : j.state === "done" ? "✔" : j.state === "failed" ? "✘" : "■"}
+                    </span>
+                    <span className="mv-qtext">
+                      <span className="mv-qtarget">{j.target}</span>
+                      <span className="mv-qsub">
+                        {j.state === "running" ? phaseText(j)
+                          : j.state === "queued" ? `${labelOf(j.area)} · ${j.folder}`
+                          : j.state === "done" ? `done${j.finished && j.started ? ` in ${Math.round(j.finished - j.started)}s` : ""}`
+                          : j.state === "failed" ? j.error
+                          : "stopped"}
+                      </span>
+                      {j.state === "running" && (
+                        <span className="mv-jobmeter wide"><span style={{ width: `${j.percent ?? 0}%` }} /></span>
+                      )}
+                    </span>
+                    <button
+                      className="ghost mv-qx"
+                      disabled={(j.state === "running" && j.phase !== "muxing" && j.phase !== "")
+                                || ((j.state === "running" || j.state === "queued") && !canEditArea(j.area))}
+                      title={j.state === "running" ? "Stop — the source is left as it was"
+                        : j.state === "queued" ? "Take it out of the queue" : "Clear"}
+                      onClick={() => api.prepRemoveJob(j.id).then(loadJobs)
+                        .catch((e) => setTreeNote({ text: String(e).replace(/^Error:\s*/, ""), bad: true }))}
+                    >
+                      {j.state === "running" ? "stop" : "✕"}
+                    </button>
+                  </li>
+                ))}
+              </ul>
             </div>
-          </div>
-        )}
+          )}
+        </div>
+      </div>
+      <div className="mv-body" hidden={!!external}>
+      <section className="mv-library">
         <div className="mv-search">
           <input
             placeholder={tab
@@ -1475,6 +1511,11 @@ export function MoviesPanel() {
         </>
         )}
       </aside>
+      </div>
+      {EXTERNAL.filter((x) => opened.has(x.key)).map((x) => (
+        <iframe key={x.key} className="mv-external" src={x.url} title={x.title}
+                hidden={external !== x.key} />
+      ))}
     </div>
   );
 }

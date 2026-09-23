@@ -859,7 +859,16 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
 /* Two columns that both fill the viewport height (App adds `.app--fixed`
  * for this panel): the library scrolls on its own, the player stays put
  * beside it so picking a different film never moves the picture. */
-.panel.movies { height: 100%; align-items: stretch; outline: none; }
+.panel.movies {
+  height: 100%; flex-direction: column; align-items: stretch; gap: 8px; outline: none;
+}
+/* Tab row on top; under it either the two columns or the torrent client. */
+.mv-body { flex: 1 1 auto; min-height: 0; display: flex; gap: 20px; align-items: stretch; }
+.mv-body[hidden], .mv-external[hidden] { display: none; }
+.mv-external {
+  flex: 1 1 auto; min-height: 0; width: 100%;
+  border: 1px solid var(--line); border-radius: 8px; background: #fff;
+}
 .mv-library {
   flex: 1 1 auto;
   min-width: 0;
@@ -967,7 +976,7 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
   /* Below this the two columns starve each other; stack them and let the
    * page scroll normally instead (App's fixed-height shell still applies,
    * so the whole panel scrolls as one). */
-  .panel.movies { flex-direction: column; overflow-y: auto; }
+  .mv-body { flex-direction: column; overflow-y: auto; }
   .mv-player { flex: 0 0 auto; max-width: none; width: 100%; overflow: visible; }
   .mv-library { min-height: 300px; }
 }
@@ -992,6 +1001,8 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
 /* ── movies: staging areas ───────────────────────────────────────── */
 .mv-sources { display: flex; gap: 4px; flex-wrap: wrap; flex: 0 0 auto; }
 .mv-sources button { padding: 2px 10px; font-size: 0.78rem; }
+/* Between the folders and the other programs' UIs: a different kind of tab. */
+.mv-srcsep { align-self: stretch; width: 1px; margin: 2px 6px; background: var(--line); }
 
 /* A staging area's two folders, one above the other: what is waiting, and
  * what is done. They split the column's height evenly and scroll on their

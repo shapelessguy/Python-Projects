@@ -1,0 +1,16 @@
+#!/usr/bin/with-contenv bash
+# shellcheck shell=bash
+# The linuxserver/pyload-ng image's own start script, with one change:
+# --storagedir. The image pins it to /downloads, a mount of its own, which
+# would make moving a finished package into /pangea/downloads a copy of every
+# byte (a rename can't cross mounts). Downloading inside the same /pangea
+# mount keeps that move instant. Mounted over the original by
+# docker-compose.yml — recheck against the image's copy if an update breaks it.
+
+PORT=$(sed -n -e '/webui/,/proxy/p' /config/settings/pyload.cfg | grep "Port" | awk -F '=' '{print $2}' | tr -d ' ')
+
+export LD_PRELOAD="/lib/libgcompat.so.0"
+
+exec \
+    s6-notifyoncheck -d -n 300 -w 1000 -c "nc -z localhost ${PORT:-8000}" \
+    s6-setuidgid abc pyload --userdir /config --storagedir /pangea/temp/pyload
