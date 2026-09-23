@@ -9,12 +9,14 @@ Contract picked up by ``api/main.py`` auto-discovery: ``router`` and
 the library is the filesystem, and the panel refetches it on demand rather
 than off the version poll.
 """
+from urllib.parse import unquote
+
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response, StreamingResponse
 from starlette.concurrency import run_in_threadpool
 
 from api.auth import require_user
-from api.services import movie_prep, movie_subs, movies
+from api.services import movie_prep, movie_subs, movies, plex
 
 router = APIRouter(prefix="/api/movies", tags=["movies"])
 
@@ -32,9 +34,45 @@ def _wrap(exc: movies.MovieError) -> HTTPException:
 @router.get("/list")
 async def list_movies(refresh: bool = False, _user: str = Depends(require_user)):
     try:
-        return await run_in_threadpool(movies.list_movies, refresh)
+        return await run_in_threadpool(_list_with_posters, refresh)
     except movies.MovieError as e:
         raise _wrap(e)
+
+
+def _list_with_posters(refresh: bool) -> list[dict]:
+    """The listing, each film with `poster`: the version of the cover Plex
+    has for its file (the timestamp at the end of Plex's thumb path, so the
+    image URL changes when the poster does), or null when Plex has none."""
+    thumbs = plex.posters()
+    out = []
+    for m in movies.list_movies(refresh):
+        thumb = thumbs.get(str(movies.MOVIES_DIR / unquote(m["id"])))
+        out.append({**m, "poster": thumb.rsplit("/", 1)[-1] if thumb else None})
+    return out
+
+
+@router.get("/poster")
+async def poster(
+    id: str = Query(...),
+    w: int = Query(300, ge=60, le=1000),
+    _user: str = Depends(require_user),
+):
+    """A film's cover, as Plex has it, scaled to `w` pixels wide. Looked up by
+    the film's id rather than taking a Plex path from the client, so this can
+    only ever fetch posters of films in the library. Cached hard: the URL
+    carries the poster's version, so a new poster is a new URL."""
+    try:
+        path = str(movies.MOVIES_DIR / unquote(id))
+        thumb = (await run_in_threadpool(plex.posters)).get(path)
+        if not thumb:
+            raise HTTPException(404, "Plex has no poster for this film")
+        body, ctype = await run_in_threadpool(plex.poster_image, thumb, w)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(502, f"could not get the poster from Plex: {e}")
+    return Response(body, media_type=ctype,
+                    headers={"Cache-Control": "private, max-age=31536000, immutable"})
 
 
 @router.get("/info")

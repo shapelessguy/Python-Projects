@@ -105,3 +105,58 @@ def _flush() -> None:
             print(f"plex: asked section {key} to scan {folder or 'the whole library'}")
     except Exception as e:
         print(f"plex: could not ask for a scan ({e.__class__.__name__}: {e})")
+
+
+# ── posters ──────────────────────────────────────────────────────────────
+# The Movies panel's cover grid shows the posters Plex already has. Films are
+# matched to Plex's entries by file path — the same path on both sides, since
+# Plex reads the same library folders — never by title, so a film Plex has not
+# matched (or not scanned yet) simply has no cover.
+POSTERS_TTL = 120
+# Plex being down is remembered for this long rather than asked again for
+# every cover.
+POSTERS_RETRY = 30
+_posters_lock = threading.Lock()
+_posters: dict[str, str] = {}
+_posters_at = 0.0
+
+
+def posters() -> dict[str, str]:
+    """{file path: Plex thumb path} for every file in every movie library.
+    Empty when there is no token or Plex cannot be reached."""
+    global _posters, _posters_at
+    if not PLEX_TOKEN:
+        return {}
+    with _posters_lock:
+        if time.time() - _posters_at < POSTERS_TTL:
+            return _posters
+        try:
+            root = ET.fromstring(_get("/library/sections").content)
+            out: dict[str, str] = {}
+            for d in root.findall("Directory"):
+                if d.get("type") != "movie":
+                    continue
+                items = ET.fromstring(_get(f"/library/sections/{d.get('key')}/all", type=1).content)
+                for v in items.findall("Video"):
+                    thumb = v.get("thumb")
+                    if not thumb:
+                        continue
+                    for part in v.iter("Part"):
+                        if part.get("file"):
+                            out[part.get("file")] = thumb
+            _posters, _posters_at = out, time.time()
+        except Exception as e:
+            print(f"plex: could not read posters ({e.__class__.__name__}: {e})")
+            _posters_at = time.time() - POSTERS_TTL + POSTERS_RETRY
+        return _posters
+
+
+def poster_image(thumb: str, width: int) -> tuple[bytes, str]:
+    """The poster at `thumb`, scaled by Plex to `width` (2:3), as (bytes,
+    content type)."""
+    r = requests.get(PLEX_URL + "/photo/:/transcode",
+                     params={"url": thumb, "width": width, "height": width * 3 // 2,
+                             "minSize": 1, "upscale": 1},
+                     headers={"X-Plex-Token": PLEX_TOKEN}, timeout=15)
+    r.raise_for_status()
+    return r.content, r.headers.get("content-type", "image/jpeg")

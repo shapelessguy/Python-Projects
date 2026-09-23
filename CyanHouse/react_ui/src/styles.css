@@ -932,6 +932,101 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
 .mv-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mv-size { flex: 0 0 auto; font-size: 0.75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
 .mv-item.active .mv-size { color: #ffd9d9; }
+/* The library as a book of covers: one page fills the column exactly, and
+ * the arrows either side (or ← →) turn it. Sized in CoverBook.tsx, which
+ * works out how many columns and rows fit. */
+.mv-viewpick { display: flex; gap: 2px; flex: 0 0 auto; }
+.mv-viewpick button { padding: 2px 8px; }
+.mv-viewpick button.active { background: var(--panel-2); border-color: var(--line); color: var(--text); }
+.mv-coversize { flex: 0 1 140px; min-width: 70px; }
+.mv-bookwrap { flex: 1 1 auto; min-height: 0; display: flex; }
+.mv-book {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) 40px;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 6px 4px;
+}
+.mv-bookpage { position: relative; min-height: 0; overflow: hidden; }
+.mv-covers {
+  height: 100%;
+  display: grid;
+  justify-content: space-evenly;
+  align-content: space-evenly;
+}
+.mv-covers.turn-next { animation: mv-turn-next 0.22s ease-out; }
+.mv-covers.turn-prev { animation: mv-turn-prev 0.22s ease-out; }
+@keyframes mv-turn-next { from { opacity: 0; transform: translateX(28px); } }
+@keyframes mv-turn-prev { from { opacity: 0; transform: translateX(-28px); } }
+.mv-turn {
+  font-size: 2rem;
+  line-height: 1;
+  padding: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--muted);
+}
+.mv-turn:hover:not(:disabled) { background: var(--panel-2); border-color: var(--line); color: var(--text); }
+.mv-turn:disabled { opacity: 0.25; }
+.mv-bookfoot {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  font-variant-numeric: tabular-nums;
+}
+.mv-bookempty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; margin: 0; }
+.mv-cover {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  text-align: center;
+  cursor: pointer;
+}
+.mv-coverart {
+  position: relative;
+  aspect-ratio: 2 / 3;
+  width: 100%;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.mv-coverart img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.mv-cover:hover .mv-coverart { transform: translateY(-3px); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45); }
+/* Selected: the poster is ringed and the name underlined in the accent —
+ * not the global button.active fill, which would paint the whole card. */
+.mv-cover.active, .mv-cover.active:hover { background: transparent; border-color: transparent; color: inherit; }
+.mv-cover.active .mv-coverart { box-shadow: 0 0 0 2px var(--bg, #0f1218), 0 0 0 4px var(--accent), 0 6px 16px rgba(0, 0, 0, 0.45); border-color: transparent; }
+.mv-coverblank {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  font-size: 0.8rem;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.mv-covertitle {
+  font-size: 0.75rem;
+  line-height: 18px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mv-cover.active .mv-covertitle { color: var(--accent); font-weight: 600; }
 .mv-player {
   flex: 0 0 640px;
   max-width: 50vw;
@@ -963,19 +1058,10 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
   justify-content: center;
   font-size: 0.85rem;
 }
-.mv-spinner {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  background: rgba(0, 0, 0, 0.6);
-  border-radius: 6px;
-  padding: 6px 12px;
-  font-size: 0.8rem;
-  color: var(--text);
-  pointer-events: none;
-}
 .mv-meta h2 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mv-metahead { display: flex; align-items: center; gap: 8px; }
+.mv-metahead h2 { flex: 1 1 auto; min-width: 0; margin: 0; }
+.mv-close { flex: 0 0 auto; padding: 2px 8px; font-size: 1rem; line-height: 1.2; }
 .mv-meta p { margin: 2px 0 0; }
 .mv-scrub { display: flex; align-items: center; gap: 10px; }
 .mv-time { flex: 0 0 auto; font-size: 0.8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
@@ -1401,9 +1487,7 @@ select.mv-preplang:invalid, select.mv-preplang[data-empty="true"] { color: var(-
 /* A spinner drawn as a ring rather than a rotated glyph: a glyph's box is
  * not square and its ink is not centred in it, so rotating one makes it
  * wobble around the point it should turn on. A square ring turns on its
- * own centre. Not called .mv-spinner: that is the player's "transcoding…"
- * overlay, an absolutely positioned box, and sharing the name merged the
- * two into a dark blob pinned to the middle of the queue. */
+ * own centre. */
 .mv-ring {
   flex: 0 0 11px; width: 11px; height: 11px;
   box-sizing: border-box;
@@ -1550,3 +1634,49 @@ select.mv-preplang:invalid, select.mv-preplang[data-empty="true"] { color: var(-
 }
 
 /* move between folders — its own row, and only for a user allowed to do it */
+/* Fullscreen: the controls float over the foot of the picture while the
+ * mouse moves, and fade out (with the cursor) 3 s after it stops. */
+.mv-stage.idle { cursor: none; }
+.mv-fsbar {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 28px 24px 18px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.75));
+  cursor: default;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+.mv-fsbar.shown { opacity: 1; pointer-events: auto; }
+.mv-fsscrub { flex: 1 1 auto; min-width: 0; }
+.mv-fsbar .mv-volume { margin-left: 0; }
+/* The picture's own states: a play button when a film is ready, a turning
+ * ring while the file is read or the transcode fills its buffer. */
+.mv-bigplay {
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0 0 0 6px;
+  font-size: 1.9rem;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+  border: 2px solid rgba(255, 255, 255, 0.55);
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+.mv-bigplay:hover { background: var(--accent); border-color: var(--accent); transform: scale(1.06); }
+.mv-loader {
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  border: 4px solid rgba(255, 255, 255, 0.18);
+  border-top-color: var(--accent);
+  animation: mv-spin 0.9s linear infinite;
+}
+.mv-loader-over {
+  position: absolute;
+  left: 50%; top: 50%;
+  margin: -24px 0 0 -24px;
+  pointer-events: none;
+}

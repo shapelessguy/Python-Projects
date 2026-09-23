@@ -5,6 +5,7 @@ import { useVersionPoll, useVisibility } from "../api";
 import { entriesFrom, walkEntries, useUploads } from "../uploads";
 import { readCookie, writeCookie } from "../cookies";
 import { currentUsername } from "../auth";
+import { CoverBook } from "./CoverBook";
 
 /** The stream is a transcode piped into a fragmented MP4: no byte ranges, no
  *  index, so the browser can't seek it and `video.duration` is meaningless.
@@ -22,6 +23,11 @@ type Delays = Record<string, number>;
 
 const DELAY_KEY = "movies.delays";
 const EXTERNAL_COOKIE = "media_external";
+/** The film library as covers ("grid", the default) or as a list. */
+const VIEW_COOKIE = "movies_view";
+const COVER_COOKIE = "movies_cover";
+const COVER_MIN = 90;
+const COVER_MAX = 280;
 
 /** Other programs' own web UIs, shown in place of the library: qBittorrent
  *  and pyLoad, each reverse-proxied by the API (api/routers/qbt.py,
@@ -204,6 +210,14 @@ export function MoviesPanel() {
   const [movies, setMovies] = useState<MovieItem[]>([]);
   const [listError, setListError] = useState("");
   const [query, setQuery] = useState("");
+  const [view, setViewState] = useState<"grid" | "list">(() =>
+    readCookie(VIEW_COOKIE) === "list" ? "list" : "grid");
+  const setView = (v: "grid" | "list") => { setViewState(v); writeCookie(VIEW_COOKIE, v); };
+  const [coverSize, setCoverSizeState] = useState(() => {
+    const n = Number(readCookie(COVER_COOKIE));
+    return n >= COVER_MIN && n <= COVER_MAX ? n : 150;
+  });
+  const setCoverSize = (n: number) => { setCoverSizeState(n); writeCookie(COVER_COOKIE, String(n)); };
   const [selected, setSelected] = useState<MovieItem | null>(null);
   const [info, setInfo] = useState<MovieInfo | null>(null);
   const [infoError, setInfoError] = useState("");
@@ -377,13 +391,14 @@ export function MoviesPanel() {
     };
   }, []);
 
-  /** A click on empty space in the left column lets go of everything: the
+  /** In a staging area's folders (not the film library, where there is
+   *  nothing to tidy up), a click on empty space lets go of everything: the
    *  film or file open on the right (which goes back to the help text) and
    *  any ticked rows. Clicks on a row, a button, a field or a menu are that
    *  thing's own business. */
   const clearOnEmpty = (e: React.MouseEvent) => {
     const t = e.target as HTMLElement;
-    if (t.closest(".mv-node, .mv-item, button, input, select, a, label, .mv-menu, .mv-panehead")) return;
+    if (t.closest(".mv-node, .mv-item, .mv-cover, button, input, select, a, label, .mv-menu, .mv-panehead")) return;
     if (!selected && !viewFile && !picked.size) return;
     stop();
     setSelected(null); setInfo(null); setViewFile(null);
@@ -656,7 +671,7 @@ export function MoviesPanel() {
       if (selected?.id === f.movie_id) return;   // already open (the id carries the area)
       setSource(area);
       setViewFile(null);
-      pick({ id: f.movie_id, title: f.name, file: f.name, size: f.size });
+      pick({ id: f.movie_id, title: f.name, file: f.name, size: f.size }, area);
     } else {
       if (viewFile?.path === f.path && source === area) return;   // already showing
       stop();
@@ -666,7 +681,11 @@ export function MoviesPanel() {
     }
   };
 
-  const pick = (movie: MovieItem) => {
+  /** `area` is the folder the film was picked from — "" for the library. */
+  const pick = (movie: MovieItem, area = "") => {
+    // An inbox is where subtitles get checked against the audio before a
+    // remux; everywhere else the film is finished and opened to be watched.
+    const checking = sources.find((x) => x.key === area)?.kind === "inbox";
     // Re-clicking what is already open would tear down the transcode and
     // refetch for no gain — and lose your position doing it.
     if (selected?.id === movie.id) return;
@@ -699,12 +718,13 @@ export function MoviesPanel() {
           for (const t of staged.tracks) if (t.delay_ms) seeded[t.key] = t.delay_ms;
           setDelays(seeded);
         }
-        // Always the smallest rung. Original is faster still, but it can't
-        // carry burned-in subtitles, and this panel is for checking those
-        // against the audio -- so defaulting to it just means every film
-        // starts one click away from what you actually want. It stays
-        // selectable for plain watching.
-        setHeight(360);
+        // In an inbox, the smallest rung: Original is faster still, but it
+        // can't carry burned-in subtitles, and checking those against the
+        // audio is what an inbox film is opened for. Anywhere else it is
+        // opened to be watched, so the best picture: the file untouched
+        // when browsers can play it, otherwise the top rung (which never
+        // upscales past the source).
+        setHeight(checking ? 360 : meta.heights.includes(0) ? 0 : Math.max(...meta.heights));
       })
       .catch((e) => setInfoError(String(e)));
   };
@@ -791,6 +811,36 @@ export function MoviesPanel() {
   const seek = (t: number) => (playing ? play({ t }) : setPosition(t));
 
   const clickTimer = useRef<number | undefined>(undefined);
+
+  // Fullscreen is the picture alone, so the few controls that matter there
+  // are drawn over it — and only while the mouse is moving, plus a moment
+  // after it stops, so they are out of the way of the film otherwise.
+  const [fullscreen, setFullscreen] = useState(false);
+  const [overlay, setOverlay] = useState(false);
+  const overlayTimer = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    const onChange = () => {
+      setFullscreen(!!stageRef.current && document.fullscreenElement === stageRef.current);
+      setOverlay(false);
+      window.clearTimeout(overlayTimer.current);
+    };
+    document.addEventListener("fullscreenchange", onChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", onChange);
+      window.clearTimeout(overlayTimer.current);
+    };
+  }, []);
+  const wakeOverlay = () => {
+    if (!fullscreen) return;
+    setOverlay(true);
+    window.clearTimeout(overlayTimer.current);
+    overlayTimer.current = window.setTimeout(() => setOverlay(false), 3000);
+  };
+
+  const changeVolume = (v: number) => {
+    setVolume(v);
+    if (videoRef.current) videoRef.current.volume = v;
+  };
 
   const toggleFullscreen = () => {
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
@@ -1157,6 +1207,29 @@ export function MoviesPanel() {
           >
             ⟳
           </button>
+          {tab === "" && (
+            <span className="mv-viewpick">
+              <button className={"ghost" + (view === "grid" ? " active" : "")} title="Covers"
+                      onClick={() => setView("grid")}>▦</button>
+              <button className={"ghost" + (view === "list" ? " active" : "")} title="List"
+                      onClick={() => setView("list")}>☰</button>
+            </span>
+          )}
+          {tab === "" && view === "grid" && (
+            <input
+              className="mv-coversize"
+              type="range"
+              min={COVER_MIN}
+              max={COVER_MAX}
+              step={5}
+              value={coverSize}
+              title="Cover size"
+              onChange={(e) => setCoverSize(+e.target.value)}
+              // Let go of the slider once set, so the arrow keys go back to
+              // turning pages rather than nudging the size.
+              onPointerUp={(e) => e.currentTarget.blur()}
+            />
+          )}
           {space && (
             <span
               className="mv-space"
@@ -1213,8 +1286,19 @@ export function MoviesPanel() {
               </div>
             ))}
           </div>
+        ) : view === "grid" ? (
+          <div className="mv-bookwrap">
+            <CoverBook
+              items={filtered}
+              size={coverSize}
+              selectedId={selected?.id ?? null}
+              onPick={(m) => pick(m)}
+              active={!external}
+              resetKey={query}
+            />
+          </div>
         ) : (
-        <ul className="mv-list" onClick={clearOnEmpty}>
+        <ul className="mv-list">
           {filtered.map((m) => (
             <li key={m.id}>
               <button
@@ -1348,6 +1432,9 @@ export function MoviesPanel() {
         )}
       </section>
 
+      {/* On the film library the right-hand column only exists while a film
+          is open: the rest of the time the covers get the whole width. */}
+      {(tab !== "" || selected) && (
       <aside
         className={"mv-player" + (dragging ? " dropping" : "")}
         // Only real files from outside the page. An entry being dragged
@@ -1375,10 +1462,11 @@ export function MoviesPanel() {
         ) : (
         <>
         <div
-          className="mv-stage"
+          className={"mv-stage" + (fullscreen && !overlay ? " idle" : "")}
           ref={stageRef}
           onClick={stageClick}
           onDoubleClick={stageDoubleClick}
+          onMouseMove={wakeOverlay}
         >
           {playing ? (
             <video
@@ -1407,14 +1495,61 @@ export function MoviesPanel() {
             />
           ) : (
             <div className="mv-placeholder muted">
-              {selected ? (info ? "Ready" : infoError || "Reading the file…") : "Pick a movie"}
+              {infoError ? infoError
+                : info ? (
+                  <button className="mv-bigplay" title="Play"
+                          onClick={(e) => { e.stopPropagation(); togglePlay(); }}>
+                    <span aria-hidden>▶</span>
+                  </button>
+                ) : <span className="mv-loader" aria-label="Reading the file" />}
             </div>
           )}
-          {playing && buffering && <div className="mv-spinner">transcoding…</div>}
+          {playing && buffering && <span className="mv-loader mv-loader-over" aria-label="Transcoding" />}
+          {fullscreen && (
+            <div
+              className={"mv-fsbar" + (overlay ? " shown" : "")}
+              // Its own clicks are not the picture's: they must neither
+              // pause the film nor leave fullscreen.
+              onClick={(e) => e.stopPropagation()}
+              onDoubleClick={(e) => e.stopPropagation()}
+            >
+              <button onClick={togglePlay} disabled={!info} title="Play / pause">
+                {playing && !paused && !dead ? "❚❚" : "▶"}
+              </button>
+              <input
+                className="mv-fsscrub"
+                type="range"
+                min={0}
+                max={Math.max(1, duration)}
+                step={1}
+                value={shown}
+                disabled={!info}
+                onChange={(e) => setScrub(+e.target.value)}
+                onPointerUp={(e) => seek(+(e.target as HTMLInputElement).value)}
+                onKeyUp={(e) => seek(+(e.target as HTMLInputElement).value)}
+              />
+              <span className="mv-time">{fmt(shown)} / {fmt(duration)}</span>
+              <label className="mv-volume" title="Volume">
+                🔊
+                <input type="range" min={0} max={1} step={0.01} value={volume}
+                       onChange={(e) => changeVolume(+e.target.value)} />
+              </label>
+              <button className="ghost" onClick={toggleFullscreen} title="Leave fullscreen">⛶</button>
+            </div>
+          )}
         </div>
 
         <div className="mv-meta">
-          <h2>{selected ? selected.title : "Movies"}</h2>
+          <div className="mv-metahead">
+            <h2>{selected ? selected.title : "Movies"}</h2>
+            <button
+              className="ghost mv-close"
+              title="Close the film"
+              onClick={() => { stop(); setSelected(null); setInfo(null); setPrepNote(""); }}
+            >
+              ✕
+            </button>
+          </div>
           {info ? (
             <p className="muted small">
               {info.video.codec.toUpperCase()} {info.video.width}×{info.video.height}
@@ -1461,7 +1596,13 @@ export function MoviesPanel() {
           >
             ▶▶
           </button>
-          <button onClick={stop} disabled={!playing} title="Stop the transcode">
+          <button
+            // Stop, unlike pause, goes back to the start: the next play
+            // begins the film again.
+            onClick={() => { stop(); setPosition(0); setScrub(null); }}
+            disabled={!playing}
+            title="Stop and go back to the start"
+          >
             {/* Drawn, not the ■ glyph: that renders at half the size of the
                 arrows beside it in most fonts. */}
             <span className="mv-stopicon" aria-hidden />
@@ -1474,11 +1615,7 @@ export function MoviesPanel() {
               max={1}
               step={0.01}
               value={volume}
-              onChange={(e) => {
-                const v = +e.target.value;
-                setVolume(v);
-                if (videoRef.current) videoRef.current.volume = v;
-              }}
+              onChange={(e) => changeVolume(+e.target.value)}
             />
           </label>
           <button
@@ -1581,6 +1718,7 @@ export function MoviesPanel() {
         </>
         )}
       </aside>
+      )}
       </div>
       {EXTERNAL.filter((x) => opened.has(x.key)).map((x) => (
         <iframe key={x.key} className="mv-external" src={x.url} title={x.title}

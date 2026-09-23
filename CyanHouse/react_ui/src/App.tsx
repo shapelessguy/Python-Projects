@@ -12,11 +12,14 @@ import { readCookie, writeCookie } from "./cookies";
 
 type PanelId = "controls" | "environment" | "personal" | "food" | "calendar" | "movies";
 
+// The first four icons end in an invisible U+FE0F: they are "text by
+// default" emoji, which desktop Linux otherwise draws as small monochrome
+// glyphs from a text font. The selector asks for the colour emoji.
 const PANELS: { id: PanelId; icon: string; label: string; render: () => JSX.Element }[] = [
-  { id: "controls", icon: "🎛", label: "Controls", render: () => <ControlsPanel /> },
-  { id: "environment", icon: "🌦", label: "Environment", render: () => <EnvironmentPanel /> },
-  { id: "personal", icon: "🗂", label: "Personal", render: () => <PersonalPanel /> },
-  { id: "food", icon: "🍽", label: "Food", render: () => <FoodPanel /> },
+  { id: "controls", icon: "🎛️", label: "Controls", render: () => <ControlsPanel /> },
+  { id: "environment", icon: "🌦️", label: "Environment", render: () => <EnvironmentPanel /> },
+  { id: "personal", icon: "🗂️", label: "Personal", render: () => <PersonalPanel /> },
+  { id: "food", icon: "🍽️", label: "Food", render: () => <FoodPanel /> },
   { id: "calendar", icon: "📅", label: "Calendar", render: () => <CalendarPanel /> },
   // Still keyed "movies": that id is the permission name in secrets.json's
   // visibility lists and the backend's require_panel, so renaming the label

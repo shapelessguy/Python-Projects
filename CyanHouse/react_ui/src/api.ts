@@ -228,6 +228,9 @@ export interface MovieItem {
   title: string;
   file: string;
   size: number;
+  /** Version of the cover Plex has for this file (see /api/movies/poster),
+   *  or null/absent when it has none. */
+  poster?: string | null;
 }
 
 export interface MovieTrack {
