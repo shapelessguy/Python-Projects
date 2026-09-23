@@ -185,3 +185,10 @@ CONTROLS_FN_URL = f"http://{CONTROLS_FN_HOST}:{CONTROLS_FN_PORT}" if CONTROLS_FN
 QBT_URL = os.environ.get("QBT_URL", "http://127.0.0.1:8081").strip().rstrip("/")
 # pyLoad-ng (docker-compose.yml's `pyload`), served the same way under /api/pyload/.
 PYLOAD_URL = os.environ.get("PYLOAD_URL", "http://127.0.0.1:8100").strip().rstrip("/")
+
+# ── Plex ───────────────────────────────────────────────────────────────────
+# Asked to scan a library folder whenever a film lands in or leaves one
+# (api/services/plex.py). The token is the server's own (PlexOnlineToken in
+# its Preferences.xml); without one, Plex is simply not told.
+PLEX_URL = os.environ.get("PLEX_URL", "http://127.0.0.1:32400").strip().rstrip("/")
+PLEX_TOKEN = os.environ.get("PLEX_TOKEN", "").strip()

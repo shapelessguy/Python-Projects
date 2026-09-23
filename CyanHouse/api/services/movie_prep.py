@@ -53,7 +53,7 @@ from api.config import (
     MOVIES_DIR,
     MOVIE_STAGING,
 )
-from api.services import movie_subs, movies, prep_configs
+from api.services import movie_subs, movies, plex, prep_configs
 
 VIDEO_EXT = movies.VIDEO_EXT
 SUB_EXT = movies.SUB_EXT | {".idx"}
@@ -822,6 +822,7 @@ def execute(plan: dict, dest_root: Path, dry_run: bool = False,
 
     report(phase="tidying")
     shutil.move(str(temp), str(output))
+    plex.notify(output)
 
     # Only now is anything removed, and even then it is moved, not deleted:
     # the one irreversible step in this pipeline deserves an undo.
@@ -1433,6 +1434,7 @@ def move_film(movie_id: str, to_key: str) -> dict:
     # shutil.move falls back to copy+delete across filesystems, which is what
     # makes this work when the library is on another disk.
     shutil.move(str(moving), str(dest))
+    plex.notify(moving, dest)
     return {
         "moved": moving.name,
         "to": str(dest),
@@ -1500,6 +1502,7 @@ def rename_entry(area_name: str, rel: str, new_name: str) -> dict:
         raise PrepError(f"{name!r} already exists in this folder", 409)
     path.rename(dest)
     _bump()
+    plex.notify(path, dest)
     root, _ = area(area_name)
     new_rel = str(dest.resolve().relative_to(root.resolve()))
     return {"path": rel, "renamed": True, "new_path": new_rel, "name": name,
@@ -1536,6 +1539,7 @@ def move_entry(from_area: str, from_rel: str, to_area: str, to_rel: str) -> dict
     # able to feed a library on the network mount.
     shutil.move(str(src), str(dest))
     _bump()
+    plex.notify(src, dest)
     root, _ = area(to_area)
     return {
         "moved": src.name,
@@ -1576,6 +1580,7 @@ def delete_entry(area_name: str, rel: str) -> dict:
     else:
         path.unlink()
     _bump()
+    plex.notify(path)
     return {"removed": name, "path": rel, "is_dir": was_dir,
             "files": count, "size": size}
 

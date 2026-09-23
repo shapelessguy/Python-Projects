@@ -68,6 +68,13 @@ h3 { font-size: 0.85rem; margin: 12px 0 6px; text-transform: uppercase; letter-s
 .switcher > button { flex: 0 0 auto; white-space: nowrap; }
 .sw-label { margin-left: 0.4em; }
 .switcher.compact .sw-label { display: none; }
+/* Icons only: the buttons share the whole bar (up to 20px short of the user
+ * box) at twice the usual height, so they stay easy to hit on a phone. */
+.switcher.compact > button {
+  flex: 1 1 0; min-width: 0; height: 56px; padding: 0;
+  font-size: 1.7rem; line-height: 1;
+}
+.switcher.compact .whoami { margin-left: 20px; }
 .whoami {
   margin-left: auto;
   flex: 0 0 auto;
