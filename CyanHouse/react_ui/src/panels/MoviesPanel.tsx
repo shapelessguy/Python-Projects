@@ -475,9 +475,11 @@ export function MoviesPanel() {
 
   const failedCount = jobs.filter((j) => j.state === "failed").length;
   const phaseText = (j: RemuxJob) =>
-    j.phase === "verifying" ? `Checking ${j.target}`
-      : j.phase === "tidying" ? `Moving ${j.target}`
-      : `Remuxing ${j.target}`;
+    ((j.steps ?? 0) > 1 && j.step ? `${j.step}/${j.steps} · ` : "") + (
+      j.phase === "generating" ? `${j.step_label} subtitles${j.detail ? `: ${j.detail}` : ""}`
+        : j.phase === "verifying" ? `Checking ${j.target}`
+        : j.phase === "tidying" ? `Moving ${j.target}`
+        : `Remuxing ${j.target}`);
 
   // The menu closes on any click outside it, or Escape — like the tree's.
   useEffect(() => {
@@ -887,12 +889,42 @@ export function MoviesPanel() {
         if (code && t.type === target.type && t.language === code) {
           return { ...t, language: "", keep: false };
         }
+        // A subtitle to be generated from an audio track holds its language
+        // like any other subtitle: giving a real one that language cancels
+        // the generation, and moving the audio onto a language drops the
+        // subtitle that had it.
+        if (code && target.type === "subtitle" && t.type === "audio" && t.gen_srt && t.language === code) {
+          return { ...t, gen_srt: false };
+        }
+        if (code && target.type === "audio" && target.gen_srt && t.type === "subtitle" && t.language === code) {
+          return { ...t, language: "", keep: false };
+        }
         return t;
       }),
     });
   };
 
   const planLang = (key: string) => plan?.tracks.find((t) => t.key === key)?.language ?? "";
+  const planGen = (key: string) => !!plan?.tracks.find((t) => t.key === key)?.gen_srt;
+
+  /** Ticking "SRT" on an audio track claims its language for the subtitle
+   *  that will be generated — the same one-track-per-language rule as
+   *  `setLanguage`, so a kept subtitle already in that language is dropped. */
+  const setGen = (key: string, on: boolean) => {
+    if (!plan) return;
+    const audio = plan.tracks.find((t) => t.key === key);
+    if (!audio) return;
+    setPlan({
+      ...plan,
+      tracks: plan.tracks.map((t) => {
+        if (t.key === key) return { ...t, gen_srt: on };
+        if (on && audio.language && t.type === "subtitle" && t.language === audio.language) {
+          return { ...t, language: "", keep: false };
+        }
+        return t;
+      }),
+    });
+  };
 
   /** Called on blur or Enter, never per keystroke. Restarts the transcode
    *  only when this is a track that is actually playing right now — editing
@@ -1058,7 +1090,7 @@ export function MoviesPanel() {
                     </span>
                     <button
                       className="ghost mv-qx"
-                      disabled={(j.state === "running" && j.phase !== "muxing" && j.phase !== "")
+                      disabled={(j.state === "running" && !["generating", "muxing", ""].includes(j.phase))
                                 || ((j.state === "running" || j.state === "queued") && !canEditArea(j.area))}
                       title={j.state === "running" ? "Stop — the source is left as it was"
                         : j.state === "queued" ? "Take it out of the queue" : "Clear"}
@@ -1396,7 +1428,9 @@ export function MoviesPanel() {
             ▶▶
           </button>
           <button onClick={stop} disabled={!playing} title="Stop the transcode">
-            ■
+            {/* Drawn, not the ■ glyph: that renders at half the size of the
+                arrows beside it in most fonts. */}
+            <span className="mv-stopicon" aria-hidden />
           </button>
           <label className="mv-volume" title="Volume">
             🔊
@@ -1471,6 +1505,8 @@ export function MoviesPanel() {
             languages={plan ? languages : undefined}
             planLang={plan ? planLang : undefined}
             onLanguage={plan ? setLanguage : undefined}
+            planGen={plan ? planGen : undefined}
+            onGen={plan ? setGen : undefined}
             onUpload={() => fileRef.current?.click()}
             onDeleteSub={deleteSub}
             canDelete={canDelete}
@@ -1534,7 +1570,7 @@ export function MoviesPanel() {
 function TrackTable({
   audioTracks, subTracks, activeAudio, activeSub, onAudio, onSub,
   delays, draft, setDraft, commit, disabled,
-  languages, planLang, onLanguage,
+  languages, planLang, onLanguage, planGen, onGen,
   onUpload, onDeleteSub, canDelete, busy,
 }: {
   audioTracks: MovieTrack[];
@@ -1552,12 +1588,16 @@ function TrackTable({
   languages?: { code: string; name: string }[];
   planLang?: (key: string) => string;
   onLanguage?: (key: string, code: string) => void;
+  /** Audio: whether a subtitle is generated from it as the remux's first stage. */
+  planGen?: (key: string) => boolean;
+  onGen?: (key: string, on: boolean) => void;
   onUpload: () => void;
   onDeleteSub: () => void;
   canDelete: boolean;
   busy: boolean;
 }) {
   const prep = !!languages && !!onLanguage && !!planLang;
+  const cols = prep ? 5 : 3;
 
   const delayCell = (t: MovieTrack, active: boolean) => (
     <input
@@ -1606,12 +1646,13 @@ function TrackTable({
           <th className="mv-thplay" />
           <th>Track</th>
           {prep && <th className="mv-thlang">Language</th>}
+          {prep && <th className="mv-thgen" title="Generate a subtitle from this audio before remuxing">SRT</th>}
           <th className="mv-thdelay">Delay (ms)</th>
         </tr>
       </thead>
 
       <tbody>
-        <tr className="mv-section"><td colSpan={prep ? 4 : 3}>Audio</td></tr>
+        <tr className="mv-section"><td colSpan={cols}>Audio</td></tr>
         {audioTracks.map((t) => {
           const active = activeAudio === t.id;
           return (
@@ -1622,16 +1663,29 @@ function TrackTable({
               </td>
               <td className="mv-tdname" title={t.label}>{t.label}</td>
               {prep && <td>{langCell(t)}</td>}
+              {prep && (
+                <td className="mv-tdgen">
+                  <input
+                    type="checkbox"
+                    checked={!!planGen?.(t.key)}
+                    disabled={disabled || !onGen || !planLang!(t.key)}
+                    title={planLang!(t.key)
+                      ? `Generate a ${planLang!(t.key)} subtitle from this audio — runs first when remuxed`
+                      : "Give the track a language first"}
+                    onChange={(e) => onGen?.(t.key, e.target.checked)}
+                  />
+                </td>
+              )}
               <td>{delayCell(t, active)}</td>
             </tr>
           );
         })}
         {!audioTracks.length && (
-          <tr><td colSpan={prep ? 4 : 3} className="muted small">no audio</td></tr>
+          <tr><td colSpan={cols} className="muted small">no audio</td></tr>
         )}
 
         <tr className="mv-section">
-          <td colSpan={prep ? 4 : 3}>
+          <td colSpan={cols}>
             Subtitles
             <span className="mv-subtools">
               <button className="ghost" title="Upload subtitles — .srt .ass .ssa .vtt .sup, or a VobSub .idx together with its .sub. You can also drop files anywhere on this panel."
@@ -1648,6 +1702,7 @@ function TrackTable({
           </td>
           <td className="mv-tdname muted">off</td>
           {prep && <td />}
+          {prep && <td />}
           <td />
         </tr>
         {subTracks.map((t) => {
@@ -1660,6 +1715,7 @@ function TrackTable({
               </td>
               <td className="mv-tdname" title={t.label}>{t.label}</td>
               {prep && <td>{langCell(t)}</td>}
+              {prep && <td />}
               <td>{delayCell(t, active)}</td>
             </tr>
           );

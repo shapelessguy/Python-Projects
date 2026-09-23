@@ -12,7 +12,8 @@ download folder gets renamed as often as anything gets done to it, and the
 choices belong to the film, not to where it was sitting.
 
 Only what a person decided is stored — the name, and per track the
-language, delay, keep and default flags — never the whole plan. The plan is
+language, delay, keep and default flags, and whether a subtitle is to be
+generated from it (srt_gen) — never the whole plan. The plan is
 rebuilt from the file on every scan and these are laid over it, so a track
 that has since disappeared is simply ignored and a new one arrives with its
 own defaults.
@@ -29,7 +30,7 @@ _lock = threading.Lock()
 
 # The identity fields worth remembering, and the per-track ones.
 PLAN_FIELDS = ("title", "year", "tmdb_id", "target")
-TRACK_FIELDS = ("language", "delay_ms", "keep", "default")
+TRACK_FIELDS = ("language", "delay_ms", "keep", "default", "gen_srt")
 
 
 def _path() -> Path:

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { ControlsPanel } from "./panels/ControlsPanel";
 import { EnvironmentPanel } from "./panels/EnvironmentPanel";
 import { PersonalPanel } from "./panels/PersonalPanel";
@@ -12,16 +12,16 @@ import { readCookie, writeCookie } from "./cookies";
 
 type PanelId = "controls" | "environment" | "personal" | "food" | "calendar" | "movies";
 
-const PANELS: { id: PanelId; label: string; render: () => JSX.Element }[] = [
-  { id: "controls", label: "🎛 Controls", render: () => <ControlsPanel /> },
-  { id: "environment", label: "🌦 Environment", render: () => <EnvironmentPanel /> },
-  { id: "personal", label: "🗂 Personal", render: () => <PersonalPanel /> },
-  { id: "food", label: "🍽 Food", render: () => <FoodPanel /> },
-  { id: "calendar", label: "📅 Calendar", render: () => <CalendarPanel /> },
+const PANELS: { id: PanelId; icon: string; label: string; render: () => JSX.Element }[] = [
+  { id: "controls", icon: "🎛", label: "Controls", render: () => <ControlsPanel /> },
+  { id: "environment", icon: "🌦", label: "Environment", render: () => <EnvironmentPanel /> },
+  { id: "personal", icon: "🗂", label: "Personal", render: () => <PersonalPanel /> },
+  { id: "food", icon: "🍽", label: "Food", render: () => <FoodPanel /> },
+  { id: "calendar", icon: "📅", label: "Calendar", render: () => <CalendarPanel /> },
   // Still keyed "movies": that id is the permission name in secrets.json's
   // visibility lists and the backend's require_panel, so renaming the label
   // alone keeps every existing account's access as it was.
-  { id: "movies", label: "🎬 Media", render: () => <MoviesPanel /> },
+  { id: "movies", icon: "🎬", label: "Media", render: () => <MoviesPanel /> },
 ];
 
 const LAST_SECTION_COOKIE = "last_section";
@@ -39,6 +39,15 @@ export default function App() {
     writeCookie(LAST_SECTION_COOKIE, id);
   };
   const username = currentUsername();
+
+  // Icons only once the full labels no longer fit in the bar. The bar
+  // measures itself rather than trusting a breakpoint, because how much room
+  // the labels need depends on how many panels this user can see. `needed`
+  // is the width the labelled bar overflowed at, so it comes back only once
+  // there is really room for it again.
+  const navRef = useRef<HTMLElement | null>(null);
+  const [compact, setCompact] = useState(false);
+  const needed = useRef(0);
 
   // Purely a UI nicety -- the APIs behind a hidden panel already 403 a
   // restricted user server-side (api/auth.py's require_panel) regardless of
@@ -60,17 +69,38 @@ export default function App() {
   // not the page -- should get a scrollbar.
   const fixedHeight = active?.id === "environment" || active?.id === "movies";
 
+  useLayoutEffect(() => {
+    const nav = navRef.current;
+    if (!nav) return;
+    const check = () => {
+      if (!nav.classList.contains("compact")) {
+        if (nav.scrollWidth > nav.clientWidth) {
+          needed.current = nav.scrollWidth;
+          setCompact(true);
+        }
+      } else if (nav.clientWidth >= needed.current) {
+        setCompact(false);
+      }
+    };
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(nav);
+    return () => ro.disconnect();
+  }, [loaded, visible.length, compact]);
+
   return (
     <div className={"app" + (fixedHeight ? " app--fixed" : "")}>
       <header className="topbar">
-        <nav className="switcher">
+        <nav className={"switcher" + (compact ? " compact" : "")} ref={navRef}>
           {loaded && visible.map((p) => (
             <button
               key={p.id}
               className={active && p.id === active.id ? "active" : ""}
+              title={compact ? p.label : undefined}
               onClick={() => setPanel(p.id)}
             >
-              {p.label}
+              <span className="sw-icon">{p.icon}</span>
+              <span className="sw-label">{p.label}</span>
             </button>
           ))}
           {username && (

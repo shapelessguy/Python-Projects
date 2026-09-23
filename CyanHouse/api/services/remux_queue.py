@@ -11,6 +11,12 @@ rebuilt from the file and the decisions saved for it (prep_configs). What
 gets muxed is therefore whatever was last decided, not a snapshot of the
 moment the button was pressed.
 
+A job runs in steps. Any subtitle to be generated from the film's audio
+comes first (api/services/srt_gen.py — minutes to an hour each, on the fn
+host's speech-to-text service), then the mux. If a generation fails the job
+fails with it: a remux asked to carry a subtitle does not quietly go ahead
+without one.
+
 The queue is kept on disk as it changes. This process reloads itself when
 its code changes, which cuts off a running mux; on startup the leftover
 muxer is stopped, its half-written file removed, and the job goes back to
@@ -25,7 +31,7 @@ import uuid
 from pathlib import Path
 
 from api.config import MOVIES_DATA_DIR
-from api.services import movie_prep, prep_configs
+from api.services import movie_prep, prep_configs, srt_gen
 from api.services.movie_prep import PrepError
 
 # Finished jobs kept for display, newest first, until cleared.
@@ -130,7 +136,15 @@ def _enqueue(area_name: str, fp: str, user: str) -> dict:
             "finished": None,
             "state": "queued",
             "phase": "",
+            # Steps: one per subtitle to generate, then the mux.
+            "step": 0,
+            "steps": 0,
+            "step_label": "",
+            "detail": "",
             "percent": None,
+            # The speech-to-text service's job id per audio track, so a
+            # restart resumes a transcription rather than starting another.
+            "stt_jobs": {},
             "error": "",
             "output": "",
             "temp": "",
@@ -171,7 +185,7 @@ def remove(job_id: str) -> dict:
     """Take a job out: a queued one is dropped, a running one is stopped,
     a finished one is cleared from the list.
 
-    A running job can be stopped only while it is muxing. After that it is
+    A running job can be stopped while it is generating subtitles or muxing. After that it is
     checking the new file and then moving it into place and clearing the
     sources away — stopping it half way through *that* is exactly the kind
     of interruption this whole pipeline is arranged to avoid, and it is
@@ -181,7 +195,7 @@ def remove(job_id: str) -> dict:
         if not j:
             raise PrepError("no such remux", 404)
         if j["state"] == "running":
-            if j.get("phase") not in ("", "muxing"):
+            if j.get("phase") not in ("", "generating", "muxing"):
                 raise PrepError("it is finishing up — too late to stop it", 409)
             j["cancel"] = True
             pid = j.get("pid")
@@ -229,7 +243,7 @@ def _worker() -> None:
             while not any(j["state"] == "queued" for j in _jobs):
                 _cond.wait()
             job = next(j for j in _jobs if j["state"] == "queued")
-            job.update(state="running", started=time.time(), phase="muxing",
+            job.update(state="running", started=time.time(), phase="",
                        percent=0, error="", attempts=job.get("attempts", 0) + 1)
             _persist()
         movie_prep._bump()
@@ -248,27 +262,53 @@ def _run(job: dict) -> None:
             except OSError:
                 pass
 
+    copies = []
     try:
         inbox, library = movie_prep.area(job["area"])
         plan = movie_prep.find_plan(job["area"], job["fingerprint"])
         if plan is None:
             raise PrepError("the film is no longer in the inbox")
         preview = movie_prep.execute(plan, library, dry_run=True, inbox=inbox)
-        _update(job, target=plan["target"], output=preview["output"], temp=preview["temp"])
+        gen = srt_gen.wanted(plan)
+        steps = len(gen) + 1
+        _update(job, target=plan["target"], output=preview["output"], temp=preview["temp"],
+                steps=steps)
         if job.get("cancel"):
             raise _Stopped()
+
+        generated = {}
+        stt_jobs = dict(job.get("stt_jobs") or {})
+        for i, track in enumerate(gen, 1):
+            report(phase="generating", step=i, step_label=track["language"], detail="",
+                   percent=None)
+            generated[track["key"]] = srt_gen.generate(
+                plan, track, stt_jobs=stt_jobs, report=report,
+                cancelled=lambda: bool(job.get("cancel")))
+        # Subtitles uploaded in the player, and the generated ones, are
+        # copied into the film's folder for the mux to read.
+        plan, copies = movie_prep.stage_uploads(plan)
+        if gen:
+            plan, more = srt_gen.attach(plan, generated)
+            copies += more
+
+        report(step=steps, step_label="", detail="")
         result = movie_prep.execute(plan, library, dry_run=False, inbox=inbox, report=report)
         # The decisions have been used; the film they belonged to is now in
         # the trash and its result in the output.
         prep_configs.forget(job["fingerprint"])
+        srt_gen.forget(job["fingerprint"])
         _update(job, state="done", phase="done", percent=100, finished=time.time(),
-                pid=None, output=result["output"], seconds=result["seconds"])
+                pid=None, detail="", output=result["output"], seconds=result["seconds"])
     except Exception as e:  # a job fails; the worker never does
-        if job.get("cancel"):
-            _update(job, state="cancelled", phase="", finished=time.time(), pid=None,
-                    error="stopped")
+        # Subtitles copied in for the mux, which did not happen. The
+        # originals stay where they were (a generated one stays cached).
+        for c in copies:
+            movie_prep._unlink(c)
+        if job.get("cancel") or isinstance(e, srt_gen.Stopped):
+            _update(job, state="cancelled", phase="", detail="", finished=time.time(),
+                    pid=None, error="stopped")
         else:
-            _update(job, state="failed", phase="", finished=time.time(), pid=None,
+            _update(job, state="failed", phase="", detail="", finished=time.time(), pid=None,
                     error=str(e)[:500])
     finally:
         movie_prep._bump()
@@ -322,8 +362,10 @@ def _recover() -> None:
         else:
             # Nothing was moved, so running it again is safe; it goes back to
             # the front, ahead of anything queued after it.
+            # stt_jobs is kept: a transcription still running on the
+            # speech-to-text service is picked up again, not restarted.
             j.update(state="queued", phase="", percent=None, pid=None, temp="",
-                     error="restarted after the server restarted")
+                     detail="", error="restarted after the server restarted")
             requeued.append(j)
             print(f"remux: {j.get('target')!r} was interrupted by a restart; requeued")
     with _cond:

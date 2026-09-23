@@ -218,11 +218,19 @@ export function PrepCommit({
     finally { setBusy(false); }
   };
 
-  const label = !running ? "" : job!.phase === "verifying" ? "checking…"
-    : job!.phase === "tidying" ? "moving into place…" : `${job!.percent ?? 0}%`;
-  // Stopping is only possible while muxing: after that it is moving files,
-  // and the server refuses to be interrupted there.
-  const stoppable = running && (job!.phase === "muxing" || job!.phase === "");
+  // With subtitles to generate the job runs in steps (each subtitle, then
+  // the mux), and the bar says which one it is on.
+  const step = running && (job!.steps ?? 0) > 1 && job!.step ? `${job!.step}/${job!.steps} · ` : "";
+  const label = !running ? "" : step + (
+    job!.phase === "generating"
+      ? `${job!.step_label} subtitles${job!.detail ? `: ${job!.detail}` : ""}`
+        + (job!.percent != null ? ` ${job!.percent}%` : "…")
+      : job!.phase === "verifying" ? "checking…"
+      : job!.phase === "tidying" ? "moving into place…"
+      : `${(job!.steps ?? 0) > 1 ? "remuxing " : ""}${job!.percent ?? 0}%`);
+  // Stopping is possible while generating subtitles or muxing: after that it
+  // is moving files, and the server refuses to be interrupted there.
+  const stoppable = running && ["generating", "muxing", ""].includes(job!.phase);
 
   return (
     <div className="mv-commit">

@@ -341,6 +341,9 @@ export interface PrepTrack {
   default: boolean;
   external?: string;
   cover_art?: boolean;
+  /** Audio only: generate a subtitle in this track's language from it, as
+   *  the first stage of the remux (api/services/srt_gen.py). */
+  gen_srt?: boolean;
 }
 
 /** One entry in the server's remux queue. The server is the record — it
@@ -360,7 +363,14 @@ export interface RemuxJob {
   started: number | null;
   finished: number | null;
   state: "queued" | "running" | "done" | "failed" | "cancelled";
-  phase: "" | "muxing" | "verifying" | "tidying" | "done";
+  phase: "" | "generating" | "muxing" | "verifying" | "tidying" | "done";
+  /** 1-based; one step per subtitle to generate, then the mux. */
+  step?: number;
+  steps?: number;
+  /** While generating: the language of the subtitle being made. */
+  step_label?: string;
+  /** While generating: "extracting audio" | "uploading" | "transcribing". */
+  detail?: string;
   percent: number | null;
   error: string;
   attempts: number;

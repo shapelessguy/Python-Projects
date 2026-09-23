@@ -14,7 +14,7 @@ from fastapi.responses import StreamingResponse
 from starlette.concurrency import run_in_threadpool
 
 from api.auth import require_user
-from api.services import movie_subs, movies
+from api.services import movie_prep, movie_subs, movies
 
 router = APIRouter(prefix="/api/movies", tags=["movies"])
 
@@ -95,6 +95,9 @@ def _store_subtitle(movie_id: str, payload: list[tuple[str, bytes]]) -> dict:
         # changed, so the new track would not otherwise show up.
         movies.forget(movie_id)
         meta = movies.info(movie_id)
+        # A film in a staging inbox has the upload as a track of its remux
+        # plan now; this is what makes the panel fetch the plan again.
+        movie_prep._bump()
     return {"info": meta, **result}
 
 
@@ -118,6 +121,7 @@ def _drop_subtitle(movie_id: str, upload_id: str) -> dict:
     path = movies.resolve(movie_id)
     movie_subs.remove(movies.fingerprint(path), upload_id)
     movies.forget(movie_id)
+    movie_prep._bump()
     return movies.info(movie_id)
 
 

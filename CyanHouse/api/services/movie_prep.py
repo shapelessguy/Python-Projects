@@ -53,7 +53,7 @@ from api.config import (
     MOVIES_DIR,
     MOVIE_STAGING,
 )
-from api.services import movies, prep_configs
+from api.services import movie_subs, movies, prep_configs
 
 VIDEO_EXT = movies.VIDEO_EXT
 SUB_EXT = movies.SUB_EXT | {".idx"}
@@ -226,6 +226,11 @@ def scan(root: Path) -> list[Candidate]:
         vids, subs, junk = [], [], []
         for f in sorted(entry.rglob("*")):
             if not f.is_file():
+                continue
+            # Hidden files are this pipeline's own work in progress — the
+            # half-written mux, a generated subtitle copied in for it — and
+            # never part of the download.
+            if any(part.startswith(".") for part in f.relative_to(entry).parts):
                 continue
             ext = f.suffix.lower()
             if ext in VIDEO_EXT:
@@ -402,6 +407,17 @@ def _conflicts(tracks: list[dict]) -> list[str]:
         for code, n in seen.items():
             if n > 1:
                 out.append(f"{n} {kind} tracks share the language '{code}'")
+    # A subtitle to be generated from an audio track (srt_gen) will be one
+    # more subtitle in that language — until it has been, and is a track of
+    # its own marked generated_from.
+    attached = {t.get("generated_from") for t in tracks if t.get("generated_from")}
+    subs = {t["language"] for t in tracks
+            if t["type"] == "subtitle" and t["keep"] and t["language"]}
+    for t in tracks:
+        if (t["type"] == "audio" and t.get("keep") and t.get("gen_srt")
+                and t["key"] not in attached and t["language"] in subs):
+            out.append(f"a '{t['language']}' subtitle is to be generated from the audio, "
+                       f"but one is already kept — drop one of them")
     if not [t for t in tracks if t["type"] == "video" and t["keep"]]:
         out.append("no video track selected")
     return out
@@ -1079,10 +1095,65 @@ def scan_area(name: str) -> list[dict]:
     for plan in base:
         fp = plan.get("fingerprint")
         if fp and not plan.get("error"):
+            # Uploaded subtitles live in this service's own store, not in the
+            # folder, so the fingerprint above never sees them come and go —
+            # they are added on every call, like the saved decisions.
+            plan = {**plan, "tracks": plan["tracks"] + _uploaded_tracks(plan)}
             plan = prep_configs.overlay(plan, prep_configs.get(fp))
             plan["conflicts"] = _conflicts(plan["tracks"])
         out.append(plan)
     return out
+
+
+def _uploaded_tracks(plan: dict) -> list[dict]:
+    """Subtitles uploaded for this film in the player (api/services/
+    movie_subs.py), as tracks of its plan — keyed like the player keys them,
+    so the language picked in the track table lands on the right one.
+
+    They carry `upload` (where the store keeps them) rather than `external`:
+    every file a remux reads must be in the film's folder, so `stage_uploads`
+    copies them in just before the mux."""
+    fp = plan["fingerprint"]
+    stem = Path(plan["video"]).stem
+    out = []
+    for rec in movie_subs.for_movie(fp):
+        stored = movie_subs.path_for(fp, rec)
+        if not stored.is_file():
+            continue
+        lang, flags = movies.parse_sub_name(rec["name"], stem)
+        code = _code_for(lang) if lang else ""
+        out.append({
+            "key": f"uploaded:{rec['id']}", "type": "subtitle", "upload": str(stored),
+            "codec": "vobsub" if rec.get("aux") else stored.suffix.lstrip("."),
+            "label": f"{rec['name']} · uploaded",
+            # No language means dropped, as the track table shows it.
+            "keep": bool(code), "language": code, "language_guessed": bool(code),
+            "flags": flags, "delay_ms": 0, "default": False,
+        })
+    return out
+
+
+def stage_uploads(plan: dict) -> tuple[dict, list[Path]]:
+    """The plan with each kept uploaded subtitle copied into the film's folder
+    — a hidden file, which the scan ignores and clearing the folder after the
+    remux takes with it. A VobSub's .sub goes along under the same stem,
+    where the muxer looks for it. Returns the plan and the copies, for the
+    caller to remove if the remux does not happen."""
+    video = Path(plan["video"])
+    tracks, copies = [], []
+    for t in plan["tracks"]:
+        if t.get("upload") and t.get("keep"):
+            src = Path(t["upload"])
+            copy = video.parent / f".{video.stem}.{t['key'].replace(':', '-')}{src.suffix}"
+            shutil.copyfile(src, copy)
+            copies.append(copy)
+            aux = src.with_suffix(".sub")
+            if src.suffix.lower() == ".idx" and aux.is_file():
+                shutil.copyfile(aux, copy.with_suffix(".sub"))
+                copies.append(copy.with_suffix(".sub"))
+            t = {**t, "external": str(copy)}
+        tracks.append(t)
+    return {**plan, "tracks": tracks}, copies
 
 
 def find_plan(area_name: str, fingerprint: str) -> dict | None:

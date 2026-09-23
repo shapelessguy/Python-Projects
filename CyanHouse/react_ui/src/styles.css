@@ -62,9 +62,15 @@ h3 { font-size: 0.85rem; margin: 12px 0 6px; text-transform: uppercase; letter-s
   border-bottom: 1px solid var(--line);
   padding: 8px 16px;
 }
-.switcher { display: flex; gap: 6px; align-items: center; }
+.switcher { display: flex; gap: 6px; align-items: center; overflow: hidden; }
+/* Never wrap or squeeze: the bar has to overflow to notice it is out of room
+ * (App.tsx), and then drops the labels instead. */
+.switcher > button { flex: 0 0 auto; white-space: nowrap; }
+.sw-label { margin-left: 0.4em; }
+.switcher.compact .sw-label { display: none; }
 .whoami {
   margin-left: auto;
+  flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -969,6 +975,7 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
 .mv-transport { display: flex; align-items: center; gap: 6px; }
 .mv-volume { display: flex; align-items: center; gap: 6px; margin-left: auto; width: 130px; }
 /* Quality, then what the film is, then its tracks — one under the other. */
+.mv-thgen, .mv-tdgen { width: 34px; text-align: center; }
 .mv-tracks { display: flex; flex-direction: column; gap: 14px; }
 
 
@@ -1502,6 +1509,7 @@ select.mv-preplang:invalid, select.mv-preplang[data-empty="true"] { color: var(-
 }
 .mv-transport button:hover:not(:disabled) { border-color: #3a414f; background: var(--panel); }
 .mv-transport button:disabled { opacity: 0.4; }
+.mv-stopicon { width: 12px; height: 12px; border-radius: 2px; background: currentColor; }
 /* the fullscreen control sits apart, after the volume slider */
 .mv-transport .ghost { background: transparent; }
 .mv-stage { cursor: pointer; }
