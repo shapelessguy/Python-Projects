@@ -192,3 +192,18 @@ PYLOAD_URL = os.environ.get("PYLOAD_URL", "http://127.0.0.1:8100").strip().rstri
 # its Preferences.xml); without one, Plex is simply not told.
 PLEX_URL = os.environ.get("PLEX_URL", "http://127.0.0.1:32400").strip().rstrip("/")
 PLEX_TOKEN = os.environ.get("PLEX_TOKEN", "").strip()
+
+# ── public address ─────────────────────────────────────────────────────────
+# api/services/public_ip.py keeps two things pointing at the home connection
+# when its address changes: the DuckDNS name (PUBLIC_HOST) and the address
+# Plex hands its apps. The address is asked of the router over UPnP, not of
+# a "what is my IP" site: this machine's own traffic leaves through NordVPN,
+# so any site would answer with the VPN's address.
+DUCKDNS_TOKEN = os.environ.get("DUCKDNS_TOKEN", "").strip()
+# The DuckDNS name to update, without ".duckdns.org"; by default taken from
+# PUBLIC_HOST when that is a duckdns.org name.
+DUCKDNS_DOMAIN = os.environ.get("DUCKDNS_DOMAIN", "").strip() or (
+    PUBLIC_HOST.removesuffix(".duckdns.org") if PUBLIC_HOST.endswith(".duckdns.org") else "")
+# The router's UPnP control endpoint (a FRITZ!Box answers on port 49000).
+ROUTER_UPNP_URL = os.environ.get("ROUTER_UPNP_URL", "http://192.168.178.1:49000").strip().rstrip("/")
+PUBLIC_IP_INTERVAL = int(os.environ.get("PUBLIC_IP_INTERVAL", "60"))

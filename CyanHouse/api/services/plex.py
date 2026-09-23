@@ -160,3 +160,59 @@ def poster_image(thumb: str, width: int) -> tuple[bytes, str]:
                      headers={"X-Plex-Token": PLEX_TOKEN}, timeout=15)
     r.raise_for_status()
     return r.content, r.headers.get("content-type", "image/jpeg")
+
+
+# ── public address ───────────────────────────────────────────────────────
+# Plex learns its public address by asking plex.tv, and this machine's
+# traffic leaves through NordVPN, so plex.tv answers with the VPN's address
+# and the apps outside are sent there. api/services/public_ip.py gives Plex
+# the real one instead, as a "custom server access URL" in the form Plex's
+# own certificate covers: https://<a-b-c-d>.<cert id>.plex.direct:<port>.
+_cert_id: str | None = None
+
+
+def cert_id() -> str:
+    """The id in Plex's certificate name (*.<id>.plex.direct), read from
+    the certificate the local server presents."""
+    global _cert_id
+    if _cert_id is None:
+        import re
+        import socket
+        import ssl
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+        host = PLEX_URL.split("://", 1)[-1].split("/", 1)[0]
+        name, _, port = host.partition(":")
+        with socket.create_connection((name, int(port or 32400)), timeout=10) as raw, \
+                ctx.wrap_socket(raw) as tls:
+            der = tls.getpeercert(binary_form=True) or b""
+        m = re.search(rb"\*\.([0-9a-f]{32})\.plex\.direct", der)
+        if not m:
+            raise RuntimeError("Plex's certificate is not a plex.direct one")
+        _cert_id = m.group(1).decode()
+    return _cert_id
+
+
+def set_public_address(ip: str) -> str | None:
+    """Point Plex's custom access URL at `ip`. Other custom URLs someone
+    entered are kept; an older plex.direct one of this server's is replaced.
+    Returns the URL when it changed something, None when it was already so."""
+    if not PLEX_TOKEN:
+        return None
+    prefs = ET.fromstring(_get("/:/prefs").content)
+    port = next((s.get("value") for s in prefs.iter("Setting")
+                 if s.get("id") == "ManualPortMappingPort"), "") or "32400"
+    current = next((s.get("value") for s in prefs.iter("Setting")
+                    if s.get("id") == "customConnections"), "") or ""
+    cid = cert_id()
+    url = f"https://{ip.replace('.', '-')}.{cid}.plex.direct:{port}"
+    kept = [u.strip() for u in current.split(",")
+            if u.strip() and f".{cid}.plex.direct" not in u]
+    wanted = ",".join([url, *kept])
+    if wanted == current:
+        return None
+    r = requests.put(PLEX_URL + "/:/prefs", params={"customConnections": wanted},
+                     headers={"X-Plex-Token": PLEX_TOKEN}, timeout=10)
+    r.raise_for_status()
+    return url
