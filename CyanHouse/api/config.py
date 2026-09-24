@@ -108,6 +108,10 @@ CALENDAR_DB = Path(os.environ.get("CALENDAR_DB", API_DATA_DIR / "calendar.db"))
 # extracted subtitle tracks — so it lives under the normal data root and can
 # be deleted at any time.
 MOVIES_DIR = Path(os.environ.get("MOVIES_DIR", "/mnt/pangea/Video/Movies"))
+# The music and picture libraries: each is one more tab in the Media panel,
+# browsed like the film library. Unset means no tab.
+MUSIC_DIR = Path(os.environ["MUSIC_DIR"]).expanduser() if os.environ.get("MUSIC_DIR", "").strip() else None
+IMAGE_DIR = Path(os.environ["IMAGE_DIR"]).expanduser() if os.environ.get("IMAGE_DIR", "").strip() else None
 # Staging areas for films that are not library-ready yet: each is an inbox of
 # "dirty" downloads plus where a finished one should land. This is where the
 # remuxing actually happens -- MOVIES_DIR itself holds files that are already
@@ -118,6 +122,13 @@ MOVIES_DIR = Path(os.environ.get("MOVIES_DIR", "/mnt/pangea/Video/Movies"))
 # too: an entry with only an output is somewhere finished work is kept and
 # browsed (the series library is configured this way), with nothing staged.
 MOVIE_STAGING: dict = _SECRETS.get("movie_staging", {})
+# The same shape for music: an inbox of songs waiting to be recognised and
+# tagged (api/services/music_prep.py) and the output they are filed into as
+# Artist/Album/NN - Title. "output" may be omitted to file straight into
+# MUSIC_DIR. Names share one namespace with movie_staging's.
+MUSIC_STAGING: dict = _SECRETS.get("music_staging", {})
+# MusicBrainz asks every client to say who it is, with a way to reach them.
+MUSICBRAINZ_CONTACT = os.environ.get("MUSICBRAINZ_CONTACT", "").strip()
 MOVIES_CACHE_DIR = Path(os.environ.get("MOVIES_CACHE_DIR", API_DATA_DIR / "movies_cache"))
 # Durable, unlike MOVIES_CACHE_DIR above: subtitles uploaded through the UI
 # and the index linking them to films live here, and deleting it loses work

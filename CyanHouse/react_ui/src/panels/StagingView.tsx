@@ -13,8 +13,20 @@ import { api, PrepPlan, RemuxJob, StagedFile, TmdbCandidate } from "../api";
  *  to embed, the release notes, the poster the uploader threw in, and the
  *  junk. Judging what to keep means being able to look at it, so whatever
  *  can be shown is shown and the rest at least describes itself. */
-export function FileView({ area, file }: { area: string; file: StagedFile }) {
+export function FileView({ area, file, play, onEnded }: {
+  area: string;
+  file: StagedFile;
+  /** A song finished playing: the panel may start the next one. */
+  onEnded?: () => void;
+  /** Set when this file was double-clicked: start it playing. A new object
+   *  per double-click, so a second one on the same file plays it again. */
+  play?: { path: string } | null;
+}) {
   const [text, setText] = useState<{ text: string; encoding: string } | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  useEffect(() => {
+    if (play && play.path === file.path) audioRef.current?.play().catch(() => {});
+  }, [play]);
   const [info, setInfo] = useState<Record<string, any> | null>(null);
   const [error, setError] = useState("");
 
@@ -38,6 +50,12 @@ export function FileView({ area, file }: { area: string; file: StagedFile }) {
 
       {file.kind === "image" && (
         <img className="mv-fileimg" src={api.prepRawUrl(area, file.path)} alt={file.name} />
+      )}
+
+      {/* A click only opens it; a double-click on the row plays it. */}
+      {file.kind === "audio" && (
+        <audio ref={audioRef} className="mv-fileaudio" src={api.prepRawUrl(area, file.path)} controls
+               onEnded={onEnded} />
       )}
 
       {text && <pre className="mv-filetext">{text.text}</pre>}
@@ -365,8 +383,9 @@ function fmtDuration(seconds: number): string {
            : `${m}:${String(s).padStart(2, "0")}`;
 }
 
+// 🎞 and 🖼 carry an invisible U+FE0F, for the reason given in App.tsx.
 export const KIND_ICON: Record<string, string> = {
-  video: "🎞", image: "🖼", subtitle: "💬", text: "📄", binary: "▪",
+  video: "🎞️", image: "🖼️", audio: "🎵", subtitle: "💬", text: "📄", binary: "▪",
 };
 
 // ── the folder tree ──────────────────────────────────────────────────────
@@ -457,10 +476,12 @@ export interface TreeAction {
   moveTo: (paths: string[], toArea: string) => void;
   /** Files dragged in from the desktop, dropped on the folder `to`. */
   upload: (dt: DataTransfer, to: string) => void;
+  /** Create an empty folder called `name` inside `parent` ("" is the root). */
+  mkdir: (parent: string, name: string) => void;
 }
 
 export function FileTree({
-  area, files, query, activePath, activeMovieId, canEdit, onPick, actions,
+  area, files, query, activePath, activeMovieId, canEdit, onPick, marks, onPlay, actions,
   picked, onPicked, destinations, acceptsFrom,
 }: {
   area: string;
@@ -470,6 +491,11 @@ export function FileTree({
   activeMovieId: string | null;
   canEdit: boolean;
   onPick: (f: StagedFile) => void;
+  /** Files flagged with a note, by path — the music inbox's songs left for
+   *  review, with why. A folder shows how many of its files are flagged. */
+  marks?: Record<string, string>;
+  /** A double-click on a file that plays (audio): open it and start it. */
+  onPlay?: (f: StagedFile) => void;
   actions: TreeAction;
   /** Ticked rows, by path. Held by the panel because the actions that
    *  consume them live under the tree, not in it. */
@@ -512,7 +538,9 @@ export function FileTree({
   // Where a shift-range starts: the last row clicked without shift.
   const anchor = useRef<string | null>(null);
 
-  const [menu, setMenu] = useState<{ x: number; y: number; file: StagedFile } | null>(null);
+  // `file` null: the menu of the tree's own background, which is about the
+  // folder the tree shows rather than anything in it.
+  const [menu, setMenu] = useState<{ x: number; y: number; file: StagedFile | null } | null>(null);
   // The only irreversible thing in this panel, so it takes two clicks: the
   // item arms itself first and says what it is about to take with it.
   const [armed, setArmed] = useState(false);
@@ -521,6 +549,8 @@ export function FileTree({
   // from a menu opened near the right edge of the column has nowhere to go.
   const [choosing, setChoosing] = useState(false);
   const [editing, setEditing] = useState<{ path: string; value: string } | null>(null);
+  // A folder being named before it exists: an input row inside `parent`.
+  const [creating, setCreating] = useState<{ parent: string; value: string } | null>(null);
   const [dropOn, setDropOn] = useState<string | null>(null);
 
   useEffect(() => {
@@ -598,6 +628,40 @@ export function FileTree({
     onPicked(next);
   };
 
+  /** Everything the tree is showing — all of it, or what a search left. */
+  const allOn = shown.length > 0 && shown.every((n) => picked.has(n.file.path));
+  const toggleAll = () => {
+    if (allOn) { onPicked(new Set()); return; }
+    const next = new Set<string>();
+    for (const n of shown) addFamily(next, n.file.path);
+    onPicked(next);
+  };
+
+  // Escape lets go of the selection, the way it closes a menu.
+  useEffect(() => {
+    // With a menu open, Escape is the menu's: it closes that, nothing more.
+    if (!picked.size || menu) return;
+    const key = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (e.key === "Escape" && !t?.closest("input, textarea, select")) onPicked(new Set());
+    };
+    window.addEventListener("keydown", key);
+    return () => window.removeEventListener("keydown", key);
+  }, [picked, onPicked, menu]);
+
+  /** How many flagged files each folder holds, however deep. */
+  const markCounts = useMemo(() => {
+    const out = new Map<string, number>();
+    for (const path of Object.keys(marks ?? {})) {
+      const parts = path.split("/");
+      for (let i = 1; i < parts.length; i++) {
+        const folder = parts.slice(0, i).join("/");
+        out.set(folder, (out.get(folder) ?? 0) + 1);
+      }
+    }
+    return out;
+  }, [marks]);
+
   const toggle = (path: string) =>
     setExpanded((prev) => {
       const next = new Set(prev);
@@ -613,6 +677,42 @@ export function FileTree({
     const was = edit.path.split("/").pop() || "";
     if (name && name !== was) actions.rename(edit.path, name);
   };
+
+  const commitCreate = () => {
+    const c = creating;
+    setCreating(null);
+    const name = c?.value.trim();
+    if (c && name) actions.mkdir(c.parent, name);
+  };
+
+  /** Start naming a new folder inside `parent`, opening it so the row shows. */
+  const startCreate = (parent: string) => {
+    if (parent) setExpanded((prev) => new Set(prev).add(parent));
+    setCreating({ parent, value: "New folder" });
+    setMenu(null);
+  };
+
+  const createRow = (parent: string, depth: number) =>
+    creating?.parent === parent && (
+      <div className="mv-node folder" style={{ paddingLeft: 6 + depth * 14 }}>
+        {canEdit && <span className="mv-dot" style={{ visibility: "hidden" }} />}
+        <span className="mv-twist" aria-hidden />
+        <span className="mv-kind" aria-hidden>📁</span>
+        <input
+          className="mv-rename"
+          autoFocus
+          onFocus={(e) => e.currentTarget.select()}
+          value={creating.value}
+          onChange={(e) => setCreating({ parent, value: e.target.value })}
+          onClick={(e) => e.stopPropagation()}
+          onBlur={commitCreate}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") { e.preventDefault(); commitCreate(); }
+            if (e.key === "Escape") { e.preventDefault(); setCreating(null); }
+          }}
+        />
+      </div>
+    );
 
   /** Where a drop on this row should put things: into a folder, or beside a
    *  file — dropping onto a file plainly means "next to this one". */
@@ -712,15 +812,23 @@ export function FileTree({
                 return;
               }
             }
-            // A plain click is the old behaviour, and it drops the
-            // selection: otherwise a tick left over from five minutes ago
-            // quietly joins the next Delete.
+            // While a selection is being made, every click goes on
+            // selecting — anywhere on the row, not only on its dot — until
+            // it is cleared (the bar's "clear", Escape, or unticking all).
+            if (picked.size && canEdit) {
+              tick(f.path);
+              return;
+            }
             anchor.current = f.path;
-            if (picked.size) onPicked(new Set());
             folder ? toggle(f.path) : onPick(f);
+          }}
+          onDoubleClick={() => {
+            if (f.kind === "audio" && !editing && !picked.size) onPlay?.(f);
           }}
           onContextMenu={(e) => {
             e.preventDefault();
+            // Not the background's menu too, which the tree would open next.
+            e.stopPropagation();
             setMenu({ x: e.clientX, y: e.clientY, file: f });
           }}
         >
@@ -737,7 +845,15 @@ export function FileTree({
               onClick={(e) => { e.stopPropagation(); tick(f.path); }}
             />
           )}
-          <span className="mv-twist" aria-hidden>{folder ? (open ? "▾" : "▸") : ""}</span>
+          <span
+            className="mv-twist"
+            aria-hidden
+            // The arrow always opens and closes — the one way to look inside
+            // a folder while clicks on rows are ticking them.
+            onClick={folder ? (e) => { e.stopPropagation(); toggle(f.path); } : undefined}
+          >
+            {folder ? (open ? "▾" : "▸") : ""}
+          </span>
           <span className="mv-kind" aria-hidden>{folder ? (open ? "📂" : "📁") : KIND_ICON[f.kind] ?? "▪"}</span>
           {editing?.path === f.path ? (
             <input
@@ -755,10 +871,17 @@ export function FileTree({
           ) : (
             <span className="mv-title">{f.name}</span>
           )}
+          {marks?.[f.path] && <span className="mv-mark" title={marks[f.path]}>?</span>}
+          {folder && (markCounts.get(f.path) ?? 0) > 0 && (
+            <span className="mv-mark" title="Songs in here left for you to check">
+              {markCounts.get(f.path)} ?
+            </span>
+          )}
           <span className="mv-size">
             {folder ? `${f.children ?? 0} · ${fmtSize(f.size)}` : fmtSize(f.size)}
           </span>
         </div>
+        {open && createRow(f.path, depth + 1)}
         {open && node.children.map((child) => row(child, depth + 1))}
       </div>
     );
@@ -766,7 +889,7 @@ export function FileTree({
 
   return (
     <div
-      className={"mv-tree" + (dropOn === "" ? " dropping" : "")}
+      className={"mv-tree" + (dropOn === "" ? " dropping" : "") + (picked.size ? " selecting" : "")}
       onDragOver={(e) => {
         if (!accept(e)) return;
         e.preventDefault();
@@ -774,23 +897,50 @@ export function FileTree({
       }}
       onDragLeave={() => setDropOn((cur) => (cur === "" ? null : cur))}
       onDrop={(e) => drop(e, "")}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        setMenu({ x: e.clientX, y: e.clientY, file: null });
+      }}
     >
+      {canEdit && shown.length > 0 && (
+        <div className="mv-node mv-selall" onClick={toggleAll}
+             title={allOn ? "Unselect everything" : "Select everything shown here"}>
+          <span className={"mv-dot" + (allOn ? " on" : "")} role="checkbox" aria-checked={allOn} />
+          <span className="mv-title">
+            {allOn ? "Unselect all" : picked.size ? `Select all (${picked.size} selected)` : "Select all"}
+          </span>
+        </div>
+      )}
+      {createRow("", 0)}
       {shown.map((n) => row(n, 0))}
-      {!shown.length && <p className="muted small">Nothing here.</p>}
+      {!shown.length && !creating && <p className="muted small">Nothing here.</p>}
 
-      {menu && (() => {
+      {menu && !menu.file && (
+        <div className="mv-menu" style={{ left: menu.x, top: menu.y }}
+             onClick={(e) => e.stopPropagation()}>
+          <button
+            disabled={!canEdit}
+            title={canEdit ? "" : "Changing these folders needs the publish permission"}
+            onClick={() => startCreate("")}
+          >
+            New folder
+          </button>
+        </div>
+      )}
+
+      {menu?.file && ((file: StagedFile) => {
         // Right-clicking a row that is part of a selection acts on the whole
         // selection — the file-manager rule — and says so, with a count,
         // so it is never a guess which of the two it meant.
         const roots = selectionRoots(picked);
-        const many = picked.has(menu.file.path) && roots.length > 1;
-        const targets = many ? roots : [menu.file.path];
-        const what = many ? `${targets.length} items` : menu.file.name;
+        const many = picked.has(file.path) && roots.length > 1;
+        const targets = many ? roots : [file.path];
+        const what = many ? `${targets.length} items` : file.name;
         const locked = "Changing these folders needs the publish permission";
         return (
           <div className="mv-menu" style={{ left: menu.x, top: menu.y }}
                onClick={(e) => e.stopPropagation()}>
-            <div className="mv-menuhead" title={many ? targets.join("\n") : menu.file.path}>{what}</div>
+            <div className="mv-menuhead" title={many ? targets.join("\n") : file.path}>{what}</div>
             {choosing ? (
               <>
                 <button className="mv-menuback" onClick={() => setChoosing(false)}>‹ Move {what} to…</button>
@@ -803,13 +953,22 @@ export function FileTree({
               </>
             ) : (
               <>
-                {!many && menu.file.kind !== "folder" && (
-                  <button onClick={() => { onPick(menu.file); setMenu(null); }}>Open</button>
+                {!many && file.kind !== "folder" && (
+                  <button onClick={() => { onPick(file); setMenu(null); }}>Open</button>
+                )}
+                {!many && file.kind === "folder" && (
+                  <button
+                    disabled={!canEdit}
+                    title={canEdit ? "" : locked}
+                    onClick={() => startCreate(file.path)}
+                  >
+                    New folder
+                  </button>
                 )}
                 <button
                   disabled={!canEdit || many}
                   title={!canEdit ? locked : many ? "Rename one at a time" : ""}
-                  onClick={() => { setEditing({ path: menu.file.path, value: menu.file.name }); setMenu(null); }}
+                  onClick={() => { setEditing({ path: file.path, value: file.name }); setMenu(null); }}
                 >
                   Rename
                 </button>
@@ -837,15 +996,15 @@ export function FileTree({
                     ? "Click again to confirm"
                     : many
                       ? `Remove ${targets.length} items`
-                      : menu.file.kind === "folder"
-                        ? `Remove all (${menu.file.children ?? 0} item${menu.file.children === 1 ? "" : "s"})`
+                      : file.kind === "folder"
+                        ? `Remove all (${file.children ?? 0} item${file.children === 1 ? "" : "s"})`
                         : "Remove file"}
                 </button>
               </>
             )}
           </div>
         );
-      })()}
+      })(menu.file)}
     </div>
   );
 }

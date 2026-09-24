@@ -1185,6 +1185,12 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
   transition: opacity 0.1s;
 }
 .mv-node:hover .mv-dot { opacity: 0.85; }
+/* Selecting: every dot shows, so it is plain which rows a click will tick. */
+.mv-tree.selecting .mv-dot { opacity: 0.85; }
+.mv-tree.selecting .mv-node { cursor: default; }
+/* The tree's first row: select (or unselect) everything it shows. */
+.mv-selall { color: var(--muted); font-size: 0.75rem; border-bottom: 1px solid var(--line); border-radius: 0; }
+.mv-selall .mv-dot { opacity: 0.85; }
 .mv-dot:hover { border-color: #8ab4f8; opacity: 1; }
 .mv-dot.on { opacity: 1; border-color: #8ab4f8; background: #8ab4f8; box-shadow: inset 0 0 0 2px var(--panel); }
 .mv-node.active .mv-dot { border-color: #fff; }
@@ -1340,8 +1346,12 @@ input.mv-rename {
   font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
   white-space: pre-wrap; word-break: break-word;
 }
+.mv-fileaudio { width: 100%; }
+/* Fits the panel both ways: it may shrink (flex 0 1, min sizes 0) and
+   keeps its shape (contain), never wider or taller than the room left. */
 .mv-fileimg {
-  max-height: 100%; min-height: 0; object-fit: contain; align-self: start;
+  flex: 0 1 auto; min-height: 0; min-width: 0; max-width: 100%; max-height: 100%;
+  width: auto; height: auto; object-fit: contain; align-self: flex-start;
   border: 1px solid var(--line); border-radius: 6px; background: #000;
 }
 .mv-fileinfo dl {
@@ -1680,3 +1690,162 @@ select.mv-preplang:invalid, select.mv-preplang[data-empty="true"] { color: var(-
   margin: -24px 0 0 -24px;
   pointer-events: none;
 }
+/* Music inbox: recognising a song and choosing the album to file it under
+ * (react_ui/src/panels/MusicPrep.tsx), under the song's player. */
+.mu-identify { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.mu-search { display: flex; gap: 8px; align-items: flex-end; }
+.mu-search label { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.mu-search input { width: 100%; }
+.mu-search button { flex: 0 0 auto; }
+.mu-from { margin: 0; }
+.mu-options {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: 2px;
+  max-height: 46vh; overflow-y: auto;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2);
+}
+.mu-option {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 10px; cursor: pointer; border-radius: 6px;
+}
+.mu-option:hover { background: var(--panel); }
+.mu-option.active { background: var(--panel); outline: 1px solid var(--accent); outline-offset: -1px; }
+.mu-cover {
+  flex: 0 0 44px; width: 44px; height: 44px; border-radius: 4px; overflow: hidden;
+  background: var(--panel);
+}
+.mu-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.mu-optiontext { display: flex; flex-direction: column; min-width: 0; }
+.mu-album { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.mu-optiontext .small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mu-commit { display: flex; align-items: center; gap: 10px; }
+.mu-target {
+  flex: 1 1 auto; min-width: 0; font-size: 0.8rem; color: var(--muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.mu-file { flex: 0 0 auto; background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+.mu-file:disabled { opacity: 0.5; }
+.mu-auto { font-size: 0.7rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; margin-left: auto; }
+.mv-remuxall.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+/* A song the automatic filing left for a person; on a folder, how many. */
+.mv-mark {
+  flex: 0 0 auto; font-size: 0.68rem; font-weight: 700; color: #ffcf8b;
+  border: 1px solid #ffcf8b66; border-radius: 8px; padding: 0 5px; line-height: 1.4;
+}
+.mu-review { margin: 0; color: #ffcf8b; }
+/* The question a move asks when files it brings are already there
+ * (react_ui/src/panels/ConflictDialog.tsx). */
+.cf-backdrop {
+  position: fixed; inset: 0; z-index: 50;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex; align-items: center; justify-content: center; padding: 16px;
+}
+.cf-dialog {
+  width: min(720px, 100%); max-height: 85vh;
+  display: flex; flex-direction: column; gap: 10px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+  padding: 16px 18px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+.cf-dialog h2 { margin: 0; font-size: 1.05rem; }
+.cf-dialog p { margin: 0; }
+.cf-all { display: flex; align-items: center; gap: 6px; }
+.cf-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+.cf-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px;
+  padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2);
+}
+.cf-name { grid-column: 1 / -1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.85rem; }
+.cf-sides { display: flex; flex-direction: column; color: var(--muted); min-width: 0; }
+.cf-sides b { color: var(--text); font-weight: 600; margin-right: 4px; }
+.cf-choice { display: flex; gap: 4px; align-items: center; }
+.cf-choice label {
+  display: flex; align-items: center; gap: 4px; font-size: 0.78rem;
+  padding: 3px 8px; border: 1px solid var(--line); border-radius: 6px; cursor: pointer;
+}
+.cf-choice label.active { border-color: var(--accent); }
+.cf-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.cf-apply { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+@media (max-width: 600px) {
+  .cf-row { grid-template-columns: 1fr; }
+}
+/* The Music tab as a library (react_ui/src/panels/MusicLibrary.tsx): album
+ * covers, artists, songs — scrolled, not paged, like a music app. */
+.ml-scroll {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--panel); padding: 12px;
+}
+.ml-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 18px 14px; }
+.ml-card {
+  display: flex; flex-direction: column; gap: 3px; min-width: 0; padding: 0;
+  background: transparent; border: none; text-align: left; cursor: pointer;
+}
+.ml-art {
+  position: relative; aspect-ratio: 1; width: 100%; border-radius: 6px; overflow: hidden;
+  background: var(--panel-2); border: 1px solid var(--line); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  transition: transform 0.12s ease;
+}
+.ml-card:hover .ml-art { transform: translateY(-3px); }
+.ml-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ml-round { border-radius: 50%; }
+.ml-blank {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  padding: 10px; text-align: center; font-size: 0.8rem; color: var(--muted); overflow-wrap: anywhere;
+}
+.ml-cardtitle { font-size: 0.82rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 4px; }
+.ml-cardsub { font-size: 0.74rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ml-back { margin-bottom: 10px; padding: 2px 8px; }
+.ml-artistname { margin: 0 0 14px; }
+.ml-albuminfo { min-width: 0; display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+.ml-albuminfo h2 { margin: 0; }
+.ml-albuminfo p { margin: 0; }
+.ml-play { margin-top: 6px; background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+.ml-songs { list-style: none; margin: 0; padding: 0; }
+.ml-song {
+  width: 100%; display: flex; align-items: center; gap: 12px; text-align: left;
+  background: transparent; border: none; border-bottom: 1px solid var(--line); border-radius: 0; padding: 7px 8px;
+}
+.ml-song:hover { background: var(--panel-2); }
+.ml-song.active { background: var(--panel-2); box-shadow: inset 3px 0 0 var(--accent); }
+.ml-num { flex: 0 0 24px; text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; font-size: 0.8rem; }
+.ml-songtitle { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ml-songalbum { flex: 0 1 35%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.8rem; }
+.ml-dur { flex: 0 0 auto; font-size: 0.8rem; font-variant-numeric: tabular-nums; }
+/* The Music tab's player bar (react_ui/src/panels/MusicPlayerBar.tsx): one
+ * row under the library — now playing | controls | details and volume. */
+.mp-bar {
+  flex: 0 0 auto; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) minmax(0, 1fr);
+  align-items: center; gap: 16px; padding: 8px 12px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+}
+.mp-bar.empty .mp-names { opacity: 0.6; }
+.mp-now { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.mp-art { flex: 0 0 48px; width: 48px; height: 48px; border-radius: 4px; overflow: hidden; background: var(--panel-2); }
+.mp-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.mp-names { display: flex; flex-direction: column; min-width: 0; }
+.mp-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mp-artist { font-size: 0.8rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mp-controls { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; }
+.mp-buttons { display: flex; align-items: center; gap: 8px; }
+.mp-buttons .ghost { padding: 2px 8px; font-size: 0.95rem; }
+.mp-play {
+  width: 34px; height: 34px; border-radius: 50%; padding: 0; display: flex; align-items: center; justify-content: center;
+  background: var(--text); color: var(--bg); border: none; font-size: 0.85rem;
+}
+.mp-seek { display: flex; align-items: center; gap: 8px; width: 100%; }
+.mp-seek input { flex: 1 1 auto; min-width: 0; }
+.mp-time { flex: 0 0 auto; font-size: 0.72rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.mp-side { display: flex; align-items: center; justify-content: flex-end; gap: 12px; min-width: 0; }
+.mp-meta { font-size: 0.75rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.mp-volume { flex: 0 0 auto; display: flex; align-items: center; gap: 6px; width: 120px; }
+@media (max-width: 800px) {
+  .mp-bar { grid-template-columns: 1fr; gap: 6px; }
+  .mp-side { justify-content: space-between; }
+}
+/* An artist's page: all their songs, an album divider above each album's. */
+.ml-artisthead { display: flex; gap: 18px; align-items: flex-end; margin-bottom: 10px; }
+.ml-headart { flex: 0 0 120px; width: 120px; }
+.ml-divider { display: flex; align-items: center; gap: 10px; margin: 16px 0 4px; }
+.ml-divart { flex: 0 0 28px; width: 28px; height: 28px; border-radius: 3px; overflow: hidden; background: var(--panel-2); }
+.ml-divart img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ml-divtitle { font-weight: 600; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ml-divline { flex: 1 1 auto; height: 1px; background: var(--line); }

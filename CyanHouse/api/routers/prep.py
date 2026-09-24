@@ -198,13 +198,14 @@ async def file_info(area: str = Query(...), path: str = Query(...),
 @router.get("/raw")
 async def raw_file(area: str = Query(...), path: str = Query(...),
                    _user: str = Depends(require_user)):
-    """The bytes, for things a browser can render itself — images, mainly."""
+    """The bytes, for things a browser can render itself: images, and audio
+    (which seeks through Range requests — FileResponse answers those)."""
     try:
         resolved = await run_in_threadpool(movie_prep.resolve_in_area, area, path)
     except movie_prep.PrepError as e:
         raise _wrap(e)
-    if movie_prep.file_kind(resolved) != "image":
-        raise HTTPException(415, "only images are served raw")
+    if movie_prep.file_kind(resolved) not in ("image", "audio"):
+        raise HTTPException(415, "only images and audio are served raw")
     return FileResponse(resolved, headers={"Cache-Control": "no-store"})
 
 
@@ -267,6 +268,21 @@ async def rename_entry(
         raise _wrap(e)
 
 
+@router.post("/mkdir")
+async def make_folder(
+    area: str = Query(...),
+    path: str = Query("", description="the folder to create it in; '' is the root"),
+    name: str = Query(..., min_length=1, max_length=255),
+    user: str = Depends(require_user),
+):
+    """Create an empty folder."""
+    may_change(user, area)
+    try:
+        return await run_in_threadpool(movie_prep.make_folder, area, path, name)
+    except movie_prep.PrepError as e:
+        raise _wrap(e)
+
+
 @router.post("/movepath")
 async def move_entry(
     area: str = Query(..., description="the area the thing is in now"),
@@ -281,6 +297,26 @@ async def move_entry(
     may_move(user, area, to_area)
     try:
         return await run_in_threadpool(movie_prep.move_entry, area, path, to_area, to)
+    except movie_prep.PrepError as e:
+        raise _wrap(e)
+
+
+@router.post("/resolve")
+async def resolve_conflict(
+    area: str = Query(..., description="where the file is now"),
+    path: str = Query(...),
+    to_area: str = Query(...),
+    dest: str = Query(..., description="the path it clashed with, in to_area"),
+    action: str = Query(..., pattern="^(replace|keep)$"),
+    upto: str = Query("", description="the folder that was being moved"),
+    user: str = Depends(require_user),
+):
+    """Settle a file a move left behind because the destination had one of
+    the same name: replace that one, or keep both."""
+    may_move(user, area, to_area)
+    try:
+        return await run_in_threadpool(
+            movie_prep.resolve_conflict, area, path, to_area, dest, action, upto)
     except movie_prep.PrepError as e:
         raise _wrap(e)
 

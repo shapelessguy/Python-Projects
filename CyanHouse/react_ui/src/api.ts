@@ -283,9 +283,10 @@ export interface MovieSource {
    *  named by the button sitting above this one. */
   short: string;
   path: string;
-  /** "library" is the film library, shown as a flat list of films. Every
-   *  other folder — a staging inbox, an output, the series library — is
-   *  browsed as a tree. */
+  /** "library" is a library of its own, with no staging pair: the films
+   *  (key "", shown as covers or a list of films), music and images (browsed
+   *  as a tree, like every other folder — a staging inbox, an output, the
+   *  series library). */
   kind: "library" | "inbox" | "output";
   /** What the folder is for: work waiting, or work finished. The panel
    *  stacks one above the other. */
@@ -294,9 +295,114 @@ export interface MovieSource {
    *  area share it, which is what pairs them into a column. */
   group: string;
   ready: boolean;
+  /** Set on the libraries that are not films — the Music and Images tabs. */
+  media?: "music" | "images";
+  /** What a staging pair holds: films (identify + remux) or songs
+   *  (recognise + tag + file — api/services/music_prep.py). */
+  type?: "film" | "music";
   /** What the folder is for, per language — secrets.json's `description`,
    *  shown in the panel's help text. */
   description?: Record<string, string>;
+}
+
+/** One album a song can be filed under — see api/services/music_prep.py. */
+export interface MusicOption {
+  recording_id: string;
+  release_id: string;
+  release_group_id: string;
+  artist: string;
+  title: string;
+  album: string;
+  album_artist: string;
+  date: string;
+  year: string;
+  /** Position on the disc (what the file is numbered by)… */
+  track: string;
+  /** …and the number as printed on the release ("B1" on vinyl). */
+  track_label?: string;
+  tracks: number;
+  disc: number;
+  discs: number;
+  /** "Album", "Single", "Album + Compilation", … */
+  type: string;
+  status: string;
+  country: string;
+  live: boolean;
+  /** Where it would be filed, relative to the pair's output. */
+  target: string;
+}
+
+export interface MusicIdentity {
+  path: string;
+  song: { artist: string; title: string; album: string; from: "tags" | "name" | "you" };
+  options: MusicOption[];
+  /** Why the background filing left this song for a person, if it did. */
+  review?: string | null;
+}
+
+/** The music library, from the files' tags — api/services/music_library.py. */
+export interface MusicSong {
+  path: string;
+  folder: string;
+  title: string;
+  artist: string;
+  album_artist: string;
+  album: string;
+  track: number;
+  disc: number;
+  year: string;
+  seconds: number;
+  size: number;
+}
+
+export interface MusicAlbum {
+  /** The album's folder, relative to the library: its id. */
+  folder: string;
+  title: string;
+  artist: string;
+  year: string;
+  tracks: number;
+  seconds: number;
+  cover: boolean;
+}
+
+export interface MusicArtist {
+  name: string;
+  albums: number;
+  tracks: number;
+  /** An album folder whose cover stands for the artist, or "". */
+  cover: string;
+}
+
+export interface MusicLibrary {
+  songs: MusicSong[];
+  albums: MusicAlbum[];
+  artists: MusicArtist[];
+}
+
+/** The background filing in one music inbox — see music_prep.auto_status. */
+export interface MusicAuto {
+  enabled: boolean;
+  /** The song it is on right now, relative to the inbox. */
+  current: string | null;
+  pending: number;
+  filed: number;
+  /** Songs it left for a person, by path, with the reason. */
+  review: Record<string, string>;
+}
+
+/** A file a move could not place: the destination already has one. */
+export interface MoveConflict {
+  /** Where it still is, in the area it came from. */
+  path: string;
+  /** What it clashed with, in the area it was going to. */
+  dest: string;
+  size: number | null;
+  modified: number;
+  dest_size: number | null;
+  dest_modified: number;
+  /** A file against a folder: only "keep both" can settle it. */
+  mixed: boolean;
 }
 
 export interface StagingArea {
@@ -317,7 +423,7 @@ export interface StagedFile {
   name: string;
   size: number;
   modified: number;
-  kind: "folder" | "video" | "image" | "subtitle" | "text" | "binary";
+  kind: "folder" | "video" | "image" | "audio" | "subtitle" | "text" | "binary";
   readable: boolean;
   /** Folders only: how many entries are directly inside. */
   children?: number;
@@ -544,12 +650,47 @@ export const api = {
   prepRename: (area: string, path: string, name: string) =>
     f("/api/prep/rename?" + new URLSearchParams({ area, path, name }), { method: "POST" })
       .then(j<{ renamed: boolean; new_path: string; name: string; is_dir: boolean }>),
+  // ── music staging — api/routers/music.py
+  musicIdentify: (area: string, path: string, artist?: string, title?: string) =>
+    f("/api/music/identify?" + new URLSearchParams({
+      area, path,
+      ...(artist !== undefined ? { artist } : {}),
+      ...(title !== undefined ? { title } : {}),
+    })).then(j<MusicIdentity>),
+  musicFile: (area: string, path: string, choice: MusicOption) =>
+    f("/api/music/file?" + new URLSearchParams({ area, path }), {
+      method: "POST", headers: JSON_HEADERS, body: JSON.stringify(choice),
+    }).then(j<{ path: string; new_path: string; tagged: boolean; cover: boolean }>),
+  musicLibrary: () => f("/api/music/library").then(j<MusicLibrary>),
+  musicArtUrl: (folder: string) => "/api/music/art?" + new URLSearchParams({ folder }),
+  musicAuto: (area: string) =>
+    f("/api/music/auto?" + new URLSearchParams({ area })).then(j<MusicAuto>),
+  musicCoverUrl: (releaseGroupId: string) =>
+    "/api/music/cover?" + new URLSearchParams({ rg: releaseGroupId }),
+
+  /** Create an empty folder inside `path` ("" being the area's root). */
+  prepMkdir: (area: string, path: string, name: string) =>
+    f("/api/prep/mkdir?" + new URLSearchParams({ area, path, name }), { method: "POST" })
+      .then(j<{ new_path: string; name: string }>),
   /** Move a file or folder into another folder — the tree's drag and drop.
    *  `to` is the destination *folder*, "" being that area's root. */
   prepMovePath: (area: string, path: string, toArea: string, to: string) =>
     f("/api/prep/movepath?" + new URLSearchParams({ area, path, to_area: toArea, to }),
       { method: "POST" })
-      .then(j<{ moved: string; new_path: string; to_area: string; is_dir: boolean }>),
+      .then(j<{
+        moved: string; new_path: string; to_area: string; is_dir: boolean;
+        /** Merged into a folder of the same name that was already there. */
+        merged: boolean;
+        /** Small files identical to one already there, dropped not moved. */
+        identical: number;
+        /** Files the destination already had, so not moved: for a person. */
+        conflicts: MoveConflict[];
+      }>),
+  /** Settle one conflict: replace the file that was there, or keep both. */
+  prepResolve: (area: string, path: string, toArea: string, dest: string,
+                action: "replace" | "keep", upto: string) =>
+    f("/api/prep/resolve?" + new URLSearchParams({ area, path, to_area: toArea, dest, action, upto }),
+      { method: "POST" }).then(j<{ path: string; new_path: string }>),
   /** Remove a file, or a folder and everything under it. Not an unlink: it
    *  moves to that area's `.trash`, which the listing hides. */
   prepDelete: (area: string, path: string) =>

@@ -191,7 +191,7 @@ def _title_for(path: Path) -> str:
     if path.parent == MOVIES_DIR:
         return path.stem
     try:
-        videos = sum(1 for p in path.parent.iterdir()
+        videos = sum(1 for p in set(path.parent.iterdir())
                      if p.suffix.lower() in VIDEO_EXT and not p.name.startswith("."))
     except OSError:
         videos = 1
@@ -204,7 +204,7 @@ def _main_video_file(folder: Path) -> Path | None:
     alongside it."""
     best: tuple[int, Path] | None = None
     try:
-        entries = list(folder.iterdir())
+        entries = list(set(folder.iterdir()))
     except OSError:
         return None
     for entry in entries:
@@ -239,7 +239,9 @@ def list_movies(refresh: bool = False) -> list[dict]:
         if not MOVIES_DIR.is_dir():
             raise MovieError(f"movie library not found at {MOVIES_DIR}", 503)
         out: list[dict] = []
-        for entry in sorted(MOVIES_DIR.iterdir(), key=lambda p: p.name.lower()):
+        # Through a set: the ntfs3 driver can list a name more than once while
+        # the folder is changing (see UNIQUE_NAMES in movie_prep.py).
+        for entry in sorted(set(MOVIES_DIR.iterdir()), key=lambda p: p.name.lower()):
             # `.trash` holds what the panel removed, and the biggest video in
             # it would otherwise be listed as a film called ".trash".
             if entry.name.startswith("."):
@@ -348,7 +350,7 @@ def _folder_subs(video: Path) -> list[dict]:
     """
     folder = video.parent
     try:
-        entries = sorted(folder.iterdir(), key=lambda p: p.name.lower())
+        entries = sorted(set(folder.iterdir()), key=lambda p: p.name.lower())
     except OSError:
         return []
 

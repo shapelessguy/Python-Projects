@@ -48,10 +48,13 @@ from pathlib import Path
 
 from api.config import (
     FFMPEG,
+    IMAGE_DIR,
     FFPROBE,
     MOVIES_DATA_DIR,
     MOVIES_DIR,
     MOVIE_STAGING,
+    MUSIC_DIR,
+    MUSIC_STAGING,
 )
 from api.services import movie_subs, movies, plex, prep_configs
 
@@ -78,7 +81,12 @@ def areas() -> dict[str, dict]:
     the real library; the test area points somewhere else entirely, which is
     the whole reason this is configuration and not a constant."""
     out: dict[str, dict] = {}
-    for name, cfg in (MOVIE_STAGING or {}).items():
+    configured = [(n, c, "film") for n, c in (MOVIE_STAGING or {}).items()]
+    # Music pairs are browsed, moved and uploaded into exactly like film
+    # ones; only what "processing" means differs (music_prep.py).
+    configured += [(n, c, "music") for n, c in (MUSIC_STAGING or {}).items()
+                   if n not in (MOVIE_STAGING or {})]
+    for name, cfg, media in configured:
         cfg = cfg or {}
         # An area may have no inbox at all — just somewhere finished work is
         # kept. That has to stay *empty*, not become a path: Path("") is ".",
@@ -90,7 +98,8 @@ def areas() -> dict[str, dict]:
         # "output" is where finished films are moved to. "library" is the
         # older spelling and still works, because renaming a config key
         # should not silently change where files land.
-        dest = cfg.get("output") or cfg.get("library") or MOVIES_DIR
+        dest = cfg.get("output") or cfg.get("library") or (
+            (MUSIC_DIR or MOVIES_DIR) if media == "music" else MOVIES_DIR)
         library = Path(str(dest)).expanduser()
         ready = bool(inbox and inbox.is_dir())
         # What this folder is for, in words, shown in the panel's help text
@@ -104,6 +113,7 @@ def areas() -> dict[str, dict]:
             "inbox": str(inbox) if inbox else "",
             "library": str(library),
             "ready": ready,
+            "type": media,
             "description": description,
             "problem": "" if ready else (
                 f"inbox not found: {inbox}" if inbox else "no inbox configured"),
@@ -151,12 +161,22 @@ def sources() -> list[dict]:
         "path": str(MOVIES_DIR), "kind": "library", "role": "done",
         "group": "", "ready": MOVIES_DIR.is_dir(),
     }]
+    # Music and pictures sit right after the films: libraries like it, just
+    # not of films.
+    for key, (label, folder) in MEDIA_LIBRARIES.items():
+        if folder is not None:
+            out.append({
+                "key": key, "label": label, "short": label,
+                "path": str(folder), "kind": "library", "role": "done",
+                "group": "", "ready": folder.is_dir(), "media": key[1:],
+            })
     for name, cfg in areas().items():
         if cfg["inbox"]:
             out.append({
                 "key": name, "label": name, "short": name,
                 "path": cfg["inbox"], "kind": "inbox", "role": "todo",
                 "group": name, "ready": cfg["ready"], "description": cfg["description"],
+                "type": cfg["type"],
             })
         library = Path(cfg["library"])
         out.append({
@@ -168,8 +188,17 @@ def sources() -> list[dict]:
             "short": library.name or str(library),
             "path": str(library), "kind": "output", "role": "done",
             "group": name, "ready": library.is_dir(), "description": cfg["description"],
+            "type": cfg["type"],
         })
     return out
+
+
+# The libraries that are not films, by source key. The leading colon keeps
+# the keys apart from staging-area names, which come from secrets.json.
+MEDIA_LIBRARIES: dict[str, tuple[str, Path | None]] = {
+    ":music": ("Music", MUSIC_DIR),
+    ":images": ("Images", IMAGE_DIR),
+}
 
 
 def area(name: str) -> tuple[Path, Path]:
@@ -185,6 +214,13 @@ def area(name: str) -> tuple[Path, Path]:
         if not MOVIES_DIR.is_dir():
             raise PrepError(f"movie library not found: {MOVIES_DIR}", 503)
         return MOVIES_DIR, MOVIES_DIR
+    if name in MEDIA_LIBRARIES:
+        label, folder = MEDIA_LIBRARIES[name]
+        if folder is None:
+            raise PrepError(f"no {label.lower()} folder configured", 404)
+        if not folder.is_dir():
+            raise PrepError(f"{label.lower()} folder not found: {folder}", 503)
+        return folder, folder
     if name.endswith(":library"):
         found = areas().get(name[: -len(":library")])
         if found:
@@ -222,7 +258,7 @@ def scan(root: Path) -> list[Candidate]:
     if not root.is_dir():
         raise PrepError(f"staging folder not found: {root}", 503)
     out: list[Candidate] = []
-    for entry in sorted(root.iterdir(), key=lambda p: p.name.lower()):
+    for entry in sorted(set(root.iterdir()), key=lambda p: p.name.lower()):
         if entry.name.startswith(".") or entry.name == TRASH_DIR:
             continue
         if entry.is_file() and entry.suffix.lower() in VIDEO_EXT:
@@ -231,7 +267,7 @@ def scan(root: Path) -> list[Candidate]:
         if not entry.is_dir():
             continue
         vids, subs, junk = [], [], []
-        for f in sorted(entry.rglob("*")):
+        for f in sorted(set(entry.rglob("*"))):
             if not f.is_file():
                 continue
             # Hidden files are this pipeline's own work in progress — the
@@ -847,7 +883,7 @@ def execute(plan: dict, dest_root: Path, dry_run: bool = False,
     else:
         trash = folder.parent / TRASH_DIR / stamp / folder.name
         trash.mkdir(parents=True, exist_ok=True)
-        for leftover in sorted(folder.rglob("*")):
+        for leftover in sorted(set(folder.rglob("*"))):
             if leftover.is_file():
                 rel = leftover.relative_to(folder)
                 (trash / rel).parent.mkdir(parents=True, exist_ok=True)
@@ -1017,7 +1053,9 @@ def _signature(root: Path) -> str:
     removed, renamed or still being copied in."""
     h = hashlib.sha1()
     try:
-        for path in sorted(root.rglob("*")):
+        # A set for the same ntfs3 reason as browse(): repeats would change
+        # the signature on every pass while anything is being written.
+        for path in sorted(set(root.rglob("*"))):
             if path.name.startswith(".") or TRASH_DIR in path.parts:
                 continue
             try:
@@ -1069,6 +1107,9 @@ def scan_area(name: str) -> list[dict]:
     The saved decisions are applied on every call instead, outside that
     cache: saving one changes nothing on disk that the fingerprint would
     notice, and a stale overlay would hand the queue last minute's choice."""
+    # A music inbox holds songs, not films; its processing is music_prep's.
+    if (areas().get(name) or {}).get("type") == "music":
+        return []
     inbox, library = area(name)
     sig = _signature(inbox)
     with _watch_lock:
@@ -1191,6 +1232,8 @@ def save_plan(area_name: str, plan: dict) -> dict:
 # keep means being able to look at all of it, so the browser lists
 # everything and classifies it by what can usefully be *shown*.
 IMAGE_EXT = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"}
+# What a browser's <audio> plays by itself.
+AUDIO_EXT = {".mp3", ".flac", ".m4a", ".aac", ".ogg", ".oga", ".opus", ".wav"}
 TEXT_EXT = {".srt", ".ass", ".ssa", ".vtt", ".idx", ".txt", ".nfo", ".md",
             ".json", ".xml", ".log", ".cfg", ".ini", ".sfv", ".url"}
 TEXT_MAX_BYTES = 256 * 1024
@@ -1202,6 +1245,8 @@ def file_kind(path: Path) -> str:
         return "video"
     if ext in IMAGE_EXT:
         return "image"
+    if ext in AUDIO_EXT:
+        return "audio"
     if ext in SUB_EXT or ext == ".sub":
         # .sub is the binary half of a VobSub pair; its .idx is the readable
         # one, so only that gets offered as text.
@@ -1218,6 +1263,12 @@ def file_kind(path: Path) -> str:
 # from the paths. The cap is only there so that pointing an area at
 # something enormous by mistake cannot hang the browser.
 BROWSE_MAX_ENTRIES = 20000
+
+
+# UNIQUE_NAMES: listing a folder on the library drive (ntfs3) while files
+# are being created or renamed in it returns names more than once — measured
+# at over a hundred times each for a folder of thousands mid-upload. Every
+# listing here goes through a set before anything is counted.
 
 
 def browse(area_name: str) -> list[dict]:
@@ -1238,8 +1289,12 @@ def browse(area_name: str) -> list[dict]:
     for dirpath, dirnames, filenames in os.walk(root):
         here = Path(dirpath)
         # Pruned in place, which is what stops os.walk descending into them.
+        # Through a set: the ntfs3 driver hands the same names back over and
+        # over when a folder changes while it is being read — an upload
+        # landing in it, say — and every repeat would be counted (see
+        # UNIQUE_NAMES).
         dirnames[:] = sorted(
-            d for d in dirnames if d != TRASH_DIR and not d.startswith("."))
+            {d for d in dirnames if d != TRASH_DIR and not d.startswith(".")})
         if len(out) >= BROWSE_MAX_ENTRIES:
             truncated = True
             break
@@ -1261,7 +1316,7 @@ def browse(area_name: str) -> list[dict]:
                 "children": 0,
             })
 
-        for name in sorted(filenames):
+        for name in sorted(set(filenames)):
             if name.startswith("."):
                 continue
             path = here / name
@@ -1446,7 +1501,7 @@ def move_film(movie_id: str, to_key: str) -> dict:
         "moved": moving.name,
         "to": str(dest),
         "was_folder": moving.is_dir() if moving.exists() else True,
-        "size": sum(p.stat().st_size for p in dest.rglob("*") if p.is_file())
+        "size": sum(p.stat().st_size for p in set(dest.rglob("*")) if p.is_file())
                 if dest.is_dir() else dest.stat().st_size,
     }
 
@@ -1516,13 +1571,88 @@ def rename_entry(area_name: str, rel: str, new_name: str) -> dict:
             "is_dir": dest.is_dir()}
 
 
+def make_folder(area_name: str, parent_rel: str, name: str) -> dict:
+    """Create an empty folder inside `parent_rel` ("" being the root)."""
+    parent = resolve_entry(area_name, parent_rel)
+    if not parent.is_dir():
+        raise PrepError("new folders go inside a folder", 400)
+    name = _check_name(name)
+    dest = parent / name
+    if dest.exists():
+        raise PrepError(f"{name!r} already exists in this folder", 409)
+    dest.mkdir()
+    _bump()
+    root, _ = area(area_name)
+    return {"new_path": str(dest.resolve().relative_to(root.resolve())), "name": name}
+
+
+# A file this small that clashes with one at the destination is compared
+# byte for byte, and dropped when it is the same: a second copy of the same
+# cover.jpg is not a question worth asking. Bigger ones are not read twice
+# over a network mount just to find out.
+SAME_FILE_MAX_BYTES = 2 * 1024 * 1024
+
+
+def _same_small(a: Path, b: Path) -> bool:
+    import filecmp
+    try:
+        if not (a.is_file() and b.is_file()):
+            return False
+        size = a.stat().st_size
+        return size == b.stat().st_size and size <= SAME_FILE_MAX_BYTES \
+            and filecmp.cmp(a, b, shallow=False)
+    except OSError:
+        return False
+
+
+def _merge_into(src: Path, dst: Path) -> tuple[int, list[Path], int]:
+    """Move everything in folder `src` into folder `dst`, folder by folder:
+    what `dst` does not have yet moves in, a folder it has too is merged the
+    same way, and a file it already has is never overwritten — it stays
+    where it was, and is returned among the ones left, unless it is a small
+    one identical to what is there (_same_small), which is simply dropped.
+    Folders emptied on the way are removed. Returns (files moved, entries
+    left behind, identical files dropped)."""
+    moved, left, dropped = 0, [], 0
+    # A set: the ntfs3 driver repeats names in a folder being changed, and
+    # this one is being emptied as it is read (UNIQUE_NAMES).
+    for entry in sorted(set(src.iterdir())):
+        target = dst / entry.name
+        if not target.exists():
+            count = (sum(1 for p in set(entry.rglob("*")) if p.is_file())
+                     if entry.is_dir() else 1)
+            shutil.move(str(entry), str(target))
+            moved += count
+        elif entry.is_dir() and target.is_dir():
+            m, l, d = _merge_into(entry, target)
+            moved += m
+            left += l
+            dropped += d
+        elif _same_small(entry, target):
+            entry.unlink()
+            dropped += 1
+        else:
+            left.append(entry)
+    try:
+        src.rmdir()
+    except OSError:
+        pass  # something was left in it
+    return moved, left, dropped
+
+
 def move_entry(from_area: str, from_rel: str, to_area: str, to_rel: str) -> dict:
     """Move a file or folder into another folder, possibly in another root.
 
     `to_rel` names the *destination folder*, "" being that root itself. The
     moved thing keeps its name — a move that also renames is two intentions
     in one gesture, and dragging is not precise enough to express the
-    second."""
+    second.
+
+    A folder moved onto one of the same name is merged into it (_merge_into):
+    an artist's folder in the music library takes each new album as it comes,
+    a film's folder takes the extra subtitles. Nothing already there is ever
+    replaced here: a file the destination already has stays where it was and
+    comes back as a conflict, for a person to settle (resolve_conflict)."""
     src = resolve_entry(from_area, from_rel)
     dst_dir = resolve_entry(to_area, to_rel)
     if not dst_dir.is_dir():
@@ -1537,24 +1667,94 @@ def move_entry(from_area: str, from_rel: str, to_area: str, to_rel: str) -> dict
         raise PrepError(f"{src.name!r} is already there", 409)
 
     dest = dst_dir / src.name
+    left: list[Path] = []
+    merged = False
+    dropped = 0
     if dest.exists():
-        raise PrepError(
-            f"{src.name!r} already exists in the destination — "
-            f"rename one of them first", 409)
-    # shutil.move copies and deletes when the two are on different
-    # filesystems, which is what makes a staging folder on the local disk
-    # able to feed a library on the network mount.
-    shutil.move(str(src), str(dest))
+        if src.is_dir() and dest.is_dir():
+            merged = True
+            _, left, dropped = _merge_into(src, dest)
+        elif _same_small(src, dest):
+            src.unlink()
+            dropped = 1
+        else:
+            left = [src]
+    else:
+        # shutil.move copies and deletes when the two are on different
+        # filesystems, which is what makes a staging folder on the local disk
+        # able to feed a library on the network mount.
+        shutil.move(str(src), str(dest))
     _bump()
     plex.notify(src, dest)
     root, _ = area(to_area)
+    from_root, _ = area(from_area)
     return {
         "moved": src.name,
         "from": from_rel,
         "to_area": to_area,
         "new_path": str(dest.resolve().relative_to(root.resolve())),
         "is_dir": dest.is_dir(),
+        "merged": merged,
+        # Small files identical to one already there: dropped, not moved.
+        "identical": dropped,
+        "conflicts": [_conflict(p, from_root, src, dest, root) for p in left],
     }
+
+
+def _conflict(p: Path, from_root: Path, src: Path, dest: Path, to_root: Path) -> dict:
+    """One thing a move could not place because the destination has it: both
+    sides, so a person can see which to keep."""
+    there = dest / p.relative_to(src) if p != src else dest
+    a, b = p.stat(), there.stat()
+    return {
+        "path": str(p.resolve().relative_to(from_root.resolve())),
+        "dest": str(there.resolve().relative_to(to_root.resolve())),
+        "size": a.st_size if p.is_file() else None,
+        "modified": int(a.st_mtime),
+        "dest_size": b.st_size if there.is_file() else None,
+        "dest_modified": int(b.st_mtime),
+        # A file against a folder (or the other way): only "keep both" works.
+        "mixed": p.is_dir() != there.is_dir(),
+    }
+
+
+def resolve_conflict(from_area: str, rel: str, to_area: str, dest_rel: str,
+                     action: str, upto: str = "") -> dict:
+    """Settle one conflict a move reported. "replace" puts the incoming file
+    where the existing one is (which is deleted); "keep" moves it in under a
+    free name ("Song (2).mp3"). Folders the file leaves empty in its old
+    place go too, up to `upto` — the folder that was being moved."""
+    src = resolve_entry(from_area, rel)
+    dest = resolve_entry(to_area, dest_rel, must_exist=False)
+    if action == "replace":
+        if src.is_dir() or dest.is_dir():
+            raise PrepError("only a file can replace a file", 400)
+        dest.unlink(missing_ok=True)
+    elif action == "keep":
+        n = 2
+        base = dest
+        while dest.exists():
+            dest = base.with_name(f"{base.stem} ({n}){base.suffix}" if base.is_file() or src.is_file()
+                                  else f"{base.name} ({n})")
+            n += 1
+    else:
+        raise PrepError(f"unknown action {action!r}", 400)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    shutil.move(str(src), str(dest))
+
+    from_root, _ = area(from_area)
+    stop = resolve_entry(from_area, upto, must_exist=False) if upto else None
+    folder = src.parent
+    while folder != from_root.resolve() and stop is not None and (folder == stop or stop in folder.parents):
+        try:
+            folder.rmdir()
+        except OSError:
+            break
+        folder = folder.parent
+    _bump()
+    plex.notify(dest)
+    to_root, _ = area(to_area)
+    return {"path": rel, "new_path": str(dest.resolve().relative_to(to_root.resolve()))}
 
 
 def delete_entry(area_name: str, rel: str) -> dict:
@@ -1571,7 +1771,7 @@ def delete_entry(area_name: str, rel: str) -> dict:
     if path == root:
         raise PrepError("that is the folder itself, not something in it", 400)
 
-    files = [p for p in path.rglob("*") if p.is_file()] if path.is_dir() else [path]
+    files = [p for p in set(path.rglob("*")) if p.is_file()] if path.is_dir() else [path]
     size = 0
     for p in files:
         try:

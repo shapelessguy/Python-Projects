@@ -1,11 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { api, MovieInfo, MovieItem, MovieTrack, MovieSource, PrepPlan, RemuxJob, StagedFile } from "../api";
+import { api, MovieInfo, MovieItem, MovieTrack, MovieSource, MusicAuto, MusicSong, PrepPlan, RemuxJob, StagedFile } from "../api";
 import { FileView, FileTree, MoviesHome, PrepIdentity, PrepCommit, DRAG_TYPE, fmtSize, selectionRoots } from "./StagingView";
 import { useVersionPoll, useVisibility } from "../api";
 import { entriesFrom, walkEntries, useUploads } from "../uploads";
 import { readCookie, writeCookie } from "../cookies";
 import { currentUsername } from "../auth";
 import { CoverBook } from "./CoverBook";
+import { MusicLibrary, MusicView } from "./MusicLibrary";
+import { MusicPlayerBar } from "./MusicPlayerBar";
+import { MusicIdentify } from "./MusicPrep";
+import { ConflictDialog, Clash } from "./ConflictDialog";
 
 /** The stream is a transcode piped into a fragmented MP4: no byte ranges, no
  *  index, so the browser can't seek it and `video.duration` is meaningless.
@@ -26,6 +30,8 @@ const EXTERNAL_COOKIE = "media_external";
 /** The film library as covers ("grid", the default) or as a list. */
 const VIEW_COOKIE = "movies_view";
 const COVER_COOKIE = "movies_cover";
+// The Music tab's view: the library by album, artist or song, or its folders.
+const MUSIC_VIEW_COOKIE = "music_view";
 const COVER_MIN = 90;
 const COVER_MAX = 280;
 
@@ -144,6 +150,9 @@ export function MoviesPanel() {
   const [paneErrors, setPaneErrors] = useState<Record<string, string>>({});
   const [plans, setPlans] = useState<Record<string, PrepPlan>>({});
   const [viewFile, setViewFile] = useState<StagedFile | null>(null);
+  // A double-clicked song, to start playing once it is open. Cleared by any
+  // plain click, so a song opened later does not start by itself.
+  const [playFile, setPlayFile] = useState<{ path: string } | null>(null);
   const [prepNote, setPrepNote] = useState("");
   // Rearranging happens in the left column and has to be answered there:
   // `prepNote` lives inside the player, which is replaced wholesale by the
@@ -171,6 +180,9 @@ export function MoviesPanel() {
   // The server's remux queue — running whether or not this page is open.
   // Held here only to draw it; the server is the record.
   const [jobs, setJobs] = useState<RemuxJob[]>([]);
+  // Files a move could not place because the destination had them — the
+  // overlay asking what to do with each.
+  const [conflicts, setConflicts] = useState<Clash[] | null>(null);
   const [queueOpen, setQueueOpen] = useState(false);
   const running = jobs.find((j) => j.state === "running") ?? null;
   const waiting = jobs.filter((j) => j.state === "queued");
@@ -218,6 +230,16 @@ export function MoviesPanel() {
     return n >= COVER_MIN && n <= COVER_MAX ? n : 150;
   });
   const setCoverSize = (n: number) => { setCoverSizeState(n); writeCookie(COVER_COOKIE, String(n)); };
+  const [musicView, setMusicViewState] = useState<MusicView | "folders">(() => {
+    const v = readCookie(MUSIC_VIEW_COOKIE);
+    return v === "songs" || v === "folders" ? v : "artists";
+  });
+  const setMusicView = (v: MusicView | "folders") => { setMusicViewState(v); writeCookie(MUSIC_VIEW_COOKIE, v); };
+  // The Music tab's player: the song loaded, a fresh object each time it
+  // should start playing, and the album or list it came from.
+  const [nowSong, setNowSong] = useState<MusicSong | null>(null);
+  const [nowPlay, setNowPlay] = useState<object | null>(null);
+  const [nowList, setNowList] = useState<{ list: MusicSong[]; index: number }>({ list: [], index: 0 });
   const [selected, setSelected] = useState<MovieItem | null>(null);
   const [info, setInfo] = useState<MovieInfo | null>(null);
   const [infoError, setInfoError] = useState("");
@@ -284,8 +306,9 @@ export function MoviesPanel() {
     setListError("");
     loadPanes(paneKeys.split("|")).catch(() => {});
     // Only an inbox has films waiting to be prepared; an output's films are
-    // already done, so there is no plan to fetch for them.
-    if (!inbox) { setPlans({}); return () => { alive = false; }; }
+    // already done, so there is no plan to fetch for them. A music inbox has
+    // songs, which are recognised one at a time in the right-hand panel.
+    if (!inbox || inbox.type === "music") { setPlans({}); return () => { alive = false; }; }
     api.prepScan(inbox.key)
       .then((r) => {
         if (!alive) return;
@@ -313,7 +336,11 @@ export function MoviesPanel() {
   useEffect(() => {
     let alive = true;
     api.prepSpace(panes[0]?.key ?? "")
-      .then((r) => alive && setSpace(r))
+      // Only replaced when something in it changed, so an unchanged answer
+      // does not even re-render.
+      .then((r) => alive && setSpace((cur) =>
+        cur && cur.path === r.path && cur.name === r.name && cur.mount === r.mount
+          && cur.free === r.free && cur.total === r.total ? cur : r))
       .catch(() => alive && setSpace(null));
     return () => { alive = false; };
   }, [paneKeys, versions.prep]);
@@ -417,7 +444,9 @@ export function MoviesPanel() {
     setSource(g?.todo?.key ?? g?.done?.key ?? next);
     setSelected(null); setInfo(null); setViewFile(null);
     setListings({}); setPaneErrors({}); setPlans({});
-    setPrepNote(""); setQuery(""); setTreeNote(null); setSpace(null);
+    // `space` is left as it is until the new tab's answer arrives: most tabs
+    // share a disk, and blanking it made the readout blink on every switch.
+    setPrepNote(""); setQuery(""); setTreeNote(null); setReviewOnly(false);
     setPicked(new Set()); setPickedArea(""); setBulkTo("");
   };
 
@@ -502,6 +531,50 @@ export function MoviesPanel() {
     } catch (e) { failed(e); }
   };
 
+  const isMusicInbox = (key: string) =>
+    sources.some((x) => x.key === key && x.kind === "inbox" && x.type === "music");
+  const songsIn = (area: string, list = listings[area] ?? []) =>
+    list.filter((f) => f.kind === "audio").sort((a, b) => a.path.localeCompare(b.path));
+
+  /** A song was tagged and filed: refresh, and open the next one in the
+   *  inbox, so going through a batch is one click per song. */
+  const afterFiled = async (area: string, was: string, newPath: string) => {
+    const fresh = await loadPanes(panes.map((x) => x.key));
+    const left = songsIn(area, fresh[area] ?? []);
+    setViewFile(left.find((f) => f.path > was) ?? left[0] ?? null);
+    say(`Filed → ${newPath}`);
+  };
+
+  // The background filing in the open music inbox (api/services/music_prep):
+  // what it is on, and the songs it left for a person, with why. Followed
+  // every few seconds while the tab is open — it moves on its own.
+  const [musicAuto, setMusicAuto] = useState<Record<string, MusicAuto>>({});
+  const [reviewOnly, setReviewOnly] = useState(false);
+  useEffect(() => {
+    if (!inbox || inbox.type !== "music") return;
+    const key = inbox.key;
+    let alive = true;
+    const load = () => api.musicAuto(key)
+      .then((r) => alive && setMusicAuto((m) => ({ ...m, [key]: r })))
+      .catch(() => {});
+    load();
+    const t = window.setInterval(load, 3000);
+    return () => { alive = false; window.clearInterval(t); };
+  }, [inbox?.key, inbox?.type, versions.prep]);
+
+  /** An inbox's listing narrowed to the songs left for review, and the
+   *  folders on the way to them. */
+  const reviewFiles = (area: string, files: StagedFile[]) => {
+    const flagged = musicAuto[area]?.review ?? {};
+    const keep = new Set<string>();
+    for (const path of Object.keys(flagged)) {
+      keep.add(path);
+      const parts = path.split("/");
+      for (let i = 1; i < parts.length; i++) keep.add(parts.slice(0, i).join("/"));
+    }
+    return files.filter((f) => keep.has(f.path));
+  };
+
   const failedCount = jobs.filter((j) => j.state === "failed").length;
   const phaseText = (j: RemuxJob) =>
     ((j.steps ?? 0) > 1 && j.step ? `${j.step}/${j.steps} · ` : "") + (
@@ -567,6 +640,14 @@ export function MoviesPanel() {
       }).catch((e) => failed(e));
     },
     remove: (paths: string[]) => deletePaths(area, paths),
+    mkdir: async (parent: string, name: string) => {
+      setTreeNote(null);
+      try {
+        const r = await api.prepMkdir(area, parent, name);
+        say(`Created ${r.new_path}`);
+        await loadPanes(panes.map((x) => x.key));
+      } catch (e) { failed(e); }
+    },
     moveTo: (paths: string[], toArea: string) =>
       moveMany(area, paths, toArea, "", labelOf(toArea)),
   });
@@ -636,12 +717,18 @@ export function MoviesPanel() {
     setBulkBusy("Moving…");
     let moved = 0;
     let last: { was: string; now: string } | null = null;
+    const clashes: Clash[] = [];
+    let identical = 0;
     const problems: string[] = [];
     for (const path of paths) {
       try {
         const r = await api.prepMovePath(fromArea, path, toArea, to);
         moved += 1;
         last = { was: path, now: r.new_path };
+        identical += r.identical;
+        if (r.conflicts.length) {
+          clashes.push({ fromArea, toArea, root: path, items: r.conflicts });
+        }
       } catch (e) {
         problems.push(String(e).replace(/^Error:\s*/, ""));
       }
@@ -650,7 +737,10 @@ export function MoviesPanel() {
     setPicked(new Set());
     if (last) await afterRearrange(last.was, last.now, fromArea, toArea);
     else if (!problems.length) return;
-    const head = `Moved ${moved} of ${paths.length} → ${label}`;
+    // Files the destination already had: asked about, all together.
+    if (clashes.length) setConflicts(clashes);
+    const head = `Moved ${moved} of ${paths.length} → ${label}` + (identical
+      ? ` (${identical} identical file${identical === 1 ? "" : "s"} already there, dropped)` : "");
     if (problems.length) say(`${head}. ${problems[0]}`, moved === 0);
     else say(head);
   };
@@ -662,7 +752,29 @@ export function MoviesPanel() {
   /** Open a file from one of the panes. `area` is which pane: an inbox and
    *  its output can hold the same relative path, so the path alone does not
    *  say which file this is. */
+  /** Load a song into the Music tab's player bar — `play` starts it — as
+   *  the `index`th of `list`, the album or list previous / next walk. */
+  const openSong = (song: MusicSong, play: boolean, list: MusicSong[], index: number) => {
+    setNowSong(song);
+    setNowList({ list, index });
+    if (play) setNowPlay({});
+  };
+
+  /** A song picked in the Music tab's folder tree, which has no tags to
+   *  hand: its name stands for its title. */
+  const songOf = (f: StagedFile): MusicSong => ({
+    path: f.path, folder: f.folder, title: f.name.replace(/\.[^.]+$/, ""), artist: "",
+    album_artist: "", album: "", track: 0, disc: 1, year: "", seconds: 0, size: f.size,
+  });
+
   const pickFile = (f: StagedFile, area: string) => {
+    // The Music tab plays songs in its bar, not the right-hand panel.
+    if (area === ":music" && f.kind === "audio") {
+      const song = songOf(f);
+      openSong(song, false, [song], 0);
+      return;
+    }
+    setPlayFile(null);
     // A plain click drops the selection within its own tree; one in the
     // *other* pane has to drop it too, or ticks left in the inbox would
     // quietly survive into the next Delete.
@@ -1053,7 +1165,8 @@ export function MoviesPanel() {
     const lib = sources.find((x) => x.kind === "library");
     const main = tab === "" ? lib : g ? tabTarget(g) : undefined;
     return {
-      template: tab === "" ? "movies" : g?.todo ? "workspace" : "output",
+      template: tab === "" ? "movies"
+        : g?.todo ? (g.todo.type === "music" ? "music-workspace" : "workspace") : "output",
       description: main?.description,
       vars: {
         name: tab === "" ? (lib?.label ?? "Movies") : (g?.label ?? tab),
@@ -1207,6 +1320,14 @@ export function MoviesPanel() {
           >
             ⟳
           </button>
+          {tab === ":music" && (
+            <span className="mv-viewpick">
+              {([["artists", "Artists"], ["songs", "Songs"], ["folders", "Folders"]] as const).map(([v, label]) => (
+                <button key={v} className={"ghost" + (musicView === v ? " active" : "")}
+                        onClick={() => setMusicView(v)}>{label}</button>
+              ))}
+            </span>
+          )}
           {tab === "" && (
             <span className="mv-viewpick">
               <button className={"ghost" + (view === "grid" ? " active" : "")} title="Covers"
@@ -1244,7 +1365,15 @@ export function MoviesPanel() {
         {treeNote && (
           <p className={(treeNote.bad ? "error" : "muted") + " small mv-note"}>{treeNote.text}</p>
         )}
-        {tab ? (
+        {tab === ":music" && musicView !== "folders" ? (
+          <MusicLibrary
+            view={musicView}
+            query={query}
+            activePath={nowSong?.path ?? null}
+            version={versions.prep}
+            onOpen={openSong}
+          />
+        ) : tab ? (
           // A library is one tree; a staging area is two, the inbox on top
           // and its output underneath, splitting the height between them.
           // Dragging from one into the other is how a finished film leaves
@@ -1256,7 +1385,30 @@ export function MoviesPanel() {
                   <div className="mv-panehead" title={pane.path}>
                     <span className="mv-panerole">{pane.role === "todo" ? "to process" : "done"}</span>
                     <span className="mv-panepath">{pane.path}</span>
-                    {pane.kind === "inbox" && canEditArea(pane.key) && (
+                    {pane.kind === "inbox" && pane.type === "music" && (() => {
+                      const a = musicAuto[pane.key];
+                      if (!a) return null;
+                      const toCheck = Object.keys(a.review).length;
+                      return (
+                        <>
+                          <span className="mu-auto" title={a.current ?? ""}>
+                            {!a.enabled ? "automatic filing off"
+                              : a.current ? `matching ${a.current.split("/").pop()}${a.pending > 1 ? ` · ${a.pending - 1} more` : ""}`
+                              : "all matched"}
+                            {a.filed > 0 && ` · ${a.filed} filed`}
+                          </span>
+                          <button
+                            className={"mv-remuxall" + (reviewOnly ? " on" : "")}
+                            disabled={!toCheck && !reviewOnly}
+                            title="Songs the automatic filing was not sure about"
+                            onClick={() => setReviewOnly((v) => !v)}
+                          >
+                            {reviewOnly ? "SHOW ALL" : `TO CHECK (${toCheck})`}
+                          </button>
+                        </>
+                      );
+                    })()}
+                    {pane.kind === "inbox" && pane.type !== "music" && canEditArea(pane.key) && (
                       <button className="mv-remuxall" onClick={() => remuxAll(pane.key)}
                               title="Queue every film here that is identified and ready">
                         REMUX ALL
@@ -1270,12 +1422,19 @@ export function MoviesPanel() {
                   <FileTree
                     key={pane.key}
                     area={pane.key}
-                    files={listings[pane.key] ?? []}
+                    files={reviewOnly && pane.kind === "inbox" && pane.type === "music"
+                      ? reviewFiles(pane.key, listings[pane.key] ?? [])
+                      : listings[pane.key] ?? []}
+                    marks={pane.type === "music" ? musicAuto[pane.key]?.review : undefined}
                     query={query}
                     activePath={source === pane.key ? viewFile?.path ?? null : null}
                     activeMovieId={selected?.id ?? null}
                     canEdit={canEditArea(pane.key)}
                     onPick={(f) => pickFile(f, pane.key)}
+                    onPlay={(f) => {
+                      if (pane.key === ":music") { const s = songOf(f); openSong(s, true, [s], 0); return; }
+                      pickFile(f, pane.key); setPlayFile({ path: f.path });
+                    }}
                     actions={actionsFor(pane.key)}
                     picked={pickedArea === pane.key ? picked : NO_PICK}
                     onPicked={(next) => { setPickedArea(pane.key); setPicked(next); }}
@@ -1430,11 +1589,29 @@ export function MoviesPanel() {
             )}
           </div>
         )}
+        {/* The Music tab's player, along the bottom of the library. */}
+        {tab === ":music" && (
+          <MusicPlayerBar
+            song={nowSong}
+            play={nowPlay}
+            hasPrev={nowList.index > 0}
+            hasNext={nowList.index < nowList.list.length - 1}
+            onPrev={() => {
+              const i = nowList.index - 1;
+              if (i >= 0) openSong(nowList.list[i], true, nowList.list, i);
+            }}
+            onNext={() => {
+              const i = nowList.index + 1;
+              if (i < nowList.list.length) openSong(nowList.list[i], true, nowList.list, i);
+            }}
+          />
+        )}
       </section>
 
       {/* On the film library the right-hand column only exists while a film
-          is open: the rest of the time the covers get the whole width. */}
-      {(tab !== "" || selected) && (
+          is open: the rest of the time the covers get the whole width. The
+          Music tab has none at all — it plays in its own bar. */}
+      {tab !== ":music" && (tab !== "" || selected) && (
       <aside
         className={"mv-player" + (dragging ? " dropping" : "")}
         // Only real files from outside the page. An entry being dragged
@@ -1454,7 +1631,18 @@ export function MoviesPanel() {
         }}
       >
         {viewFile ? (
-          <FileView area={source} file={viewFile} />
+          <>
+            <FileView area={source} file={viewFile} play={playFile} />
+            {viewFile.kind === "audio" && isMusicInbox(source) && (
+              <MusicIdentify
+                key={viewFile.path}
+                area={source}
+                file={viewFile}
+                canEdit={canEditArea(source)}
+                onFiled={(to) => afterFiled(source, viewFile.path, to)}
+              />
+            )}
+          </>
         ) : !selected ? (
           // Nothing picked: the panel's resting state is a document, not an
           // empty player nobody can press.
@@ -1720,6 +1908,17 @@ export function MoviesPanel() {
       </aside>
       )}
       </div>
+      {conflicts && (
+        <ConflictDialog
+          clashes={conflicts}
+          labelOf={labelOf}
+          onDone={async (summary) => {
+            setConflicts(null);
+            await loadPanes(panes.map((x) => x.key));
+            if (summary) say(summary);
+          }}
+        />
+      )}
       {EXTERNAL.filter((x) => opened.has(x.key)).map((x) => (
         <iframe key={x.key} className="mv-external" src={x.url} title={x.title}
                 hidden={external !== x.key} />

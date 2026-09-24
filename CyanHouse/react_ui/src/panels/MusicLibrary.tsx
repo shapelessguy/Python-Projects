@@ -1,0 +1,170 @@
+import { useEffect, useMemo, useState } from "react";
+import { api, MusicLibrary as Library, MusicSong } from "../api";
+
+/** The Music tab as a music library rather than a folder tree: artists —
+ *  each one a single list of all their songs, album by album under a
+ *  divider — or every song in one list.
+ *
+ *  Drawn from the files' own tags and each album folder's cover.jpg
+ *  (api/services/music_library.py). A click on a song loads it in the
+ *  player bar under the library, a double-click plays it; previous / next
+ *  and the end of a song walk the album or list it was started from. */
+
+export type MusicView = "artists" | "songs";
+
+export function MusicLibrary({ view, query, activePath, version, onOpen }: {
+  view: MusicView;
+  query: string;
+  activePath: string | null;
+  /** Bumped when the library folder changes, to read it again. */
+  version: number;
+  /** Open (or, with `play`, start) a song, the `index`th of `list` — the
+   *  album or list it is in, which previous / next then walk. */
+  onOpen: (song: MusicSong, play: boolean, list: MusicSong[], index: number) => void;
+}) {
+  const [lib, setLib] = useState<Library | null>(null);
+  const [error, setError] = useState("");
+  const [artist, setArtist] = useState<string | null>(null);   // artist open
+
+  useEffect(() => {
+    api.musicLibrary().then((l) => { setLib(l); setError(""); })
+      .catch((e) => setError(String(e).replace(/^Error:\s*/, "")));
+  }, [version]);
+
+  // Switching view goes back to the top of it.
+  useEffect(() => { setArtist(null); }, [view]);
+
+  const q = query.trim().toLowerCase();
+  const hit = (...xs: string[]) => !q || xs.some((x) => x.toLowerCase().includes(q));
+
+  const byFolder = useMemo(() => {
+    const m = new Map<string, MusicSong[]>();
+    for (const s of lib?.songs ?? []) {
+      const l = m.get(s.folder) ?? [];
+      l.push(s);
+      m.set(s.folder, l);
+    }
+    for (const l of m.values()) l.sort((a, b) => a.disc - b.disc || a.track - b.track || a.title.localeCompare(b.title));
+    return m;
+  }, [lib]);
+
+  if (error) return <p className="error small">{error}</p>;
+  if (!lib) return <p className="muted small">Reading the library…</p>;
+
+  // ── one artist: every song, album by album ──────────────────────────
+  if (artist !== null) {
+    const albums = lib.albums.filter((a) => a.artist === artist)
+      .sort((a, b) => (a.year || "9999").localeCompare(b.year || "9999") || a.title.localeCompare(b.title));
+    // One list for the whole artist, so playing runs on across albums.
+    const all = albums.flatMap((a) => byFolder.get(a.folder) ?? []);
+    const at = new Map(all.map((s, i) => [s.path, i]));
+    const x = lib.artists.find((y) => y.name === artist);
+    return (
+      <div className="ml-scroll">
+        <button className="ghost ml-back" onClick={() => setArtist(null)}>‹ Artists</button>
+        <div className="ml-artisthead">
+          <span className="ml-art ml-round ml-headart">
+            {x?.cover ? <img src={api.musicArtUrl(x.cover)} alt="" /> : <span className="ml-blank">{artist}</span>}
+          </span>
+          <div className="ml-albuminfo">
+            <h2>{artist}</h2>
+            <p className="muted small">
+              {albums.length} album{albums.length === 1 ? "" : "s"} · {all.length} song{all.length === 1 ? "" : "s"}
+              {" · "}{duration(all.reduce((n, s) => n + (s.seconds || 0), 0))}
+            </p>
+            <button className="ml-play" disabled={!all.length} onClick={() => onOpen(all[0], true, all, 0)}>▶ PLAY</button>
+          </div>
+        </div>
+        {albums.map((a) => (
+          <div key={a.folder}>
+            <div className="ml-divider">
+              <span className="ml-divart">
+                {a.cover && <img src={api.musicArtUrl(a.folder)} alt="" loading="lazy" />}
+              </span>
+              <span className="ml-divtitle">{a.title}</span>
+              {a.year && <span className="muted small">{a.year}</span>}
+              <span className="ml-divline" aria-hidden />
+            </div>
+            <SongRows songs={byFolder.get(a.folder) ?? []} list={all} at={at} activePath={activePath}
+                      numbered onOpen={onOpen} showArtist={(s) => s.artist !== artist} />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (view === "songs") {
+    const songs = lib.songs.filter((s) => hit(s.title, s.artist, s.album))
+      .sort((a, b) => a.title.localeCompare(b.title));
+    return (
+      <div className="ml-scroll">
+        <SongRows songs={songs} activePath={activePath} onOpen={onOpen} showArtist={() => true} showAlbum />
+        {!songs.length && <p className="muted small">No matches.</p>}
+      </div>
+    );
+  }
+
+  // ── every artist (the default) ──────────────────────────────────────
+  const artists = lib.artists.filter((x) => hit(x.name));
+  return (
+    <div className="ml-scroll">
+      <div className="ml-grid">
+        {artists.map((x) => (
+          <button key={x.name} className="ml-card" onClick={() => setArtist(x.name)} title={x.name}>
+            <span className="ml-art ml-round">
+              {x.cover ? <img src={api.musicArtUrl(x.cover)} alt="" loading="lazy" draggable={false} />
+                : <span className="ml-blank">{x.name}</span>}
+            </span>
+            <span className="ml-cardtitle">{x.name}</span>
+            <span className="ml-cardsub">
+              {x.albums} album{x.albums === 1 ? "" : "s"} · {x.tracks} song{x.tracks === 1 ? "" : "s"}
+            </span>
+          </button>
+        ))}
+      </div>
+      {!artists.length && <p className="muted small">No matches.</p>}
+    </div>
+  );
+}
+
+function SongRows({ songs, list, at, activePath, numbered, showArtist, showAlbum, onOpen }: {
+  songs: MusicSong[];
+  /** The list playing walks (defaults to `songs`), and where each song is in it. */
+  list?: MusicSong[];
+  at?: Map<string, number>;
+  activePath: string | null;
+  numbered?: boolean;
+  showArtist: (s: MusicSong) => boolean;
+  showAlbum?: boolean;
+  onOpen: (song: MusicSong, play: boolean, list: MusicSong[], index: number) => void;
+}) {
+  return (
+    <ul className="ml-songs">
+      {songs.map((s, i) => (
+        <li key={s.path}>
+          <button
+            className={"ml-song" + (activePath === s.path ? " active" : "")}
+            onClick={() => onOpen(s, false, list ?? songs, at?.get(s.path) ?? i)}
+            onDoubleClick={() => onOpen(s, true, list ?? songs, at?.get(s.path) ?? i)}
+            title={s.path}
+          >
+            <span className="ml-num">{numbered ? (s.track || "") : ""}</span>
+            <span className="ml-songtitle">
+              {s.title}
+              {showArtist(s) && <span className="muted"> · {s.artist}</span>}
+            </span>
+            {showAlbum && <span className="ml-songalbum muted">{s.album}</span>}
+            <span className="ml-dur muted">{duration(s.seconds)}</span>
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function duration(seconds: number): string {
+  if (!seconds) return "";
+  const s = Math.round(seconds);
+  const h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60, r = s % 60;
+  return h ? `${h}:${String(m).padStart(2, "0")}:${String(r).padStart(2, "0")}` : `${m}:${String(r).padStart(2, "0")}`;
+}
