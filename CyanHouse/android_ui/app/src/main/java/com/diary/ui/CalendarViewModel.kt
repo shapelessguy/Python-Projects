@@ -50,7 +50,7 @@ class CalendarViewModel : ViewModel() {
     /** The user's own calendars come first (list_calendars orders own before
      *  shared), so this is the natural "new event" default. */
     val defaultCalendarId: Int
-        get() = calendars.firstOrNull { !it.shared }?.id ?: calendars.firstOrNull()?.id ?: 0
+        get() = calendars.firstOrNull { it.level == "owner" }?.id ?: calendars.firstOrNull()?.id ?: 0
 
     private var appliedVersion = -1
     private var seenCalendar = 0
@@ -104,9 +104,19 @@ class CalendarViewModel : ViewModel() {
             .onFailure { error = it.message }
     }
 
-    fun toggleShared(id: Int, shared: Boolean) = viewModelScope.launch {
-        calendars = calendars.map { if (it.id == id) it.copy(shared = shared) else it } // instant icon feedback
-        runCatching { Api.patchCalendar(id, shared = shared) }
+    /** Who a calendar can be shared with -- fetched when a sharing dialog opens. */
+    var sharingUsers by mutableStateOf<List<String>>(emptyList()); private set
+
+    fun loadSharingUsers() = viewModelScope.launch {
+        runCatching { Api.calendarSharingUsers() }
+            .onSuccess { sharingUsers = it }
+            .onFailure { error = it.message }
+    }
+
+    /** Who else sees a calendar, person by person; empty makes it private. */
+    fun setSharing(id: Int, people: Map<String, String>) = viewModelScope.launch {
+        calendars = calendars.map { if (it.id == id) it.copy(shared = people.isNotEmpty(), people = people) else it }
+        runCatching { Api.setCalendarSharing(id, people) }
             .onSuccess { calendars = it }
             .onFailure { error = it.message }
     }

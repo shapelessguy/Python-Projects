@@ -228,6 +228,17 @@ object Api {
             setBody(CalendarPatchBody(name, color, shared))
         }.body()
 
+    /** Who a calendar can be shared with. */
+    suspend fun calendarSharingUsers(): List<String> =
+        client.get(u("/api/calendar/calendars/sharing/users")).body()
+
+    /** Who else sees a calendar and what they may do; empty is private. */
+    suspend fun setCalendarSharing(id: Int, people: Map<String, String>): List<Calendar> =
+        client.put(u("/api/calendar/calendars/$id/sharing")) {
+            contentType(ContentType.Application.Json)
+            setBody(CalendarSharingBody(people))
+        }.body()
+
     suspend fun deleteCalendar(id: Int): List<Calendar> =
         client.delete(u("/api/calendar/calendars/$id")).body()
 

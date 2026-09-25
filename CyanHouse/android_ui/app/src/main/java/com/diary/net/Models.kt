@@ -46,6 +46,9 @@ data class Calendar(
     val owner: String? = null,
     // "owner", "manage", "edit" or "see" -- only an owner deletes it.
     val level: String = "owner",
+    // Who else it is shared with ("see" / "edit" / "manage") -- sent only to
+    // who may change that.
+    val people: Map<String, String> = emptyMap(),
 )
 
 @Serializable
@@ -109,6 +112,9 @@ data class CalendarBody(val name: String, val color: String? = null, val shared:
 
 @Serializable
 data class CalendarPatchBody(val name: String? = null, val color: String? = null, val shared: Boolean? = null)
+
+@Serializable
+data class CalendarSharingBody(val people: Map<String, String>)
 
 // ── food service ─────────────────────────────────────────────────────────
 @Serializable

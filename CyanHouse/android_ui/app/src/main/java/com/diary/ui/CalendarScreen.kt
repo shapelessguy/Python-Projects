@@ -58,6 +58,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -262,6 +263,8 @@ fun CalendarScreen(vm: CalendarViewModel = viewModel()) {
     var draft by remember { mutableStateOf<Draft?>(null) }
     var calendarsOpen by remember { mutableStateOf(false) }
     var confirmDeleteCal by remember { mutableStateOf<Calendar?>(null) }
+    // The calendar whose sharing is being edited (CalendarShareDialog).
+    var sharingCal by remember { mutableStateOf<Calendar?>(null) }
     // Blanket mute switch for CalendarAlarmService's ring UI (screen-on
     // overlay or screen-off full-screen, whichever applies) -- unrelated to
     // any individual event's own alarm flag. See Prefs.alarmsEnabled.
@@ -305,7 +308,7 @@ fun CalendarScreen(vm: CalendarViewModel = viewModel()) {
                         visibleIds = vm.visibleCalendarIds,
                         onToggle = vm::toggleCalendarVisible,
                         onRecolor = vm::recolorCalendar,
-                        onToggleShared = vm::toggleShared,
+                        onShare = { calendarsOpen = false; sharingCal = it },
                         onAdd = vm::addCalendar,
                         onDeleteRequest = { confirmDeleteCal = it },
                     )
@@ -368,6 +371,16 @@ fun CalendarScreen(vm: CalendarViewModel = viewModel()) {
         )
     }
 
+    sharingCal?.let { c ->
+        LaunchedEffect(c.id) { vm.loadSharingUsers() }
+        CalendarShareDialog(
+            calendar = c,
+            users = vm.sharingUsers,
+            onDismiss = { sharingCal = null },
+            onSave = { people -> vm.setSharing(c.id, people); sharingCal = null },
+        )
+    }
+
     confirmDeleteCal?.let { c ->
         Dialog(onDismissRequest = { confirmDeleteCal = null }) {
             Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surface) {
@@ -396,7 +409,7 @@ private fun CalendarsMenu(
     visibleIds: Set<Int>,
     onToggle: (Int) -> Unit,
     onRecolor: (Int, String) -> Unit,
-    onToggleShared: (Int, Boolean) -> Unit,
+    onShare: (Calendar) -> Unit,
     onAdd: (String) -> Unit,
     onDeleteRequest: (Calendar) -> Unit,
 ) {
@@ -426,9 +439,7 @@ private fun CalendarsMenu(
                 Spacer(Modifier.width(8.dp))
                 Text(c.name, modifier = Modifier.weight(1f), fontSize = 13.sp)
                 IconButton(
-                    onClick = { onToggleShared(c.id, !c.shared) },
-                    // Shares with everyone (to edit its events) or makes it
-                    // private; who sees it, person by person, is set on the web.
+                    onClick = { onShare(c) },
                     enabled = c.mine,
                     modifier = Modifier.size(28.dp),
                 ) {
@@ -436,8 +447,7 @@ private fun CalendarsMenu(
                         if (c.shared) Icons.Default.Groups else Icons.Default.Person,
                         contentDescription = when {
                             !c.mine -> "${c.name} is shared with you"
-                            c.shared -> "${c.name} is shared — tap to make it private"
-                            else -> "${c.name} is private — tap to share it"
+                            else -> "${c.name} is ${if (c.shared) "shared" else "private"} — tap to change who sees it"
                         },
                         modifier = Modifier.size(16.dp),
                     )
@@ -480,6 +490,102 @@ private fun CalendarsMenu(
             )
             TextButton(onClick = { if (newName.isNotBlank()) { onAdd(newName.trim()); newName = "" } },
                 enabled = newName.isNotBlank()) { Text("+ Add") }
+        }
+    }
+}
+
+private val SHARE_LEVELS = listOf("see" to "can see", "edit" to "can edit events", "manage" to "can manage")
+
+/** Who a calendar is shared with, set by its owner or whoever may manage it
+ *  (api/services/calendar.py): private, or shared with chosen people -- each
+ *  seeing, editing its events, or managing it too. Mirrors the web's
+ *  CalendarShareDialog (react_ui/src/panels/ShareDialog.tsx). */
+@Composable
+private fun CalendarShareDialog(
+    calendar: Calendar,
+    users: List<String>,
+    onDismiss: () -> Unit,
+    onSave: (Map<String, String>) -> Unit,
+) {
+    var shared by remember(calendar.id) { mutableStateOf(calendar.shared) }
+    var people by remember(calendar.id) { mutableStateOf(calendar.people) }
+    val others = users.filter { it != calendar.owner }
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surface) {
+            Column(
+                Modifier.padding(20.dp).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Text("Sharing · ${calendar.name}", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+                calendar.owner?.let {
+                    Text("owner: $it", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                ShareOption(shared, Icons.Default.Groups, "Shared",
+                    "With the people chosen below — all of them, or some") { shared = true }
+                ShareOption(!shared, Icons.Default.Person, "Private",
+                    "Only ${calendar.owner ?: "its owner"}") { shared = false }
+                if (shared && others.isNotEmpty()) {
+                    Text("Who", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    others.forEach { u ->
+                        PersonLevel(u, people[u]) { level ->
+                            people = if (level == null) people - u else people + (u to level)
+                        }
+                    }
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(onClick = onDismiss) { Text("Cancel") }
+                    TextButton(onClick = { onSave(if (shared) people else emptyMap()) }) { Text("Save") }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ShareOption(
+    selected: Boolean,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    sub: String,
+    onClick: () -> Unit,
+) {
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
+            .border(
+                if (selected) 2.dp else 1.dp,
+                if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                RoundedCornerShape(10.dp),
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        RadioButton(selected = selected, onClick = onClick, modifier = Modifier.size(20.dp))
+        Icon(icon, null, modifier = Modifier.size(18.dp))
+        Column(Modifier.weight(1f)) {
+            Text(title, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+            Text(sub, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+/** One person's row: their name and what they may do (or "no access"). */
+@Composable
+private fun PersonLevel(user: String, level: String?, onChange: (String?) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text(user, modifier = Modifier.weight(1f), fontSize = 14.sp)
+        Box {
+            TextButton(onClick = { open = true }) {
+                Text(SHARE_LEVELS.firstOrNull { it.first == level }?.second ?: "no access")
+            }
+            DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+                DropdownMenuItem(text = { Text("no access") }, onClick = { onChange(null); open = false })
+                SHARE_LEVELS.forEach { (value, label) ->
+                    DropdownMenuItem(text = { Text(label) }, onClick = { onChange(value); open = false })
+                }
+            }
         }
     }
 }
@@ -874,7 +980,9 @@ private fun EventEditorSheet(
                     },
                 )
                 DropdownMenu(expanded = calendarMenuOpen, onDismissRequest = { calendarMenuOpen = false }) {
-                    calendars.forEach { c ->
+                    // Where it may go: calendars this user may edit -- and the
+                    // one it is in, even if only to look at.
+                    calendars.filter { it.level != "see" || it.id == draft.calendarId }.forEach { c ->
                         DropdownMenuItem(
                             text = { Text(c.name) },
                             leadingIcon = { Box(Modifier.size(14.dp).clip(CircleShape).background(calendarColor(c))) },
