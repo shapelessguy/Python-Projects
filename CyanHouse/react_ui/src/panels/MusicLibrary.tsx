@@ -115,7 +115,11 @@ export function MusicLibrary({ view, query, activePath, version, onOpen, coverSi
 
   // ── every artist (the default): pages of them, like the films ───────
   // Only a page of pictures is fetched at a time, and small copies of them.
-  const artists = lib.artists.filter((x) => hit(x.name)).map((x) => ({ ...x, id: x.name, title: x.name }));
+  // An artist is found by its name, or by any of its songs' titles or albums
+  // — a single filed under some other artist is still found by its title.
+  const found = new Set(q ? lib.songs.filter((s) => hit(s.title, s.album, s.artist)).map((s) => s.album_artist) : []);
+  const artists = lib.artists.filter((x) => hit(x.name) || found.has(x.name))
+    .map((x) => ({ ...x, id: x.name, title: x.name }));
   return (
     <div className="mv-bookwrap">
       <CoverBook

@@ -965,7 +965,9 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
   grid-template-rows: minmax(0, 1fr) auto;
   gap: 6px 4px;
 }
-.mv-bookpage { position: relative; min-height: 0; overflow: hidden; }
+/* 5px each side, so the selected cover's ring (box-shadow) is not cut by
+   the overflow clip when a cover sits against the page's edge. */
+.mv-bookpage { position: relative; min-height: 0; overflow: hidden; padding: 0 5px; }
 .mv-covers {
   height: 100%;
   display: grid;
@@ -1102,6 +1104,26 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
   .mv-library { min-height: 300px; }
 }
 .mv-note { margin: 0; color: #ffcf8b; }
+/* The film library's player window (FilmDialog). */
+/* Centred over the covers rather than the whole window: the top bars stay
+   clear. */
+.modal-backdrop.mv-filmback { padding: 140px 16px 16px; box-sizing: border-box; }
+.modal.mv-filmdialog {
+  /* About the size of the cover grid under it: the height below the tabs
+     and search bar, less a margin, with the 16:9 picture plus the ~210px of
+     controls under it setting the width. */
+  width: min(1200px, 90vw, calc((100vh - 200px - 210px) * 16 / 9 + 30px));
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+}
+.mv-filmopts { display: flex; gap: 10px; flex-wrap: wrap; }
+.mv-filmopts label { display: flex; flex-direction: column; gap: 3px; flex: 1 1 160px; min-width: 0; }
+.mv-filmopts label:first-child { flex: 0 0 120px; }
+.mv-filmopts select { width: 100%; min-width: 0; }
 .mv-subtools { display: flex; gap: 2px; }
 .mv-subtools button { padding: 0 5px; font-size: 0.8rem; line-height: 1.4; }
 .mv-delay {

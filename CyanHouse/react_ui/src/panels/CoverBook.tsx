@@ -48,7 +48,13 @@ export function CoverBook<T extends { id: string; title: string }>({
   useLayoutEffect(() => {
     const el = pageRef.current;
     if (!el) return;
-    const measure = () => setBox({ w: el.clientWidth, h: el.clientHeight });
+    // The page's side padding (room for the selected cover's ring beside
+    // the page-turn arrows) is not room for covers.
+    const measure = () => {
+      const cs = getComputedStyle(el);
+      const pad = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+      setBox({ w: el.clientWidth - pad, h: el.clientHeight });
+    };
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(el);

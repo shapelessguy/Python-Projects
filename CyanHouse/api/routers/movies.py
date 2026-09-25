@@ -163,6 +163,17 @@ def _drop_subtitle(movie_id: str, upload_id: str) -> dict:
     return movies.info(movie_id)
 
 
+@router.get("/keyframe")
+async def keyframe(id: str = Query(...), t: float = Query(0.0, ge=0),
+                   _user: str = Depends(require_user)):
+    """Where an Original-quality stream started at ``t`` really begins (the
+    keyframe before it) — the player's offset for that stream."""
+    try:
+        return {"t": await run_in_threadpool(movies.keyframe_at, id, t)}
+    except movies.MovieError as e:
+        raise _wrap(e)
+
+
 @router.get("/stream")
 async def stream(
     id: str = Query(...),

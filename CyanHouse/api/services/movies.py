@@ -900,11 +900,17 @@ def build_command(path: Path, meta: dict, start: float, audio: int | None,
         # Before -i: a demuxer seek, instant even on a 12 GB file. After -i it
         # would decode and throw away everything up to `start`.
         #
-        # One caveat, and only in remux mode: with -c:v copy ffmpeg cannot
-        # decode-and-discard up to an exact frame, so the stream really starts
-        # at the keyframe at or before `start`. Audio and video stay in sync
-        # with each other (both come off the same seek), but the position the
-        # player displays can sit a keyframe interval ahead of the picture.
+        # Remux mode needs -noaccurate_seek. With -c:v copy the video can
+        # only start at a keyframe, and on a Matroska file that is whichever
+        # keyframe its index lands on — often 5-10s before `start`. An
+        # accurate seek still trims the (decoded) audio to exactly `start`,
+        # leaving the audio track to begin seconds after the video; browsers
+        # close that leading gap and play the sound that much early. Not
+        # trimming makes both start together, in step, at the keyframe —
+        # which the player asks for first (`keyframe_at`) to show the right
+        # position.
+        if remux:
+            cmd += ["-noaccurate_seek"]
         cmd += ["-ss", f"{start:.3f}"]
     cmd += ["-i", str(path)]
 
@@ -1128,6 +1134,24 @@ def _reap_idle() -> None:
         for session in stale:
             print(f"movies: reaping idle stream {session.sid}")
             _kill(session)
+
+
+def keyframe_at(movie_id: str, t: float) -> float:
+    """Where an Original (stream-copy) stream asked to start at `t` really
+    starts: the keyframe ffmpeg's input seek lands on. ffmpeg aims 3/23 s
+    early on files with B-frames, so the probe does too; ffprobe's
+    read_intervals makes the same index seek and reports the first packet."""
+    if t <= 0:
+        return 0.0
+    path = resolve(movie_id)
+    try:
+        out = _run([FFPROBE, "-v", "error", "-read_intervals", f"{max(0.0, t - 3 / 23):.3f}%+#1",
+                    "-select_streams", "v:0", "-show_entries", "packet=pts_time",
+                    "-of", "csv=p=0", str(path)], timeout=20)
+        k = float(out.split()[0].strip().rstrip(","))
+        return k if 0 <= k <= t else t
+    except Exception:
+        return t
 
 
 def prepare(movie_id: str, sid: str, start: float = 0.0, audio: int | None = None,

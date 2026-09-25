@@ -637,6 +637,11 @@ export const api = {
     f("/api/movies/list" + (refresh ? "?refresh=true" : "")).then(j<MovieItem[]>),
   movieInfo: (id: string) =>
     f("/api/movies/info?" + new URLSearchParams({ id })).then(j<MovieInfo>),
+  /** Where an Original-quality stream asked to start at `t` really starts —
+   *  the keyframe before it (api/services/movies.py `keyframe_at`). */
+  movieKeyframe: (id: string, t: number) =>
+    f("/api/movies/keyframe?" + new URLSearchParams({ id, t: t.toFixed(3) }))
+      .then(j<{ t: number }>).then((r) => r.t),
   /** Attach subtitle files to a film. Stored server-side under the film's
    *  fingerprint, never written into the movie folder. Replies with the
    *  refreshed MovieInfo. No content-type header on purpose: the browser has

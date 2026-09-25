@@ -921,8 +921,9 @@ export function MoviesPanel() {
   /** Start (or restart) ffmpeg. Every argument that changes the transcode --
    *  position, audio track, subtitle track, size -- goes through here,
    *  because on this pipeline they are all the same operation. */
+  const playReq = useRef(0);
   const play = useCallback(
-    (opts: {
+    async (opts: {
       t?: number; audio?: number; sub?: number | null; height?: number;
       // Passed explicitly when a delay edit triggers the restart, because
       // the state update setting it hasn't landed yet.
@@ -931,7 +932,7 @@ export function MoviesPanel() {
       const movie = selected;
       const meta = info;
       if (!movie || !meta) return;
-      const t = Math.max(0, Math.min(opts.t ?? position, Math.max(0, meta.duration - 2)));
+      const want = Math.max(0, Math.min(opts.t ?? position, Math.max(0, meta.duration - 2)));
       const a = opts.audio ?? audio;
       let s = opts.sub === undefined ? sub : opts.sub;
       let h = opts.height ?? height;
@@ -958,6 +959,16 @@ export function MoviesPanel() {
       const audKey = meta.audio[a]?.key;
       const sd = (subKey && (opts.delays ?? delays)[subKey]) || 0;
       const ad = (audKey && (opts.delays ?? delays)[audKey]) || 0;
+
+      // An Original stream starts at the keyframe before `t`, not at `t`:
+      // asked first, so the position shown is the picture's. Only the latest
+      // request goes on — a seek made while this one was asking wins.
+      const req = ++playReq.current;
+      let t = want;
+      if (h === 0 && want > 0) {
+        try { t = await api.movieKeyframe(movie.id, want); } catch { /* keep `want` */ }
+        if (req !== playReq.current) return;
+      }
 
       const params = new URLSearchParams({
         id: movie.id,
@@ -1263,6 +1274,184 @@ export function MoviesPanel() {
   const duration = info?.duration ?? 0;
   const shown = scrub ?? position;
 
+  const closeFilm = () => { stop(); setSelected(null); setInfo(null); setPrepNote(""); };
+
+  /** The picture, its title and its controls — in the right-hand column on
+   *  the staging tabs, in a window of its own on the film library. */
+  const filmCore = (
+    <>
+      <div
+        className={"mv-stage" + (fullscreen && !overlay ? " idle" : "")}
+        ref={stageRef}
+        onClick={stageClick}
+        onDoubleClick={stageDoubleClick}
+        onMouseMove={wakeOverlay}
+      >
+        {playing ? (
+          <video
+            ref={videoRef}
+            className="mv-video"
+            src={playing.src}
+            playsInline
+            autoPlay
+            onTimeUpdate={(e) => setPosition(playing.offset + e.currentTarget.currentTime)}
+            onPlay={() => setPaused(false)}
+            onPause={() => setPaused(true)}
+            onWaiting={() => setBuffering(true)}
+            onPlaying={() => setBuffering(false)}
+            onCanPlay={() => setBuffering(false)}
+            onEnded={() => {
+              setPaused(true);
+              if (info && position < info.duration - 2) setDead(true);
+            }}
+            onError={() => {
+              setDead(true);
+              setBuffering(false);
+              setStreamError(
+                "the stream stopped — press play to start it again from here",
+              );
+            }}
+          />
+        ) : (
+          <div className="mv-placeholder muted">
+            {infoError ? infoError
+              : info ? (
+                <button className="mv-bigplay" title="Play"
+                        onClick={(e) => { e.stopPropagation(); togglePlay(); }}>
+                  <span aria-hidden>▶</span>
+                </button>
+              ) : <span className="mv-loader" aria-label="Reading the file" />}
+          </div>
+        )}
+        {playing && buffering && <span className="mv-loader mv-loader-over" aria-label="Transcoding" />}
+        {fullscreen && (
+          <div
+            className={"mv-fsbar" + (overlay ? " shown" : "")}
+            // Its own clicks are not the picture's: they must neither
+            // pause the film nor leave fullscreen.
+            onClick={(e) => e.stopPropagation()}
+            onDoubleClick={(e) => e.stopPropagation()}
+          >
+            <button onClick={togglePlay} disabled={!info} title="Play / pause">
+              {playing && !paused && !dead ? "❚❚" : "▶"}
+            </button>
+            <input
+              className="mv-fsscrub"
+              type="range"
+              min={0}
+              max={Math.max(1, duration)}
+              step={1}
+              value={shown}
+              disabled={!info}
+              onChange={(e) => setScrub(+e.target.value)}
+              onPointerUp={(e) => seek(+(e.target as HTMLInputElement).value)}
+              onKeyUp={(e) => seek(+(e.target as HTMLInputElement).value)}
+            />
+            <span className="mv-time">{fmt(shown)} / {fmt(duration)}</span>
+            <label className="mv-volume" title="Volume">
+              🔊
+              <input type="range" min={0} max={1} step={0.01} value={volume}
+                     onChange={(e) => changeVolume(+e.target.value)} />
+            </label>
+            <button className="ghost" onClick={toggleFullscreen} title="Leave fullscreen">⛶</button>
+          </div>
+        )}
+      </div>
+
+      <div className="mv-meta">
+        <div className="mv-metahead">
+          <h2>{selected ? selected.title : "Movies"}</h2>
+          <button
+            className="ghost mv-close"
+            title="Close the film"
+            onClick={closeFilm}
+          >
+            ✕
+          </button>
+        </div>
+        {info ? (
+          <p className="muted small">
+            {info.video.codec.toUpperCase()} {info.video.width}×{info.video.height}
+            {info.video.hdr ? " · HDR → SDR" : ""} · {fmt(info.duration)} · {gb(info.size)} ·{" "}
+            {height === 0 && info.remux.ok
+              ? " · original stream, not re-encoded"
+              : ` · ${info.encoder === "h264_nvenc" ? "GPU" : "CPU"} transcode`}
+          </p>
+        ) : (
+          <p className="muted small">
+            {infoError ? <span className="error">{infoError}</span> : " "}
+          </p>
+        )}
+      </div>
+
+      <div className="mv-scrub">
+        <input
+          type="range"
+          min={0}
+          max={Math.max(1, duration)}
+          step={1}
+          value={shown}
+          disabled={!info}
+          onChange={(e) => setScrub(+e.target.value)}
+          onPointerUp={(e) => seek(+(e.target as HTMLInputElement).value)}
+          onKeyUp={(e) => seek(+(e.target as HTMLInputElement).value)}
+        />
+        <span className="mv-time">
+          {fmt(shown)} / {fmt(duration)}
+        </span>
+      </div>
+
+      <div className="mv-transport">
+        <button onClick={() => seek(Math.max(0, position - 30))} disabled={!info} title="Back 30s">
+          ◀◀
+        </button>
+        <button onClick={togglePlay} disabled={!info} title="Play / pause">
+          {playing && !paused && !dead ? "❚❚" : "▶"}
+        </button>
+        <button
+          onClick={() => seek(Math.min(duration, position + 30))}
+          disabled={!info}
+          title="Forward 30s"
+        >
+          ▶▶
+        </button>
+        <button
+          // Stop, unlike pause, goes back to the start: the next play
+          // begins the film again.
+          onClick={() => { stop(); setPosition(0); setScrub(null); }}
+          disabled={!playing}
+          title="Stop and go back to the start"
+        >
+          {/* Drawn, not the ■ glyph: that renders at half the size of the
+              arrows beside it in most fonts. */}
+          <span className="mv-stopicon" aria-hidden />
+        </button>
+        <label className="mv-volume" title="Volume">
+          🔊
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.01}
+            value={volume}
+            onChange={(e) => changeVolume(+e.target.value)}
+          />
+        </label>
+        <button
+          className="ghost"
+          onClick={toggleFullscreen}
+          disabled={!playing}
+          title="Fullscreen (or double-click the picture)"
+        >
+          ⛶
+        </button>
+      </div>
+
+      {streamError && <p className="error small">{streamError}</p>}
+      {note && <p className={(noteBad ? "error" : "muted") + " small mv-note"}>{note}</p>}
+    </>
+  );
+
   return (
     <div className="panel movies">
       {/* One tab per library, one per staging area — an area's tab opens
@@ -1564,7 +1753,7 @@ export function MoviesPanel() {
               size={coverSize}
               selectedId={selected?.id ?? null}
               onPick={(m) => pick(m)}
-              active={!external}
+              active={!external && !selected}  // not under the film window
               resetKey={query}
               art={(m, px) => m.poster
                 ? "/api/movies/poster?" + new URLSearchParams({ id: m.id, w: String(px), v: m.poster })
@@ -1719,11 +1908,11 @@ export function MoviesPanel() {
         )}
       </section>
 
-      {/* On the film library the right-hand column only exists while a film
-          is open: the rest of the time the covers get the whole width. The
-          Music tab has none at all — it plays in its own bar — and nor has
-          the Images tab, which opens pictures full screen. */}
-      {tab !== ":music" && tab !== ":images" && (tab !== "" || selected) && (
+      {/* The staging tabs' right-hand column. The film library has none — a
+          film opens in a window in the middle (FilmDialog below) — nor has
+          the Music tab, which plays in its own bar, nor the Images tab, which
+          opens pictures full screen. */}
+      {tab !== ":music" && tab !== ":images" && tab !== "" && (
       <aside
         className={"mv-player" + (dragging ? " dropping" : "")}
         // Only real files from outside the page. An entry being dragged
@@ -1761,175 +1950,7 @@ export function MoviesPanel() {
           <MoviesHome help={helpContext} />
         ) : (
         <>
-        <div
-          className={"mv-stage" + (fullscreen && !overlay ? " idle" : "")}
-          ref={stageRef}
-          onClick={stageClick}
-          onDoubleClick={stageDoubleClick}
-          onMouseMove={wakeOverlay}
-        >
-          {playing ? (
-            <video
-              ref={videoRef}
-              className="mv-video"
-              src={playing.src}
-              playsInline
-              autoPlay
-              onTimeUpdate={(e) => setPosition(playing.offset + e.currentTarget.currentTime)}
-              onPlay={() => setPaused(false)}
-              onPause={() => setPaused(true)}
-              onWaiting={() => setBuffering(true)}
-              onPlaying={() => setBuffering(false)}
-              onCanPlay={() => setBuffering(false)}
-              onEnded={() => {
-                setPaused(true);
-                if (info && position < info.duration - 2) setDead(true);
-              }}
-              onError={() => {
-                setDead(true);
-                setBuffering(false);
-                setStreamError(
-                  "the stream stopped — press play to start it again from here",
-                );
-              }}
-            />
-          ) : (
-            <div className="mv-placeholder muted">
-              {infoError ? infoError
-                : info ? (
-                  <button className="mv-bigplay" title="Play"
-                          onClick={(e) => { e.stopPropagation(); togglePlay(); }}>
-                    <span aria-hidden>▶</span>
-                  </button>
-                ) : <span className="mv-loader" aria-label="Reading the file" />}
-            </div>
-          )}
-          {playing && buffering && <span className="mv-loader mv-loader-over" aria-label="Transcoding" />}
-          {fullscreen && (
-            <div
-              className={"mv-fsbar" + (overlay ? " shown" : "")}
-              // Its own clicks are not the picture's: they must neither
-              // pause the film nor leave fullscreen.
-              onClick={(e) => e.stopPropagation()}
-              onDoubleClick={(e) => e.stopPropagation()}
-            >
-              <button onClick={togglePlay} disabled={!info} title="Play / pause">
-                {playing && !paused && !dead ? "❚❚" : "▶"}
-              </button>
-              <input
-                className="mv-fsscrub"
-                type="range"
-                min={0}
-                max={Math.max(1, duration)}
-                step={1}
-                value={shown}
-                disabled={!info}
-                onChange={(e) => setScrub(+e.target.value)}
-                onPointerUp={(e) => seek(+(e.target as HTMLInputElement).value)}
-                onKeyUp={(e) => seek(+(e.target as HTMLInputElement).value)}
-              />
-              <span className="mv-time">{fmt(shown)} / {fmt(duration)}</span>
-              <label className="mv-volume" title="Volume">
-                🔊
-                <input type="range" min={0} max={1} step={0.01} value={volume}
-                       onChange={(e) => changeVolume(+e.target.value)} />
-              </label>
-              <button className="ghost" onClick={toggleFullscreen} title="Leave fullscreen">⛶</button>
-            </div>
-          )}
-        </div>
-
-        <div className="mv-meta">
-          <div className="mv-metahead">
-            <h2>{selected ? selected.title : "Movies"}</h2>
-            <button
-              className="ghost mv-close"
-              title="Close the film"
-              onClick={() => { stop(); setSelected(null); setInfo(null); setPrepNote(""); }}
-            >
-              ✕
-            </button>
-          </div>
-          {info ? (
-            <p className="muted small">
-              {info.video.codec.toUpperCase()} {info.video.width}×{info.video.height}
-              {info.video.hdr ? " · HDR → SDR" : ""} · {fmt(info.duration)} · {gb(info.size)} ·{" "}
-              {height === 0 && info.remux.ok
-                ? " · original stream, not re-encoded"
-                : ` · ${info.encoder === "h264_nvenc" ? "GPU" : "CPU"} transcode`}
-            </p>
-          ) : (
-            <p className="muted small">
-              {infoError ? <span className="error">{infoError}</span> : " "}
-            </p>
-          )}
-        </div>
-
-        <div className="mv-scrub">
-          <input
-            type="range"
-            min={0}
-            max={Math.max(1, duration)}
-            step={1}
-            value={shown}
-            disabled={!info}
-            onChange={(e) => setScrub(+e.target.value)}
-            onPointerUp={(e) => seek(+(e.target as HTMLInputElement).value)}
-            onKeyUp={(e) => seek(+(e.target as HTMLInputElement).value)}
-          />
-          <span className="mv-time">
-            {fmt(shown)} / {fmt(duration)}
-          </span>
-        </div>
-
-        <div className="mv-transport">
-          <button onClick={() => seek(Math.max(0, position - 30))} disabled={!info} title="Back 30s">
-            ◀◀
-          </button>
-          <button onClick={togglePlay} disabled={!info} title="Play / pause">
-            {playing && !paused && !dead ? "❚❚" : "▶"}
-          </button>
-          <button
-            onClick={() => seek(Math.min(duration, position + 30))}
-            disabled={!info}
-            title="Forward 30s"
-          >
-            ▶▶
-          </button>
-          <button
-            // Stop, unlike pause, goes back to the start: the next play
-            // begins the film again.
-            onClick={() => { stop(); setPosition(0); setScrub(null); }}
-            disabled={!playing}
-            title="Stop and go back to the start"
-          >
-            {/* Drawn, not the ■ glyph: that renders at half the size of the
-                arrows beside it in most fonts. */}
-            <span className="mv-stopicon" aria-hidden />
-          </button>
-          <label className="mv-volume" title="Volume">
-            🔊
-            <input
-              type="range"
-              min={0}
-              max={1}
-              step={0.01}
-              value={volume}
-              onChange={(e) => changeVolume(+e.target.value)}
-            />
-          </label>
-          <button
-            className="ghost"
-            onClick={toggleFullscreen}
-            disabled={!playing}
-            title="Fullscreen (or double-click the picture)"
-          >
-            ⛶
-          </button>
-        </div>
-
-        {streamError && <p className="error small">{streamError}</p>}
-        {note && <p className={(noteBad ? "error" : "muted") + " small mv-note"}>{note}</p>}
+        {filmCore}
 
         <div className="mv-tracks">
           <div className="mv-quality">
@@ -2020,6 +2041,43 @@ export function MoviesPanel() {
       </aside>
       )}
       </div>
+      {tab === "" && selected && (
+        <FilmDialog onClose={closeFilm}>
+          {filmCore}
+          {/* Only which picture, which audio, which subtitle — nothing here
+              changes the file, so no delays, uploads or languages. */}
+          <div className="mv-filmopts">
+            <label>
+              <span className="muted small">Quality</span>
+              <select value={height} disabled={!info}
+                      onChange={(e) => (playing ? play({ height: +e.target.value }) : setHeight(+e.target.value))}>
+                {(info?.heights ?? [360, 720, 1080]).map((h) => (
+                  <option key={h} value={h}>{HEIGHT_LABEL[h] ?? `${h}p`}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span className="muted small">Audio</span>
+              <select value={audio} disabled={!info?.audio.length}
+                      onChange={(e) => (playing ? play({ audio: +e.target.value }) : setAudio(+e.target.value))}>
+                {(info?.audio ?? []).map((t) => <option key={t.key} value={t.id}>{t.label}</option>)}
+                {!info?.audio.length && <option>no audio</option>}
+              </select>
+            </label>
+            <label>
+              <span className="muted small">Subtitles</span>
+              <select value={sub ?? ""} disabled={!info}
+                      onChange={(e) => {
+                        const id = e.target.value === "" ? null : +e.target.value;
+                        if (playing) play({ sub: id }); else setSub(id);
+                      }}>
+                <option value="">off</option>
+                {(info?.subtitles ?? []).map((t) => <option key={t.key} value={t.id}>{t.label}</option>)}
+              </select>
+            </label>
+          </div>
+        </FilmDialog>
+      )}
       {sharing !== null && (
         <ShareDialog path={sharing} onClose={() => setSharing(null)}
                      onSaved={() => { if (paneKeys !== null) loadPanes(paneKeys.split("|")).catch(() => {}); }} />
@@ -2048,6 +2106,26 @@ export function MoviesPanel() {
         <iframe key={x.key} className="mv-external" src={x.url} title={x.title}
                 hidden={external !== x.key} />
       ))}
+    </div>
+  );
+}
+
+/** The film library's player: a window in the middle of the screen over a
+ *  dimmed page. A click outside it or Escape closes it (and stops the film). */
+function FilmDialog({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => {
+      // Escape in fullscreen only leaves fullscreen.
+      if (e.key === "Escape" && !document.fullscreenElement) onClose();
+    };
+    window.addEventListener("keydown", key);
+    return () => window.removeEventListener("keydown", key);
+  }, [onClose]);
+  return (
+    <div className="modal-backdrop mv-filmback" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="modal mv-filmdialog" role="dialog" aria-modal>
+        {children}
+      </div>
     </div>
   );
 }
