@@ -397,6 +397,9 @@ export const KIND_ICON: Record<string, string> = {
 interface Node {
   file: StagedFile;
   children: Node[];
+  /** While searching: something inside this folder matches, which is why
+   *  it is shown — so it starts open, showing the matches. */
+  hitInside?: boolean;
 }
 
 function buildTree(files: StagedFile[]): Node[] {
@@ -423,13 +426,19 @@ function buildTree(files: StagedFile[]): Node[] {
 
 /** Keeps a folder whose name matches, or that holds something matching —
  *  searching a tree for a file three levels down has to show the way to it. */
+/** What a search leaves: the entries whose name matches, and the folders
+ *  on the way to them. A folder that matches by its own name keeps all it
+ *  holds — the search found the folder, so its contents are what you are
+ *  looking for, not something to filter away. */
 function filterTree(nodes: Node[], q: string): Node[] {
   if (!q) return nodes;
   const out: Node[] = [];
   for (const n of nodes) {
     const kids = filterTree(n.children, q);
-    if (kids.length || n.file.name.toLowerCase().includes(q)) {
-      out.push({ ...n, children: kids });
+    if (n.file.name.toLowerCase().includes(q)) {
+      out.push({ ...n, hitInside: kids.length > 0 });
+    } else if (kids.length) {
+      out.push({ ...n, children: kids, hitInside: true });
     }
   }
   return out;
@@ -482,7 +491,7 @@ export interface TreeAction {
 
 export function FileTree({
   area, files, query, activePath, activeMovieId, canEdit, onPick, marks, onPlay, actions,
-  picked, onPicked, destinations, acceptsFrom,
+  picked, onPicked, destinations, acceptsFrom, pickOnMove = true,
 }: {
   area: string;
   files: StagedFile[];
@@ -507,6 +516,10 @@ export function FileTree({
    *  a list. An output a non-publisher cannot otherwise touch still takes
    *  drops from its own inbox — that is the one move they are allowed. */
   acceptsFrom: "*" | string[];
+  /** Whether stepping onto a file with the arrow keys opens it, as a click
+   *  does (false: it is only highlighted, and Enter opens it — for pictures,
+   *  which open full screen). */
+  pickOnMove?: boolean;
 }) {
   const roots = useMemo(() => buildTree(files), [files]);
   const q = query.trim().toLowerCase();
@@ -522,6 +535,25 @@ export function FileTree({
     setExpanded(new Set(files.filter((f) => f.kind === "folder" && !f.folder).map((f) => f.path)));
   }, [files]);
 
+  // While searching, folders open on their own — the ones something inside
+  // matches — and a click opens or closes one on top of that. What was
+  // clicked is forgotten with the search, and the tree goes back to how it
+  // was left.
+  const searchOpen = useMemo(() => {
+    const out = new Set<string>();
+    const walk = (list: Node[]) => {
+      for (const n of list) {
+        if (n.hitInside) { out.add(n.file.path); walk(n.children); }
+      }
+    };
+    walk(shown);
+    return out;
+  }, [shown]);
+  const [searchFlipped, setSearchFlipped] = useState<Set<string>>(new Set());
+  useEffect(() => { setSearchFlipped(new Set()); }, [q]);
+  const isOpenPath = (path: string) =>
+    q ? searchOpen.has(path) !== searchFlipped.has(path) : expanded.has(path);
+
   // Rows in the order they are drawn, which is the order a shift-range runs
   // in: what you see between the two clicks, not what the tree holds.
   const visible = useMemo(() => {
@@ -529,14 +561,17 @@ export function FileTree({
     const walk = (list: Node[]) => {
       for (const n of list) {
         out.push(n.file);
-        if (n.file.kind === "folder" && (!!q || expanded.has(n.file.path))) walk(n.children);
+        if (n.file.kind === "folder" && isOpenPath(n.file.path)) walk(n.children);
       }
     };
     walk(shown);
     return out;
-  }, [shown, expanded, q]);
+  }, [shown, expanded, q, searchOpen, searchFlipped]);
   // Where a shift-range starts: the last row clicked without shift.
   const anchor = useRef<string | null>(null);
+  // The row the arrow keys are on: the last one clicked or stepped to.
+  const [cursor, setCursor] = useState<string | null>(null);
+  const treeRef = useRef<HTMLDivElement | null>(null);
 
   // `file` null: the menu of the tree's own background, which is about the
   // folder the tree shows rather than anything in it.
@@ -663,11 +698,57 @@ export function FileTree({
   }, [marks]);
 
   const toggle = (path: string) =>
-    setExpanded((prev) => {
+    (q ? setSearchFlipped : setExpanded)((prev) => {
       const next = new Set(prev);
       next.has(path) ? next.delete(path) : next.add(path);
       return next;
     });
+
+  /** The arrow keys, like a file manager's: ↑ ↓ step through the rows as
+   *  drawn, → opens a folder (or steps into it), ← closes it (or goes up to
+   *  the folder a row is in), Enter opens what the cursor is on. */
+  const onKey = (e: React.KeyboardEvent) => {
+    if (editing || creating || menu || e.altKey || e.ctrlKey || e.metaKey) return;
+    if ((e.target as HTMLElement).closest("input, textarea, select")) return;
+    const at = cursor ?? activePath;
+    const i = at ? visible.findIndex((v) => v.path === at) : -1;
+    const cur = i >= 0 ? visible[i] : null;
+    const moveTo = (f: StagedFile | undefined) => {
+      if (!f) return;
+      setCursor(f.path);
+      anchor.current = f.path;
+      if (f.kind !== "folder" && pickOnMove) onPick(f);
+      requestAnimationFrame(() => {
+        treeRef.current?.querySelector<HTMLElement>(`[data-path="${CSS.escape(f.path)}"]`)
+          ?.scrollIntoView({ block: "nearest" });
+      });
+    };
+    const isOpen = (f: StagedFile) => f.kind === "folder" && isOpenPath(f.path);
+    switch (e.key) {
+      case "ArrowDown": moveTo(visible[i + 1] ?? (i < 0 ? visible[0] : undefined)); break;
+      case "ArrowUp": moveTo(i > 0 ? visible[i - 1] : visible[0]); break;
+      case "Home": moveTo(visible[0]); break;
+      case "End": moveTo(visible[visible.length - 1]); break;
+      case "ArrowRight":
+        if (!cur || cur.kind !== "folder") return;
+        if (!isOpen(cur)) toggle(cur.path);
+        else moveTo(visible[i + 1]?.folder === cur.path ? visible[i + 1] : undefined);
+        break;
+      case "ArrowLeft":
+        if (!cur) return;
+        if (isOpen(cur)) toggle(cur.path);
+        else if (cur.folder) moveTo(visible.find((v) => v.path === cur.folder));
+        break;
+      case "Enter":
+        if (!cur) return;
+        cur.kind === "folder" ? toggle(cur.path) : onPick(cur);
+        break;
+      default:
+        return;
+    }
+    e.preventDefault();
+    e.stopPropagation();
+  };
 
   const commitRename = () => {
     const edit = editing;
@@ -762,18 +843,20 @@ export function FileTree({
   const row = (node: Node, depth: number) => {
     const f = node.file;
     const folder = f.kind === "folder";
-    const open = folder && (!!q || expanded.has(f.path));
+    const open = folder && isOpenPath(f.path);
     const active = activePath === f.path || (!!f.movie_id && f.movie_id === activeMovieId);
     return (
       <div key={f.path} className="mv-branch">
         <div
           className={
             "mv-node" + (active ? " active" : "") + (folder ? " folder" : "") +
+            (cursor === f.path && !active ? " cursor" : "") +
             (picked.has(f.path) ? " picked" : "") +
             (dropOn === f.path ? " dropping" : "")
           }
           style={{ paddingLeft: 6 + depth * 14 }}
           title={f.path}
+          data-path={f.path}
           draggable={canEdit && !editing}
           onDragStart={(e) => {
             // Dragging one of several ticked rows takes all of them;
@@ -820,6 +903,7 @@ export function FileTree({
               return;
             }
             anchor.current = f.path;
+            setCursor(f.path);
             folder ? toggle(f.path) : onPick(f);
           }}
           onDoubleClick={() => {
@@ -889,6 +973,10 @@ export function FileTree({
 
   return (
     <div
+      ref={treeRef}
+      // Focusable, so a click anywhere in it gives it the arrow keys.
+      tabIndex={0}
+      onKeyDown={onKey}
       className={"mv-tree" + (dropOn === "" ? " dropping" : "") + (picked.size ? " selecting" : "")}
       onDragOver={(e) => {
         if (!accept(e)) return;

@@ -1002,6 +1002,9 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
   transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 .mv-coverart img { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* Artists: round portraits, with how much of them there is underneath. */
+.mv-book.round .mv-coverart { border-radius: 50%; }
+.mv-coversub { font-size: 0.68rem; line-height: 14px; color: var(--muted); opacity: 0.75; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mv-cover:hover .mv-coverart { transform: translateY(-3px); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45); }
 /* Selected: the poster is ringed and the name underlined in the accent —
  * not the global button.active fill, which would paint the whole card. */
@@ -1018,6 +1021,7 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
   color: var(--muted);
   overflow-wrap: anywhere;
 }
+.mv-covertitle, .mv-coversub { display: block; width: 100%; text-align: center; }
 .mv-covertitle {
   font-size: 0.75rem;
   line-height: 18px;
@@ -1099,8 +1103,15 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
 }
 .mv-delay { -moz-appearance: textfield; }
 /* ── movies: staging areas ───────────────────────────────────────── */
-.mv-sources { display: flex; gap: 4px; flex-wrap: wrap; flex: 0 0 auto; }
+.mv-sources { display: flex; gap: 4px; flex-wrap: wrap; flex: 0 0 auto; container-type: inline-size; }
 .mv-sources button { padding: 2px 10px; font-size: 0.78rem; }
+.mv-tabicon { margin-right: 5px; }
+/* Too narrow for every tab's name in one row: the tabs with an icon keep
+   only the icon (their name stays as the tooltip). */
+@container (max-width: 780px) {
+  .mv-sources .mv-tablabel { display: none; }
+  .mv-sources .mv-tabicon { margin-right: 0; }
+}
 /* Between the folders and the other programs' UIs: a different kind of tab. */
 .mv-srcsep { align-self: stretch; width: 1px; margin: 2px 6px; background: var(--line); }
 
@@ -1161,6 +1172,10 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
 .mv-node:hover { background: var(--panel-2); }
 .mv-node.folder { font-weight: 600; }
 .mv-node.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+/* The row the arrow keys are on, when it is not the open one. */
+.mv-node.cursor { background: var(--panel-2); box-shadow: inset 0 0 0 1px var(--muted); }
+.mv-tree:focus { outline: none; }
+.mv-tree:not(:focus) .mv-node.cursor { box-shadow: none; }
 .mv-node.active .mv-size { color: #ffd9d9; }
 /* The row a drop would land in. Dashed so it reads as a target rather than
  * as the current selection. */
@@ -1800,12 +1815,21 @@ select.mv-preplang:invalid, select.mv-preplang[data-empty="true"] { color: var(-
 .ml-albuminfo p { margin: 0; }
 .ml-play { margin-top: 6px; background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
 .ml-songs { list-style: none; margin: 0; padding: 0; }
+.ml-divider + .ml-songs { margin-top: 4px; }
 .ml-song {
   width: 100%; display: flex; align-items: center; gap: 12px; text-align: left;
   background: transparent; border: none; border-bottom: 1px solid var(--line); border-radius: 0; padding: 7px 8px;
 }
 .ml-song:hover { background: var(--panel-2); }
-.ml-song.active { background: var(--panel-2); box-shadow: inset 3px 0 0 var(--accent); }
+/* The song loaded in the player: a soft tint of the accent, even all round,
+   rather than the global button.active (a solid fill, and an accent border
+   that on this row would only show along the bottom). */
+.ml-song.active, .ml-song.active:hover {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border-color: transparent; border-radius: 6px; color: var(--text);
+}
+.ml-songs li:has(+ li > .ml-song.active) > .ml-song { border-bottom-color: transparent; }
+.ml-song.active .ml-songtitle, .ml-song.active .ml-num { color: var(--accent); font-weight: 600; }
 .ml-num { flex: 0 0 24px; text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; font-size: 0.8rem; }
 .ml-songtitle { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ml-songalbum { flex: 0 1 35%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.8rem; }
@@ -1849,3 +1873,191 @@ select.mv-preplang:invalid, select.mv-preplang[data-empty="true"] { color: var(-
 .ml-divart img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .ml-divtitle { font-weight: 600; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ml-divline { flex: 1 1 auto; height: 1px; background: var(--line); }
+
+/* ── Images tab: the gallery ───────────────────────────────────────────── */
+.ig-scroll {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--panel);
+  padding: 6px 16px 20px;
+}
+.ig-empty { padding: 12px; }
+/* Where a drag of photos from the computer would land. */
+.ig-section { position: relative; }
+.ig-scroll.dropping { outline: 2px dashed var(--accent); outline-offset: -3px; }
+/* Drawn over the section, its sticky header included, which would
+   otherwise paint over the top of an outline. */
+.ig-section.dropping::after {
+  content: ""; position: absolute; inset: 4px -8px 0; z-index: 3; pointer-events: none;
+  border: 2px dashed var(--accent); border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+/* The open folder's path, back up to the first layer. */
+.ig-crumbs {
+  position: sticky; top: -6px; z-index: 4;
+  display: flex; align-items: center; flex-wrap: wrap; gap: 2px;
+  margin: 0 -16px; padding: 10px 16px 8px;
+  background: var(--panel); border-bottom: 1px solid var(--line);
+}
+.ig-crumbpart { display: inline-flex; align-items: center; gap: 2px; min-width: 0; }
+.ig-crumb { padding: 2px 6px; font-size: 0.9rem; }
+.ig-sep { color: var(--muted); padding: 0 2px; }
+.ig-here { font-weight: 600; font-size: 1rem; padding: 2px 6px; }
+/* The first layer: a card per folder, a photo on its cover and a couple
+   more peeking out behind it, like a pile of prints. */
+/* align-items: start — a card is only as tall as its cover and caption,
+   so the space under a short one in a row is not part of it. */
+.ig-albums { display: grid; align-items: start; gap: 36px 40px; padding: 22px 12px 12px; }
+.ig-album {
+  position: relative; display: flex; flex-direction: column; gap: 3px; min-width: 0;
+  margin: 0; padding: 0; border: none; background: none; text-align: left; cursor: pointer;
+  color: inherit;
+  isolation: isolate;   /* the prints behind the cover stay above the page */
+}
+/* Inside a folder the path is what stays at the top; section names scroll. */
+.ig-scroll.nested .ig-head { position: static; }
+.ig-cover {
+  /* 4:3 by padding rather than aspect-ratio, which a photo inside can
+     still stretch. */
+  position: relative; display: block; height: 0; padding-bottom: 75%; margin-bottom: 7px;
+  border-radius: 10px; background: var(--panel-2);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.ig-cover::before, .ig-cover::after {
+  content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 10px;
+  background: var(--panel-2); border: 1px solid var(--line);
+  transition: transform 0.2s ease;
+}
+.ig-cover::before { transform: rotate(-3deg) translate(-3px, 2px); }
+.ig-cover::after { transform: rotate(2.5deg) translate(3px, 1px); }
+.ig-album:hover .ig-cover, .ig-album:focus-visible .ig-cover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+.ig-album:hover .ig-cover::before { transform: rotate(-6deg) translate(-8px, 3px); }
+.ig-album:hover .ig-cover::after { transform: rotate(5deg) translate(8px, 2px); }
+/* Absolute, so a tall photo cannot stretch the card past 4:3. */
+.ig-cover img {
+  position: absolute; inset: 0;
+  display: block; width: 100%; height: 100%; object-fit: cover; border-radius: 10px;
+  opacity: 0; transition: opacity 0.35s ease;
+}
+.ig-cover img.ok { opacity: 1; }
+.ig-cover .ig-broken { position: absolute; inset: 0; height: auto; font-size: 1.6rem; }
+.ig-album:focus-visible { outline: none; }
+.ig-album:focus-visible .ig-cover { outline: 2px solid var(--accent); outline-offset: 3px; }
+.ig-albumname { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ig-albumsub { font-size: 0.75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.ig-album.dropping .ig-cover { outline: 2px dashed var(--accent); outline-offset: 4px; }
+/* Where the next batch of pictures is drawn once it is scrolled near. */
+.ig-more { height: 1px; }
+.ig-section + .ig-section { margin-top: 10px; }
+/* The folder's name, sticky while its pictures scroll under it. */
+.ig-head {
+  position: sticky; top: -6px; z-index: 2;
+  display: flex; align-items: baseline; gap: 10px;
+  padding: 14px 0 10px;
+  background: linear-gradient(var(--panel) 75%, transparent);
+}
+.ig-head h3 { margin: 0; font-size: 1.05rem; font-weight: 600; letter-spacing: 0.01em; }
+.ig-path { color: var(--muted); font-size: 0.75rem; }
+.ig-count {
+  font-size: 0.7rem; color: var(--muted); font-variant-numeric: tabular-nums;
+  border: 1px solid var(--line); border-radius: 999px; padding: 0 7px;
+}
+.ig-line { flex: 1 1 auto; align-self: center; height: 1px; background: var(--line); }
+/* Justified rows (ImageGallery.tsx works them out): each row one height,
+   its pictures side by side in their own shapes, as wide as the page. */
+.ig-rows { display: flex; flex-direction: column; gap: 8px; }
+.ig-row { display: flex; gap: 8px; }
+.ig-tile {
+  position: relative; display: block; min-width: 0; height: 100%;
+  margin: 0; padding: 0;
+  border: none; border-radius: 10px; overflow: hidden; cursor: zoom-in;
+  background: var(--panel-2);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.ig-tile.loading::before {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, 0.05) 50%, transparent 70%);
+  background-size: 200% 100%; animation: ig-shimmer 1.4s linear infinite;
+}
+@keyframes ig-shimmer { from { background-position: 150% 0; } to { background-position: -50% 0; } }
+.ig-tile img {
+  display: block; width: 100%; height: 100%; object-fit: cover;
+  opacity: 0; transition: opacity 0.35s ease, transform 0.35s ease;
+}
+.ig-tile.ok img { opacity: 1; }
+.ig-tile:hover, .ig-tile:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+.ig-tile:hover img { transform: scale(1.03); }
+.ig-tile:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ig-caption {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  padding: 22px 10px 7px;
+  font-size: 0.75rem; color: #fff; text-align: left;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.72));
+  opacity: 0; transform: translateY(4px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.ig-tile:hover .ig-caption, .ig-tile:focus-visible .ig-caption { opacity: 1; transform: none; }
+.ig-broken {
+  display: flex; align-items: center; justify-content: center; height: 120px;
+  color: var(--muted); font-size: 0.8rem; letter-spacing: 0.1em;
+}
+
+/* ── A picture full screen ─────────────────────────────────────────────── */
+.iv-overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(6, 8, 12, 0.92);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  animation: iv-in 0.18s ease;
+  cursor: zoom-out;
+}
+@keyframes iv-in { from { opacity: 0; } to { opacity: 1; } }
+.iv-img {
+  max-width: calc(100vw - 140px); max-height: calc(100vh - 110px);
+  object-fit: contain; border-radius: 6px; cursor: default;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  opacity: 0; transform: scale(0.985);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.iv-img.in { opacity: 1; transform: none; }
+.iv-spin { position: absolute; width: 28px; height: 28px; flex: none; border-width: 3px; }
+.iv-top {
+  position: absolute; top: 0; left: 0; right: 0;
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px; cursor: default;
+  background: linear-gradient(rgba(0, 0, 0, 0.55), transparent);
+}
+.iv-name { font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.iv-meta { flex: 1 1 auto; color: rgba(255, 255, 255, 0.6); font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.iv-btn {
+  flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; padding: 0; border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #fff; font-size: 1rem; text-decoration: none;
+}
+.iv-btn:hover { background: rgba(255, 255, 255, 0.18); }
+.iv-nav {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  width: 48px; height: 72px; padding: 0; border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff; font-size: 2rem; line-height: 1; cursor: pointer;
+  transition: background 0.15s ease;
+}
+.iv-nav:hover { background: rgba(255, 255, 255, 0.16); }
+.iv-nav.prev { left: 16px; }
+.iv-nav.next { right: 16px; }
+@media (max-width: 600px) {
+  .iv-img { max-width: 100vw; max-height: calc(100vh - 120px); border-radius: 0; }
+  .iv-nav { display: none; }   /* swipe instead */
+  .ig-scroll { padding: 4px 10px 16px; }
+  .ig-tile { border-radius: 8px; }
+}

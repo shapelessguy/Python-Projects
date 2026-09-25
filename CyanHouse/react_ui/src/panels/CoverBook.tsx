@@ -1,33 +1,39 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { MovieItem } from "../api";
 
-/** The film library as pages of covers, turned with the arrows.
+/** A library as pages of covers, turned with the arrows: the films (Plex's
+ *  posters), and the Music tab's artists.
  *
  *  A page is exactly as many covers as fit the space it is given — as many
  *  columns as the width takes, as many rows as the height takes — so there is
  *  never a scrollbar, and changing the cover size or the window re-lays the
- *  pages out. The covers are Plex's own posters (api/routers/movies.py,
- *  /poster); a film Plex has none for shows its name in an empty frame.
+ *  pages out. Only one page of covers is loaded at a time (and the pages
+ *  either side, ahead), which is what keeps a big library quick. An item
+ *  with no picture shows its name in an empty frame.
  *
  *  What is remembered is the first film on the page rather than the page
  *  number, so resizing keeps you where you were instead of throwing you onto
  *  whatever page now has that number. */
 
-/** Room under each cover for its name. */
+/** Room under each cover for its name (and a second line, when there is one). */
 const CAPTION = 22;
+const SUBCAPTION = 16;
 
-function posterUrl(m: MovieItem, px: number): string {
-  return "/api/movies/poster?" + new URLSearchParams({ id: m.id, w: String(px), v: m.poster ?? "" });
-}
-
-export function CoverBook({
-  items, size, selectedId, onPick, active, resetKey,
+export function CoverBook<T extends { id: string; title: string }>({
+  items, size, selectedId, onPick, active, resetKey, art, sub, aspect = 1.5, round = false,
 }: {
-  items: MovieItem[];
+  items: T[];
   /** Cover width in CSS pixels. */
   size: number;
+  /** An item's picture at about `px` pixels wide, or null for none. */
+  art: (item: T, px: number) => string | null;
+  /** A second, quieter line under the name. */
+  sub?: (item: T) => string;
+  /** Height over width: 1.5 for a film poster, 1 for a square. */
+  aspect?: number;
+  /** Round pictures (artists) rather than rectangles. */
+  round?: boolean;
   selectedId: string | null;
-  onPick: (m: MovieItem) => void;
+  onPick: (m: T) => void;
   /** Whether the book is on screen — the arrow keys are only its while it is. */
   active: boolean;
   /** Going back to the first page whenever this changes (the search text). */
@@ -51,13 +57,14 @@ export function CoverBook({
 
   const gap = Math.max(10, Math.round(size * 0.1));
   const cols = Math.max(1, Math.floor((box.w + gap) / (size + gap)));
-  const rows = Math.max(1, Math.floor((box.h + gap) / (size * 1.5 + CAPTION + gap)));
+  const caption = CAPTION + (sub ? SUBCAPTION : 0);
+  const rows = Math.max(1, Math.floor((box.h + gap) / (size * aspect + caption + gap)));
   const per = cols * rows;
   const pages = Math.max(1, Math.ceil(items.length / per));
   const page = Math.min(pages - 1, Math.floor(first / per));
   const shown = items.slice(page * per, page * per + per);
-  // Plex scales the poster; ask for the size it is drawn at on this screen,
-  // rounded so neighbouring slider positions share the browser's cache.
+  // The server scales the picture; ask for the size it is drawn at on this
+  // screen, rounded so neighbouring slider positions share the browser's cache.
   const px = Math.min(1000, Math.ceil((size * (window.devicePixelRatio || 1)) / 100) * 100);
 
   const lastReset = useRef(resetKey);
@@ -104,7 +111,8 @@ export function CoverBook({
   useEffect(() => {
     for (const m of [...items.slice((page + 1) * per, (page + 2) * per),
                      ...items.slice(Math.max(0, page - 1) * per, page * per)]) {
-      if (m.poster) new Image().src = posterUrl(m, px);
+      const url = art(m, px);
+      if (url) new Image().src = url;
     }
   }, [items, page, per, px]);
 
@@ -112,7 +120,7 @@ export function CoverBook({
   const touchX = useRef<number | null>(null);
 
   return (
-    <div className="mv-book">
+    <div className={"mv-book" + (round ? " round" : "")}>
       <button className="mv-turn" disabled={page === 0} onClick={() => go(page - 1)}
               title="Previous page (←)">‹</button>
       <div
@@ -132,28 +140,32 @@ export function CoverBook({
             className={"mv-covers" + (dir ? ` turn-${dir}` : "")}
             style={{
               gridTemplateColumns: `repeat(${cols}, ${size}px)`,
-              gridTemplateRows: `repeat(${rows}, ${Math.round(size * 1.5) + CAPTION}px)`,
+              gridTemplateRows: `repeat(${rows}, ${Math.round(size * aspect) + caption}px)`,
               columnGap: gap,
             }}
           >
-            {shown.map((m) => (
-              <button
-                key={m.id}
-                className={"mv-cover" + (selectedId === m.id ? " active" : "")}
-                title={m.title}
-                onClick={() => onPick(m)}
-              >
-                <span className="mv-coverart">
-                  {m.poster && !broken.has(m.id) ? (
-                    <img src={posterUrl(m, px)} alt="" draggable={false}
-                         onError={() => setBroken((b) => new Set(b).add(m.id))} />
-                  ) : (
-                    <span className="mv-coverblank">{m.title}</span>
-                  )}
-                </span>
-                <span className="mv-covertitle">{m.title}</span>
-              </button>
-            ))}
+            {shown.map((m) => {
+              const url = art(m, px);
+              return (
+                <button
+                  key={m.id}
+                  className={"mv-cover" + (selectedId === m.id ? " active" : "")}
+                  title={m.title}
+                  onClick={() => onPick(m)}
+                >
+                  <span className="mv-coverart" style={{ aspectRatio: `1 / ${aspect}` }}>
+                    {url && !broken.has(m.id) ? (
+                      <img src={url} alt="" draggable={false}
+                           onError={() => setBroken((b) => new Set(b).add(m.id))} />
+                    ) : (
+                      <span className="mv-coverblank">{m.title}</span>
+                    )}
+                  </span>
+                  <span className="mv-covertitle">{m.title}</span>
+                  {sub && <span className="mv-coversub">{sub(m)}</span>}
+                </button>
+              );
+            })}
           </div>
         )}
         {!items.length && <p className="muted small mv-bookempty">No matches.</p>}

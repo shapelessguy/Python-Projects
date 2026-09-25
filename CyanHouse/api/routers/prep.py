@@ -32,6 +32,10 @@ PANEL = "movies"  # same permission as the Movies panel it lives in
 def init() -> None:
     movie_prep.init()
     remux_queue.init()
+    # Keeps the pictures' sizes in step with the Images folder, for the
+    # gallery (api/services/image_dims.py).
+    from api.services import image_dims
+    image_dims.start()
 
 
 def versions(user: str | None) -> dict[str, int]:
@@ -207,6 +211,20 @@ async def raw_file(area: str = Query(...), path: str = Query(...),
     if movie_prep.file_kind(resolved) not in ("image", "audio"):
         raise HTTPException(415, "only images and audio are served raw")
     return FileResponse(resolved, headers={"Cache-Control": "no-store"})
+
+
+@router.get("/thumb")
+async def thumb(area: str = Query(...), path: str = Query(...), w: int = Query(400, ge=32, le=2000),
+                _user: str = Depends(require_user)):
+    """A small JPEG of a picture, for galleries (api/services/thumbs.py)."""
+    from api.services import thumbs
+    try:
+        out = await run_in_threadpool(thumbs.thumbnail, area, path, w)
+    except movie_prep.PrepError as e:
+        raise _wrap(e)
+    # The page puts the picture's time in the URL (`v`), so a browser may
+    # keep this: a changed picture is asked for under a new URL.
+    return FileResponse(out, media_type="image/jpeg", headers={"Cache-Control": "private, max-age=86400"})
 
 
 @router.get("/space")

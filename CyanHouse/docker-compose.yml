@@ -20,11 +20,17 @@ services:
     volumes:
       - /etc/letsencrypt:/etc/letsencrypt
       - ./docker/certbot/www:/var/www/certbot
+      # The LAN name's certificate is proved over DNS (a TXT record set
+      # through DuckDNS) — the hook, and the token it reads from secrets.json.
+      - ./docker/certbot-hooks/duckdns_hook.py:/hooks/duckdns_hook.py:ro
+      - ./secrets.json:/cyanhouse/secrets.json:ro
     # Renewal only — the first certificate must exist before this stack starts
     # (see docker/README.md). Checks twice a day; certbot no-ops until the
-    # cert is within its renewal window.
+    # cert is within its renewal window. No --webroot here: each certificate
+    # renews the way it was issued (the public one over the webroot, the LAN
+    # one over DNS), which certbot remembers per certificate.
     entrypoint: >
-      sh -c "trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $${!}; done"
+      sh -c "trap exit TERM; while :; do certbot renew --quiet; sleep 12h & wait $${!}; done"
 
   # pyLoad-ng: hoster/debrid downloads, laid out like qBittorrent's: work in
   # progress under /mnt/pangea/temp, finished packages (extracted, if they

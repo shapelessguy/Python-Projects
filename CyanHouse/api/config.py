@@ -171,6 +171,9 @@ HOST = os.environ.get("API_HOST", "127.0.0.1").strip()
 API_PORT = int(os.environ.get("API_PORT", "8000"))
 WEB_PORT = int(os.environ.get("WEB_PORT", "5173"))
 PUBLIC_HOST = os.environ.get("PUBLIC_HOST", "").strip()
+# The name the site goes by at home: a DuckDNS name set to this machine's LAN
+# address, served by nginx with its own certificate (DEPLOY.md).
+LAN_HOST = os.environ.get("LAN_HOST", "").strip()
 
 FRONTEND_DIST = PROJECT_DIR / "react_ui" / "dist"
 DEV_ORIGINS = [
@@ -180,6 +183,8 @@ DEV_ORIGINS = [
 ]
 if PUBLIC_HOST:
     DEV_ORIGINS += [f"http://{PUBLIC_HOST}:{API_PORT}", f"https://{PUBLIC_HOST}"]
+if LAN_HOST:
+    DEV_ORIGINS.append(f"https://{LAN_HOST}")
 
 # ── controls (CyanControls home automation) ────────────────────────────────
 # The Room actuator (top/lights/strip/tv/audio -> ESP32 boards over HTTP) runs

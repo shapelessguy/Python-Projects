@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { api, MusicLibrary as Library, MusicSong } from "../api";
+import { CoverBook } from "./CoverBook";
 
 /** The Music tab as a music library rather than a folder tree: artists —
  *  each one a single list of all their songs, album by album under a
@@ -12,9 +13,13 @@ import { api, MusicLibrary as Library, MusicSong } from "../api";
 
 export type MusicView = "artists" | "songs";
 
-export function MusicLibrary({ view, query, activePath, version, onOpen }: {
+export function MusicLibrary({ view, query, activePath, version, onOpen, coverSize, active }: {
   view: MusicView;
   query: string;
+  /** The artists' picture width (the panel's cover-size slider). */
+  coverSize: number;
+  /** Whether it is on screen — the arrow keys turn its pages only then. */
+  active: boolean;
   activePath: string | null;
   /** Bumped when the library folder changes, to read it again. */
   version: number;
@@ -25,6 +30,9 @@ export function MusicLibrary({ view, query, activePath, version, onOpen }: {
   const [lib, setLib] = useState<Library | null>(null);
   const [error, setError] = useState("");
   const [artist, setArtist] = useState<string | null>(null);   // artist open
+  // The last artist opened: back on the artists, the pages open where it
+  // is (and it is ringed), not on page 1 — for zapping through them.
+  const [lastArtist, setLastArtist] = useState<string | null>(null);
 
   useEffect(() => {
     api.musicLibrary().then((l) => { setLib(l); setError(""); })
@@ -48,8 +56,9 @@ export function MusicLibrary({ view, query, activePath, version, onOpen }: {
     return m;
   }, [lib]);
 
-  if (error) return <p className="error small">{error}</p>;
-  if (!lib) return <p className="muted small">Reading the library…</p>;
+  // In the list's own box, so the player bar under it stays where it will be.
+  if (error) return <div className="ml-scroll"><p className="error small">{error}</p></div>;
+  if (!lib) return <div className="ml-scroll"><p className="muted small">Reading the library…</p></div>;
 
   // ── one artist: every song, album by album ──────────────────────────
   if (artist !== null) {
@@ -64,7 +73,7 @@ export function MusicLibrary({ view, query, activePath, version, onOpen }: {
         <button className="ghost ml-back" onClick={() => setArtist(null)}>‹ Artists</button>
         <div className="ml-artisthead">
           <span className="ml-art ml-round ml-headart">
-            {x?.cover ? <img src={api.musicArtUrl(x.cover)} alt="" /> : <span className="ml-blank">{artist}</span>}
+            {x?.cover ? <img src={api.musicArtUrl(x.cover, 400)} alt="" /> : <span className="ml-blank">{artist}</span>}
           </span>
           <div className="ml-albuminfo">
             <h2>{artist}</h2>
@@ -79,7 +88,7 @@ export function MusicLibrary({ view, query, activePath, version, onOpen }: {
           <div key={a.folder}>
             <div className="ml-divider">
               <span className="ml-divart">
-                {a.cover && <img src={api.musicArtUrl(a.folder)} alt="" loading="lazy" />}
+                {a.cover && <img src={api.musicArtUrl(a.folder, 240)} alt="" loading="lazy" />}
               </span>
               <span className="ml-divtitle">{a.title}</span>
               {a.year && <span className="muted small">{a.year}</span>}
@@ -104,25 +113,23 @@ export function MusicLibrary({ view, query, activePath, version, onOpen }: {
     );
   }
 
-  // ── every artist (the default) ──────────────────────────────────────
-  const artists = lib.artists.filter((x) => hit(x.name));
+  // ── every artist (the default): pages of them, like the films ───────
+  // Only a page of pictures is fetched at a time, and small copies of them.
+  const artists = lib.artists.filter((x) => hit(x.name)).map((x) => ({ ...x, id: x.name, title: x.name }));
   return (
-    <div className="ml-scroll">
-      <div className="ml-grid">
-        {artists.map((x) => (
-          <button key={x.name} className="ml-card" onClick={() => setArtist(x.name)} title={x.name}>
-            <span className="ml-art ml-round">
-              {x.cover ? <img src={api.musicArtUrl(x.cover)} alt="" loading="lazy" draggable={false} />
-                : <span className="ml-blank">{x.name}</span>}
-            </span>
-            <span className="ml-cardtitle">{x.name}</span>
-            <span className="ml-cardsub">
-              {x.albums} album{x.albums === 1 ? "" : "s"} · {x.tracks} song{x.tracks === 1 ? "" : "s"}
-            </span>
-          </button>
-        ))}
-      </div>
-      {!artists.length && <p className="muted small">No matches.</p>}
+    <div className="mv-bookwrap">
+      <CoverBook
+        items={artists}
+        size={coverSize}
+        selectedId={lastArtist}
+        onPick={(x) => { setLastArtist(x.name); setArtist(x.name); }}
+        active={active}
+        resetKey={query}
+        aspect={1}
+        round
+        art={(x, px) => (x.cover ? api.musicArtUrl(x.cover, px) : null)}
+        sub={(x) => `${x.albums} album${x.albums === 1 ? "" : "s"} · ${x.tracks} song${x.tracks === 1 ? "" : "s"}`}
+      />
     </div>
   );
 }

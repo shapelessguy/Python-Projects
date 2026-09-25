@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, MovieInfo, MovieItem, MovieTrack, MovieSource, MusicAuto, MusicSong, PrepPlan, RemuxJob, StagedFile } from "../api";
 import { FileView, FileTree, MoviesHome, PrepIdentity, PrepCommit, DRAG_TYPE, fmtSize, selectionRoots } from "./StagingView";
 import { useVersionPoll, useVisibility } from "../api";
@@ -7,6 +7,7 @@ import { readCookie, writeCookie } from "../cookies";
 import { currentUsername } from "../auth";
 import { CoverBook } from "./CoverBook";
 import { MusicLibrary, MusicView } from "./MusicLibrary";
+import { ImageGallery, ImageViewer } from "./ImageGallery";
 import { MusicPlayerBar } from "./MusicPlayerBar";
 import { MusicIdentify } from "./MusicPrep";
 import { ConflictDialog, Clash } from "./ConflictDialog";
@@ -32,6 +33,10 @@ const VIEW_COOKIE = "movies_view";
 const COVER_COOKIE = "movies_cover";
 // The Music tab's view: the library by album, artist or song, or its folders.
 const MUSIC_VIEW_COOKIE = "music_view";
+const IMAGES_VIEW_COOKIE = "images_view";
+const THUMB_COOKIE = "image_size";
+const THUMB_MIN = 120;
+const THUMB_MAX = 420;
 const COVER_MIN = 90;
 const COVER_MAX = 280;
 
@@ -40,9 +45,26 @@ const COVER_MAX = 280;
  *  api/routers/pyload.py) behind the same login as the rest of this page —
  *  and same-origin with it, which both insist on before they can be framed. */
 const EXTERNAL = [
-  { key: "torrents", label: "🧲 Torrents", url: "/api/qbt/", title: "qBittorrent" },
-  { key: "downloads", label: "⬇ Downloads", url: "/api/pyload/", title: "pyLoad" },
+  { key: "torrents", icon: "🧲", label: "Torrents", url: "/api/qbt/", title: "qBittorrent" },
+  { key: "downloads", icon: "⬇️", label: "Downloads", url: "/api/pyload/", title: "pyLoad" },
 ] as const;
+
+/** The tabs that keep only their icon when the tab row runs out of room
+ *  (styles.css, .mv-sources): the film library (key ""), and the music and
+ *  image libraries. A staging area's icon comes from secrets.json. */
+const TAB_ICONS: Record<string, string> = { "": "🎬", ":music": "🎵", ":images": "🖼️" };
+
+/** A tab's face: its icon, if it has one, and its name — which goes when
+ *  the row is narrow, leaving the icon (and the name as a tooltip). */
+function TabFace({ icon, label }: { icon?: string; label: string }) {
+  if (!icon) return <>{label}</>;
+  return (
+    <>
+      <span className="mv-tabicon" aria-hidden>{icon}</span>
+      <span className="mv-tablabel">{label}</span>
+    </>
+  );
+}
 type External = (typeof EXTERNAL)[number]["key"];
 
 function loadDelays(movieId: string): Delays {
@@ -176,7 +198,7 @@ export function MoviesPanel() {
   const versions = useVersionPoll();
   const { permissions } = useVisibility();
   // Which tab a drag is currently hovering, so it can say so.
-  const [dropTab, setDropTab] = useState("");
+  const [dropTab, setDropTab] = useState<string | null>(null);
   // The server's remux queue — running whether or not this page is open.
   // Held here only to draw it; the server is the record.
   const [jobs, setJobs] = useState<RemuxJob[]>([]);
@@ -192,7 +214,7 @@ export function MoviesPanel() {
    *  and its output together — either may be missing — and opening it shows
    *  both, the work waiting above the work done. */
   const groups = useMemo(() => {
-    const out: { key: string; label: string; todo?: MovieSource; done?: MovieSource }[] = [];
+    const out: { key: string; label: string; icon?: string; todo?: MovieSource; done?: MovieSource }[] = [];
     const at = new Map<string, number>();
     for (const x of sources) {
       // The libraries have no pair; they key on their own source key.
@@ -203,6 +225,7 @@ export function MoviesPanel() {
         at.set(key, i);
         out.push({ key, label: x.kind === "inbox" || x.kind === "output" ? x.group : x.label });
       }
+      if (x.icon) out[i].icon = x.icon;
       if (x.role === "todo") out[i].todo = x;
       else out[i].done = x;
     }
@@ -235,6 +258,20 @@ export function MoviesPanel() {
     return v === "songs" || v === "folders" ? v : "artists";
   });
   const setMusicView = (v: MusicView | "folders") => { setMusicViewState(v); writeCookie(MUSIC_VIEW_COOKIE, v); };
+  // The Images tab: the gallery (the default) or the folder tree, where
+  // pictures are moved, renamed and added; its thumbnail size; and the
+  // picture open full screen, with the folder it steps through.
+  const [imagesView, setImagesViewState] = useState<"gallery" | "folders">(() =>
+    readCookie(IMAGES_VIEW_COOKIE) === "folders" ? "folders" : "gallery");
+  const setImagesView = (v: "gallery" | "folders") => { setImagesViewState(v); writeCookie(IMAGES_VIEW_COOKIE, v); };
+  const [thumbSize, setThumbSizeState] = useState(() => {
+    const n = Number(readCookie(THUMB_COOKIE));
+    return n >= THUMB_MIN && n <= THUMB_MAX ? n : 220;
+  });
+  const setThumbSize = (n: number) => { setThumbSizeState(n); writeCookie(THUMB_COOKIE, String(n)); };
+  // The gallery's open folder ("" is its first layer, the folders).
+  const [galleryFolder, setGalleryFolder] = useState("");
+  const [viewing, setViewing] = useState<{ area: string; list: StagedFile[]; index: number } | null>(null);
   // The Music tab's player: the song loaded, a fresh object each time it
   // should start playing, and the album or list it came from.
   const [nowSong, setNowSong] = useState<MusicSong | null>(null);
@@ -667,7 +704,7 @@ export function MoviesPanel() {
    *  for a staging area, since that is where incoming work goes. */
   const dropOnTab = async (e: React.DragEvent, target: MovieSource) => {
     e.preventDefault();
-    setDropTab("");
+    setDropTab(null);
     const raw = e.dataTransfer.getData(DRAG_TYPE);
     if (!raw) return;
     let from: { area: string; paths: string[] };
@@ -768,6 +805,14 @@ export function MoviesPanel() {
   });
 
   const pickFile = (f: StagedFile, area: string) => {
+    // The Images tab shows pictures full screen, stepping through the
+    // folder the picture is in.
+    if (area === ":images" && f.kind === "image") {
+      const list = (listings[area] ?? []).filter((x) => x.kind === "image" && x.folder === f.folder)
+        .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+      setViewing({ area, list, index: Math.max(0, list.findIndex((x) => x.path === f.path)) });
+      return;
+    }
     // The Music tab plays songs in its bar, not the right-hand panel.
     if (area === ":music" && f.kind === "audio") {
       const song = songOf(f);
@@ -1189,7 +1234,7 @@ export function MoviesPanel() {
           the torrent client. Spans the whole panel, above both columns,
           so the torrent client gets the full width when it is open. */}
       <div className="mv-sources">
-        {groups.map((g) => {
+        {groups.map((g, i) => {
           const target = tabTarget(g);
           const ready = !!(g.todo?.ready || g.done?.ready);
           // Only an area with something waiting in it is marked as one.
@@ -1197,12 +1242,15 @@ export function MoviesPanel() {
           // any output-only entry — looks like the film library, because
           // that is what it is.
           const kind = g.todo ? (g.done ? "pair" : "inbox") : "library";
+          // The libraries (films, music, pictures) end at a divider, before
+          // the staging areas.
+          const lastLibrary = g.key === ":images" && i < groups.length - 1;
           return (
+            <Fragment key={g.key}>
             <button
-              key={g.key}
               className={(tab === g.key && !external ? "active " : "") + "mv-src-" + kind +
                          (dropTab === g.key ? " dropping" : "")}
-              title={[g.todo?.path, g.done?.path].filter(Boolean).join("\n")}
+              title={[TAB_ICONS[g.key] ?? g.icon ? g.label : "", g.todo?.path, g.done?.path].filter(Boolean).join("\n")}
               disabled={!ready}
               onClick={() => switchTab(g.key)}
               // Dragging something onto another tab moves it there — into
@@ -1216,18 +1264,20 @@ export function MoviesPanel() {
                 e.dataTransfer.dropEffect = "move";
                 setDropTab(g.key);
               }}
-              onDragLeave={() => setDropTab((cur) => (cur === g.key ? "" : cur))}
-              onDrop={(e) => target && dropOnTab(e, target).finally(() => setDropTab(""))}
+              onDragLeave={() => setDropTab((cur) => (cur === g.key ? null : cur))}
+              onDrop={(e) => target && dropOnTab(e, target).finally(() => setDropTab(null))}
             >
-              {g.label}
+              <TabFace icon={TAB_ICONS[g.key] ?? g.icon} label={g.label} />
             </button>
+            {lastLibrary && <span className="mv-srcsep" aria-hidden />}
+            </Fragment>
           );
         })}
         <span className="mv-srcsep" aria-hidden />
         {EXTERNAL.map((x) => (
           <button key={x.key} className={external === x.key ? "active" : ""}
-                  onClick={() => setExternal(x.key)}>
-            {x.label}
+                  title={x.label} onClick={() => setExternal(x.key)}>
+            <TabFace icon={x.icon} label={x.label} />
           </button>
         ))}
         {/* The remux queue, at the far end of the tab row: visible from
@@ -1328,6 +1378,20 @@ export function MoviesPanel() {
               ))}
             </span>
           )}
+          {tab === ":images" && (
+            <span className="mv-viewpick">
+              {([["gallery", "Gallery"], ["folders", "Folders"]] as const).map(([v, label]) => (
+                <button key={v} className={"ghost" + (imagesView === v ? " active" : "")}
+                        onClick={() => setImagesView(v)}>{label}</button>
+              ))}
+            </span>
+          )}
+          {tab === ":images" && imagesView === "gallery" && (
+            <input className="mv-coversize" type="range" min={THUMB_MIN} max={THUMB_MAX} step={10}
+                   value={thumbSize} title="Picture size"
+                   onChange={(e) => setThumbSize(+e.target.value)}
+                   onPointerUp={(e) => e.currentTarget.blur()} />
+          )}
           {tab === "" && (
             <span className="mv-viewpick">
               <button className={"ghost" + (view === "grid" ? " active" : "")} title="Covers"
@@ -1336,7 +1400,7 @@ export function MoviesPanel() {
                       onClick={() => setView("list")}>☰</button>
             </span>
           )}
-          {tab === "" && view === "grid" && (
+          {((tab === "" && view === "grid") || (tab === ":music" && musicView === "artists")) && (
             <input
               className="mv-coversize"
               type="range"
@@ -1372,6 +1436,20 @@ export function MoviesPanel() {
             activePath={nowSong?.path ?? null}
             version={versions.prep}
             onOpen={openSong}
+            coverSize={coverSize}
+            active={!external && tab === ":music"}
+          />
+        ) : tab === ":images" && imagesView === "gallery" ? (
+          <ImageGallery
+            area=":images"
+            files={listings[":images"] ?? []}
+            loading={!listings[":images"] && !paneErrors[":images"]}
+            query={query}
+            size={thumbSize}
+            folder={galleryFolder}
+            onFolder={setGalleryFolder}
+            onOpen={(list, index) => setViewing({ area: ":images", list, index })}
+            onUpload={canEditArea(":images") ? (dt, folder) => actionsFor(":images").upload(dt, folder) : undefined}
           />
         ) : tab ? (
           // A library is one tree; a staging area is two, the inbox on top
@@ -1440,6 +1518,7 @@ export function MoviesPanel() {
                     onPicked={(next) => { setPickedArea(pane.key); setPicked(next); }}
                     destinations={destinationsFor(pane.key)}
                     acceptsFrom={acceptsFrom(pane.key)}
+                    pickOnMove={pane.key !== ":images"}
                   />
                 )}
               </div>
@@ -1454,6 +1533,9 @@ export function MoviesPanel() {
               onPick={(m) => pick(m)}
               active={!external}
               resetKey={query}
+              art={(m, px) => m.poster
+                ? "/api/movies/poster?" + new URLSearchParams({ id: m.id, w: String(px), v: m.poster })
+                : null}
             />
           </div>
         ) : (
@@ -1610,8 +1692,9 @@ export function MoviesPanel() {
 
       {/* On the film library the right-hand column only exists while a film
           is open: the rest of the time the covers get the whole width. The
-          Music tab has none at all — it plays in its own bar. */}
-      {tab !== ":music" && (tab !== "" || selected) && (
+          Music tab has none at all — it plays in its own bar — and nor has
+          the Images tab, which opens pictures full screen. */}
+      {tab !== ":music" && tab !== ":images" && (tab !== "" || selected) && (
       <aside
         className={"mv-player" + (dragging ? " dropping" : "")}
         // Only real files from outside the page. An entry being dragged
@@ -1908,6 +1991,15 @@ export function MoviesPanel() {
       </aside>
       )}
       </div>
+      {viewing && tab === viewing.area && (
+        <ImageViewer
+          area={viewing.area}
+          list={viewing.list}
+          index={viewing.index}
+          onIndex={(index) => setViewing({ ...viewing, index })}
+          onClose={() => setViewing(null)}
+        />
+      )}
       {conflicts && (
         <ConflictDialog
           clashes={conflicts}

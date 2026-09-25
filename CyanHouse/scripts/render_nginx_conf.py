@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Renders docker/nginx.conf and docker/nginx-bootstrap.conf from their
-.template counterparts, filling in ${PUBLIC_HOST}/${API_PORT}/
+.template counterparts, filling in ${PUBLIC_HOST}/${LAN_HOST}/${API_PORT}/
 ${CONTROLS_FN_HOST}/${CONTROLS_FN_PORT} from the top-level secrets.json --
 the same file api/config.py reads everything else from, so the domain/ports
 live in exactly one place instead of also being baked into the nginx config
@@ -40,6 +40,9 @@ def load_settings() -> dict:
     missing = [k for k, v in settings.items() if not str(v).strip()]
     if missing:
         sys.exit(f"secrets.json is missing a value for: {', '.join(missing)}")
+    # Optional: the name used at home (DEPLOY.md, "Reaching it on the LAN").
+    # Without one, PUBLIC_HOST stands in and the config is as before.
+    settings["LAN_HOST"] = str(data.get("LAN_HOST", "")).strip() or settings["PUBLIC_HOST"]
     return settings
 
 
@@ -48,7 +51,15 @@ def render(template_path: Path, settings: dict) -> Path:
     nginx's own $host/$request_uri/$remote_addr/... variables, which must
     pass through untouched rather than raising as unknown template keys."""
     out_path = template_path.with_suffix("")  # drop the trailing ".template"
-    rendered = Template(template_path.read_text(encoding="utf-8")).safe_substitute(settings)
+    text = template_path.read_text(encoding="utf-8")
+    # The part between "# >>> site" and "# <<< site" is written once per
+    # name the site goes by, with ${SITE_HOST} set to it.
+    if "# >>> site" in text:
+        head, rest = text.split("# >>> site\n", 1)
+        block, tail = rest.split("# <<< site\n", 1)
+        hosts = dict.fromkeys([settings["PUBLIC_HOST"], settings["LAN_HOST"]])
+        text = head + "\n".join(Template(block).safe_substitute(SITE_HOST=h) for h in hosts) + tail
+    rendered = Template(text).safe_substitute(settings)
     out_path.write_text(rendered, encoding="utf-8")
     return out_path
 

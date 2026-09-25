@@ -295,6 +295,9 @@ export interface MovieSource {
    *  area share it, which is what pairs them into a column. */
   group: string;
   ready: boolean;
+  /** A staging area's icon (secrets.json "icon"), which its tab shows in
+   *  place of its name when the tab row is narrow. */
+  icon?: string;
   /** Set on the libraries that are not films — the Music and Images tabs. */
   media?: "music" | "images";
   /** What a staging pair holds: films (identify + remux) or songs
@@ -429,6 +432,10 @@ export interface StagedFile {
   children?: number;
   /** Videos only: streamable through the normal player. */
   movie_id?: string;
+  /** Pictures in the Images folder, once the server knows them: their size
+   *  in pixels, so a tile can be drawn at its shape before it loads. */
+  width?: number;
+  height?: number;
 }
 
 /** What an upload did with each file it was given. Partial success is normal
@@ -637,6 +644,10 @@ export const api = {
     f("/api/prep/info?" + new URLSearchParams({ area, path })).then(j<Record<string, any>>),
   prepRawUrl: (area: string, path: string) =>
     "/api/prep/raw?" + new URLSearchParams({ area, path }),
+  /** A picture scaled down to about `width` pixels, for galleries. `version`
+   *  (the file's time) makes a changed picture a new URL. */
+  prepThumbUrl: (area: string, path: string, width: number, version: number) =>
+    "/api/prep/thumb?" + new URLSearchParams({ area, path, w: String(width), v: String(version) }),
   prepIdentify: (title: string, year: string) =>
     f("/api/prep/identify?" + new URLSearchParams({ title, year }))
       .then(j<{ confident: boolean; match: TmdbCandidate | null; candidates: TmdbCandidate[] }>),
@@ -662,7 +673,9 @@ export const api = {
       method: "POST", headers: JSON_HEADERS, body: JSON.stringify(choice),
     }).then(j<{ path: string; new_path: string; tagged: boolean; cover: boolean }>),
   musicLibrary: () => f("/api/music/library").then(j<MusicLibrary>),
-  musicArtUrl: (folder: string) => "/api/music/art?" + new URLSearchParams({ folder }),
+  /** An album's cover — with `width`, a copy about that many pixels wide. */
+  musicArtUrl: (folder: string, width?: number) =>
+    "/api/music/art?" + new URLSearchParams(width ? { folder, w: String(width) } : { folder }),
   musicAuto: (area: string) =>
     f("/api/music/auto?" + new URLSearchParams({ area })).then(j<MusicAuto>),
   musicCoverUrl: (releaseGroupId: string) =>

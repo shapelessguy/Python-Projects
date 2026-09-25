@@ -75,7 +75,7 @@ export function MusicPlayerBar({ song, play, hasPrev, hasNext, onPrev, onNext }:
 
       <div className="mp-now">
         <span className="mp-art">
-          {song?.folder && <img src={api.musicArtUrl(song.folder)} alt=""
+          {song?.folder && <img src={api.musicArtUrl(song.folder, 240)} alt=""
                                 onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} />}
         </span>
         <span className="mp-names">

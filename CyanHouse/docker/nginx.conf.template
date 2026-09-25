@@ -23,12 +23,20 @@ http {
         }
     }
 
+    # The site over HTTPS, written out once per name it goes by (see
+    # scripts/render_nginx_conf.py): PUBLIC_HOST from outside, and LAN_HOST
+    # at home — a DuckDNS name set to this machine's LAN address, so the
+    # browser goes straight to it and still gets a valid certificate (issued
+    # over DNS, see DEPLOY.md). A block per name rather than one certificate
+    # path with $ssl_server_name in it: nginx loads the certificates at start
+    # as root, and its workers could not read the keys to do it later.
+    # >>> site
     server {
         listen 443 ssl;
-        server_name ${PUBLIC_HOST};
+        server_name ${SITE_HOST};
 
-        ssl_certificate     /etc/letsencrypt/live/${PUBLIC_HOST}/fullchain.pem;
-        ssl_certificate_key /etc/letsencrypt/live/${PUBLIC_HOST}/privkey.pem;
+        ssl_certificate     /etc/letsencrypt/live/${SITE_HOST}/fullchain.pem;
+        ssl_certificate_key /etc/letsencrypt/live/${SITE_HOST}/privkey.pem;
 
         ssl_protocols       TLSv1.2 TLSv1.3;
         ssl_ciphers         HIGH:!aNULL:!MD5;
@@ -150,4 +158,5 @@ http {
             proxy_set_header X-Forwarded-Proto $scheme;
         }
     }
+    # <<< site
 }

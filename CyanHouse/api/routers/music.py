@@ -92,10 +92,15 @@ async def music_library_listing(_user: str = Depends(require_user)):
 
 
 @router.get("/art")
-async def album_art(folder: str = Query(...), _user: str = Depends(require_user)):
-    """An album folder's cover.jpg."""
+async def album_art(folder: str = Query(...), w: int | None = Query(None, ge=32, le=2000),
+                    _user: str = Depends(require_user)):
+    """An album folder's cover.jpg — or, with `w`, a copy about that wide,
+    for pages of covers (a cover.jpg can be a megabyte or more)."""
+    from api.services import thumbs
     try:
         path = await run_in_threadpool(music_library.cover, folder)
+        if w:
+            path = await run_in_threadpool(thumbs.scaled, path, w)
     except PrepError as e:
         raise _wrap(e)
     return FileResponse(path, headers={"Cache-Control": "private, max-age=3600"})

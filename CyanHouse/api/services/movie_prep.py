@@ -110,6 +110,9 @@ def areas() -> dict[str, dict]:
                        else {"en": str(desc), "it": str(desc)} if desc else {})
         out[name] = {
             "name": name,
+            # What its tab shows in place of its name when the tab row is
+            # narrow — an emoji, say. Optional: without one the name stays.
+            "icon": str(cfg.get("icon") or "").strip(),
             "inbox": str(inbox) if inbox else "",
             "library": str(library),
             "ready": ready,
@@ -176,7 +179,7 @@ def sources() -> list[dict]:
                 "key": name, "label": name, "short": name,
                 "path": cfg["inbox"], "kind": "inbox", "role": "todo",
                 "group": name, "ready": cfg["ready"], "description": cfg["description"],
-                "type": cfg["type"],
+                "type": cfg["type"], "icon": cfg["icon"],
             })
         library = Path(cfg["library"])
         out.append({
@@ -188,7 +191,7 @@ def sources() -> list[dict]:
             "short": library.name or str(library),
             "path": str(library), "kind": "output", "role": "done",
             "group": name, "ready": library.is_dir(), "description": cfg["description"],
-            "type": cfg["type"],
+            "type": cfg["type"], "icon": cfg["icon"],
         })
     return out
 
@@ -1280,6 +1283,13 @@ def browse(area_name: str) -> list[dict]:
     trust."""
     root, _ = area(area_name)
     out: list[dict] = []
+    # Pictures carry their width and height when they are known, so a
+    # gallery can draw each tile at its shape before the thumbnail arrives.
+    # Known = in the database a background scan keeps (image_dims); one it
+    # has not seen yet wakes the scan, and the next listing has it.
+    from api.services import image_dims
+    dims = image_dims.known(root) if area_name == ":images" else {}
+    unknown_picture = False
     # Folder sizes are the sum of what is under them, accumulated as the
     # walk goes rather than re-walked per folder.
     sizes: dict[str, int] = {}
@@ -1338,6 +1348,13 @@ def browse(area_name: str) -> list[dict]:
                 "kind": kind,
                 "readable": kind in ("text", "subtitle") and st.st_size <= TEXT_MAX_BYTES,
             }
+            if kind == "image" and area_name == ":images":
+                row = dims.get(str(path))
+                if row and row[0] == st.st_size and row[1] == int(st.st_mtime):
+                    if row[2] and row[3]:
+                        entry["width"], entry["height"] = row[2], row[3]
+                else:
+                    unknown_picture = True
             if kind == "video":
                 try:
                     entry["movie_id"] = movies._encode_id(path, area_name)
@@ -1367,6 +1384,8 @@ def browse(area_name: str) -> list[dict]:
             entry["children"] = counts.get(entry["path"], 0)
     if truncated:
         print(f"prep: {area_name!r} has more than {BROWSE_MAX_ENTRIES} entries; listing truncated")
+    if unknown_picture:
+        image_dims.nudge()
     return out
 
 
