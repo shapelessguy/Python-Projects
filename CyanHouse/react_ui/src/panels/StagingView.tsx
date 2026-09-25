@@ -5,7 +5,8 @@ import { marked } from "marked";
 // written as prose and edited as prose. `?raw` hands it over as text and
 // Vite rebuilds when it changes.
 import { readCookie, writeCookie } from "../cookies";
-import { api, PrepPlan, RemuxJob, StagedFile, TmdbCandidate } from "../api";
+import { ACCESS_RANK, AccessLevel, api, FolderAccess, PrepPlan, RemuxJob, StagedFile, TmdbCandidate } from "../api";
+import { ACCESS_ICON, AccessBadge } from "./ShareDialog";
 
 /** The right-hand panel for anything in a staging folder that isn't a film.
  *
@@ -494,12 +495,19 @@ export interface TreeAction {
 
 export function FileTree({
   area, files, query, activePath, activeMovieId, canEdit, onPick, marks, onPlay, actions,
-  picked, onPicked, destinations, acceptsFrom, pickOnMove = true, loading = false,
+  picked, onPicked, destinations, acceptsFrom, pickOnMove = true, loading = false, onShare, rootLevel,
 }: {
   area: string;
   files: StagedFile[];
   /** The listing has not arrived yet: say so, rather than "Nothing here". */
   loading?: boolean;
+  /** Open an album's sharing (Images library): offered on folders whose
+   *  `access` says this user may change it. */
+  onShare?: (folder: string) => void;
+  /** What this user may do at the top of the tree, where folders carry an
+   *  `access` of their own (Images): everyone may start an album there, only
+   *  admins manage loose files. Without it, `canEdit` decides everywhere. */
+  rootLevel?: AccessLevel;
   query: string;
   activePath: string | null;
   activeMovieId: string | null;
@@ -670,6 +678,22 @@ export function FileTree({
 
   /** Everything the tree is showing — all of it, or what a search left. */
   const allOn = shown.length > 0 && shown.every((n) => picked.has(n.file.path));
+  // Per folder, where the listing carries its access (the Images library):
+  // what this user may do to a thing there — a folder by its own rule, a
+  // file by its folder's. Elsewhere, canEdit for everything.
+  const accessOf = useMemo(() => {
+    const m = new Map<string, FolderAccess>();
+    for (const f of files) if (f.access) m.set(f.path, f.access);
+    return m;
+  }, [files]);
+  const allows = (f: StagedFile | null, need: AccessLevel) => {
+    if (!canEdit) return false;
+    const folder = f === null ? "" : f.kind === "folder" ? f.path : f.folder;
+    const a = accessOf.get(folder);
+    if (a) return ACCESS_RANK[a.level] >= ACCESS_RANK[need];
+    if (!folder && rootLevel) return ACCESS_RANK[rootLevel] >= ACCESS_RANK[need];
+    return true;
+  };
   // For the select-all row: how big everything shown is (a folder's size is
   // already what is under it), and how much of that is selected — each
   // picked thing once, not again for a picked folder's picked contents.
@@ -824,7 +848,13 @@ export function FileTree({
    *  trees, and files coming in from the desktop. An upload needs this
    *  folder to be one you can change; a move needs it to accept things from
    *  wherever the drag started. */
-  const accept = (e: React.DragEvent) => {
+  const accept = (e: React.DragEvent, to: string) => {
+    // Where folders carry their own access (Images), the one dropped on
+    // must let this user add to it.
+    const a = accessOf.get(to);
+    const mayAdd = a ? ACCESS_RANK[a.level] >= ACCESS_RANK.add
+      : !to && rootLevel ? ACCESS_RANK[rootLevel] >= ACCESS_RANK.add : true;
+    if (!mayAdd) return false;
     if (e.dataTransfer.types.includes(DRAG_TYPE)) {
       const from = currentDrag?.area;
       return from !== undefined && (acceptsFrom === "*" || acceptsFrom.includes(from));
@@ -838,7 +868,7 @@ export function FileTree({
     setDropOn(null);
     // Judged before the record is cleared — accept() reads it to know where
     // the drag came from, and with it gone every in-page drop was refused.
-    const ok = accept(e);
+    const ok = accept(e, to);
     currentDrag = null;
     if (!ok) return;
     const raw = e.dataTransfer.getData(DRAG_TYPE);
@@ -890,7 +920,7 @@ export function FileTree({
           }}
           onDragEnd={() => { currentDrag = null; }}
           onDragOver={(e) => {
-            if (!accept(e)) return;
+            if (!accept(e, dropFolder(f))) return;
             e.preventDefault();
             e.stopPropagation();
             e.dataTransfer.dropEffect = "move";
@@ -976,6 +1006,9 @@ export function FileTree({
           ) : (
             <span className="mv-title">{f.name}</span>
           )}
+          {f.access && (
+            <AccessBadge access={f.access} onShare={onShare ? () => onShare(f.path) : undefined} />
+          )}
           {marks?.[f.path] && <span className="mv-mark" title={marks[f.path]}>?</span>}
           {folder && (markCounts.get(f.path) ?? 0) > 0 && (
             <span className="mv-mark" title="Songs in here left for you to check">
@@ -1000,7 +1033,7 @@ export function FileTree({
       onKeyDown={onKey}
       className={"mv-tree" + (dropOn === "" ? " dropping" : "") + (picked.size ? " selecting" : "")}
       onDragOver={(e) => {
-        if (!accept(e)) return;
+        if (!accept(e, "")) return;
         e.preventDefault();
         setDropOn("");
       }}
@@ -1032,8 +1065,8 @@ export function FileTree({
         <div className="mv-menu" style={{ left: menu.x, top: menu.y }}
              onClick={(e) => e.stopPropagation()}>
           <button
-            disabled={!canEdit}
-            title={canEdit ? "" : "Changing these folders needs the publish permission"}
+            disabled={!allows(null, "add")}
+            title={allows(null, "add") ? "" : "Changing these folders needs the publish permission"}
             onClick={() => startCreate("")}
           >
             New folder
@@ -1049,7 +1082,10 @@ export function FileTree({
         const many = picked.has(file.path) && roots.length > 1;
         const targets = many ? roots : [file.path];
         const what = many ? `${targets.length} items` : file.name;
-        const locked = "Changing these folders needs the publish permission";
+        const locked = accessOf.size || rootLevel ? "Not yours to change" : "Changing these folders needs the publish permission";
+        const mayManage = (many ? targets.map((t) => files.find((x) => x.path === t) ?? null) : [file])
+          .every((x) => x !== null && allows(x, "manage"));
+        const mayAdd = allows(file, "add");
         return (
           <div className="mv-menu" style={{ left: menu.x, top: menu.y }}
                onClick={(e) => e.stopPropagation()}>
@@ -1071,23 +1107,28 @@ export function FileTree({
                 )}
                 {!many && file.kind === "folder" && (
                   <button
-                    disabled={!canEdit}
-                    title={canEdit ? "" : locked}
+                    disabled={!mayAdd}
+                    title={mayAdd ? "" : locked}
                     onClick={() => startCreate(file.path)}
                   >
                     New folder
                   </button>
                 )}
+                {!many && file.access?.can_share && onShare && (
+                  <button onClick={() => { onShare(file.path); setMenu(null); }}>
+                    Sharing… <span className="muted">{ACCESS_ICON[file.access.mode]}</span>
+                  </button>
+                )}
                 <button
-                  disabled={!canEdit || many}
-                  title={!canEdit ? locked : many ? "Rename one at a time" : ""}
+                  disabled={!mayManage || many}
+                  title={!mayManage ? locked : many ? "Rename one at a time" : ""}
                   onClick={() => { setEditing({ path: file.path, value: file.name }); setMenu(null); }}
                 >
                   Rename
                 </button>
                 <button
-                  disabled={!canEdit}
-                  title={canEdit ? "" : locked}
+                  disabled={!mayManage}
+                  title={mayManage ? "" : locked}
                   onClick={() => setChoosing(true)}
                 >
                   Move to…
@@ -1097,8 +1138,8 @@ export function FileTree({
                 </button>
                 <button
                   className={"mv-remove" + (armed ? " armed" : "")}
-                  disabled={!canEdit}
-                  title={canEdit ? "Deletes it — there is no undo" : locked}
+                  disabled={!mayManage}
+                  title={mayManage ? "Deletes it — there is no undo" : locked}
                   onClick={() => {
                     if (!armed) { setArmed(true); return; }
                     actions.remove(targets);

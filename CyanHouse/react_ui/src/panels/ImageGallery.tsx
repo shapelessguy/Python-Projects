@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { api, StagedFile } from "../api";
+import { ACCESS_RANK, api, FolderAccess, StagedFile } from "../api";
+import { AccessBadge } from "./ShareDialog";
 
 /** Tiles drawn at a time: a first screenful or two, then another batch
  *  whenever the end of what is drawn comes near — so ten thousand photos
@@ -43,7 +44,7 @@ function justify(list: StagedFile[], width: number, target: number, complete: bo
 
 /** A folder shown as a card on the gallery's first layer: every picture
  *  under it (its subfolders' too), and the one on its cover. */
-type Album = { path: string; name: string; count: number; albums: number; cover: StagedFile; depth: number };
+type Album = { path: string; name: string; count: number; albums: number; cover: StagedFile | null; depth: number };
 
 const byName = (a: string, b: string) => a.localeCompare(b, undefined, { numeric: true });
 
@@ -63,7 +64,7 @@ const byName = (a: string, b: string) => a.localeCompare(b, undefined, { numeric
  *  thumbs.py); the viewer shows the picture itself. Photos dropped on a
  *  folder's card, or on the open folder, from the computer are added to it;
  *  moving and renaming them is the Folders view's job. */
-export function ImageGallery({ area, files, loading, query, size, folder: at, onFolder, onOpen, onUpload }: {
+export function ImageGallery({ area, files, loading, query, size, folder: at, onFolder, onOpen, onUpload, onShare }: {
   area: string;
   files: StagedFile[];
   /** The listing has not arrived yet. */
@@ -78,6 +79,9 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
   /** Put what was dropped into `folder` ("" is the top) — it may hold
    *  whole folders. Absent for someone who may not. */
   onUpload?: (from: DataTransfer, folder: string) => void;
+  /** Open an album's sharing — offered on the badge of albums this user
+   *  may change (their own; for an admin, the ones nobody owns). */
+  onShare?: (folder: string) => void;
 }) {
   const q = query.trim().toLowerCase();
   // What a drag of files is over: a folder's card ("a:" + folder), a
@@ -85,7 +89,18 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
   // because the top folder's name is "" too, and dropping on one must not
   // light up everything.
   const [dropOn, setDropOn] = useState<string | null>(null);
-  const dropProps = (folder: string, zone: string) => onUpload ? {
+  // Each folder's access, from the listing (the server attaches it).
+  const accessOf = useMemo(() => {
+    const m = new Map<string, FolderAccess>();
+    for (const f of files) if (f.kind === "folder" && f.access) m.set(f.path, f.access);
+    return m;
+  }, [files]);
+  const mayAdd = (folder: string) => {
+    if (!folder) return true;
+    const a = accessOf.get(folder);
+    return !!a && ACCESS_RANK[a.level] >= ACCESS_RANK.add;
+  };
+  const dropProps = (folder: string, zone: string) => onUpload && mayAdd(folder) ? {
     onDragOver: (e: React.DragEvent) => {
       if (!e.dataTransfer.types.includes("Files")) return;
       e.preventDefault();
@@ -122,11 +137,23 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
       else {
         a.count++;
         // The cover: the first picture of the shallowest folder in it.
-        if (depth < a.depth || (depth === a.depth && byName(f.path, a.cover.path) < 0)) {
+        if (!a.cover || depth < a.depth || (depth === a.depth && byName(f.path, a.cover.path) < 0)) {
           a.cover = f;
           a.depth = depth;
         }
       }
+      if (rest.length > 1) {
+        const k = kids.get(path) ?? new Set<string>();
+        k.add(rest[1]);
+        kids.set(path, k);
+      }
+    }
+    // Folders with no pictures in them yet (a new album) are albums too.
+    for (const f of files) {
+      if (f.kind !== "folder" || !inside(f.path) || f.path === at) continue;
+      const rest = (at ? f.path.slice(at.length + 1) : f.path).split("/");
+      const path = at ? `${at}/${rest[0]}` : rest[0];
+      if (!cards.has(path)) cards.set(path, { path, name: rest[0], count: 0, albums: 0, cover: null, depth: 99 });
       if (rest.length > 1) {
         const k = kids.get(path) ?? new Set<string>();
         k.add(rest[1]);
@@ -208,40 +235,45 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
       [folder, list, width > 0 ? justify(list.slice(0, take), width, size, take === list.length) : []] as const);
 
   const crumbs = at ? at.split("/") : [];
-  const showAlbums = !q && albums.length > 0;
-  return (
-    <div ref={box} className={"ig-scroll" + (at ? " nested" : "") + (dropOn === "bg" ? " dropping" : "")}
-         {...dropProps(at, "bg")}>
-      {at && (
-        <nav className="ig-crumbs">
-          <button className="ghost ig-crumb" onClick={() => go("")}>Pictures</button>
-          {crumbs.map((c, i) => (
-            <span key={i} className="ig-crumbpart">
-              <span className="ig-sep" aria-hidden>›</span>
-              {i < crumbs.length - 1
-                ? <button className="ghost ig-crumb" onClick={() => go(crumbs.slice(0, i + 1).join("/"))}>{c}</button>
-                : <span className="ig-here">{c}</span>}
-            </span>
-          ))}
-        </nav>
+  // A new folder, here: offered where this user may add (image_access.py).
+  const canCreate = !q && !!onUpload && mayAdd(at);
+  const showAlbums = !q && (albums.length > 0 || canCreate);
+  const picturesFirst = !!at && !q;
+  const albumsBlock = showAlbums && (
+    <>
+      {picturesFirst && sections.length > 0 && (
+        <header className="ig-head ig-folderhead">
+          <h3>Folders</h3>
+          <span className="ig-count">{albums.length}</span>
+          <span className="ig-line" aria-hidden />
+        </header>
       )}
-      {showAlbums && (
-        <div className="ig-albums" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${size}px, 1fr))` }}>
-          {albums.map((a) => (
-            <button key={a.path} className={"ig-album" + (dropOn === "a:" + a.path ? " dropping" : "")}
-                    title={a.path} onClick={() => go(a.path)} {...dropProps(a.path, "a:" + a.path)}>
-              <span className="ig-cover">
-                <AlbumCover src={api.prepThumbUrl(area, a.cover.path, Math.round(size * 1.5 * dpr), a.cover.modified)} />
-              </span>
-              <span className="ig-albumname">{a.name}</span>
-              <span className="ig-albumsub">
-                {a.count} {a.count === 1 ? "picture" : "pictures"}
-                {a.albums > 0 && ` · ${a.albums} ${a.albums === 1 ? "folder" : "folders"}`}
-              </span>
-            </button>
-          ))}
-        </div>
-      )}
+      <div className="ig-albums" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${size}px, 1fr))` }}>
+            {albums.map((a) => (
+              <button key={a.path} className={"ig-album" + (dropOn === "a:" + a.path ? " dropping" : "")}
+                      title={a.path} onClick={() => go(a.path)} {...dropProps(a.path, "a:" + a.path)}>
+                <span className="ig-cover">
+                  {accessOf.get(a.path) && (
+                    <AccessBadge access={accessOf.get(a.path)!} className="ig-albumaccess"
+                                 onShare={onShare ? () => onShare(a.path) : undefined} />
+                  )}
+                  {a.cover
+                    ? <AlbumCover src={api.prepThumbUrl(area, a.cover.path, Math.round(size * 1.5 * dpr), a.cover.modified)} />
+                    : <span className="ig-broken ig-emptyalbum">📁</span>}
+                </span>
+                <span className="ig-albumname">{a.name}</span>
+                <span className="ig-albumsub">
+                  {a.count} {a.count === 1 ? "picture" : "pictures"}
+                  {a.albums > 0 && ` · ${a.albums} ${a.albums === 1 ? "folder" : "folders"}`}
+                </span>
+              </button>
+            ))}
+            {canCreate && <NewAlbum area={area} folder={at} size={size} />}
+          </div>
+    </>
+  );
+  const pictures = (
+    <>
       {!showAlbums && !sections.length && (
         <p className="muted small ig-empty">
           {loading ? "Reading the library…" : q ? "No pictures match." : "No pictures here yet."}
@@ -250,7 +282,7 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
       {drawn.map(([folder, list, rows]) => (
         <section key={folder} className={"ig-section" + (dropOn === "s:" + folder ? " dropping" : "")}
                  {...dropProps(folder, "s:" + folder)}>
-          {(q || showAlbums) && (
+          {(q || (showAlbums && !picturesFirst)) && (
             <header className="ig-head">
               <h3>{q ? (folder ? folder.split("/").pop() : "Pictures") : "Pictures here"}</h3>
               {q && folder.includes("/") && <span className="ig-path">{folder}</span>}
@@ -272,6 +304,79 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
         </section>
       ))}
       {limit < total && <div ref={more} className="ig-more" aria-hidden />}
+    </>
+  );
+  return (
+    <div ref={box} className={"ig-scroll" + (at ? " nested" : "") + (dropOn === "bg" ? " dropping" : "")}
+         {...dropProps(at, "bg")}>
+      {at && (
+        <nav className="ig-crumbs">
+          <button className="ghost ig-crumb" onClick={() => go("")}>Pictures</button>
+          {crumbs.map((c, i) => (
+            <span key={i} className="ig-crumbpart">
+              <span className="ig-sep" aria-hidden>›</span>
+              {i < crumbs.length - 1
+                ? <button className="ghost ig-crumb" onClick={() => go(crumbs.slice(0, i + 1).join("/"))}>{c}</button>
+                : <span className="ig-here">{c}</span>}
+            </span>
+          ))}
+          {accessOf.get(at) && (
+            <AccessBadge access={accessOf.get(at)!} className="ig-crumbaccess"
+                         onShare={onShare ? () => onShare(at) : undefined} />
+          )}
+        </nav>
+      )}
+      {/* Inside an album its own pictures come first and its folders after;
+          at the top, where the albums are what you came for, the other way
+          round. */}
+      {picturesFirst ? <>{pictures}{albumsBlock}</> : <>{albumsBlock}{pictures}</>}
+    </div>
+  );
+}
+
+/** The last card of the albums: a new folder, here. Its name is typed on
+ *  the card; the new folder is the maker's (image_access.claim), and it
+ *  appears as soon as the listing is read again (the server says so). */
+function NewAlbum({ area, folder }: { area: string; folder: string; size: number }) {
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const create = async () => {
+    const n = name.trim();
+    if (!n) { setEditing(false); return; }
+    setBusy(true);
+    setError("");
+    try {
+      await api.prepMkdir(area, folder, n);
+      setEditing(false);
+      setName("");
+    } catch (e) {
+      setError(String(e).replace(/^Error:\s*/, ""));
+    } finally {
+      setBusy(false);
+    }
+  };
+  if (!editing) {
+    return (
+      <button className="ig-album ig-newalbum" onClick={() => setEditing(true)} title="Make a new folder here">
+        <span className="ig-cover"><span className="ig-newplus" aria-hidden>＋</span></span>
+        <span className="ig-albumname">New folder</span>
+        <span className="ig-albumsub">{folder ? `in ${folder.split("/").pop()}` : "an album of your own"}</span>
+      </button>
+    );
+  }
+  return (
+    <div className="ig-album ig-newalbum editing">
+      <span className="ig-cover"><span className="ig-newplus" aria-hidden>📁</span></span>
+      <input className="ig-newname" autoFocus placeholder="Folder name" value={name} disabled={busy}
+             onChange={(e) => setName(e.target.value)}
+             onBlur={() => { if (!name.trim()) setEditing(false); }}
+             onKeyDown={(e) => {
+               if (e.key === "Enter") { e.preventDefault(); create(); }
+               if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); setEditing(false); setName(""); }
+             }} />
+      <span className={"ig-albumsub" + (error ? " error" : "")}>{error || (busy ? "Creating…" : "Enter to create · Esc to cancel")}</span>
     </div>
   );
 }

@@ -3,26 +3,19 @@ version counter), mirroring food.py's template. No external account: every
 event lives only in this DB.
 
 Every event belongs to exactly one calendar (`calendar_id`), and every
-calendar has an owner (a username, or NULL for the original single shared
-calendar predating per-calendar sharing — see the `shared` migration below)
-plus a `shared` flag:
-  - not shared: visible only to its owner. Every user gets a "Default" one
-    lazily created the first time they need it, and can create more of
-    their own (`create_calendar`).
-  - shared: visible to every CyanHouse user regardless of who put an event
-    there, same as any other calendar's owner still administers it (rename/
-    recolor) via `_get_own_calendar` -- sharing a calendar doesn't give up
-    ownership of it. Sharing/un-sharing a calendar, and deleting one that's
-    already shared, is further restricted to SHARING_ADMIN regardless of
-    ownership (see `_require_sharing_admin`); a private calendar's own owner
-    can otherwise still rename/recolor/delete it freely.
-
-A personal-calendar event can only be edited or deleted by its creator. An
-event on a shared calendar belongs to everyone who can see it, though — any
-user can edit or delete it, not just whoever happened to create it (see
-`_get_editable`). An event's `calendar_id` must be either a shared calendar
-or one the requester owns — you can't file an event into someone else's
-private calendar in the first place.
+calendar has an owner — whoever made it; every user gets a "Default" one
+lazily the first time they need it, and can make more (`create_calendar`).
+A calendar is private to its owner until the owner shares it, the same way
+an album of the Images library is shared (api/services/image_access.py):
+`people` names who else sees it and what they may do there —
+  - "see":    its events show in their calendar, read-only (they may still
+              acknowledge or snooze an event's alarm);
+  - "edit":   they may also add, change and delete its events;
+  - "manage": they may also rename and recolour it and change who it is
+              shared with.
+Only the owner deletes it. There is no admin over calendars: nobody sees a
+calendar that was not shared with them. `shared` is kept as a column only as
+"people is not empty", for the clients that show it.
 
 Every event has a start_date/end_date span (end_date == start_date for a
 plain single-day event) plus an `all_day` flag; when all_day is false,
@@ -51,7 +44,7 @@ import sqlite3
 from contextlib import contextmanager
 from datetime import date, datetime, timedelta, timezone
 
-from api.config import CALENDAR_DB
+from api.config import CALENDAR_DB, SEED_USER
 from api.db import bump, connect as _connect, get_version
 from api.models import EventIn, EventPatch
 
@@ -61,7 +54,9 @@ CREATE TABLE IF NOT EXISTS calendars (
     owner  TEXT,
     name   TEXT NOT NULL,
     color  TEXT NOT NULL DEFAULT '#8b93a1',
-    shared INTEGER NOT NULL DEFAULT 0
+    shared INTEGER NOT NULL DEFAULT 0,
+    -- Who else it is shared with: {"<user>": "see"|"edit"|"manage"}.
+    people TEXT NOT NULL DEFAULT '{}'
 );
 -- Guards _ensure_default_calendar's check-then-insert against a race (two
 -- concurrent requests both seeing "no calendar yet" and both inserting one —
@@ -112,12 +107,9 @@ CREATE TABLE IF NOT EXISTS meta (
 """
 
 DEFAULT_CALENDAR_NAME = "Default"
-SHARED_CALENDAR_NAME = "Shared"
-SHARED_CALENDAR_COLOR = "#22b8cf"
-# Sharing/un-sharing a calendar, and deleting one that's already shared, is
-# restricted to this one user -- everyone else can still create, rename,
-# recolor and delete their own *private* calendars freely.
-SHARING_ADMIN = "cian_cl"
+# What someone a calendar is shared with may do, least to most; the owner
+# is above them all.
+_RANK = {"see": 1, "edit": 2, "manage": 3, "owner": 4}
 # Rotated through by id so a user's calendars aren't all the same colour by
 # default; still freely changeable afterwards via update_calendar.
 _DEFAULT_PALETTE = ["#4c9be8", "#e5484d", "#46a758", "#e93d82", "#f2c14e"]
@@ -160,6 +152,17 @@ def _migrate(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE calendar_events ADD COLUMN alarm_snooze_occurrence TEXT")
     if "alarm_snooze_until" not in cols:
         conn.execute("ALTER TABLE calendar_events ADD COLUMN alarm_snooze_until INTEGER")
+    if "people" not in cal_cols:
+        # Sharing became per person. What was shared was shared with
+        # everyone, events editable by all: every user gets "edit" on it.
+        # The one calendar from before calendars had owners gets one — the
+        # seed user — since only an owner can now manage a calendar.
+        from api.auth import USERS
+        conn.execute("ALTER TABLE calendars ADD COLUMN people TEXT NOT NULL DEFAULT '{}'")
+        conn.execute("UPDATE calendars SET owner = ? WHERE owner IS NULL", (SEED_USER,))
+        for r in conn.execute("SELECT id, owner FROM calendars WHERE shared = 1").fetchall():
+            people = {u: "edit" for u in USERS if u != r["owner"]}
+            conn.execute("UPDATE calendars SET people = ? WHERE id = ?", (json.dumps(people), r["id"]))
 
 
 def init_db() -> None:
@@ -167,11 +170,6 @@ def init_db() -> None:
         conn.executescript(_SCHEMA)
         _migrate(conn)
         conn.execute("INSERT OR IGNORE INTO meta(key, value) VALUES(?, 0)", (_VERSION_KEY,))
-        if conn.execute("SELECT 1 FROM calendars WHERE owner IS NULL").fetchone() is None:
-            conn.execute(
-                "INSERT INTO calendars(owner, name, color, shared) VALUES(NULL, ?, ?, 1)",
-                (SHARED_CALENDAR_NAME, SHARED_CALENDAR_COLOR),
-            )
 
 
 def version(conn: sqlite3.Connection) -> int:
@@ -194,36 +192,65 @@ def _ensure_default_calendar(conn: sqlite3.Connection, user: str) -> None:
     )
 
 
+def _people(row: sqlite3.Row) -> dict[str, str]:
+    try:
+        p = json.loads(row["people"] or "{}")
+        return p if isinstance(p, dict) else {}
+    except ValueError:
+        return {}
+
+
+def _level(row: sqlite3.Row, user: str) -> str | None:
+    """What `user` may do with this calendar: "owner", one of the people
+    levels, or None — not shared with them, so not there for them."""
+    if row["owner"] == user:
+        return "owner"
+    return _people(row).get(user)
+
+
+def _allows(level: str | None, need: str) -> bool:
+    return _RANK.get(level or "", 0) >= _RANK[need]
+
+
+def _calendar_levels(conn: sqlite3.Connection, user: str) -> dict[int, str]:
+    """Every calendar this user can see, with what they may do there."""
+    out = {}
+    for r in conn.execute("SELECT id, owner, people FROM calendars").fetchall():
+        level = _level(r, user)
+        if level:
+            out[r["id"]] = level
+    return out
+
+
 def list_calendars(conn: sqlite3.Connection, user: str) -> list[dict]:
     """The user's own calendars (oldest — i.e. their Default — first) followed
-    by every calendar someone else has shared."""
+    by the ones shared with them. `mine`: they may rename, recolour and share
+    it (its owner, or "manage"); `level`: what they may do there; `people`
+    shown to whoever may change it."""
     _ensure_default_calendar(conn, user)
-    rows = conn.execute(
-        "SELECT * FROM calendars WHERE owner = ? OR shared = 1 "
-        "ORDER BY (owner IS NOT ?), id",
-        (user, user),
-    ).fetchall()
-    return [
-        {
+    rows = conn.execute("SELECT * FROM calendars ORDER BY (owner IS NOT ?), id", (user,)).fetchall()
+    out = []
+    for r in rows:
+        level = _level(r, user)
+        if not level:
+            continue
+        people = _people(r)
+        cal = {
             "id": r["id"], "name": r["name"], "color": r["color"],
-            "shared": bool(r["shared"]),
-            # Editable by this user -- their own calendar, or (like its
-            # events) the owner-less legacy shared calendar nobody
-            # specifically owns. See _get_own_calendar.
-            "mine": r["owner"] == user or r["owner"] is None,
+            "shared": bool(people),
+            "mine": _allows(level, "manage"),
+            "owner": r["owner"],
+            "level": level,
         }
-        for r in rows
-    ]
+        if _allows(level, "manage"):
+            cal["people"] = people
+        out.append(cal)
+    return out
 
 
 def _validate_color(color: str) -> None:
     if not _COLOR_RE.match(color):
         raise CalendarError("color must be a hex code like #4c9be8")
-
-
-def _require_sharing_admin(user: str) -> None:
-    if user != SHARING_ADMIN:
-        raise CalendarError(f"only {SHARING_ADMIN} can share, un-share, or delete a shared calendar", status_code=403)
 
 
 def create_calendar(
@@ -232,41 +259,48 @@ def create_calendar(
     name = name.strip()
     if not name:
         raise CalendarError("calendar name is required")
-    if shared:
-        _require_sharing_admin(user)
     if color is not None:
         _validate_color(color)
     else:
         color = _next_palette_color(conn)
     try:
+        people = _everyone(user) if shared else {}
         conn.execute(
-            "INSERT INTO calendars(owner, name, color, shared) VALUES(?, ?, ?, ?)",
-            (user, name, color, int(shared)),
+            "INSERT INTO calendars(owner, name, color, shared, people) VALUES(?, ?, ?, ?, ?)",
+            (user, name, color, int(bool(people)), json.dumps(people)),
         )
     except sqlite3.IntegrityError:
         raise CalendarError(f"you already have a calendar named {name!r}")
     return list_calendars(conn, user)
 
 
-def _get_own_calendar(conn: sqlite3.Connection, user: str, calendar_id: int) -> sqlite3.Row:
-    """Unlike `_check_calendar_access` (which also lets any shared calendar
-    through, for filing events into it), renaming/recolouring/deleting/
-    (un-)sharing a calendar is restricted to one you own -- with one
-    exception: the original owner-less shared calendar from before
-    per-calendar sharing existed belongs to nobody in particular, so (like
-    its events, see `_get_editable`) it answers to everyone instead of no
-    one."""
+def _everyone(owner: str) -> dict[str, str]:
+    """Shared with every user, events editable by all — what `shared: true`
+    meant before sharing was per person, still what the clients' share
+    toggle asks for."""
+    from api.auth import USERS
+    return {u: "edit" for u in USERS if u != owner}
+
+
+def _get_calendar(conn: sqlite3.Connection, user: str, calendar_id: int, need: str) -> sqlite3.Row:
+    """The calendar, if `user` may do `need` there ("see", "edit", "manage",
+    "owner"). One not shared with them is not found, as if it did not exist."""
     row = conn.execute("SELECT * FROM calendars WHERE id = ?", (calendar_id,)).fetchone()
-    if row is None:
+    level = _level(row, user) if row is not None else None
+    if not level:
         raise CalendarError("calendar not found", status_code=404)
-    if row["owner"] != user and row["owner"] is not None:
-        raise CalendarError("not your calendar", status_code=403)
+    if not _allows(level, need):
+        raise CalendarError("not permitted on this calendar", status_code=403)
     return row
 
 
 def update_calendar(conn: sqlite3.Connection, user: str, calendar_id: int,
                      name: str | None, color: str | None, shared: bool | None = None) -> list[dict]:
-    _get_own_calendar(conn, user, calendar_id)
+    """Rename or recolour, for its owner and whoever may manage it. `shared`
+    is the clients' simple toggle: true shares it with everyone (events
+    editable by all), false makes it private again — set_sharing() says it
+    person by person."""
+    row = _get_calendar(conn, user, calendar_id, "manage")
     fields: dict[str, str | int] = {}
     if name is not None:
         name = name.strip()
@@ -277,8 +311,9 @@ def update_calendar(conn: sqlite3.Connection, user: str, calendar_id: int,
         _validate_color(color)
         fields["color"] = color
     if shared is not None:
-        _require_sharing_admin(user)
-        fields["shared"] = int(shared)
+        people = _everyone(row["owner"]) if shared else {}
+        fields["people"] = json.dumps(people)
+        fields["shared"] = int(bool(people))
     if fields:
         try:
             conn.execute(
@@ -291,13 +326,36 @@ def update_calendar(conn: sqlite3.Connection, user: str, calendar_id: int,
     return list_calendars(conn, user)
 
 
+def set_sharing(conn: sqlite3.Connection, user: str, calendar_id: int, people: dict[str, str]) -> list[dict]:
+    """Who else sees the calendar and what they may do: {"<user>": "see" |
+    "edit" | "manage"}; {} is private. For its owner and whoever may manage
+    it; the owner is always the owner and is not one of the people."""
+    from api.auth import USERS
+    row = _get_calendar(conn, user, calendar_id, "manage")
+    clean = {}
+    for name, level in (people or {}).items():
+        if name not in USERS:
+            raise CalendarError(f"no user called {name!r}")
+        if level not in ("see", "edit", "manage"):
+            raise CalendarError("a person's access is see, edit or manage")
+        if name != row["owner"]:
+            clean[name] = level
+    conn.execute("UPDATE calendars SET people = ?, shared = ? WHERE id = ?",
+                 (json.dumps(clean), int(bool(clean)), calendar_id))
+    bump(conn, _VERSION_KEY)
+    return list_calendars(conn, user)
+
+
+def sharing_users() -> list[str]:
+    """Who a calendar can be shared with: everyone who can open the Calendar."""
+    from api.auth import USERS, visible_panels
+    return sorted(u for u in USERS if (visible_panels(u) is None or "calendar" in visible_panels(u)))
+
+
 def delete_calendar(conn: sqlite3.Connection, user: str, calendar_id: int) -> list[dict]:
     """Cascades: every event filed under this calendar is deleted with it.
-    Deleting a *shared* calendar is further restricted to SHARING_ADMIN, same
-    as sharing/un-sharing one -- see _require_sharing_admin."""
-    row = _get_own_calendar(conn, user, calendar_id)
-    if row["shared"]:
-        _require_sharing_admin(user)
+    Only its owner may."""
+    _get_calendar(conn, user, calendar_id, "owner")
     conn.execute("DELETE FROM calendar_events WHERE calendar_id = ?", (calendar_id,))
     conn.execute("DELETE FROM calendars WHERE id = ?", (calendar_id,))
     bump(conn, _VERSION_KEY)
@@ -305,15 +363,12 @@ def delete_calendar(conn: sqlite3.Connection, user: str, calendar_id: int) -> li
 
 
 def _check_calendar_access(conn: sqlite3.Connection, user: str, calendar_id: int) -> None:
-    row = conn.execute("SELECT owner, shared FROM calendars WHERE id = ?", (calendar_id,)).fetchone()
-    if row is None:
-        raise CalendarError("calendar not found", status_code=404)
-    if row["owner"] != user and not row["shared"]:
-        raise CalendarError("not your calendar", status_code=403)
+    """Filing an event into a calendar: its owner, or someone who may edit."""
+    _get_calendar(conn, user, calendar_id, "edit")
 
 
 def _row_to_event(row: sqlite3.Row, user: str, start_date: str | None = None,
-                   end_date: str | None = None) -> dict:
+                   end_date: str | None = None, level: str | None = None) -> dict:
     """`start_date`/`end_date` override the stored ones for one computed
     occurrence of a recurring event; omitted for a plain, non-recurring one."""
     return {
@@ -323,7 +378,12 @@ def _row_to_event(row: sqlite3.Row, user: str, start_date: str | None = None,
         "calendar_id": row["calendar_id"],
         "calendar_name": row["calendar_name"],
         "calendar_color": row["calendar_color"],
-        "calendar_shared": bool(row["calendar_shared"]),
+        # "May change this event": the clients offer editing when this or
+        # `mine` is true. Named for what it used to mean — a shared
+        # calendar's events were everyone's.
+        "calendar_shared": _allows(level, "edit"),
+        "editable": _allows(level, "edit"),
+        "calendar_level": level,
         "title": row["title"],
         "description": row["description"],
         "start_date": start_date or row["start_date"],
@@ -398,19 +458,19 @@ def list_month(conn: sqlite3.Connection, user: str, month: str) -> dict:
     earlier and/or ends later — plus every occurrence of a recurring event
     that falls in the month, computed fresh on each call."""
     range_start, range_end = _month_bounds(month)
+    levels = _calendar_levels(conn, user)
     rows = conn.execute(
-        "SELECT e.*, c.name AS calendar_name, c.color AS calendar_color, "
-        "c.shared AS calendar_shared "
+        "SELECT e.*, c.name AS calendar_name, c.color AS calendar_color "
         "FROM calendar_events e JOIN calendars c ON e.calendar_id = c.id "
-        "WHERE (c.shared = 1 OR c.owner = ?) "
+        f"WHERE c.id IN ({','.join('?' * len(levels))}) "
         "AND (e.recur_freq IS NOT NULL OR (e.end_date >= ? AND e.start_date < ?))",
-        (user, range_start.isoformat(), range_end.isoformat()),
-    ).fetchall()
+        (*levels, range_start.isoformat(), range_end.isoformat()),
+    ).fetchall() if levels else []
 
     events = []
     for row in rows:
         if row["recur_freq"] is None:
-            events.append(_row_to_event(row, user))
+            events.append(_row_to_event(row, user, level=levels[row["calendar_id"]]))
             continue
         start = date.fromisoformat(row["start_date"])
         duration = date.fromisoformat(row["end_date"]) - start
@@ -421,7 +481,8 @@ def list_month(conn: sqlite3.Connection, user: str, month: str) -> dict:
         ):
             if occ_start.isoformat() in exceptions:
                 continue
-            events.append(_row_to_event(row, user, occ_start.isoformat(), (occ_start + duration).isoformat()))
+            events.append(_row_to_event(row, user, occ_start.isoformat(), (occ_start + duration).isoformat(),
+                                        level=levels[row["calendar_id"]]))
 
     events.sort(key=lambda e: (e["start_date"], not e["all_day"], e["start_time"] or ""))
     return {
@@ -526,34 +587,42 @@ def create_events_bulk(conn: sqlite3.Connection, user: str, bodies: list[EventIn
     ids = [_insert_event(conn, user, body) for body in bodies]
     bump(conn, _VERSION_KEY)
     rows = conn.execute(
-        "SELECT e.*, c.name AS calendar_name, c.color AS calendar_color, "
-        "c.shared AS calendar_shared FROM calendar_events e "
+        "SELECT e.*, c.name AS calendar_name, c.color AS calendar_color FROM calendar_events e "
         f"JOIN calendars c ON c.id = e.calendar_id WHERE e.id IN ({','.join('?' * len(ids))})",
         ids,
     ).fetchall()
     by_id = {r["id"]: r for r in rows}
-    return [_row_to_event(by_id[i], user) for i in ids]
+    levels = _calendar_levels(conn, user)
+    return [_row_to_event(by_id[i], user, level=levels.get(by_id[i]["calendar_id"])) for i in ids]
 
 
-def _get_editable(conn: sqlite3.Connection, user: str, event_id: int) -> sqlite3.Row:
-    """An event on a shared calendar belongs to everyone -- any user can edit
-    or delete it. An event on a private calendar still only answers to its
-    creator."""
+def _get_editable(conn: sqlite3.Connection, user: str, event_id: int, need: str = "edit") -> sqlite3.Row:
+    """An event, if its calendar lets `user` do `need` ("edit" to change or
+    delete it; "see" is enough for its alarm). An event on a calendar not
+    shared with them is not found."""
     row = conn.execute(
-        "SELECT e.*, c.owner AS calendar_owner, c.shared AS calendar_shared FROM calendar_events e "
+        "SELECT e.*, c.owner AS calendar_owner, c.people AS people FROM calendar_events e "
         "JOIN calendars c ON c.id = e.calendar_id WHERE e.id = ?",
         (event_id,),
     ).fetchone()
-    if row is None:
+    level = None
+    if row is not None:
+        level = "owner" if row["calendar_owner"] == user else _people(row).get(user)
+    if not level:
         raise CalendarError("event not found", status_code=404)
-    if row["calendar_owner"] != user and not row["calendar_shared"]:
-        raise CalendarError("only the creator can change this event", status_code=403)
+    if not _allows(level, need):
+        raise CalendarError("this calendar is shared with you to look at, not to change", status_code=403)
     return row
 
 
+# Changing only these is acknowledging or snoozing an alarm — allowed to
+# anyone who sees the event.
+_ALARM_FIELDS = {"alarm_ack", "alarm_snooze_occurrence", "alarm_snooze_until"}
+
+
 def update_event(conn: sqlite3.Connection, user: str, event_id: int, body: EventPatch) -> dict:
-    row = _get_editable(conn, user, event_id)
     fields = body.model_dump(exclude_unset=True)
+    row = _get_editable(conn, user, event_id, "see" if fields and set(fields) <= _ALARM_FIELDS else "edit")
 
     if "calendar_id" in fields:
         _check_calendar_access(conn, user, fields["calendar_id"])
@@ -636,8 +705,8 @@ def delete_events_from(
     conn: sqlite3.Connection, user: str, from_date: str, calendar_id: int | None = None,
 ) -> int:
     """Deletes every event whose own start_date is on or after `from_date`
-    (inclusive), among calendars this user may edit (any shared calendar, or
-    one they own -- same access rule as _get_editable). `calendar_id`, when
+    (inclusive), among calendars this user may edit (their own, or one shared with
+    them to edit -- same access rule as _get_editable). `calendar_id`, when
     given, narrows this to just that one calendar (still access-checked --
     404/403 the same way filing an event into it would); omitted, every
     editable calendar is in scope, as before this parameter existed. For a
@@ -649,11 +718,14 @@ def delete_events_from(
     rows deleted."""
     if calendar_id is not None:
         _check_calendar_access(conn, user, calendar_id)
+    editable = [cid for cid, level in _calendar_levels(conn, user).items() if _allows(level, "edit")]
+    if not editable:
+        return 0
     query = (
-        "SELECT e.id FROM calendar_events e JOIN calendars c ON c.id = e.calendar_id "
-        "WHERE e.start_date >= ? AND (c.shared = 1 OR c.owner = ?)"
+        "SELECT e.id FROM calendar_events e "
+        f"WHERE e.start_date >= ? AND e.calendar_id IN ({','.join('?' * len(editable))})"
     )
-    params: list = [from_date, user]
+    params: list = [from_date, *editable]
     if calendar_id is not None:
         query += " AND e.calendar_id = ?"
         params.append(calendar_id)

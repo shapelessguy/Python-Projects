@@ -24,7 +24,7 @@ const PANELS: { id: PanelId; icon: string; label: string; render: () => JSX.Elem
   // Still keyed "movies": that id is the permission name in secrets.json's
   // visibility lists and the backend's require_panel, so renaming the label
   // alone keeps every existing account's access as it was.
-  { id: "movies", icon: "🎬", label: "Media", render: () => <MoviesPanel /> },
+  { id: "movies", icon: "🗂️", label: "Media", render: () => <MoviesPanel /> },
 ];
 
 const LAST_SECTION_COOKIE = "last_section";

@@ -1,11 +1,10 @@
 """Calendar — personal + shared events, entirely local (no external account).
 Every event belongs to a calendar: a user's own (starting with an
 auto-created "Default", plus any they name themselves) are visible only to
-them, unless flagged `shared`, in which case they're visible to every
-CyanHouse user. Self-contained module: own DB, own version counter — see
+them until they share one, person by person, to see, edit or manage it. Self-contained module: own DB, own version counter — see
 api/services/calendar.py and food.py's router for the template this follows.
 """
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
 
 from api.auth import require_user
 from api.models import CalendarIn, CalendarPatch, EventIn, EventPatch
@@ -49,6 +48,23 @@ def patch_calendar(calendar_id: int, body: CalendarPatch, user: str = Depends(re
     try:
         with calendar.connect() as conn:
             return calendar.update_calendar(conn, user, calendar_id, body.name, body.color, body.shared)
+    except calendar.CalendarError as e:
+        raise HTTPException(status_code=e.status_code, detail=str(e))
+
+
+@router.get("/calendars/sharing/users")
+def sharing_users(_user: str = Depends(require_user)):
+    """Who a calendar can be shared with."""
+    return calendar.sharing_users()
+
+
+@router.put("/calendars/{calendar_id}/sharing")
+def put_sharing(calendar_id: int, body: dict = Body(...), user: str = Depends(require_user)):
+    """Who else sees a calendar: {"people": {"<user>": "see"|"edit"|"manage"}};
+    empty is private. For its owner and whoever may manage it."""
+    try:
+        with calendar.connect() as conn:
+            return calendar.set_sharing(conn, user, calendar_id, body.get("people") or {})
     except calendar.CalendarError as e:
         raise HTTPException(status_code=e.status_code, detail=str(e))
 

@@ -23,7 +23,7 @@ from fastapi.responses import FileResponse
 from starlette.concurrency import run_in_threadpool
 
 from api.auth import has_permission, may_see_media, require_media_area, require_permission, require_user
-from api.services import movie_prep, movies, remux_queue, tmdb
+from api.services import image_access, movie_prep, movies, remux_queue, tmdb
 
 router = APIRouter(prefix="/api/prep", tags=["prep"], dependencies=[Depends(require_media_area)])
 
@@ -188,18 +188,24 @@ async def preview(
 
 
 @router.get("/files")
-async def list_files(area: str = Query(...), _user: str = Depends(require_user)):
+async def list_files(area: str = Query(...), user: str = Depends(require_user)):
     """Everything in the staging folder, not just the films — the subtitles,
-    the release notes and the junk all have to be visible to be judged."""
+    the release notes and the junk all have to be visible to be judged. In
+    the Images library, only the albums this user may see, each folder with
+    its `access` (image_access)."""
     try:
-        return {"area": area, "files": await run_in_threadpool(movie_prep.browse, area)}
+        files = await run_in_threadpool(movie_prep.browse, area)
+        if area == IMAGES:
+            files = await run_in_threadpool(image_access.filter_listing, user, files)
+        return {"area": area, "files": files}
     except movie_prep.PrepError as e:
         raise _wrap(e)
 
 
 @router.get("/text")
 async def read_text(area: str = Query(...), path: str = Query(...),
-                    _user: str = Depends(require_user)):
+                    user: str = Depends(require_user)):
+    _image(user, area, path, "see")
     try:
         return await run_in_threadpool(movie_prep.read_text, area, path)
     except movie_prep.PrepError as e:
@@ -208,7 +214,8 @@ async def read_text(area: str = Query(...), path: str = Query(...),
 
 @router.get("/info")
 async def file_info(area: str = Query(...), path: str = Query(...),
-                    _user: str = Depends(require_user)):
+                    user: str = Depends(require_user)):
+    _image(user, area, path, "see")
     try:
         return await run_in_threadpool(movie_prep.describe, area, path)
     except movie_prep.PrepError as e:
@@ -217,9 +224,10 @@ async def file_info(area: str = Query(...), path: str = Query(...),
 
 @router.get("/raw")
 async def raw_file(area: str = Query(...), path: str = Query(...),
-                   _user: str = Depends(require_user)):
+                   user: str = Depends(require_user)):
     """The bytes, for things a browser can render itself: images, and audio
     (which seeks through Range requests — FileResponse answers those)."""
+    _image(user, area, path, "see")
     try:
         resolved = await run_in_threadpool(movie_prep.resolve_in_area, area, path)
     except movie_prep.PrepError as e:
@@ -231,8 +239,9 @@ async def raw_file(area: str = Query(...), path: str = Query(...),
 
 @router.get("/thumb")
 async def thumb(area: str = Query(...), path: str = Query(...), w: int = Query(400, ge=32, le=2000),
-                _user: str = Depends(require_user)):
+                user: str = Depends(require_user)):
     """A small JPEG of a picture, for galleries (api/services/thumbs.py)."""
+    _image(user, area, path, "see")
     from api.services import thumbs
     try:
         out = await run_in_threadpool(thumbs.thumbnail, area, path, w)
@@ -275,9 +284,28 @@ def _may_see(user: str, *areas: str) -> None:
         raise HTTPException(403, "not permitted to see that folder")
 
 
+IMAGES = ":images"
+
+
+def _image(user: str, area: str, path: str, need: str) -> None:
+    """In the Images library, each album has its own rule (image_access):
+    `need` ("see", "add", "manage") on `path` — a folder by its own rule, a
+    file by its folder's. Other folders are not judged here."""
+    if area != IMAGES:
+        return
+    try:
+        image_access.require(user, path, need)
+    except image_access.AccessError as e:
+        raise HTTPException(e.status_code, str(e))
+
+
 def may_change(user: str, area: str) -> None:
-    """Rename, delete, upload, move within — anything that stays in `area`."""
+    """Rename, delete, upload, move within — anything that stays in `area`.
+    In the Images library the album's own rule decides instead (_image),
+    checked by each endpoint against the path it touches."""
     _may_see(user, area)
+    if area == IMAGES:
+        return
     if _publisher(user) or movie_prep.workspace_of(area):
         return
     raise HTTPException(403, "outside a staging workspace, changes need the publish permission")
@@ -292,7 +320,7 @@ def may_move(user: str, from_area: str, to_area: str) -> None:
     if not movie_prep.may_move_between(from_area, to_area):
         raise HTTPException(
             403, f"{movie_prep.folder_name(from_area)} cannot be moved into {movie_prep.folder_name(to_area)}")
-    if _publisher(user):
+    if _publisher(user) or from_area == to_area == IMAGES:
         return
     here = movie_prep.workspace_of(from_area)
     if not here:
@@ -311,6 +339,7 @@ async def rename_entry(
 ):
     """Rename one file or folder where it sits."""
     may_change(user, area)
+    _image(user, area, path, "manage")
     try:
         return await run_in_threadpool(movie_prep.rename_entry, area, path, name)
     except movie_prep.PrepError as e:
@@ -324,10 +353,15 @@ async def make_folder(
     name: str = Query(..., min_length=1, max_length=255),
     user: str = Depends(require_user),
 ):
-    """Create an empty folder."""
+    """Create an empty folder. In the Images library it is the maker's
+    (image_access.claim)."""
     may_change(user, area)
+    _image(user, area, path, "add")
     try:
-        return await run_in_threadpool(movie_prep.make_folder, area, path, name)
+        made = await run_in_threadpool(movie_prep.make_folder, area, path, name)
+        if area == IMAGES:
+            await run_in_threadpool(image_access.claim, made["new_path"], user)
+        return made
     except movie_prep.PrepError as e:
         raise _wrap(e)
 
@@ -344,6 +378,8 @@ async def move_entry(
     tree. Both ends are checked: taking something out of a folder is as much
     a change to it as putting something in."""
     may_move(user, area, to_area)
+    _image(user, area, path, "manage")
+    _image(user, to_area, to, "add")
     try:
         return await run_in_threadpool(movie_prep.move_entry, area, path, to_area, to)
     except movie_prep.PrepError as e:
@@ -363,6 +399,8 @@ async def resolve_conflict(
     """Settle a file a move left behind because the destination had one of
     the same name: replace that one, or keep both."""
     may_move(user, area, to_area)
+    _image(user, area, path, "manage")
+    _image(user, to_area, dest.rpartition("/")[0], "manage" if action == "replace" else "add")
     try:
         return await run_in_threadpool(
             movie_prep.resolve_conflict, area, path, to_area, dest, action, upto)
@@ -379,6 +417,7 @@ async def delete_entry(
     """Delete a file, or a folder and everything under it. For good — the
     panel asks twice before it calls this."""
     may_change(user, area)
+    _image(user, area, path, "manage")
     try:
         return await run_in_threadpool(movie_prep.delete_entry, area, path)
     except movie_prep.PrepError as e:
@@ -402,3 +441,35 @@ async def move_film(
         return await run_in_threadpool(movie_prep.move_film, id, to)
     except (movie_prep.PrepError, movies.MovieError) as e:
         raise _wrap(e)
+
+
+# ── who sees an album (Images library) ─────────────────────────────────────
+@router.get("/access")
+async def get_access(path: str = Query(..., min_length=1), user: str = Depends(require_user)):
+    """An album's sharing, as its owner sets it: its own rule, what that
+    comes to, and who it can be shared with."""
+    _image(user, IMAGES, path, "see")
+    return {
+        "path": path,
+        "rule": await run_in_threadpool(image_access.rule_here, path),
+        "access": await run_in_threadpool(image_access.access, user, path),
+        "users": image_access.users(),
+    }
+
+
+@router.put("/access")
+async def put_access(
+    path: str = Query(..., min_length=1),
+    body: dict = Body(...),
+    user: str = Depends(require_user),
+):
+    """Set who sees an album: {"visibility": "public"|"shared"|"private"|null,
+    "people": {"<user>": "see"|"add"|"manage"}}. null follows the folder above.
+    Only the album's owner and admins may."""
+    try:
+        out = await run_in_threadpool(
+            image_access.set_rule, user, path, body.get("visibility"), body.get("people") or {})
+    except image_access.AccessError as e:
+        raise HTTPException(e.status_code, str(e))
+    movie_prep._bump()
+    return out

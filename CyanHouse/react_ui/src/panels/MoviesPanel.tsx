@@ -8,6 +8,7 @@ import { currentUsername } from "../auth";
 import { CoverBook } from "./CoverBook";
 import { MusicLibrary, MusicView } from "./MusicLibrary";
 import { ImageGallery, ImageViewer } from "./ImageGallery";
+import { ShareDialog } from "./ShareDialog";
 import { MusicPlayerBar } from "./MusicPlayerBar";
 import { MusicIdentify } from "./MusicPrep";
 import { ConflictDialog, Clash } from "./ConflictDialog";
@@ -281,6 +282,8 @@ export function MoviesPanel() {
   const setThumbSize = (n: number) => { setThumbSizeState(n); writeCookie(THUMB_COOKIE, String(n)); };
   // The gallery's open folder ("" is its first layer, the folders).
   const [galleryFolder, setGalleryFolder] = useState("");
+  // The album whose sharing is being edited (ShareDialog), if any.
+  const [sharing, setSharing] = useState<string | null>(null);
   const [viewing, setViewing] = useState<{ area: string; list: StagedFile[]; index: number } | null>(null);
   // The Music tab's player: the song loaded, a fresh object each time it
   // should start playing, and the album or list it came from.
@@ -519,7 +522,11 @@ export function MoviesPanel() {
   /** Both folders of a workspace. */
   const workspaceFolders = (ws: string) =>
     sources.filter((s) => s.group === ws && (s.kind === "inbox" || s.kind === "output")).map((s) => s.key);
-  const canEditArea = (area: string) => publisher || workspaceOf(area) !== null;
+  // The Images library: every album carries its own rule (who may add,
+  // who may manage — api/services/image_access.py), which the tree and the
+  // gallery apply per folder and the server enforces; so the area as a
+  // whole is open to change for everyone.
+  const canEditArea = (area: string) => publisher || area === ":images" || workspaceOf(area) !== null;
   /** Whether the move rules (secrets.json, sent with the sources) let
    *  things in `from` go into `to`. */
   const movesTo = (from: string, to: string) =>
@@ -527,7 +534,7 @@ export function MoviesPanel() {
   /** Which folders' entries may be dropped into `area`. */
   const acceptsFrom = (area: string): string[] => {
     const ws = workspaceOf(area);
-    const from = publisher ? sources.map((x) => x.key) : ws ? workspaceFolders(ws) : [];
+    const from = publisher ? sources.map((x) => x.key) : ws ? workspaceFolders(ws) : area === ":images" ? [area] : [];
     return from.filter((k) => movesTo(k, area));
   };
 
@@ -1467,7 +1474,8 @@ export function MoviesPanel() {
             folder={galleryFolder}
             onFolder={setGalleryFolder}
             onOpen={(list, index) => setViewing({ area: ":images", list, index })}
-            onUpload={canEditArea(":images") ? (dt, folder) => actionsFor(":images").upload(dt, folder) : undefined}
+            onUpload={(dt, folder) => actionsFor(":images").upload(dt, folder)}
+            onShare={setSharing}
           />
         ) : panes.length ? (
           // A library is one tree; a staging area is two, the inbox on top
@@ -1527,6 +1535,8 @@ export function MoviesPanel() {
                     activePath={source === pane.key ? viewFile?.path ?? null : null}
                     activeMovieId={selected?.id ?? null}
                     canEdit={canEditArea(pane.key)}
+                    onShare={pane.key === ":images" ? setSharing : undefined}
+                    rootLevel={pane.key === ":images" ? "add" : undefined}
                     onPick={(f) => pickFile(f, pane.key)}
                     onPlay={(f) => {
                       if (pane.key === ":music") { const s = songOf(f); openSong(s, true, [s], 0); return; }
@@ -1997,6 +2007,10 @@ export function MoviesPanel() {
       </aside>
       )}
       </div>
+      {sharing !== null && (
+        <ShareDialog path={sharing} onClose={() => setSharing(null)}
+                     onSaved={() => { if (paneKeys !== null) loadPanes(paneKeys.split("|")).catch(() => {}); }} />
+      )}
       {viewing && tab === viewing.area && (
         <ImageViewer
           area={viewing.area}

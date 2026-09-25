@@ -154,14 +154,18 @@ export interface Calendar {
   id: number;
   name: string;
   color: string;
+  /** Shared with anyone at all (`people` not empty). */
   shared: boolean;
-  // Whether the current user may rename/recolor/delete/(un-)share this
-  // calendar -- true for one they own, or for the original owner-less
-  // "Shared" calendar (predates per-calendar sharing) which answers to
-  // everyone since nobody in particular owns it. False only for a calendar
-  // someone else owns and has shared with them.
+  /** This user may rename, recolour and share it — its owner, or someone
+   *  it is shared with to manage (api/services/calendar.py). */
   mine: boolean;
+  owner: string;
+  /** What this user may do with it. */
+  level: CalendarLevel;
+  /** Who else it is shared with — sent only to who may change that. */
+  people?: Record<string, Exclude<CalendarLevel, "owner">>;
 }
+export type CalendarLevel = "see" | "edit" | "manage" | "owner";
 
 export interface CalendarEvent {
   id: number;
@@ -170,6 +174,8 @@ export interface CalendarEvent {
   calendar_id: number;
   calendar_name: string;
   calendar_color: string;
+  /** This user may change the event: its calendar is theirs, or shared
+   *  with them to edit (the name is what it used to mean). */
   calendar_shared: boolean;
   title: string;
   description: string;
@@ -438,7 +444,29 @@ export interface StagedFile {
    *  in pixels, so a tile can be drawn at its shape before it loads. */
   width?: number;
   height?: number;
+  /** A folder of the Images library: who may see it and what this user may
+   *  do there (api/services/image_access.py). */
+  access?: FolderAccess;
 }
+
+export type AccessLevel = "none" | "see" | "add" | "manage";
+export type AccessMode = "public" | "shared" | "private";
+export interface FolderAccess {
+  mode: AccessMode;
+  owner: string | null;
+  level: AccessLevel;
+  /** The folder the visibility is set on — this one, one above, or none
+   *  (public by default). */
+  from: string | null;
+  /** This user may change who sees it (its owner, or an admin). */
+  can_share: boolean;
+}
+export interface AccessRule {
+  owner?: string;
+  visibility?: AccessMode;
+  people?: Record<string, "see" | "add" | "manage">;
+}
+export const ACCESS_RANK: Record<AccessLevel, number> = { none: 0, see: 1, add: 2, manage: 3 };
 
 /** What an upload did with each file it was given. Partial success is normal
  *  — drop a folder's worth of subtitles in and the .nfo among them is named
@@ -559,6 +587,10 @@ export const api = {
     f("/api/calendar/calendars", { method: "POST", headers: JSON_HEADERS, body: JSON.stringify({ name, color, shared }) }).then(j<Calendar[]>),
   patchCalendar: (id: number, body: { name?: string; color?: string; shared?: boolean }) =>
     f(`/api/calendar/calendars/${id}`, { method: "PATCH", headers: JSON_HEADERS, body: JSON.stringify(body) }).then(j<Calendar[]>),
+  calendarSharingUsers: () => f("/api/calendar/calendars/sharing/users").then(j<string[]>),
+  setCalendarSharing: (id: number, people: Record<string, string>) =>
+    f(`/api/calendar/calendars/${id}/sharing`, { method: "PUT", headers: JSON_HEADERS, body: JSON.stringify({ people }) })
+      .then(j<Calendar[]>),
   deleteCalendar: (id: number) =>
     f(`/api/calendar/calendars/${id}`, { method: "DELETE" }).then(j<Calendar[]>),
 
@@ -635,6 +667,13 @@ export const api = {
 
   // ── movie preparation (staging folders) ────────────────────────────
   prepAreas: () => f("/api/prep/areas").then(j<{ areas: StagingArea[]; sources: MovieSource[]; tmdb: boolean; languages: { code: string; name: string }[] }>),
+  prepAccess: (path: string) =>
+    f("/api/prep/access?" + new URLSearchParams({ path }))
+      .then(j<{ path: string; rule: AccessRule; access: FolderAccess; users: string[] }>),
+  prepSetAccess: (path: string, visibility: AccessMode | null, people: AccessRule["people"]) =>
+    f("/api/prep/access?" + new URLSearchParams({ path }), {
+      method: "PUT", headers: JSON_HEADERS, body: JSON.stringify({ visibility, people }),
+    }).then(j<FolderAccess>),
   prepFiles: (area: string) =>
     f("/api/prep/files?" + new URLSearchParams({ area })).then(j<{ files: StagedFile[] }>),
   prepScan: (area: string) =>

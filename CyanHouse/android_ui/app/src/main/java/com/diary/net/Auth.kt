@@ -68,7 +68,7 @@ object Auth {
 
     /** Username from the stored credential (`base64("user:token")`), or null.
      *  Decoded locally rather than fetched from /api/me -- just a UI hint
-     *  (e.g. CalendarScreen's SHARING_ADMIN gate), never a security boundary
+     *  only, never a security boundary
      *  since the backend re-checks every mutation itself. Mirrors the web
      *  UI's currentUsername() in auth.ts. */
     fun currentUsername(): String? =

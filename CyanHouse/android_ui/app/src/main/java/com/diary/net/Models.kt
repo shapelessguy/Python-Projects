@@ -27,6 +27,8 @@ data class Versions(
 data class Me(
     val username: String,
     val visible_panels: List<String>? = null,
+    /** Opt-in flags (`admin`, `publish`, `downloaders`, ...) -- api/auth.py. */
+    val permissions: Map<String, Boolean> = emptyMap(),
 )
 
 // ── calendar service (self-contained; personal + shared events, local only —
@@ -36,14 +38,14 @@ data class Calendar(
     val id: Int,
     val name: String,
     val color: String,
+    // Shared with anyone at all. See api/services/calendar.py.
     val shared: Boolean,
-    // Whether the current user may rename/recolor/delete/(un-)share this
-    // calendar -- true for one they own, or for the original owner-less
-    // "Shared" calendar (predates per-calendar sharing) which answers to
-    // everyone since nobody in particular owns it. False only for a
-    // calendar someone else owns and has shared with them. See
-    // api/services/calendar.py's list_calendars.
+    // This user may rename, recolour and share it: its owner, or someone it
+    // is shared with to manage.
     val mine: Boolean = false,
+    val owner: String? = null,
+    // "owner", "manage", "edit" or "see" -- only an owner deletes it.
+    val level: String = "owner",
 )
 
 @Serializable

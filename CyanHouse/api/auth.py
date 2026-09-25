@@ -21,7 +21,10 @@ Each user is `{"token": str, "permissions": dict}`:
     it is listed for. "downloaders" gives the Torrents and Downloads tabs
     (qBittorrent and pyLoad) together; "*" gives everything. Omitted, a user
     has the public folders only.
-  * other names (`publish`, ...), opt-in flags, off unless set true.
+  * other names, opt-in flags, off unless set true: `publish` (move things
+    between the Media panel's folders). Albums (image_access.py) and
+    calendars (services/calendar.py) answer to their owners and whoever they
+    were shared with, never to a flag.
 """
 import base64
 import json

@@ -2,14 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import TimePicker from "react-time-picker";
 import "react-time-picker/dist/TimePicker.css";
 import { api, Calendar, CalendarEvent, EventInput, RecurFreq, useVersionPoll } from "../api";
-import { currentUsername } from "../auth";
+import { CalendarShareDialog } from "./ShareDialog";
 import { readCookie, writeCookie } from "../cookies";
 
-// Mirrors the backend's SHARING_ADMIN (api/services/calendar.py) -- only
-// this user may share/un-share a calendar or delete one that's already
-// shared. Purely a UI hint to avoid offering controls that would 403; the
-// backend is what actually enforces it.
-const SHARING_ADMIN = "cian_cl";
 
 const TODAY = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD, local
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -257,7 +252,8 @@ function linkifyText(text: string): JSX.Element[] {
 }
 
 export function CalendarPanel() {
-  const isSharingAdmin = currentUsername() === SHARING_ADMIN;
+  // The calendar whose sharing is being edited (CalendarShareDialog).
+  const [sharingCal, setSharingCal] = useState<Calendar | null>(null);
   const { calendar } = useVersionPoll();
   const [view, setViewState] = useState<ViewMode>(loadView);
   const setView = (v: ViewMode) => {
@@ -351,10 +347,6 @@ export function CalendarPanel() {
     setCalendars((prev) => prev.map((c) => (c.id === id ? { ...c, color } : c))); // instant swatch feedback
     api.patchCalendar(id, { color }).then(setCalendars).catch((e) => setError(String(e)));
   };
-  const toggleShared = (id: number, shared: boolean) => {
-    setCalendars((prev) => prev.map((c) => (c.id === id ? { ...c, shared } : c))); // instant icon feedback
-    api.patchCalendar(id, { shared }).then(setCalendars).catch((e) => setError(String(e)));
-  };
   const [calendarsOpen, setCalendarsOpen] = useState(false);
   const [confirmDeleteCal, setConfirmDeleteCal] = useState<Calendar | null>(null);
   const calendarsMenuRef = useRef<HTMLDivElement>(null);
@@ -380,7 +372,7 @@ export function CalendarPanel() {
       })
       .catch((e) => setError(String(e)));
   };
-  const defaultCalendarId = calendars.find((c) => !c.shared)?.id ?? calendars[0]?.id ?? 0;
+  const defaultCalendarId = calendars.find((c) => c.level === "owner")?.id ?? calendars[0]?.id ?? 0;
 
   const days = useMemo(
     () => (view === "month" ? monthGrid(anchor.slice(0, 7)) : weekDays(anchor)),
@@ -480,6 +472,9 @@ export function CalendarPanel() {
 
   return (
     <div className="panel calendar">
+      {sharingCal && (
+        <CalendarShareDialog calendar={sharingCal} onClose={() => setSharingCal(null)} onSaved={setCalendars} />
+      )}
       <div className="calendar-main">
         <div className="month-nav">
           <button onClick={goPrev}>◀</button>
@@ -520,19 +515,17 @@ export function CalendarPanel() {
                     </label>
                     <button
                       className="ghost cal-cal-share"
-                      disabled={!isSharingAdmin || !c.mine}
+                      disabled={!c.mine}
                       title={
-                        !isSharingAdmin
-                          ? `Only ${SHARING_ADMIN} can share or un-share a calendar`
-                          : c.mine
-                            ? c.shared ? `${c.name} is shared — click to make it private` : `${c.name} is private — click to share it`
-                            : `${c.name} is shared with you`
+                        c.mine
+                          ? `${c.name} is ${c.shared ? "shared" : "private"} — click to change who sees it`
+                          : `${c.name} is ${c.owner}'s, shared with you to ${c.level === "see" ? "look at" : "edit"}`
                       }
-                      onClick={() => isSharingAdmin && c.mine && toggleShared(c.id, !c.shared)}
+                      onClick={() => c.mine && setSharingCal(c)}
                     >
                       {c.shared ? "👥" : "👤"}
                     </button>
-                    {c.mine && (!c.shared || isSharingAdmin) && (
+                    {c.level === "owner" && (
                       <button
                         className="ghost cal-cal-delete"
                         title={`Delete ${c.name}`}
@@ -733,7 +726,9 @@ export function CalendarPanel() {
                 disabled={!editable}
                 onChange={(e) => setDraft({ ...draft, calendar_id: Number(e.target.value) })}
               >
-                {calendars.map((c) => (
+                {/* Where it may go: calendars this user may edit — and the one
+                    it is in, even if only to look at. */}
+                {calendars.filter((c) => c.level !== "see" || c.id === draft.calendar_id).map((c) => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>

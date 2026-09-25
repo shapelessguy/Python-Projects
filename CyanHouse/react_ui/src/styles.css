@@ -1894,7 +1894,9 @@ select.mv-preplang:invalid, select.mv-preplang[data-empty="true"] { color: var(-
 
 /* ── Images tab: the gallery ───────────────────────────────────────────── */
 .ig-scroll {
-  flex: 1 1 auto; min-height: 0; overflow-y: auto;
+  /* Never sideways: a hovered album fans its prints out past its edge,
+     which must not make the whole gallery wider. */
+  flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden;
   border: 1px solid var(--line); border-radius: 8px; background: var(--panel);
   padding: 6px 16px 20px;
 }
@@ -1905,7 +1907,9 @@ select.mv-preplang:invalid, select.mv-preplang[data-empty="true"] { color: var(-
 /* Drawn over the section, its sticky header included, which would
    otherwise paint over the top of an outline. */
 .ig-section.dropping::after {
-  content: ""; position: absolute; inset: 4px -8px 0; z-index: 3; pointer-events: none;
+  /* The same gap all round, clear of the pictures — whether the section
+     starts with its heading or (inside an album) with the pictures. */
+  content: ""; position: absolute; inset: -6px; z-index: 3; pointer-events: none;
   border: 2px dashed var(--accent); border-radius: 10px;
   background: color-mix(in srgb, var(--accent) 7%, transparent);
 }
@@ -1936,7 +1940,10 @@ select.mv-preplang:invalid, select.mv-preplang[data-empty="true"] { color: var(-
 .ig-cover {
   /* 4:3 by padding rather than aspect-ratio, which a photo inside can
      still stretch. */
-  position: relative; display: block; height: 0; padding-bottom: 75%; margin-bottom: 7px;
+  /* The gap under it grows with the card: the prints behind are turned by
+     a fixed angle, so their corners reach further down on a bigger card
+     (about 5% of its width at 3°). */
+  position: relative; display: block; height: 0; padding-bottom: 75%; margin-bottom: calc(6px + 5%);
   border-radius: 10px; background: var(--panel-2);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -1964,6 +1971,8 @@ select.mv-preplang:invalid, select.mv-preplang[data-empty="true"] { color: var(-
 .ig-cover .ig-broken { position: absolute; inset: 0; height: auto; font-size: 1.6rem; }
 .ig-album:focus-visible { outline: none; }
 .ig-album:focus-visible .ig-cover { outline: 2px solid var(--accent); outline-offset: 3px; }
+/* Always in front of the prints, whatever the card's size or hover state. */
+.ig-albumname, .ig-albumsub, .ig-newname { position: relative; z-index: 3; }
 .ig-albumname { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ig-albumsub { font-size: 0.75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
 .ig-album.dropping .ig-cover { outline: 2px dashed var(--accent); outline-offset: 4px; }
@@ -2079,3 +2088,65 @@ select.mv-preplang:invalid, select.mv-preplang[data-empty="true"] { color: var(-
   .ig-scroll { padding: 4px 10px 16px; }
   .ig-tile { border-radius: 8px; }
 }
+
+/* ── Who sees an album (Images) ────────────────────────────────────────── */
+.mv-access {
+  flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
+  font-size: 0.8rem; line-height: 1; padding: 2px 5px; border-radius: 999px;
+  border: 1px solid transparent;
+}
+.mv-access.shared { background: color-mix(in srgb, #4a90d9 18%, transparent); border-color: color-mix(in srgb, #4a90d9 45%, transparent); }
+.mv-access.private { background: color-mix(in srgb, #e0a030 18%, transparent); border-color: color-mix(in srgb, #e0a030 45%, transparent); }
+.mv-access.public { opacity: 0.75; }
+.mv-access.clickable { cursor: pointer; }
+.mv-access.clickable:hover, .mv-access.clickable:focus-visible { opacity: 1; border-color: var(--accent); outline: none; }
+/* On an album's cover, top right, readable over any photo. */
+.ig-albumaccess {
+  position: absolute; top: 8px; right: 8px; z-index: 2;
+  background: rgba(0, 0, 0, 0.55); backdrop-filter: blur(4px); font-size: 0.85rem; padding: 4px 7px;
+}
+.ig-albumaccess.public { opacity: 1; }
+.ig-crumbaccess { margin-left: 8px; }
+
+.sd-overlay {
+  position: fixed; inset: 0; z-index: 1100; display: flex; align-items: center; justify-content: center;
+  background: rgba(0, 0, 0, 0.55); padding: 16px;
+}
+.sd-box {
+  width: min(460px, 100%); max-height: calc(100vh - 32px); overflow-y: auto;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5); padding: 18px 18px 14px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.sd-head h3 { margin: 0 0 2px; font-size: 1.05rem; }
+.sd-options { display: flex; flex-direction: column; gap: 6px; }
+.sd-option {
+  display: flex; align-items: center; gap: 10px; padding: 9px 11px; cursor: pointer;
+  border: 1px solid var(--line); border-radius: 9px;
+}
+.sd-option.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.sd-option input { margin: 0; }
+.sd-icon { font-size: 1.15rem; width: 1.4em; text-align: center; }
+.sd-text { display: flex; flex-direction: column; }
+.sd-text small { color: var(--muted); }
+.sd-people { display: flex; flex-direction: column; gap: 4px; }
+.sd-peoplehead { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.sd-person { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 3px 0; }
+.sd-foot { display: flex; justify-content: flex-end; gap: 8px; }
+
+/* The gallery's "New folder" card, and an album with no pictures yet. */
+.ig-newalbum .ig-cover {
+  background: transparent; box-shadow: none;
+  border: 2px dashed var(--line); display: block;
+}
+.ig-newalbum .ig-cover::before, .ig-newalbum .ig-cover::after { display: none; }
+.ig-newalbum:hover .ig-cover, .ig-newalbum.editing .ig-cover { border-color: var(--accent); box-shadow: none; }
+.ig-newplus {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-size: 2.2rem; color: var(--muted);
+}
+.ig-newalbum:hover .ig-newplus { color: var(--accent); }
+.ig-newname { width: 100%; font-weight: 600; }
+.ig-albumsub.error { color: var(--bad, #e06060); white-space: normal; }
+.ig-emptyalbum { position: absolute; inset: 0; font-size: 2rem; letter-spacing: 0; }
+.ig-folderhead { margin-top: 22px; }

@@ -89,7 +89,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diary.Prefs
-import com.diary.net.Auth
 import com.diary.net.Calendar
 import com.diary.net.CalendarEvent
 import com.diary.net.EventBody
@@ -304,7 +303,6 @@ fun CalendarScreen(vm: CalendarViewModel = viewModel()) {
                     CalendarsMenu(
                         calendars = vm.calendars,
                         visibleIds = vm.visibleCalendarIds,
-                        isSharingAdmin = Auth.currentUsername() == SHARING_ADMIN,
                         onToggle = vm::toggleCalendarVisible,
                         onRecolor = vm::recolorCalendar,
                         onToggleShared = vm::toggleShared,
@@ -391,17 +389,11 @@ fun CalendarScreen(vm: CalendarViewModel = viewModel()) {
     }
 }
 
-// Mirrors the backend's SHARING_ADMIN (api/services/calendar.py) -- only
-// this user may share/un-share a calendar or delete one that's already
-// shared. Purely a UI hint to avoid offering controls that would 403; the
-// backend is what actually enforces it.
-private const val SHARING_ADMIN = "cian_cl"
 
 @Composable
 private fun CalendarsMenu(
     calendars: List<Calendar>,
     visibleIds: Set<Int>,
-    isSharingAdmin: Boolean,
     onToggle: (Int) -> Unit,
     onRecolor: (Int, String) -> Unit,
     onToggleShared: (Int, Boolean) -> Unit,
@@ -435,13 +427,14 @@ private fun CalendarsMenu(
                 Text(c.name, modifier = Modifier.weight(1f), fontSize = 13.sp)
                 IconButton(
                     onClick = { onToggleShared(c.id, !c.shared) },
-                    enabled = isSharingAdmin && c.mine,
+                    // Shares with everyone (to edit its events) or makes it
+                    // private; who sees it, person by person, is set on the web.
+                    enabled = c.mine,
                     modifier = Modifier.size(28.dp),
                 ) {
                     Icon(
                         if (c.shared) Icons.Default.Groups else Icons.Default.Person,
                         contentDescription = when {
-                            !isSharingAdmin -> "Only $SHARING_ADMIN can share or un-share a calendar"
                             !c.mine -> "${c.name} is shared with you"
                             c.shared -> "${c.name} is shared — tap to make it private"
                             else -> "${c.name} is private — tap to share it"
@@ -449,7 +442,7 @@ private fun CalendarsMenu(
                         modifier = Modifier.size(16.dp),
                     )
                 }
-                if (c.mine && (!c.shared || isSharingAdmin)) {
+                if (c.level == "owner") {
                     IconButton(onClick = { onDeleteRequest(c) }, modifier = Modifier.size(28.dp)) {
                         Icon(Icons.Default.Delete, "Delete ${c.name}", modifier = Modifier.size(16.dp),
                             tint = MaterialTheme.colorScheme.primary)
