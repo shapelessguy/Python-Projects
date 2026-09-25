@@ -1355,6 +1355,8 @@ input.mv-rename {
 }
 .mv-job button { padding: 0 5px; font-size: 0.72rem; }
 .mv-job.cancelled, .mv-job.done { opacity: 0.6; }
+.mv-job.skipped { opacity: 0.5; }
+.mv-job.skipped .mv-jobstate { font-style: italic; }
 /* A whole drop, with its files folded away underneath it. The batch row
  * keeps full opacity while any of its files are still moving. */
 .mv-batch > .mv-job { font-weight: 600; }

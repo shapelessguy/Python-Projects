@@ -40,7 +40,10 @@ export interface UploadJob {
   area: string;
   size: number;
   sent: number;
-  status: "queued" | "uploading" | "done" | "error" | "cancelled";
+  /** "skipped": a file of that name was already in the folder — not sent,
+   *  not an error (dropping a folder again after an interruption is the
+   *  usual way to get here). */
+  status: "queued" | "uploading" | "done" | "error" | "cancelled" | "skipped";
   error: string;
 }
 
@@ -164,8 +167,23 @@ export function useUploads(onFinished: () => void) {
         relativePath: picked.relPath,
         filename: picked.file.name,
       },
+      // A refusal is final: a 409 (the name is taken in that folder) or any
+      // other 4xx will not change by asking again — only a timeout, a
+      // rate limit, a lock or the network going away is worth a retry.
+      onShouldRetry: (err) => {
+        const status = (err as tus.DetailedError).originalResponse?.getStatus() ?? 0;
+        return !(status >= 400 && status < 500 && ![408, 423, 429].includes(status));
+      },
       onProgress: (sent) => patch(id, { sent, status: "uploading" }),
       onError: (error) => {
+        const response = (error as tus.DetailedError).originalResponse;
+        if (response?.getStatus() === 409 && /already in that folder/.test(response.getBody() ?? "")) {
+          // Already there: nothing to send, nothing to retry.
+          patch(id, { status: "skipped", error: "" });
+          pending.current.delete(id);
+          done(id);
+          return;
+        }
         // Kept in `pending` on purpose: retry needs it, and it is the only
         // thing standing between a failed 40 GB upload and doing it again.
         patch(id, { status: "error", error: String(error).replace(/^Error:\s*/, "") });
@@ -225,6 +243,16 @@ export function useUploads(onFinished: () => void) {
     pumpRef.current();
   }, []);
 
+  /** Send again every file of a drop that failed. */
+  const retryBatch = useCallback((batch: string) => {
+    const again = jobsRef.current.filter((j) => j.batch === batch && j.status === "error" && pending.current.has(j.id));
+    if (!again.length) return;
+    const ids = new Set(again.map((j) => j.id));
+    setJobs((all) => all.map((j) => (ids.has(j.id) ? { ...j, status: "queued" as const, error: "", sent: 0 } : j)));
+    queue.current.push(...ids);
+    pumpRef.current();
+  }, []);
+
   /** Stop a whole drop. The point of batching: a folder of three hundred
    *  episodes is one mistake to undo, not three hundred. */
   const cancelBatch = useCallback((batch: string) => {
@@ -254,5 +282,5 @@ export function useUploads(onFinished: () => void) {
     setJobs((all) => all.filter((j) => j.status === "uploading" || j.status === "queued"));
   }, []);
 
-  return { jobs, add, cancel, cancelBatch, retry, clear };
+  return { jobs, add, cancel, cancelBatch, retry, retryBatch, clear };
 }

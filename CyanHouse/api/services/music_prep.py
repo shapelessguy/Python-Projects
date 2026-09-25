@@ -232,6 +232,44 @@ def _mb_ask(query: str, limit: int = 100) -> list[dict]:
     return r.json().get("recordings") or []
 
 
+def mb_get(path: str, params: dict) -> dict:
+    """Any MusicBrainz web-service call (`path` under /ws/2/, e.g. "release"
+    or "release/<id>"), cached like the searches — keyed by the call itself
+    — and spaced like them. None-free answers only: a 404 is kept as {}."""
+    key = "get|" + path + "?" + "&".join(f"{k}={params[k]}" for k in sorted(params))
+    with _db_lock:
+        row = _searches().execute("SELECT answer FROM search WHERE query = ?", (key,)).fetchone()
+    if row:
+        return json.loads(row[0])
+    global _mb_last
+    answer: dict = {}
+    for attempt in range(5):
+        with _mb_lock:
+            wait = 1.1 - (time.time() - _mb_last)
+            if wait > 0:
+                time.sleep(wait)
+            try:
+                r = requests.get(f"https://musicbrainz.org/ws/2/{path}", params={**params, "fmt": "json"},
+                                 headers={"User-Agent": USER_AGENT}, timeout=20)
+            finally:
+                _mb_last = time.time()
+        if r.status_code == 503:
+            time.sleep(2 * (attempt + 1))
+            continue
+        if r.status_code == 200:
+            answer = r.json()
+        elif r.status_code != 404:
+            r.raise_for_status()
+        break
+    else:
+        raise PrepError("MusicBrainz is busy — try again in a moment", 503)
+    with _db_lock:
+        _searches().execute("INSERT OR REPLACE INTO search VALUES (?, ?, ?)",
+                            (key, json.dumps(answer, ensure_ascii=False), time.time()))
+        _searches().commit()
+    return answer
+
+
 def _credit(credits: list | None) -> str:
     return "".join(c.get("name", "") + c.get("joinphrase", "") for c in credits or []).strip()
 
@@ -504,7 +542,7 @@ def file_song(area_name: str, rel: str, opt: dict) -> dict:
 AUTO_STATE = CACHE_DIR / "auto.json"
 # Raised whenever music_match's rules or searches change: a verdict reached
 # under older rules is judged again rather than kept as long as the file is.
-RULES_VERSION = 10
+RULES_VERSION = 12   # 11: whole albums first (music_albums); 12: all releases, and a fuzzy second try
 AUTO_PASS_SECONDS = 30
 # A file changed this recently may still be arriving (a copy over the
 # network rather than an upload, which only appears once it is whole).
@@ -673,6 +711,48 @@ def _songs(inbox: Path) -> list[Path]:
     return sorted(out)
 
 
+def _album_pass(name: str, inbox: Path, todo: list) -> set[str]:
+    """Recognise and file the albums among `todo` (the songs due a look):
+    the rel paths of the songs filed. An album is looked at once, and again
+    only when one of its songs or the rules change."""
+    from api.services import music_albums
+    by_rel = {rel: (p, sig) for p, rel, sig in todo}
+    groups = music_albums.albums(inbox, [p for p, _, _ in todo])
+    with _auto_lock:
+        seen = _load_auto_state().setdefault(f"{name}|albums", {})
+    filed: set[str] = set()
+    for album_rel, files in groups.items():
+        rels = [str(p.relative_to(inbox)) for p, _ in files]
+        sig = "|".join(sorted(f"{r}:{by_rel[r][1]}" for r in rels))
+        if (seen.get(album_rel) or {}).get("sig") == sig and seen[album_rel].get("rules") == RULES_VERSION:
+            continue
+        with _auto_lock:
+            _auto["current"] = (name, album_rel + "/")
+        release, pairs, why = music_albums.match(music_albums.hints(album_rel, files))
+        with _auto_lock:
+            seen[album_rel] = {"sig": sig, "rules": RULES_VERSION, "reason": why, "at": time.time()}
+            _save_auto_state()
+        if not release:
+            continue
+        _, output = _music_inbox(name)
+        for song, track in pairs:
+            rel = str(song["path"].relative_to(inbox))
+            opt = music_albums.option(release, track)
+            opt["target"] = str(_target_in(output, song["path"], opt).relative_to(output))
+            try:
+                file_song(name, rel, opt)
+                filed.add(rel)
+                with _auto_lock:
+                    _auto["filed"][name] = _auto["filed"].get(name, 0) + 1
+                print(f"music_prep: filed {rel} -> {opt['target']} (album)")
+            except PrepError as e:
+                with _auto_lock:
+                    _load_auto_state().setdefault(name, {})[rel] = {
+                        "sig": by_rel[rel][1], "reason": str(e), "at": time.time(), "rules": RULES_VERSION}
+                filed.add(rel)   # judged: not for the song-by-song pass either
+    return filed
+
+
 def _auto_pass() -> None:
     for name, cfg in movie_prep.areas().items():
         if cfg.get("type") != "music" or not cfg.get("ready") or not _auto_enabled(name):
@@ -700,6 +780,14 @@ def _auto_pass() -> None:
             # newer rules (cheap: MusicBrainz's answers are kept) waits.
             todo.append((1 if seen else 0, p, rel, sig))
         todo = [t[1:] for t in sorted(todo, key=lambda t: t[0])]
+        # Whole albums first (music_albums): a folder of songs is recognised
+        # as the release it is, and filed together; what it could not place
+        # goes on to the song-by-song matching below.
+        try:
+            done = _album_pass(name, inbox, todo)
+            todo = [t for t in todo if t[1] not in done]
+        except Exception as e:
+            print(f"music_prep: album pass: {e.__class__.__name__}: {e}")
         with _auto_lock:
             # Verdicts on songs no longer here (filed by hand, moved, deleted).
             for rel in [r for r in known if r not in present]:

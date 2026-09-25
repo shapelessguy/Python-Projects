@@ -9,6 +9,8 @@ Contract picked up by ``api/main.py`` auto-discovery: ``router`` and
 ``init()``. No ``versions()``: a finished upload bumps the prep counter
 instead, which is what the Movies panel already watches.
 """
+from urllib.parse import quote
+
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from starlette.concurrency import run_in_threadpool
 
@@ -100,9 +102,11 @@ async def create(request: Request, user: str = Depends(require_user)) -> Respons
     return Response(status_code=201, headers={
         **BASE,
         "Location": f"/api/uploads/{state['id']}",
-        # The SPA reads this to show where the file will end up; tus itself
-        # does not define it, and a client that ignores it loses nothing.
-        "X-Upload-Target": state["rel_path"],
+        # Where the file will end up; tus itself does not define it, and a
+        # client that ignores it loses nothing. Percent-encoded: a header
+        # carries Latin-1 only, and a name with "…" or "ü" in it made the
+        # reply itself fail — a 500 after the upload was already reserved.
+        "X-Upload-Target": quote(state["rel_path"], safe="/"),
     })
 
 

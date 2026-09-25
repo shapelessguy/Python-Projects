@@ -1214,6 +1214,8 @@ export function MoviesPanel() {
         out.push({ batch: job.batch, label: job.batchLabel, jobs: [], size: 0, sent: 0 });
       }
       out[at].jobs.push(job);
+      // One already in the folder is not part of what is being sent.
+      if (job.status === "skipped") continue;
       out[at].size += job.size;
       out[at].sent += job.status === "done" ? job.size : job.sent;
     }
@@ -1222,9 +1224,11 @@ export function MoviesPanel() {
 
   const uploadSummary = useMemo(() => {
     const moving = uploads.jobs.filter((j) => j.status === "uploading" || j.status === "queued");
-    if (!moving.length) return `${uploads.jobs.length} finished`;
+    const skipped = uploads.jobs.filter((j) => j.status === "skipped").length;
+    const there = skipped ? ` · ${skipped} already there` : "";
+    if (!moving.length) return `${uploads.jobs.length - skipped} finished${there}`;
     const left = moving.reduce((n, j) => n + (j.size - j.sent), 0);
-    return `Uploading ${moving.length} of ${uploads.jobs.length} — ${fmtSize(left)} to go`;
+    return `Uploading ${moving.length} of ${uploads.jobs.length} — ${fmtSize(left)} to go${there}`;
   }, [uploads.jobs]);
 
   const activeSub = sub === null ? null : info?.subtitles[sub] ?? null;
@@ -1623,6 +1627,7 @@ export function MoviesPanel() {
                 const pct = b.size ? Math.round((b.sent / b.size) * 100) : 0;
                 const running = b.jobs.some((j) => j.status === "uploading" || j.status === "queued");
                 const failed = b.jobs.filter((j) => j.status === "error").length;
+                const skipped = b.jobs.filter((j) => j.status === "skipped").length;
                 const open = openBatch === b.batch;
                 return (
                   <li key={b.batch} className={"mv-batch" + (running ? " running" : "")}>
@@ -1642,8 +1647,15 @@ export function MoviesPanel() {
                         <span className="mv-jobfill" style={{ width: `${pct}%` }} />
                       </span>
                       <span className="mv-jobstate">
-                        {running ? `${pct}%` : failed ? `${failed} failed` : fmtSize(b.size)}
+                        {running ? `${pct}%` : failed ? `${failed} failed`
+                          : skipped === b.jobs.length ? "already there"
+                          : skipped ? `${fmtSize(b.size)} · ${skipped} already there` : fmtSize(b.size)}
                       </span>
+                      {failed > 0 && (
+                        <button className="ghost" title="Send the failed files again" onClick={() => uploads.retryBatch(b.batch)}>
+                          retry failed
+                        </button>
+                      )}
                       {running && (
                         <button className="ghost" title="Stop this upload" onClick={() => uploads.cancelBatch(b.batch)}>✕</button>
                       )}
@@ -1663,6 +1675,7 @@ export function MoviesPanel() {
                               {j.status === "done" ? fmtSize(j.size)
                                 : j.status === "error" ? "failed"
                                 : j.status === "cancelled" ? "stopped"
+                                : j.status === "skipped" ? "already there"
                                 : j.status === "queued" ? "waiting"
                                 : `${j.size ? Math.round((j.sent / j.size) * 100) : 0}%`}
                             </span>
