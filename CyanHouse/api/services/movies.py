@@ -228,6 +228,14 @@ _scan_lock = threading.Lock()
 _scan_cache: tuple[float, list[dict]] | None = None
 
 
+def forget_listing() -> None:
+    """Something in the library changed (movie_prep follows it): the next
+    listing walks it again rather than serving the cached one."""
+    global _scan_cache
+    with _scan_lock:
+        _scan_cache = None
+
+
 def list_movies(refresh: bool = False) -> list[dict]:
     """Every immediate child of MOVIES_DIR that resolves to a video file, as
     ``{id, title, file, size}``. Cached: the library lives on a network

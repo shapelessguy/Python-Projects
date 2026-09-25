@@ -69,15 +69,25 @@ class ControlsViewModel : ViewModel() {
         Prefs.controlsMode = m.name
     }
 
-    /** True while the user drags the volume slider — pauses the /info poll so it
-     *  doesn't yank the thumb back. Cleared when the send finishes. */
+    /** True while the user drags the volume slider — /info answers are not
+     *  applied then, so they don't yank the thumb back. Cleared when the send
+     *  finishes. */
     var dragging = false
 
     init {
+        // Followed with a held request (api/longpoll.py): it comes back when
+        // the volume or device changes, not once a second.
         viewModelScope.launch {
+            var since = ""
             while (true) {
-                if (!dragging) runCatching { Api.controlInfo() }.getOrNull()?.let { info = it }
-                delay(1000)
+                val answer = runCatching { Api.controlInfoHeld(since) }.getOrNull()
+                if (answer == null) {
+                    delay(3000)
+                    continue
+                }
+                since = answer.second
+                if (!dragging) info = answer.first
+                if (since.isEmpty()) delay(1000)
             }
         }
     }

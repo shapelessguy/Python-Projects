@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { onAuthFailed } from "./auth";
 
 export type ColType = "number" | "text" | "bool" | "enum";
@@ -131,9 +131,8 @@ export interface Versions {
   food: number;
   forecast: number;
   calendar: number;
-  /** Bumps when a staging folder's contents change -- the backend watches
-   *  them every few seconds, so the existing once-a-second version poll is
-   *  enough to keep the file list honest. */
+  /** Bumps when a folder the Media panel shows changes -- the backend
+   *  follows them, and the held version request carries it at once. */
   prep: number;
 }
 
@@ -288,6 +287,9 @@ export interface MovieSource {
    *  as a tree, like every other folder — a staging inbox, an output, the
    *  series library). */
   kind: "library" | "inbox" | "output";
+  /** The folders its things may be moved into, by the move rules in
+   *  secrets.json (movie_prep.may_move_between) — among the ones this user sees. */
+  moves_to?: string[];
   /** What the folder is for: work waiting, or work finished. The panel
    *  stacks one above the other. */
   role: "todo" | "done";
@@ -759,41 +761,73 @@ export const api = {
     f(`/api/personal/entries/${date}`, { method: "PUT", headers: JSON_HEADERS, body: JSON.stringify({ values }) }).then(j<MonthData>),
 };
 
-/** Poll GET /api/version every second so the UI refetches on any DB change,
- *  including ones made from another client (e.g. the future Android app). */
-export function useVersionPoll(intervalMs = 1000): Versions {
-  const [v, setV] = useState<Versions>({ diary: 0, weather: 0, food: 0, forecast: 0, calendar: 0, prep: 0 });
-  const ref = useRef(v);
-  ref.current = v;
-
-  useEffect(() => {
-    let alive = true;
-    const tick = async () => {
+/** Follow a held endpoint (api/longpoll.py on the server): ask with the tag
+ *  of what we have, get an answer when it changes (or after `wait` seconds
+ *  anyway), ask again. `onValue` hears every answer. Stops when `signal`
+ *  aborts; after a failure it waits a little before asking again. */
+export function follow<T>(url: string, onValue: (v: T) => void, signal: AbortSignal, wait = 25): void {
+  let since = "";
+  const sleep = (ms: number) => new Promise<void>((r) => {
+    const t = window.setTimeout(r, ms);
+    signal.addEventListener("abort", () => { window.clearTimeout(t); r(); }, { once: true });
+  });
+  (async () => {
+    while (!signal.aborted) {
       try {
-        const next = await api.version();
-        if (
-          alive &&
-          (next.diary !== ref.current.diary ||
-            next.weather !== ref.current.weather ||
-            next.food !== ref.current.food ||
-            next.forecast !== ref.current.forecast ||
-            next.calendar !== ref.current.calendar ||
-            next.prep !== ref.current.prep)
-        ) {
-          setV(next);
-        }
+        const sep = url.includes("?") ? "&" : "?";
+        const r = await f(`${url}${sep}${new URLSearchParams({ since, wait: String(wait) })}`, { signal });
+        const v = await j<T>(r);
+        since = r.headers.get("X-Tag") ?? "";
+        if (!signal.aborted) onValue(v);
+        // An answer without a tag (an older server) would come back at once
+        // every time: pace it like the old poll instead.
+        if (!since) await sleep(1000);
       } catch {
-        /* server down / transient — keep last known */
+        if (!signal.aborted) await sleep(3000);
       }
-    };
-    tick();
-    const id = window.setInterval(tick, intervalMs);
-    return () => {
-      alive = false;
-      window.clearInterval(id);
-    };
-  }, [intervalMs]);
+    }
+  })();
+}
 
+/** The version counters, followed once for the whole page however many
+ *  panels want them: the first to subscribe starts the one held request,
+ *  the last to leave stops it. Each panel picks the counters it cares about
+ *  and refetches when those move. */
+const versionStore = {
+  value: { diary: 0, weather: 0, food: 0, forecast: 0, calendar: 0, prep: 0 } as Versions,
+  listeners: new Set<(v: Versions) => void>(),
+  stop: null as AbortController | null,
+};
+
+function subscribeVersions(listener: (v: Versions) => void): () => void {
+  versionStore.listeners.add(listener);
+  if (!versionStore.stop) {
+    const stop = new AbortController();
+    versionStore.stop = stop;
+    follow<Versions>("/api/version", (next) => {
+      const cur = versionStore.value;
+      if ((Object.keys(next) as (keyof Versions)[]).some((k) => next[k] !== cur[k])) {
+        versionStore.value = next;
+        versionStore.listeners.forEach((l) => l(next));
+      }
+    }, stop.signal);
+  }
+  return () => {
+    versionStore.listeners.delete(listener);
+    if (!versionStore.listeners.size && versionStore.stop) {
+      versionStore.stop.abort();
+      versionStore.stop = null;
+    }
+  };
+}
+
+/** The counters, kept current: see versionStore. */
+export function useVersionPoll(): Versions {
+  const [v, setV] = useState<Versions>(versionStore.value);
+  useEffect(() => {
+    setV(versionStore.value);
+    return subscribeVersions(setV);
+  }, []);
   return v;
 }
 

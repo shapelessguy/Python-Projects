@@ -103,7 +103,7 @@ export function FileView({ area, file, play, onEnded }: {
  *  (`<name>.en.md`, `<name>.it.md`): "movies" for the film library,
  *  "workspace" for a folder with an inbox and an output, "output" for one
  *  with only an output. What makes each folder's text its own is its
- *  `description` in secrets.json's movie_staging, filled in as
+ *  `description` in secrets.json's staging, filled in as
  *  `{{description}}`.
  *
  *  Templates take `{{name}}`, `{{description}}`, `{{inbox}}`, `{{output}}`,
@@ -456,6 +456,9 @@ export const DRAG_TYPE = "application/x-cyanhouse-entry";
  *  inbox's output takes that inbox's things and nothing else), so the
  *  origin is kept here, set on dragstart and cleared on dragend. */
 let currentDrag: { area: string; paths: string[] } | null = null;
+/** The folder a row being dragged comes from — for drop targets outside
+ *  the trees (the tab row), which cannot read the drag's data until the drop. */
+export const draggedArea = (): string | null => currentDrag?.area ?? null;
 
 /** The items a selection actually acts on: the topmost ones. Ticking a
  *  folder ticks everything in it, and moving the folder already carries its
@@ -491,10 +494,12 @@ export interface TreeAction {
 
 export function FileTree({
   area, files, query, activePath, activeMovieId, canEdit, onPick, marks, onPlay, actions,
-  picked, onPicked, destinations, acceptsFrom, pickOnMove = true,
+  picked, onPicked, destinations, acceptsFrom, pickOnMove = true, loading = false,
 }: {
   area: string;
   files: StagedFile[];
+  /** The listing has not arrived yet: say so, rather than "Nothing here". */
+  loading?: boolean;
   query: string;
   activePath: string | null;
   activeMovieId: string | null;
@@ -665,6 +670,22 @@ export function FileTree({
 
   /** Everything the tree is showing — all of it, or what a search left. */
   const allOn = shown.length > 0 && shown.every((n) => picked.has(n.file.path));
+  // For the select-all row: how big everything shown is (a folder's size is
+  // already what is under it), and how much of that is selected — each
+  // picked thing once, not again for a picked folder's picked contents.
+  const shownSize = shown.reduce((n, x) => n + (x.file.size || 0), 0);
+  const pickedSize = useMemo(() => {
+    if (!picked.size) return 0;
+    let n = 0;
+    for (const f of files) {
+      if (!picked.has(f.path)) continue;
+      const parts = f.path.split("/");
+      let inside = false;
+      for (let i = 1; i < parts.length && !inside; i++) inside = picked.has(parts.slice(0, i).join("/"));
+      if (!inside) n += f.size || 0;
+    }
+    return n;
+  }, [files, picked]);
   const toggleAll = () => {
     if (allOn) { onPicked(new Set()); return; }
     const next = new Set<string>();
@@ -990,18 +1011,22 @@ export function FileTree({
         setMenu({ x: e.clientX, y: e.clientY, file: null });
       }}
     >
-      {canEdit && shown.length > 0 && (
-        <div className="mv-node mv-selall" onClick={toggleAll}
-             title={allOn ? "Unselect everything" : "Select everything shown here"}>
-          <span className={"mv-dot" + (allOn ? " on" : "")} role="checkbox" aria-checked={allOn} />
+      {shown.length > 0 && (
+        <div className={"mv-node mv-selall" + (canEdit ? "" : " readonly")} onClick={canEdit ? toggleAll : undefined}
+             title={canEdit ? (allOn ? "Unselect everything" : "Select everything shown here") : undefined}>
+          {canEdit && <span className={"mv-dot" + (allOn ? " on" : "")} role="checkbox" aria-checked={allOn} />}
           <span className="mv-title">
-            {allOn ? "Unselect all" : picked.size ? `Select all (${picked.size} selected)` : "Select all"}
+            {!canEdit ? (q ? "Shown" : "Total")
+              : allOn ? "Unselect all" : picked.size ? `Select all (${picked.size} selected)` : "Select all"}
+          </span>
+          <span className="mv-size" title={picked.size ? "selected of shown" : "everything shown here"}>
+            {picked.size ? `${fmtSize(pickedSize)} of ${fmtSize(shownSize)}` : fmtSize(shownSize)}
           </span>
         </div>
       )}
       {createRow("", 0)}
       {shown.map((n) => row(n, 0))}
-      {!shown.length && !creating && <p className="muted small">Nothing here.</p>}
+      {!shown.length && !creating && <p className="muted small">{loading ? "Reading the library…" : "Nothing here."}</p>}
 
       {menu && !menu.file && (
         <div className="mv-menu" style={{ left: menu.x, top: menu.y }}

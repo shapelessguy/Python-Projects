@@ -7,12 +7,13 @@ docker/pyload/config/settings/pyload.cfg) to serve its pages under this same
 path — its links are absolute, so they have to already carry the prefix.
 Its own login is skipped (webui.autologin): the CyanHouse one is the lock.
 """
-from fastapi import APIRouter
+from fastapi import Depends, APIRouter
 
 from api.config import PYLOAD_URL
 from api.services import webproxy
+from api.auth import require_downloaders
 
-router = APIRouter(prefix="/api/pyload", tags=["pyload"], include_in_schema=False)
+router = APIRouter(prefix="/api/pyload", tags=["pyload"], include_in_schema=False, dependencies=[Depends(require_downloaders)])
 
 PANEL = "movies"  # the Media panel it lives in
 

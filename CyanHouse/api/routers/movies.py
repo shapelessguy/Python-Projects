@@ -15,10 +15,10 @@ from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from fastapi.responses import Response, StreamingResponse
 from starlette.concurrency import run_in_threadpool
 
-from api.auth import require_user
+from api.auth import require_user, require_media_area
 from api.services import movie_prep, movie_subs, movies, plex
 
-router = APIRouter(prefix="/api/movies", tags=["movies"])
+router = APIRouter(prefix="/api/movies", tags=["movies"], dependencies=[Depends(require_media_area)])
 
 PANEL = "movies"  # gates the whole router behind permissions.visibility -- see api/auth.py
 

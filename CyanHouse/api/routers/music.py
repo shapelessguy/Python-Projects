@@ -8,12 +8,12 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from fastapi.responses import FileResponse, Response
 from starlette.concurrency import run_in_threadpool
 
-from api.auth import require_user
+from api.auth import require_user, require_media_area
 from api.routers.prep import may_change
 from api.services import music_library, music_prep
 from api.services.movie_prep import PrepError
 
-router = APIRouter(prefix="/api/music", tags=["music"])
+router = APIRouter(prefix="/api/music", tags=["music"], dependencies=[Depends(require_media_area)])
 
 PANEL = "movies"  # the Media panel it lives in
 

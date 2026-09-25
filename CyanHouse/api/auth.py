@@ -9,17 +9,25 @@ Users come from, in order:
      secrets.json.example
   3. dev fallback  {"dev": {"token": "dev", "permissions": {}}}  (logs a warning)
 
-Each user is `{"token": str, "permissions": dict}`. One permission is
-enforced so far: `permissions.visibility`, an optional list of panel ids
-(see each router module's own `PANEL` constant) a user is restricted to.
-Omitted entirely (the common case), a user sees/can call every panel, same
-as before this existed -- it's an allowlist that only narrows things down
-when explicitly set, never something you opt into by omission.
+Each user is `{"token": str, "permissions": dict}`:
+  * `permissions.visibility`, an optional list of panel ids (see each router
+    module's own `PANEL` constant) a user is restricted to. Omitted entirely
+    (the common case), a user sees/can call every panel -- an allowlist that
+    only narrows things down when explicitly set.
+  * `permissions.media`, the Media panel's folders beyond the public ones.
+    Films, Music and Images (PUBLIC_MEDIA) are everyone's; every other
+    folder -- a staging area and its output, by the name it has in
+    secrets.json ("Downloads", "Audio", "TV Series", ...) -- only for users
+    it is listed for. "downloaders" gives the Torrents and Downloads tabs
+    (qBittorrent and pyLoad) together; "*" gives everything. Omitted, a user
+    has the public folders only.
+  * other names (`publish`, ...), opt-in flags, off unless set true.
 """
 import base64
 import json
 import os
 import secrets
+from urllib.parse import unquote
 
 from fastapi import Depends, HTTPException, Request, status
 
@@ -105,9 +113,65 @@ def has_permission(user: str, name: str) -> bool:
 def granted(user: str) -> dict[str, bool]:
     """The opt-in permissions this user holds, for /api/me — so a client can
     hide an action it isn't allowed to take rather than discovering it from
-    a 403."""
+    a 403. The media list is not a flag; what it gives shows up instead as
+    the folders /api/prep/areas lists and the `downloaders` flag."""
     perms = (USERS.get(user) or {}).get("permissions") or {}
-    return {k: bool(v) for k, v in perms.items() if k != "visibility"}
+    out = {k: bool(v) for k, v in perms.items() if k not in ("visibility", "media")}
+    out["downloaders"] = may_use_downloaders(user)
+    return out
+
+
+# ── the Media panel's folders ──────────────────────────────────────────────
+# Area keys as the panel and movie_prep use them: "" the films, ":music",
+# ":images"; a staging area by its name, its output as "<name>:library".
+PUBLIC_MEDIA = {"", ":music", ":images"}
+DOWNLOADERS = "downloaders"
+
+
+def _media_grants(user: str) -> set[str]:
+    perms = (USERS.get(user) or {}).get("permissions") or {}
+    return {str(x) for x in (perms.get("media") or [])}
+
+
+def may_see_media(user: str, area: str) -> bool:
+    """Whether `area` (a folder of the Media panel, either half of a staging
+    pair) is one this user may see."""
+    name = (area or "").removesuffix(":library")
+    if name in PUBLIC_MEDIA:
+        return True
+    grants = _media_grants(user)
+    return "*" in grants or name in grants
+
+
+def may_use_downloaders(user: str) -> bool:
+    grants = _media_grants(user)
+    return "*" in grants or DOWNLOADERS in grants
+
+
+def require_media_area(request: Request, user: str = Depends(require_user)) -> str:
+    """Router dependency for everything that takes a Media folder: 403s a
+    request naming one the user may not see -- as `area` or `to_area`, or
+    inside a film id (`@<area>/...`, api/services/movies.py) -- so a folder
+    left out of someone's list cannot be reached by URL either, not just
+    missing from their tabs. Endpoints that take the area another way (an
+    upload's metadata) check with may_see_media themselves."""
+    q = request.query_params
+    named = [q.get("area"), q.get("to_area")]
+    movie_id = unquote(q.get("id") or "")
+    if movie_id.startswith("@"):
+        named.append(movie_id[1:].partition("/")[0])
+    for area in named:
+        if area is not None and not may_see_media(user, area):
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "not permitted to see that folder")
+    return user
+
+
+def require_downloaders(user: str = Depends(require_user)) -> str:
+    """Router dependency for qBittorrent and pyLoad (the Torrents and
+    Downloads tabs)."""
+    if not may_use_downloaders(user):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "not permitted to use the downloaders")
+    return user
 
 
 def require_permission(name: str):

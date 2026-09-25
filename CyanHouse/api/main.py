@@ -4,7 +4,8 @@
 
 Serves the REST API under /api and, if react_ui/dist exists, the built SPA at /.
 Every /api response carries X-<Service>-Version headers; clients also poll
-GET /api/version once a second to know when to refetch.
+GET /api/version to know when to refetch — a held request, answered when a
+counter moves (api/longpoll.py).
 
 Router modules under ``api/routers/`` are auto-discovered — a new service is
 just a file there exposing ``router`` (and optionally ``init`` / ``versions``),
@@ -14,12 +15,15 @@ import importlib
 import pkgutil
 from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
+from starlette.concurrency import run_in_threadpool
+
+from api import longpoll
 from api import routers as _routers_pkg
 from api.auth import granted, require_panel, require_user, visible_panels
 from api.config import DEV_ORIGINS, FRONTEND_DIST
@@ -167,8 +171,13 @@ async def version_headers(request, call_next):
 
 
 @app.get("/api/version", tags=["meta"])
-def version(user: str = Depends(require_user)):
-    return _collect_versions(user)
+async def version(request: Request, since: str | None = None, wait: float = 25,
+                  user: str = Depends(require_user)):
+    """The counters. With `since` (the X-Tag of the last answer) the request
+    is held until one of them moves, or `wait` seconds pass — see
+    api/longpoll.py — so a client learns of a change at once without asking
+    every second."""
+    return await longpoll.hold(request, lambda: run_in_threadpool(_collect_versions, user), since, wait)
 
 
 @app.get("/api/me", tags=["meta"])

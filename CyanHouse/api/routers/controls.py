@@ -16,13 +16,16 @@ Contract picked up by ``api/main.py`` auto-discovery: only `router` and
 `init()` (starts the Room actuator's lights-auto scheduler) — no DB, no
 version counter, so `versions()` isn't needed.
 """
+import asyncio
+import time
 from typing import Any
 from urllib.parse import quote
 
 import requests
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from starlette.concurrency import run_in_threadpool
 
+from api import longpoll
 from api.config import CONTROLS_FN_URL
 from api.services import room
 
@@ -92,6 +95,24 @@ async def play_voice(name: str):
     )
 
 
+# What the fn service last said about the room, and when: however many
+# clients are waiting on it, it is asked at most once a second.
+_info: tuple[float, dict] | None = None
+_info_lock = asyncio.Lock()
+INFO_FRESH = 1.0
+
+
+async def _current_info() -> dict:
+    global _info
+    async with _info_lock:
+        if _info is None or time.monotonic() - _info[0] >= INFO_FRESH:
+            _info = (time.monotonic(), await run_in_threadpool(_forward, "GET", CONTROLS_FN_URL, "/info", None))
+        return _info[1]
+
+
 @router.get("/info")
-async def info():
-    return await run_in_threadpool(_forward, "GET", CONTROLS_FN_URL, "/info", None)
+async def info(request: Request, since: str | None = None, wait: float = 25):
+    """The room's state (volume and the like, which changes on its own).
+    With `since` (the X-Tag of the last answer) held until it changes, or
+    `wait` seconds pass — api/longpoll.py."""
+    return await longpoll.hold(request, _current_info, since, wait, check=INFO_FRESH)

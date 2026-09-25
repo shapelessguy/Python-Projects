@@ -1,6 +1,8 @@
 package com.diary.net
 
 import com.diary.Config
+import io.ktor.client.statement.HttpResponse
+import java.util.concurrent.TimeUnit
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.okhttp.OkHttp
@@ -38,6 +40,9 @@ object Api {
     }
 
     private val client = HttpClient(OkHttp) {
+        // Longer than a held request (api/longpoll.py waits up to 25 s before
+        // answering when nothing changed); OkHttp's own default is 10 s.
+        engine { config { readTimeout(40, TimeUnit.SECONDS) } }
         expectSuccess = true
         install(ContentNegotiation) { json(json) }
         defaultRequest {
@@ -56,6 +61,15 @@ object Api {
 
     // ── meta ─────────────────────────────────────────────────────────────
     suspend fun version(): Versions = client.get(u("/api/version")).body()
+
+    /** A held request (api/longpoll.py): answered when the counters' tag is
+     *  no longer [since], or after [wait] seconds anyway. The new tag comes
+     *  back with them. */
+    suspend fun versionHeld(since: String, wait: Int = 25): Pair<Versions, String> =
+        held(client.get(u("/api/version")) { parameter("since", since); parameter("wait", wait) })
+
+    private suspend inline fun <reified T> held(r: HttpResponse): Pair<T, String> =
+        r.body<T>() to (r.headers["X-Tag"] ?: "")
 
     suspend fun me(): Me = client.get(u("/api/me")).body()
 
@@ -100,6 +114,10 @@ object Api {
 
     // ── controls (CC) — thin proxy to the CyanControls RoomServer services ──
     suspend fun controlInfo(): ControlsInfo = client.get(u("/api/controls/info")).body()
+
+    /** The room's state, held until it changes — see [versionHeld]. */
+    suspend fun controlInfoHeld(since: String, wait: Int = 25): Pair<ControlsInfo, String> =
+        held(client.get(u("/api/controls/info")) { parameter("since", since); parameter("wait", wait) })
 
     suspend fun controlRoom(topic: String, command: String, extra: JsonObject? = null): ControlsInfo =
         client.post(u("/api/controls/room/$topic")) {

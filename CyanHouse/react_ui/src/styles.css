@@ -892,17 +892,27 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
 }
 .mv-search { display: flex; gap: 6px; flex: 0 0 auto; align-items: center; }
 .mv-search button { flex: 0 0 auto; }
+/* The search box takes what the fixed-width controls after it leave. */
+.mv-search > input:not([type="range"]) { flex: 1 1 auto; min-width: 0; }
 /* Which disk this folder is on, and how much of it is left. Never wraps and
  * never pushes the search box around -- it is a readout, not a control. */
 .mv-space {
-  flex: 0 0 auto;
-  font-size: 0.72rem;
+  flex: 0 0 150px; width: 150px;   /* fixed, so nothing left of it moves */
+  display: flex; align-items: center; gap: 7px;
+  font-size: 0.72rem; line-height: 1.2;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-  padding: 0 2px;
+  white-space: nowrap; overflow: hidden;
 }
+.mv-spacetext { display: flex; flex-direction: column; min-width: 0; }
+.mv-spacetext > * { overflow: hidden; text-overflow: ellipsis; }
+.mv-spacetext small { font-size: 0.62rem; }
 .mv-space b { font-weight: 600; color: var(--text); }
+.mv-ring-disk { flex: 0 0 auto; }
+.mv-ring-disk circle { fill: none; stroke-width: 3.5; }
+.mv-ring-disk .track { stroke: var(--line); }
+.mv-ring-disk .used { stroke: var(--accent); stroke-linecap: round; }
+.mv-ring-disk.full .used { stroke: #e0a030; }
 .mv-list {
   list-style: none;
   margin: 0;
@@ -936,9 +946,16 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
  * the arrows either side (or ← →) turn it. Sized in CoverBook.tsx, which
  * works out how many columns and rows fit. */
 .mv-viewpick { display: flex; gap: 2px; flex: 0 0 auto; }
-.mv-viewpick button { padding: 2px 8px; }
+/* Icons of different fonts (▦ is text, 📁 an emoji) sit on different
+   baselines and are different sizes: every button is the same box, its
+   icon centred in it. */
+.mv-viewpick { align-self: center; }
+.mv-viewpick button {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 28px; padding: 0; line-height: 1; font-size: 15px;
+}
 .mv-viewpick button.active { background: var(--panel-2); border-color: var(--line); color: var(--text); }
-.mv-coversize { flex: 0 1 140px; min-width: 70px; }
+.mv-coversize { flex: 0 0 120px; width: 120px; }
 .mv-bookwrap { flex: 1 1 auto; min-height: 0; display: flex; }
 .mv-book {
   flex: 1 1 auto;
@@ -1206,6 +1223,7 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
 /* The tree's first row: select (or unselect) everything it shows. */
 .mv-selall { color: var(--muted); font-size: 0.75rem; border-bottom: 1px solid var(--line); border-radius: 0; }
 .mv-selall .mv-dot { opacity: 0.85; }
+.mv-selall.readonly { cursor: default; }
 .mv-dot:hover { border-color: #8ab4f8; opacity: 1; }
 .mv-dot.on { opacity: 1; border-color: #8ab4f8; background: #8ab4f8; box-shadow: inset 0 0 0 2px var(--panel); }
 .mv-node.active .mv-dot { border-color: #fff; }

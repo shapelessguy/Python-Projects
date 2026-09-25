@@ -33,7 +33,7 @@ def _load_secrets(path: Path) -> dict:
 
     Objects and lists are skipped: an env var is a string, and `str()` of a
     dict is not something anything can read back. They stay in the returned
-    data for whoever wants them -- "users" for api/auth.py, "movie_staging"
+    data for whoever wants them -- "users" for api/auth.py, "staging"
     for the movie prep workflow -- which is also why the skip is by *type*
     rather than a list of known key names that has to be edited every time
     another structured setting is added."""
@@ -112,21 +112,41 @@ MOVIES_DIR = Path(os.environ.get("MOVIES_DIR", "/mnt/pangea/Video/Movies"))
 # browsed like the film library. Unset means no tab.
 MUSIC_DIR = Path(os.environ["MUSIC_DIR"]).expanduser() if os.environ.get("MUSIC_DIR", "").strip() else None
 IMAGE_DIR = Path(os.environ["IMAGE_DIR"]).expanduser() if os.environ.get("IMAGE_DIR", "").strip() else None
-# Staging areas for films that are not library-ready yet: each is an inbox of
-# "dirty" downloads plus where a finished one should land. This is where the
-# remuxing actually happens -- MOVIES_DIR itself holds files that are already
-# done and is only ever read. Shaped as
-#   {"<name>": {"inbox": "/path/in", "output": "/path/out"}}
-# "output" may be omitted to prepare straight into MOVIES_DIR; "library" is
-# accepted as the older spelling of the same key. "inbox" may be omitted
-# too: an entry with only an output is somewhere finished work is kept and
-# browsed (the series library is configured this way), with nothing staged.
-MOVIE_STAGING: dict = _SECRETS.get("movie_staging", {})
-# The same shape for music: an inbox of songs waiting to be recognised and
-# tagged (api/services/music_prep.py) and the output they are filed into as
-# Artist/Album/NN - Title. "output" may be omitted to file straight into
-# MUSIC_DIR. Names share one namespace with movie_staging's.
-MUSIC_STAGING: dict = _SECRETS.get("music_staging", {})
+# The staging folders, one list in the order the panel shows them:
+#   "staging": {"<name>": {"type": "film" | "music", "inbox": "/path/in",
+#                          "output": "/path/out", "moves_to": [...], ...}}
+# "type" says what a folder holds and so what processing means there: a
+# film inbox is remuxed (api/services/movie_prep.py), a music inbox's songs
+# are recognised and filed as Artist/Album/NN - Title (music_prep.py);
+# "film" when left out. Each is an inbox of work waiting plus the output it
+# lands in. "output" may be omitted to prepare straight into MOVIES_DIR (or
+# MUSIC_DIR); "library" is accepted as its older spelling. "inbox" may be
+# omitted too: an entry with only an output is somewhere finished work is
+# kept and browsed (the series library is configured this way).
+# The older layout — separate "movie_staging" and "music_staging" — is
+# still read when there is no "staging".
+def _staging() -> dict[str, dict]:
+    raw = _SECRETS.get("staging")
+    if isinstance(raw, dict):
+        return {str(n): dict(c or {}) for n, c in raw.items()}
+    films = _SECRETS.get("movie_staging") or {}
+    music = _SECRETS.get("music_staging") or {}
+    out = {str(n): {**(c or {}), "type": "film"} for n, c in films.items()}
+    out.update({str(n): {**(c or {}), "type": "music"} for n, c in music.items() if n not in out})
+    return out
+
+
+STAGING: dict[str, dict] = _staging()
+MOVIE_STAGING: dict = {n: c for n, c in STAGING.items() if c.get("type", "film") != "music"}
+MUSIC_STAGING: dict = {n: c for n, c in STAGING.items() if c.get("type") == "music"}
+# Where things in each folder of the Media panel may be moved to. A staging
+# entry above says it for its pair with "moves_to"; the three libraries,
+# which are not configured there, say it here:
+#   {"Movies": ["Movies-GER", "Downloads"], "Music": [...], "Images": [...]}
+# Folders are named as the panel names them ("Movies", "Music", "Images",
+# or a staging entry's name, meaning either half of it); "*" is anywhere.
+# A folder with no rule may move anywhere (see movie_prep.may_move_between).
+LIBRARY_MOVES: dict = _SECRETS.get("library_moves", {})
 # MusicBrainz asks every client to say who it is, with a way to reach them.
 MUSICBRAINZ_CONTACT = os.environ.get("MUSICBRAINZ_CONTACT", "").strip()
 MOVIES_CACHE_DIR = Path(os.environ.get("MOVIES_CACHE_DIR", API_DATA_DIR / "movies_cache"))

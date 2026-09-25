@@ -16,14 +16,16 @@ watched every few seconds and the counter bumps when their contents change,
 so the SPA's existing once-a-second /api/version poll is enough to keep the
 list honest without re-probing anything.
 """
+from urllib.parse import unquote
+
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from fastapi.responses import FileResponse
 from starlette.concurrency import run_in_threadpool
 
-from api.auth import has_permission, require_permission, require_user
+from api.auth import has_permission, may_see_media, require_media_area, require_permission, require_user
 from api.services import movie_prep, movies, remux_queue, tmdb
 
-router = APIRouter(prefix="/api/prep", tags=["prep"])
+router = APIRouter(prefix="/api/prep", tags=["prep"], dependencies=[Depends(require_media_area)])
 
 VERSION_NAMES = ["prep"]
 PANEL = "movies"  # same permission as the Movies panel it lives in
@@ -47,11 +49,20 @@ def _wrap(exc) -> HTTPException:
 
 
 @router.get("/areas")
-async def list_areas(_user: str = Depends(require_user)):
+async def list_areas(user: str = Depends(require_user)):
     """The staging folders from secrets.json, each flagged ready or not so
-    the UI can say *why* an area is empty rather than just showing nothing."""
-    return {"areas": list((await run_in_threadpool(movie_prep.areas)).values()),
-            "sources": await run_in_threadpool(movie_prep.sources),
+    the UI can say *why* an area is empty rather than just showing nothing.
+    Only the ones this user may see (api/auth.py): the tabs follow from it."""
+    areas = await run_in_threadpool(movie_prep.areas)
+    sources = await run_in_threadpool(movie_prep.sources)
+    sources = [x for x in sources if may_see_media(user, x["key"])]
+    # Where each may send its things: the move rules, among what this user
+    # sees — so the panel offers only moves the server will take.
+    for x in sources:
+        x["moves_to"] = [y["key"] for y in sources
+                         if y["key"] != x["key"] and movie_prep.may_move_between(x["key"], y["key"])]
+    return {"areas": [a for name, a in areas.items() if may_see_media(user, name)],
+            "sources": sources,
             "tmdb": tmdb.configured(),
             # Sent with the areas so the track editor can offer a picker
             # rather than a free-text box -- a typo there is a track the
@@ -115,9 +126,14 @@ async def remux_all(area: str = Query(...), user: str = Depends(require_user)):
 
 
 @router.get("/jobs")
-async def remux_jobs(_user: str = Depends(require_user)):
-    """The queue: what is running, what is waiting, and what has finished."""
-    return {"jobs": remux_queue.jobs()}
+async def remux_jobs(user: str = Depends(require_user)):
+    """The queue: what is running, what is waiting, and what has finished —
+    in the folders this user may see."""
+    return {"jobs": _visible_jobs(user)}
+
+
+def _visible_jobs(user: str) -> list[dict]:
+    return [j for j in remux_queue.jobs() if may_see_media(user, j.get("area", ""))]
 
 
 @router.delete("/jobs/{job_id}")
@@ -133,10 +149,10 @@ async def remove_job(job_id: str, user: str = Depends(require_user)):
 
 
 @router.post("/jobs/clear")
-async def clear_jobs(_user: str = Depends(require_user)):
+async def clear_jobs(user: str = Depends(require_user)):
     """Forget every finished remux. The queue itself is untouched."""
     await run_in_threadpool(remux_queue.clear_finished)
-    return {"jobs": remux_queue.jobs()}
+    return {"jobs": _visible_jobs(user)}
 
 
 @router.put("/plan")
@@ -251,8 +267,17 @@ def _publisher(user: str) -> bool:
     return has_permission(user, "publish")
 
 
+def _may_see(user: str, *areas: str) -> None:
+    """A folder not in the user's media list (api/auth.py) is not there for
+    them — whichever way the area arrived (a query, an upload's metadata, a
+    job's own)."""
+    if not all(may_see_media(user, a) for a in areas):
+        raise HTTPException(403, "not permitted to see that folder")
+
+
 def may_change(user: str, area: str) -> None:
     """Rename, delete, upload, move within — anything that stays in `area`."""
+    _may_see(user, area)
     if _publisher(user) or movie_prep.workspace_of(area):
         return
     raise HTTPException(403, "outside a staging workspace, changes need the publish permission")
@@ -260,7 +285,13 @@ def may_change(user: str, area: str) -> None:
 
 def may_move(user: str, from_area: str, to_area: str) -> None:
     """A move changes both ends, so both are judged: without the publish
-    permission, both have to be halves of the same workspace."""
+    permission, both have to be halves of the same workspace. And for
+    everyone, the folders' move rules (movie_prep.may_move_between) have to
+    allow it."""
+    _may_see(user, from_area, to_area)
+    if not movie_prep.may_move_between(from_area, to_area):
+        raise HTTPException(
+            403, f"{movie_prep.folder_name(from_area)} cannot be moved into {movie_prep.folder_name(to_area)}")
     if _publisher(user):
         return
     here = movie_prep.workspace_of(from_area)
@@ -358,12 +389,15 @@ async def delete_entry(
 async def move_film(
     id: str = Query(...),
     to: str = Query(..., description="destination source key: '' for the library"),
-    _user: str = Depends(require_permission("publish")),
+    user: str = Depends(require_permission("publish")),
 ):
     """Move a film's folder to another configured folder.
 
     Gated on its own permission: every other action here stays inside a
     staging folder, and this one can put a file into the real library."""
+    raw = unquote(id)
+    from_key = raw[1:].partition("/")[0] if raw.startswith("@") else ""
+    may_move(user, from_key, to)
     try:
         return await run_in_threadpool(movie_prep.move_film, id, to)
     except (movie_prep.PrepError, movies.MovieError) as e:

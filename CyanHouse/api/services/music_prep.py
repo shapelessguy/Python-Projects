@@ -1,7 +1,7 @@
 """Music staging — recognising songs and filing them the way Plex expects.
 
 The music counterpart of movie_prep's identify-and-remux: a music pair
-(secrets.json's `music_staging`) is an inbox of songs named any old way and
+(an entry of secrets.json's `staging` with "type": "music") is an inbox of songs named any old way and
 an output they are filed into as
 
     Album Artist/Album/NN - Title.ext      (D-NN - Title.ext on multi-disc)

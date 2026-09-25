@@ -1,6 +1,6 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, MovieInfo, MovieItem, MovieTrack, MovieSource, MusicAuto, MusicSong, PrepPlan, RemuxJob, StagedFile } from "../api";
-import { FileView, FileTree, MoviesHome, PrepIdentity, PrepCommit, DRAG_TYPE, fmtSize, selectionRoots } from "./StagingView";
+import { FileView, FileTree, MoviesHome, PrepIdentity, PrepCommit, DRAG_TYPE, draggedArea, fmtSize, selectionRoots } from "./StagingView";
 import { useVersionPoll, useVisibility } from "../api";
 import { entriesFrom, walkEntries, useUploads } from "../uploads";
 import { readCookie, writeCookie } from "../cookies";
@@ -196,7 +196,13 @@ export function MoviesPanel() {
   const [space, setSpace] = useState<
     { name: string; mount: string; path: string; total: number; free: number } | null>(null);
   const versions = useVersionPoll();
-  const { permissions } = useVisibility();
+  const { permissions, loaded: permissionsLoaded } = useVisibility();
+  // qBittorrent and pyLoad, one permission for both (api/auth.py). Without
+  // it their tabs are not there, and one remembered from before is closed.
+  const downloaders = !!permissions.downloaders;
+  useEffect(() => {
+    if (permissionsLoaded && !downloaders && external) setExternalState("");
+  }, [permissionsLoaded, downloaders, external]);
   // Which tab a drag is currently hovering, so it can say so.
   const [dropTab, setDropTab] = useState<string | null>(null);
   // The server's remux queue — running whether or not this page is open.
@@ -232,22 +238,26 @@ export function MoviesPanel() {
     return out;
   }, [sources]);
 
-  /** The folders the open tab shows, top to bottom. Empty for the film
-   *  library, which is a flat list of films rather than a tree. */
+  // The film library as covers, or as its folder tree ("list", the
+  // cookie's old name for it).
+  const [view, setViewState] = useState<"grid" | "list">(() =>
+    readCookie(VIEW_COOKIE) === "list" ? "list" : "grid");
+  const setView = (v: "grid" | "list") => { setViewState(v); writeCookie(VIEW_COOKIE, v); };
+  /** The folders the open tab shows, top to bottom. For the film library
+   *  only in its Folders view — its covers are films, not a tree. */
   const panes = useMemo(() => {
-    if (tab === "") return [] as MovieSource[];
+    if (tab === "") return sources.filter((x) => x.key === "" && view === "list");
     const g = groups.find((x) => x.key === tab);
     return [g?.todo, g?.done].filter(Boolean) as MovieSource[];
-  }, [groups, tab]);
-  const paneKeys = panes.map((x) => x.key).join("|");
+  }, [groups, tab, sources, view]);
+  // null when there are none: the film library's key is "", so an empty
+  // string is one pane, not none.
+  const paneKeys = panes.length ? panes.map((x) => x.key).join("|") : null;
   const inbox = panes.find((x) => x.kind === "inbox");
 
   const [movies, setMovies] = useState<MovieItem[]>([]);
   const [listError, setListError] = useState("");
   const [query, setQuery] = useState("");
-  const [view, setViewState] = useState<"grid" | "list">(() =>
-    readCookie(VIEW_COOKIE) === "list" ? "list" : "grid");
-  const setView = (v: "grid" | "list") => { setViewState(v); writeCookie(VIEW_COOKIE, v); };
   const [coverSize, setCoverSizeState] = useState(() => {
     const n = Number(readCookie(COVER_COOKIE));
     return n >= COVER_MIN && n <= COVER_MAX ? n : 150;
@@ -310,9 +320,11 @@ export function MoviesPanel() {
   const [sub, setSub] = useState<number | null>(null);
   const [height, setHeight] = useState(360);
 
+  // Again whenever the counter moves: the server follows the library folder
+  // and moves it when something lands there, however it got there.
   useEffect(() => {
-    api.movies().then(setMovies).catch((e) => setListError(String(e)));
-  }, []);
+    api.movies().then((m) => { setMovies(m); setListError(""); }).catch((e) => setListError(String(e)));
+  }, [versions.prep]);
 
   // Which folders exist is configuration, and configuration changes: it is
   // re-read on the same counter the listings use, so correcting a path in
@@ -338,7 +350,7 @@ export function MoviesPanel() {
   // The backend watches the staging folders and bumps `prep` when they
   // change, so this refetches on a real change rather than on a timer.
   useEffect(() => {
-    if (!paneKeys) return;
+    if (paneKeys === null) return;
     let alive = true;
     setListError("");
     loadPanes(paneKeys.split("|")).catch(() => {});
@@ -508,11 +520,15 @@ export function MoviesPanel() {
   const workspaceFolders = (ws: string) =>
     sources.filter((s) => s.group === ws && (s.kind === "inbox" || s.kind === "output")).map((s) => s.key);
   const canEditArea = (area: string) => publisher || workspaceOf(area) !== null;
+  /** Whether the move rules (secrets.json, sent with the sources) let
+   *  things in `from` go into `to`. */
+  const movesTo = (from: string, to: string) =>
+    from === to || (sources.find((x) => x.key === from)?.moves_to?.includes(to) ?? true);
   /** Which folders' entries may be dropped into `area`. */
-  const acceptsFrom = (area: string): "*" | string[] => {
-    if (publisher) return "*";
+  const acceptsFrom = (area: string): string[] => {
     const ws = workspaceOf(area);
-    return ws ? workspaceFolders(ws) : [];
+    const from = publisher ? sources.map((x) => x.key) : ws ? workspaceFolders(ws) : [];
+    return from.filter((k) => movesTo(k, area));
   };
 
   /** Re-read the panes after something moved, was renamed or was deleted,
@@ -544,7 +560,7 @@ export function MoviesPanel() {
   // listings have to catch up. The backend bumps its counter too, but that
   // is a poll away and this is instant.
   const refreshListing = useCallback(() => {
-    if (paneKeys) loadPanes(paneKeys.split("|")).catch(() => {});
+    if (paneKeys !== null) loadPanes(paneKeys.split("|")).catch(() => {});
   }, [paneKeys, loadPanes]);
   const uploads = useUploads(refreshListing);
 
@@ -639,13 +655,21 @@ export function MoviesPanel() {
     if (ended?.state === "done" && selected?.id === ended.movie_id) {
       stop(); setSelected(null); setInfo(null);
     }
-    if (paneKeys) loadPanes(paneKeys.split("|")).catch(() => {});
+    if (paneKeys !== null) loadPanes(paneKeys.split("|")).catch(() => {});
   }, [running?.id, jobs]);
 
   const say = (text: string, bad = false) => setTreeNote({ text, bad });
   const failed = (e: unknown) => say(String(e).replace(/^Error:\s*/, ""), true);
 
-  const labelOf = (key: string) => sources.find((x) => x.key === key)?.label ?? key;
+  /** A folder as the moves name it: its tab's icon, then its label
+   *  ("📥 Downloads / downloads-library"), so the destination is recognised
+   *  at a glance, as on the tabs. */
+  const labelOf = (key: string) => {
+    const x = sources.find((y) => y.key === key);
+    if (!x) return key;
+    const icon = TAB_ICONS[x.key] ?? x.icon;
+    return icon ? `${icon} ${x.label}` : x.label;
+  };
 
   /** What a pane's tree can do, bound to that pane's folder. Moves take the
    *  area they come *from* separately, because the two panes of a pair are
@@ -697,7 +721,8 @@ export function MoviesPanel() {
     return sources
       .filter((x) => x.ready && x.key !== area)
       .filter((x) => publisher || (ws !== null && workspaceOf(x.key) === ws))
-      .map((x) => ({ key: x.key, label: x.label }));
+      .filter((x) => movesTo(area, x.key))
+      .map((x) => ({ key: x.key, label: labelOf(x.key) }));
   };
 
   /** Dropping onto a tab moves the thing into that tab's folder — its inbox
@@ -712,7 +737,7 @@ export function MoviesPanel() {
       from = JSON.parse(raw);
     } catch { return; }
     if (from.area === target.key) return;
-    await moveMany(from.area, from.paths ?? [], target.key, "", target.label);
+    await moveMany(from.area, from.paths ?? [], target.key, "", labelOf(target.key));
   };
 
   /** Delete these. Sequential for the same reason moving is: each one can
@@ -1259,6 +1284,8 @@ export function MoviesPanel() {
                 // Another tab is never a folder's own output — that sits
                 // in the same tab — so only a publisher can drop here.
                 if (!publisher || !target?.ready || g.key === tab) return;
+                const from = draggedArea();
+                if (from === null || !movesTo(from, target.key)) return;
                 if (!e.dataTransfer.types.includes(DRAG_TYPE)) return;
                 e.preventDefault();
                 e.dataTransfer.dropEffect = "move";
@@ -1273,8 +1300,8 @@ export function MoviesPanel() {
             </Fragment>
           );
         })}
-        <span className="mv-srcsep" aria-hidden />
-        {EXTERNAL.map((x) => (
+        {downloaders && <span className="mv-srcsep" aria-hidden />}
+        {downloaders && EXTERNAL.map((x) => (
           <button key={x.key} className={external === x.key ? "active" : ""}
                   title={x.label} onClick={() => setExternal(x.key)}>
             <TabFace icon={x.icon} label={x.label} />
@@ -1363,67 +1390,58 @@ export function MoviesPanel() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
-          <button
-            className="ghost"
-            title="Rescan the library folder"
-            onClick={() => api.movies(true).then(setMovies).catch((e) => setListError(String(e)))}
+          {/* The size slider, the view icons and the disk, in that order,
+              held against the right: the disk is a fixed width and Folders
+              is the last icon everywhere, so moving between tabs and views
+              moves none of them — only the search box gives way to the
+              slider when a view has something to size. */}
+          {(() => {
+            const size = tab === ":images" && imagesView === "gallery"
+              ? { min: THUMB_MIN, max: THUMB_MAX, step: 10, value: thumbSize, set: setThumbSize, title: "Picture size" }
+              : (tab === "" && view === "grid") || (tab === ":music" && musicView === "artists")
+                ? { min: COVER_MIN, max: COVER_MAX, step: 5, value: coverSize, set: setCoverSize, title: "Cover size" }
+                : null;
+            return size && (
+              <input className="mv-coversize" type="range"
+                     min={size.min} max={size.max} step={size.step}
+                     value={size.value} title={size.title}
+                     onChange={(e) => size.set(+e.target.value)}
+                     // Let go of the slider once set, so the arrow keys go back
+                     // to turning pages rather than nudging the size.
+                     onPointerUp={(e) => e.currentTarget.blur()} />
+            );
+          })()}
+          <span className="mv-viewpick">
+            {(tab === ":music"
+              ? ([["artists", "Artists", musicView, setMusicView], ["songs", "Songs", musicView, setMusicView],
+                  ["folders", "Folders", musicView, setMusicView]] as const)
+              : tab === ":images"
+                ? ([["gallery", "Gallery", imagesView, setImagesView], ["folders", "Folders", imagesView, setImagesView]] as const)
+                : tab === ""
+                  ? ([["grid", "Covers", view, setView], ["list", "Folders", view, setView]] as const)
+                  : []
+            ).map(([v, label, current, set]) => (
+              <button key={v} className={"ghost" + (current === v ? " active" : "")} title={label}
+                      onClick={() => (set as (x: string) => void)(v)}>
+                <ViewIcon name={v === "list" ? "folders" : v} />
+              </button>
+            ))}
+          </span>
+          <span
+            className="mv-space"
+            title={space ? `${space.path}\nis on ${space.mount} (${space.name}) — `
+                   + `${fmtSize(space.free)} free of ${fmtSize(space.total)}` : undefined}
           >
-            ⟳
-          </button>
-          {tab === ":music" && (
-            <span className="mv-viewpick">
-              {([["artists", "Artists"], ["songs", "Songs"], ["folders", "Folders"]] as const).map(([v, label]) => (
-                <button key={v} className={"ghost" + (musicView === v ? " active" : "")}
-                        onClick={() => setMusicView(v)}>{label}</button>
-              ))}
-            </span>
-          )}
-          {tab === ":images" && (
-            <span className="mv-viewpick">
-              {([["gallery", "Gallery"], ["folders", "Folders"]] as const).map(([v, label]) => (
-                <button key={v} className={"ghost" + (imagesView === v ? " active" : "")}
-                        onClick={() => setImagesView(v)}>{label}</button>
-              ))}
-            </span>
-          )}
-          {tab === ":images" && imagesView === "gallery" && (
-            <input className="mv-coversize" type="range" min={THUMB_MIN} max={THUMB_MAX} step={10}
-                   value={thumbSize} title="Picture size"
-                   onChange={(e) => setThumbSize(+e.target.value)}
-                   onPointerUp={(e) => e.currentTarget.blur()} />
-          )}
-          {tab === "" && (
-            <span className="mv-viewpick">
-              <button className={"ghost" + (view === "grid" ? " active" : "")} title="Covers"
-                      onClick={() => setView("grid")}>▦</button>
-              <button className={"ghost" + (view === "list" ? " active" : "")} title="List"
-                      onClick={() => setView("list")}>☰</button>
-            </span>
-          )}
-          {((tab === "" && view === "grid") || (tab === ":music" && musicView === "artists")) && (
-            <input
-              className="mv-coversize"
-              type="range"
-              min={COVER_MIN}
-              max={COVER_MAX}
-              step={5}
-              value={coverSize}
-              title="Cover size"
-              onChange={(e) => setCoverSize(+e.target.value)}
-              // Let go of the slider once set, so the arrow keys go back to
-              // turning pages rather than nudging the size.
-              onPointerUp={(e) => e.currentTarget.blur()}
-            />
-          )}
-          {space && (
-            <span
-              className="mv-space"
-              title={`${space.path}\nis on ${space.mount} (${space.name}) — `
-                     + `${fmtSize(space.free)} free of ${fmtSize(space.total)}`}
-            >
-              <b>{space.name}</b> · {fmtSize(space.free)} free of {fmtSize(space.total)}
-            </span>
-          )}
+            {space && (
+              <>
+                <DiskRing used={space.total ? 1 - space.free / space.total : 0} />
+                <span className="mv-spacetext">
+                  <b>{space.name}</b>
+                  <small>{fmtSize(space.free)} free of {fmtSize(space.total)}</small>
+                </span>
+              </>
+            )}
+          </span>
         </div>
         {listError && <p className="error small">{listError}</p>}
         {treeNote && (
@@ -1451,7 +1469,7 @@ export function MoviesPanel() {
             onOpen={(list, index) => setViewing({ area: ":images", list, index })}
             onUpload={canEditArea(":images") ? (dt, folder) => actionsFor(":images").upload(dt, folder) : undefined}
           />
-        ) : tab ? (
+        ) : panes.length ? (
           // A library is one tree; a staging area is two, the inbox on top
           // and its output underneath, splitting the height between them.
           // Dragging from one into the other is how a finished film leaves
@@ -1503,6 +1521,7 @@ export function MoviesPanel() {
                     files={reviewOnly && pane.kind === "inbox" && pane.type === "music"
                       ? reviewFiles(pane.key, listings[pane.key] ?? [])
                       : listings[pane.key] ?? []}
+                    loading={!(pane.key in listings) && !paneErrors[pane.key]}
                     marks={pane.type === "music" ? musicAuto[pane.key]?.review : undefined}
                     query={query}
                     activePath={source === pane.key ? viewFile?.path ?? null : null}
@@ -1539,20 +1558,7 @@ export function MoviesPanel() {
             />
           </div>
         ) : (
-        <ul className="mv-list">
-          {filtered.map((m) => (
-            <li key={m.id}>
-              <button
-                className={"mv-item" + (selected?.id === m.id ? " active" : "")}
-                onClick={() => pick(m)}
-              >
-                <span className="mv-title">{m.title}</span>
-                <span className="mv-size">{gb(m.size)}</span>
-              </button>
-            </li>
-          ))}
-          {!filtered.length && !listError && <li className="muted small">No matches.</li>}
-        </ul>
+          <p className="muted small">{view === "list" ? "Reading the library…" : ""}</p>
         )}
         {/* What to do with a selection, under the tree it was made in.
             Absent until something is ticked, so it costs no height the rest
@@ -1575,7 +1581,7 @@ export function MoviesPanel() {
               disabled={!bulkTo || !!bulkBusy}
               onClick={() => {
                 const target = sources.find((x) => x.key === bulkTo);
-                if (target) moveMany(pickedArea, selectionRoots(picked), target.key, "", target.label);
+                if (target) moveMany(pickedArea, selectionRoots(picked), target.key, "", labelOf(target.key));
                 setBulkTo("");
               }}
             >
@@ -2011,7 +2017,7 @@ export function MoviesPanel() {
           }}
         />
       )}
-      {EXTERNAL.filter((x) => opened.has(x.key)).map((x) => (
+      {EXTERNAL.filter((x) => downloaders && opened.has(x.key)).map((x) => (
         <iframe key={x.key} className="mv-external" src={x.url} title={x.title}
                 hidden={external !== x.key} />
       ))}
@@ -2185,5 +2191,36 @@ function TrackTable({
         })}
       </tbody>
     </table>
+  );
+}
+
+
+/** The view pickers' icons: one line drawing each, in the text colour, so
+ *  they match whatever font the buttons are in. */
+function ViewIcon({ name }: { name: string }) {
+  const paths: Record<string, React.ReactNode> = {
+    grid: <><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" />
+      <rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></>,
+    gallery: <><rect x="3" y="4" width="18" height="16" rx="2" /><circle cx="9" cy="10" r="1.8" />
+      <path d="M21 16l-5-5-8 9" /></>,
+    folders: <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />,
+    artists: <><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7" /></>,
+    songs: <><path d="M9 18V5l11-2v13" /><circle cx="6.5" cy="18" r="2.5" /><circle cx="17.5" cy="16" r="2.5" /></>,
+  };
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+         strokeLinecap="round" strokeLinejoin="round" aria-hidden>{paths[name]}</svg>
+  );
+}
+
+/** How full the disk is, as a ring: the coloured arc is what is used. */
+function DiskRing({ used }: { used: number }) {
+  const r = 10, c = 2 * Math.PI * r;
+  const u = Math.min(1, Math.max(0, used));
+  return (
+    <svg className={"mv-ring-disk" + (u > 0.9 ? " full" : "")} width="26" height="26" viewBox="0 0 26 26" aria-hidden>
+      <circle cx="13" cy="13" r={r} className="track" />
+      <circle cx="13" cy="13" r={r} className="used" strokeDasharray={`${u * c} ${c}`} transform="rotate(-90 13 13)" />
+    </svg>
   );
 }

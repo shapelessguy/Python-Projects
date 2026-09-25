@@ -32,6 +32,73 @@ services:
     entrypoint: >
       sh -c "trap exit TERM; while :; do certbot renew --quiet; sleep 12h & wait $${!}; done"
 
+  # qBittorrent: the torrents. Headless (qbittorrent-nox) with its web UI on
+  # the loopback only — the Media panel's Torrents tab reaches it through
+  # the API (api/routers/qbt.py, QBT_URL), behind the CyanHouse login.
+  # Host networking, because its settings bind the peer traffic to the VPN
+  # interface (Connection\Interface=nordlynx): if the VPN is down it does not
+  # fall back to the open line, and that needs the host's interfaces.
+  # The drive keeps its host path, so the save paths in its settings and in
+  # each torrent (/mnt/pangea/downloads when done) mean the same inside. rslave: when the drive is unmounted and
+  # mounted again (automount-pangea.service), the new mount reaches the
+  # container too, instead of it holding on to the empty mount point.
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: cyanhouse-qbittorrent
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Berlin
+      - WEBUI_PORT=8081
+      - TORRENTING_PORT=25804
+    volumes:
+      - ./docker/qbittorrent/config:/config
+      # Torrents still downloading, on the internal disk (ext4): pieces
+      # arrive in any order, and the drive's NTFS driver fills a file with
+      # zeros up to wherever a piece is written — the first piece near the
+      # end of a 25 GB film meant 25 GB of zeros on the USB drive, and
+      # qBittorrent stalled behind it. Finished, a torrent is moved to
+      # /mnt/pangea/downloads in one straight copy.
+      - /home/claudio/torrent-temp:/torrent-temp
+      - type: bind
+        source: /mnt/pangea
+        target: /mnt/pangea
+        bind:
+          propagation: rslave
+
+  # Jackett: one search across many public torrent sites (1337x, The Pirate
+  # Bay, TorrentGalaxy, YTS, Nyaa, ...), for qBittorrent's search tab — its
+  # official "jackett" search plugin asks it at 127.0.0.1:9117 (settings in
+  # docker/qbittorrent/config/qBittorrent/nova3/engines/jackett.json). Its
+  # own UI, where sites are added, is on the loopback only.
+  jackett:
+    image: lscr.io/linuxserver/jackett:latest
+    container_name: cyanhouse-jackett
+    restart: unless-stopped
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Berlin
+    ports:
+      - "127.0.0.1:9117:9117"
+    volumes:
+      - ./docker/jackett/config:/config
+    depends_on:
+      - flaresolverr
+
+  # FlareSolverr: gets Jackett past the Cloudflare check some sites (1337x)
+  # put in front of their pages, with a headless browser. Jackett reaches it
+  # as http://flaresolverr:8191 on the compose network; nothing else does.
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: cyanhouse-flaresolverr
+    restart: unless-stopped
+    environment:
+      - TZ=Europe/Berlin
+      - LOG_LEVEL=info
+
   # pyLoad-ng: hoster/debrid downloads, laid out like qBittorrent's: work in
   # progress under /mnt/pangea/temp, finished packages (extracted, if they
   # were archives) moved into /mnt/pangea/downloads beside the torrents —

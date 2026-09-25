@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { api, ControlsInfo } from "../api";
+import { api, ControlsInfo, follow } from "../api";
 import {
   ControlItem,
   ControlMode,
@@ -44,22 +44,14 @@ export function ControlsPanel() {
     statusTimer.current = window.setTimeout(() => setStatus(""), 2500);
   };
 
-  // Poll /info for OS volume + active audio device (CyanControls does the same).
+  // The OS volume and active audio device, followed: a held request that
+  // comes back when they change (api/longpoll.py), not a poll a second.
   useEffect(() => {
-    let alive = true;
-    const tick = () =>
-      api
-        .controlInfo()
-        .then((i) => {
-          if (alive && !draggingVol.current) setInfo((p) => ({ ...p, ...i }));
-        })
-        .catch(() => {});
-    tick();
-    const id = window.setInterval(tick, INFO_POLL_MS);
-    return () => {
-      alive = false;
-      window.clearInterval(id);
-    };
+    const stop = new AbortController();
+    follow<ControlsInfo>("/api/controls/info", (i) => {
+      if (!draggingVol.current) setInfo((p) => ({ ...p, ...i }));
+    }, stop.signal);
+    return () => stop.abort();
   }, []);
 
   // Voices CyanManager offers right now: only refreshed while the VOICES mode is

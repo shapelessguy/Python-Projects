@@ -1,7 +1,7 @@
 # android_ui — native Android client
 
 Jetpack Compose port of the `react_ui` app. Talks to the **same FastAPI backend**
-(`api/`) over REST, with the same 1-second `/api/version` poll and
+(`api/`) over REST, with the same held `/api/version` request (api/longpoll.py) and
 "mutations reply with the full month snapshot" model.
 
 ## Open it
@@ -27,7 +27,7 @@ app/src/main/java/com/diary/
   net/
     Models.kt               @Serializable mirrors of the API types + JsonElement helpers
     Api.kt                  Ktor client, one suspend fn per endpoint
-    VersionPoll.kt          Flow that emits /api/version once a second
+    VersionPoll.kt          one shared Flow of /api/version, a held request
   ui/
     App.kt                  two-tab shell (Environment / Personal)
     theme/Theme.kt          dark Material 3 palette matching the web

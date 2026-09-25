@@ -47,14 +47,14 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from api.config import (
+    LIBRARY_MOVES,
     FFMPEG,
     IMAGE_DIR,
     FFPROBE,
     MOVIES_DATA_DIR,
     MOVIES_DIR,
-    MOVIE_STAGING,
     MUSIC_DIR,
-    MUSIC_STAGING,
+    STAGING,
 )
 from api.services import movie_subs, movies, plex, prep_configs
 
@@ -81,11 +81,11 @@ def areas() -> dict[str, dict]:
     the real library; the test area points somewhere else entirely, which is
     the whole reason this is configuration and not a constant."""
     out: dict[str, dict] = {}
-    configured = [(n, c, "film") for n, c in (MOVIE_STAGING or {}).items()]
-    # Music pairs are browsed, moved and uploaded into exactly like film
-    # ones; only what "processing" means differs (music_prep.py).
-    configured += [(n, c, "music") for n, c in (MUSIC_STAGING or {}).items()
-                   if n not in (MOVIE_STAGING or {})]
+    # In the order secrets.json lists them, which is the tabs' order. Music
+    # pairs are browsed, moved and uploaded into exactly like film ones; only
+    # what "processing" means differs (music_prep.py).
+    configured = [(n, c, "music" if (c or {}).get("type") == "music" else "film")
+                  for n, c in (STAGING or {}).items()]
     for name, cfg, media in configured:
         cfg = cfg or {}
         # An area may have no inbox at all — just somewhere finished work is
@@ -144,6 +144,39 @@ def workspace_of(key: str) -> str | None:
     done. Neither is the film library."""
     name = key[: -len(":library")] if key.endswith(":library") else key
     return name if is_inbox(name) else None
+
+
+# The libraries by the names the move rules use (LIBRARY_MOVES).
+LIBRARY_NAMES = {"": "Movies", ":music": "Music", ":images": "Images"}
+
+
+def folder_name(key: str) -> str:
+    """A source key as the move rules name it: "Movies", "Music", "Images",
+    or the staging entry's name for either of its halves."""
+    return LIBRARY_NAMES.get(key) or key.removesuffix(":library")
+
+
+def move_rules() -> dict[str, list[str]]:
+    """Where each folder's things may go, by folder name — "moves_to" of the
+    staging entries, and LIBRARY_MOVES for the libraries. A folder missing
+    from it has no rule."""
+    out = {str(k): [str(x) for x in v] for k, v in (LIBRARY_MOVES or {}).items() if isinstance(v, list)}
+    for name, cfg in (STAGING or {}).items():
+        rule = (cfg or {}).get("moves_to")
+        if isinstance(rule, list):
+            out[str(name)] = [str(x) for x in rule]
+    return out
+
+
+def may_move_between(from_key: str, to_key: str) -> bool:
+    """Whether the rules let something in `from_key` move into `to_key`.
+    Within one folder, or between the two halves of a staging pair, always;
+    otherwise the source folder's rule decides, and no rule is no limit."""
+    a, b = folder_name(from_key), folder_name(to_key)
+    if a == b:
+        return True
+    rule = move_rules().get(a)
+    return rule is None or "*" in rule or b in rule
 
 
 def sources() -> list[dict]:
@@ -1099,6 +1132,28 @@ def _watch() -> None:
 
 def init() -> None:
     threading.Thread(target=_watch, daemon=True).start()
+    _follow_libraries()
+
+
+def _follow_libraries() -> None:
+    """Every folder a tab shows, followed through inotify (fs_watch), so
+    what lands in one from outside CyanHouse — a finished download, a copy
+    over the network, a drive plugged back in — reaches the panel on its
+    own: the film list is read again and the counter moves, so the open
+    listings are too. A folder inside another one already followed is
+    covered by that one."""
+    from api.services import fs_watch, movies
+
+    def changed() -> None:
+        movies.forget_listing()
+        _bump()
+
+    roots: list[Path] = []
+    for p in sorted({Path(x["path"]) for x in sources() if x.get("path")}, key=lambda p: len(p.parts)):
+        if not any(p == r or r in p.parents for r in roots):
+            roots.append(p)
+    for r in roots:
+        fs_watch.follow(r, changed)
 
 
 def scan_area(name: str) -> list[dict]:

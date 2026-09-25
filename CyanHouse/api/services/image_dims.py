@@ -27,10 +27,7 @@ honoured — a phone photo taken upright is stored sideways with a flag
 saying so, and is shown (and thumbnailed) upright, so its width and height
 are swapped here.
 """
-import ctypes
-import ctypes.util
 import os
-import select
 import sqlite3
 import time
 import struct
@@ -38,6 +35,7 @@ import threading
 from pathlib import Path
 
 from api.config import API_DATA_DIR, IMAGE_DIR
+from api.services import fs_watch
 
 IMAGE_EXT = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"}
 SETTLE = 2.0          # seconds of quiet after a change before scanning
@@ -198,70 +196,7 @@ def _is_changed() -> bool:
     return bool(row and row[0])
 
 
-# ── the kernel's word that something changed (inotify) ──────────────────
-_IN = {"MODIFY": 0x2, "ATTRIB": 0x4, "CLOSE_WRITE": 0x8, "MOVED_FROM": 0x40, "MOVED_TO": 0x80,
-       "CREATE": 0x100, "DELETE": 0x200, "DELETE_SELF": 0x400, "MOVE_SELF": 0x800,
-       "UNMOUNT": 0x2000, "IGNORED": 0x8000, "ISDIR": 0x40000000}
-_MASK = (_IN["CLOSE_WRITE"] | _IN["MOVED_FROM"] | _IN["MOVED_TO"] | _IN["CREATE"] | _IN["DELETE"]
-         | _IN["DELETE_SELF"] | _IN["MOVE_SELF"] | _IN["ATTRIB"])
-_libc = ctypes.CDLL(ctypes.util.find_library("c") or "libc.so.6", use_errno=True)
 _wake = threading.Event()
-
-
-class _Watch:
-    """inotify on a folder and every folder in it."""
-
-    def __init__(self, root: Path):
-        self.root = root
-        self.fd = _libc.inotify_init1(os.O_NONBLOCK | os.O_CLOEXEC)
-        if self.fd < 0:
-            raise OSError(ctypes.get_errno(), "inotify_init1")
-        self.dirs: dict[int, str] = {}
-        for dirpath, dirnames, _ in os.walk(root):
-            dirnames[:] = [d for d in set(dirnames) if not d.startswith(".")]
-            self.add(dirpath)
-
-    def add(self, path: str) -> None:
-        wd = _libc.inotify_add_watch(self.fd, os.fsencode(path), _MASK)
-        if wd >= 0:
-            self.dirs[wd] = path
-
-    def close(self) -> None:
-        os.close(self.fd)
-
-    def events(self, timeout: float) -> tuple[bool, bool]:
-        """Wait up to `timeout` for events: (something changed, the watch on
-        the folder itself is gone — the drive went away)."""
-        r, _, _ = select.select([self.fd], [], [], timeout)
-        if not r:
-            return False, False
-        try:
-            buf = os.read(self.fd, 64 * 1024)
-        except BlockingIOError:
-            return False, False
-        changed, lost = False, False
-        i = 0
-        while i + 16 <= len(buf):
-            wd, mask, _cookie, n = struct.unpack_from("iIII", buf, i)
-            name = buf[i + 16: i + 16 + n].split(b"\0", 1)[0].decode(errors="replace")
-            i += 16 + n
-            if mask & (_IN["UNMOUNT"] | _IN["DELETE_SELF"] | _IN["MOVE_SELF"]) and self.dirs.get(wd) == str(self.root):
-                lost = True
-            if mask & _IN["IGNORED"]:
-                gone = self.dirs.pop(wd, None)
-                if gone == str(self.root):
-                    lost = True
-                continue
-            if name.startswith("."):
-                continue
-            changed = True
-            # A new folder (made, or moved in) is watched too, and so is
-            # everything already inside it.
-            if mask & _IN["ISDIR"] and mask & (_IN["CREATE"] | _IN["MOVED_TO"]) and wd in self.dirs:
-                for dirpath, dirnames, _ in os.walk(os.path.join(self.dirs[wd], name)):
-                    dirnames[:] = [d for d in set(dirnames) if not d.startswith(".")]
-                    self.add(dirpath)
-        return changed, lost
 
 
 def _watch_loop() -> None:
@@ -272,7 +207,7 @@ def _watch_loop() -> None:
             time.sleep(10)
             continue
         try:
-            w = _Watch(IMAGE_DIR)
+            w = fs_watch.Watch(IMAGE_DIR)
         except OSError as e:
             print(f"image_dims: cannot watch {IMAGE_DIR} ({e}); scanning on a timer only")
             return

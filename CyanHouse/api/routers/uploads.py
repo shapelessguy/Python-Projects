@@ -12,11 +12,11 @@ instead, which is what the Movies panel already watches.
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from starlette.concurrency import run_in_threadpool
 
-from api.auth import require_user
+from api.auth import require_user, require_media_area
 from api.routers.prep import may_change
 from api.services import uploads
 
-router = APIRouter(prefix="/api/uploads", tags=["uploads"])
+router = APIRouter(prefix="/api/uploads", tags=["uploads"], dependencies=[Depends(require_media_area)])
 
 PANEL = "movies"  # same permission as the panel that drives it
 

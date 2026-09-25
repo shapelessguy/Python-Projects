@@ -10,3 +10,5 @@ dev_test_media/
 data/
 scripts/backup.log
 docker/pyload/
+docker/qbittorrent/
+docker/jackett/
