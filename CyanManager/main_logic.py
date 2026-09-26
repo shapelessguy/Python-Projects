@@ -9,6 +9,7 @@ import ctypes
 import importlib
 import pkgutil
 import thread_collection
+from thread_collection import api_auth
 from gui.manage_ui import UI
 from dotenv import dotenv_values
 from registered_functions import register_functions, RegisteredFunctions
@@ -218,6 +219,7 @@ def main():
     signal = None
     try:
         signal = Signal()
+        api_auth.load_users()
         register_functions(signal)
         register_threads(signal)
         signal.ui_manager = UI(signal)

@@ -13,12 +13,14 @@ users too (CyanManager/thread_collection/api_auth.py).
     GET  /api/controls/voices        ->  {CONTROLS_FN_URL}/voices  (list of voice names)
     POST /api/controls/voices/{name} ->  {CONTROLS_FN_URL}/voices/{name}/play
     GET  /api/controls/info          ->  {CONTROLS_FN_URL}/info
+    GET  /api/controls/users         ->  who the fn service lets in (users())
 
 Contract picked up by ``api/main.py`` auto-discovery: only `router` and
 `init()` (starts the Room actuator's lights-auto scheduler) — no DB, no
 version counter, so `versions()` isn't needed.
 """
 import asyncio
+import hashlib
 import time
 from typing import Any
 from urllib.parse import quote
@@ -28,7 +30,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from starlette.concurrency import run_in_threadpool
 
 from api import longpoll
-from api.auth import basic_header, require_user
+from api.auth import USERS, basic_header, require_user, visible_panels
 from api.config import CONTROLS_FN_URL
 from api.services import room
 
@@ -121,3 +123,18 @@ async def info(request: Request, since: str | None = None, wait: float = 25,
     With `since` (the X-Tag of the last answer) held until it changes, or
     `wait` seconds pass — api/longpoll.py."""
     return await longpoll.hold(request, lambda: _current_info(user), since, wait, check=INFO_FRESH)
+
+
+@router.get("/users")
+async def users():
+    """Every user, for the fn service to sign callers in with (CyanManager
+    fetches this at startup, see its api_auth.py): the SHA-256 of their token
+    rather than the token, so the PC never holds anyone's credential but its
+    own, and whether they have this panel."""
+    return {
+        name: {
+            "token_sha256": hashlib.sha256(u["token"].encode("utf-8")).hexdigest(),
+            "controls": (vis := visible_panels(name)) is None or PANEL in vis,
+        }
+        for name, u in USERS.items() if u.get("token")
+    }

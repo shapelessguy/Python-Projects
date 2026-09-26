@@ -3,52 +3,81 @@
 Both run things on this PC -- typing text, pressing keys, typing the keyring
 password -- so a caller signs in with its CyanHouse credentials, the same
 `Authorization: Basic base64(user:token)` the Android app sends to CyanHouse,
-and CyanHouse forwards its caller's. The users are CyanHouse's own, read
-from its secrets.json (../CyanHouse/secrets.json, or `CYANHOUSE_SECRETS` in
-.env) on every call, so a user added or removed there counts at once.
+and CyanHouse forwards its caller's.
+
+.env holds only this PC's own CyanHouse user:
+
+    CYANHOUSE_URL=https://cyanroomserver.duckdns.org
+    ADMIN=cyanpc
+    ADMIN_TOKEN=<cyanpc's token in CyanHouse's secrets.json>
+
+It signs in with them to call CyanHouse (roomserver.py), and at startup
+(load_users(), from main_logic.py) to fetch everyone else from
+`GET /api/controls/users`: each user's name, the SHA-256 of their token (so
+this PC never holds anyone's token but its own) and whether they have the
+Controls panel. Until that fetch succeeds it is retried in the background; a
+user added or changed in CyanHouse counts here after CyanManager restarts.
 
 A user needs the Controls panel (`permissions.visibility` omitted, or listing
 "controls"), as in CyanHouse itself. Movie transcription (subtitles for the
 Media panel) only needs a valid user.
 
-`ADMIN` in .env names the user this PC signs in as when it calls CyanHouse
-(roomserver.py); the token is that user's in secrets.json.
-
 Calls from this PC itself (127.0.0.1 / ::1, e.g. videoProcessing's transcribe
-client) need no credentials. With no users readable every other caller is
+client) need no credentials. With no users fetched every other caller is
 refused: failing open would leave the PC controllable by anyone who can
 reach the port.
 """
 import base64
-import json
-import os
+import hashlib
 import secrets
+import threading
+import time
 
+import requests
 from dotenv import dotenv_values
 
 from utils import ENV_PATH
 
 LOOPBACK = {"127.0.0.1", "::1"}
 PANEL = "controls"
-_DEFAULT_SECRETS = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-                                "CyanHouse", "secrets.json")
+RETRY = 30  # seconds between attempts while CyanHouse can't be reached
 
-
-def _users() -> dict:
-    path = (dotenv_values(ENV_PATH).get("CYANHOUSE_SECRETS") or "").strip() or _DEFAULT_SECRETS
-    try:
-        with open(path, encoding="utf-8") as f:
-            return json.load(f).get("users") or {}
-    except (OSError, ValueError) as e:
-        print(f"api_auth: cannot read users from {path}: {e}")
-        return {}
+# username -> {"token_sha256": ..., "controls": bool}, from CyanHouse
+_users: dict = {}
 
 
 def own_credentials() -> tuple[str, str] | None:
-    """(ADMIN, their token): who this PC calls CyanHouse as."""
-    name = (dotenv_values(ENV_PATH).get("ADMIN") or "").strip()
-    token = (_users().get(name) or {}).get("token") if name else None
-    return (name, token) if token else None
+    """(ADMIN, ADMIN_TOKEN): who this PC calls CyanHouse as."""
+    env = dotenv_values(ENV_PATH)
+    name = (env.get("ADMIN") or "").strip()
+    token = (env.get("ADMIN_TOKEN") or "").strip()
+    return (name, token) if name and token else None
+
+
+def _fetch() -> dict:
+    url = (dotenv_values(ENV_PATH).get("CYANHOUSE_URL") or "").strip().rstrip("/")
+    creds = own_credentials()
+    if not url or not creds:
+        raise RuntimeError("set CYANHOUSE_URL, ADMIN and ADMIN_TOKEN in .env")
+    r = requests.get(f"{url}/api/controls/users", auth=creds, timeout=10)
+    r.raise_for_status()
+    return r.json()
+
+
+def load_users() -> None:
+    """Fetch the users from CyanHouse, retrying in the background until it works."""
+    def run():
+        global _users
+        while True:
+            try:
+                _users = _fetch()
+                print(f"api_auth: {len(_users)} users from CyanHouse")
+                return
+            except Exception as e:
+                print(f"api_auth: cannot fetch users from CyanHouse, retrying in {RETRY}s: {e}")
+            time.sleep(RETRY)
+
+    threading.Thread(target=run, name="api_auth users", daemon=True).start()
 
 
 def user_for(authorization: str | None) -> dict | None:
@@ -59,9 +88,9 @@ def user_for(authorization: str | None) -> dict | None:
         name, _, token = base64.b64decode(authorization[6:].strip()).decode("utf-8").partition(":")
     except Exception:
         return None
-    user = _users().get(name)
-    expected = (user or {}).get("token")
-    if not expected or not secrets.compare_digest(expected.encode(), token.encode()):
+    user = _users.get(name)
+    expected = (user or {}).get("token_sha256")
+    if not expected or not secrets.compare_digest(expected, hashlib.sha256(token.encode()).hexdigest()):
         return None
     return user
 
@@ -72,7 +101,4 @@ def allowed(remote_addr: str | None, authorization: str | None, controls: bool =
     user = user_for(authorization)
     if user is None:
         return False
-    if not controls:
-        return True
-    vis = (user.get("permissions") or {}).get("visibility")
-    return vis is None or PANEL in vis
+    return not controls or bool(user.get("controls"))
