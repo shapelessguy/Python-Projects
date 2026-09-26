@@ -7,7 +7,8 @@ and CyanHouse forwards its caller's. The users, read again on every call:
 
   * `CYANHOUSE_USERS` in .env, a JSON dict of username -> token:
         CYANHOUSE_USERS={"alice": "her-token", "bob": "his-token"}
-    Everyone listed may use everything.
+    Everyone listed may use everything. The first one listed is also who
+    this PC signs in as when it calls CyanHouse (roomserver.py).
   * otherwise CyanHouse's own secrets.json (`CYANHOUSE_SECRETS` in .env,
     default ../CyanHouse/secrets.json), where a user needs the Controls panel
     (`permissions.visibility` omitted, or listing "controls"), as in
@@ -34,16 +35,30 @@ _DEFAULT_SECRETS = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
                                 "CyanHouse", "secrets.json")
 
 
+def _listed(env: dict) -> dict[str, str] | None:
+    """CYANHOUSE_USERS from .env, in order; None when it isn't set."""
+    listed = (env.get("CYANHOUSE_USERS") or "").strip()
+    if not listed:
+        return None
+    try:
+        return {str(k): str(v) for k, v in json.loads(listed).items()}
+    except (ValueError, AttributeError) as e:
+        print(f"api_auth: CYANHOUSE_USERS in .env is not a JSON dict: {e}")
+        return {}
+
+
+def own_credentials() -> tuple[str, str] | None:
+    """The first user in CYANHOUSE_USERS: who this PC calls CyanHouse as."""
+    listed = _listed(dotenv_values(ENV_PATH))
+    return next(iter(listed.items()), None) if listed else None
+
+
 def _users() -> dict:
     """username -> {"token": ..., "permissions": {...}}, CyanHouse's shape."""
     env = dotenv_values(ENV_PATH)
-    listed = (env.get("CYANHOUSE_USERS") or "").strip()
-    if listed:
-        try:
-            return {str(k): {"token": str(v), "permissions": {}} for k, v in json.loads(listed).items()}
-        except (ValueError, AttributeError) as e:
-            print(f"api_auth: CYANHOUSE_USERS in .env is not a JSON dict: {e}")
-            return {}
+    listed = _listed(env)
+    if listed is not None:
+        return {k: {"token": v, "permissions": {}} for k, v in listed.items()}
     path = (env.get("CYANHOUSE_SECRETS") or "").strip() or _DEFAULT_SECRETS
     try:
         with open(path, encoding="utf-8") as f:

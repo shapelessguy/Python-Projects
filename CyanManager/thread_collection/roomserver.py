@@ -2,9 +2,9 @@ import base64
 import time
 import requests
 import json
-from dotenv import dotenv_values
 from PyQt5.QtWidgets import QLineEdit, QTimeEdit
-from utils import Parameter, ENV_PATH
+from utils import Parameter
+from thread_collection import api_auth
 
 
 NAME = "Roomserver"
@@ -26,8 +26,8 @@ def request_roomserver(params, topic, arg, verbose=False, timeout=5):
         values["set_auto_time"] = {"from": params.get('Lights from', ''), "to": params.get('Lights to', '')}
     json_content = json.dumps(values)
 
-    env_vars = dotenv_values(ENV_PATH)
-    username, token = env_vars.get("AUTH", "").split("::")
+    # Signs in to CyanHouse as the first user in CYANHOUSE_USERS (.env).
+    username, token = api_auth.own_credentials() or ("", "")
 
     host = params.get('Hostname/port', '').rstrip('/')
     url = f"{host}/{topic}"
