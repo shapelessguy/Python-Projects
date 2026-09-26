@@ -3,17 +3,16 @@
 Both run things on this PC -- typing text, pressing keys, typing the keyring
 password -- so a caller signs in with its CyanHouse credentials, the same
 `Authorization: Basic base64(user:token)` the Android app sends to CyanHouse,
-and CyanHouse forwards its caller's. The users, read again on every call:
+and CyanHouse forwards its caller's. The users are CyanHouse's own, read
+from its secrets.json (../CyanHouse/secrets.json, or `CYANHOUSE_SECRETS` in
+.env) on every call, so a user added or removed there counts at once.
 
-  * `CYANHOUSE_USERS` in .env, a JSON dict of username -> token:
-        CYANHOUSE_USERS={"alice": "her-token", "bob": "his-token"}
-    Everyone listed may use everything. The first one listed is also who
-    this PC signs in as when it calls CyanHouse (roomserver.py).
-  * otherwise CyanHouse's own secrets.json (`CYANHOUSE_SECRETS` in .env,
-    default ../CyanHouse/secrets.json), where a user needs the Controls panel
-    (`permissions.visibility` omitted, or listing "controls"), as in
-    CyanHouse itself; movie transcription (subtitles for the Media panel)
-    only needs a valid user.
+A user needs the Controls panel (`permissions.visibility` omitted, or listing
+"controls"), as in CyanHouse itself. Movie transcription (subtitles for the
+Media panel) only needs a valid user.
+
+`ADMIN` in .env names the user this PC signs in as when it calls CyanHouse
+(roomserver.py); the token is that user's in secrets.json.
 
 Calls from this PC itself (127.0.0.1 / ::1, e.g. videoProcessing's transcribe
 client) need no credentials. With no users readable every other caller is
@@ -35,37 +34,21 @@ _DEFAULT_SECRETS = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
                                 "CyanHouse", "secrets.json")
 
 
-def _listed(env: dict) -> dict[str, str] | None:
-    """CYANHOUSE_USERS from .env, in order; None when it isn't set."""
-    listed = (env.get("CYANHOUSE_USERS") or "").strip()
-    if not listed:
-        return None
-    try:
-        return {str(k): str(v) for k, v in json.loads(listed).items()}
-    except (ValueError, AttributeError) as e:
-        print(f"api_auth: CYANHOUSE_USERS in .env is not a JSON dict: {e}")
-        return {}
-
-
-def own_credentials() -> tuple[str, str] | None:
-    """The first user in CYANHOUSE_USERS: who this PC calls CyanHouse as."""
-    listed = _listed(dotenv_values(ENV_PATH))
-    return next(iter(listed.items()), None) if listed else None
-
-
 def _users() -> dict:
-    """username -> {"token": ..., "permissions": {...}}, CyanHouse's shape."""
-    env = dotenv_values(ENV_PATH)
-    listed = _listed(env)
-    if listed is not None:
-        return {k: {"token": v, "permissions": {}} for k, v in listed.items()}
-    path = (env.get("CYANHOUSE_SECRETS") or "").strip() or _DEFAULT_SECRETS
+    path = (dotenv_values(ENV_PATH).get("CYANHOUSE_SECRETS") or "").strip() or _DEFAULT_SECRETS
     try:
         with open(path, encoding="utf-8") as f:
             return json.load(f).get("users") or {}
     except (OSError, ValueError) as e:
         print(f"api_auth: cannot read users from {path}: {e}")
         return {}
+
+
+def own_credentials() -> tuple[str, str] | None:
+    """(ADMIN, their token): who this PC calls CyanHouse as."""
+    name = (dotenv_values(ENV_PATH).get("ADMIN") or "").strip()
+    token = (_users().get(name) or {}).get("token") if name else None
+    return (name, token) if token else None
 
 
 def user_for(authorization: str | None) -> dict | None:
