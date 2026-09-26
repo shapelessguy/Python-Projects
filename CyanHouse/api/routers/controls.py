@@ -14,6 +14,7 @@ users too (CyanManager/thread_collection/api_auth.py).
     POST /api/controls/voices/{name} ->  {CONTROLS_FN_URL}/voices/{name}/play
     GET  /api/controls/info          ->  {CONTROLS_FN_URL}/info
     GET  /api/controls/users         ->  who the fn service lets in (users())
+    WS   /api/controls/mouse         ->  {MOUSE_WS_URL}  (the Android app's Mouse section)
 
 Contract picked up by ``api/main.py`` auto-discovery: only `router` and
 `init()` (starts the Room actuator's lights-auto scheduler) — no DB, no
@@ -26,12 +27,14 @@ from typing import Any
 from urllib.parse import quote
 
 import requests
-from fastapi import APIRouter, Depends, HTTPException, Request
+import websockets
+from fastapi import APIRouter, Depends, HTTPException, Request, WebSocket, WebSocketDisconnect
+from fastapi.responses import PlainTextResponse
 from starlette.concurrency import run_in_threadpool
 
 from api import longpoll
 from api.auth import USERS, basic_header, require_user, visible_panels
-from api.config import CONTROLS_FN_URL
+from api.config import CONTROLS_FN_URL, MOUSE_WS_URL
 from api.services import room
 
 router = APIRouter(prefix="/api/controls", tags=["controls"])
@@ -138,3 +141,44 @@ async def users():
         }
         for name, u in USERS.items() if u.get("token")
     }
+
+
+@router.websocket("/mouse")
+async def mouse(websocket: WebSocket, user: str = Depends(require_user)):
+    """The Mouse section's WebSocket, relayed to CyanManager's mouse server
+    with the caller's own credential (as _forward does), so the phone only
+    ever talks to CyanHouse. The messages only go to the PC; the mouse server
+    never answers, it just closes."""
+    if not MOUSE_WS_URL:
+        await websocket.send_denial_response(PlainTextResponse(
+            "mouse server not configured — set CONTROLS_FN_HOST in secrets.json", status_code=503))
+        return
+    try:
+        pc = await websockets.connect(MOUSE_WS_URL, additional_headers=basic_header(user),
+                                      open_timeout=_TIMEOUT)
+    except (OSError, TimeoutError, websockets.WebSocketException) as e:
+        await websocket.send_denial_response(PlainTextResponse(
+            f"mouse server unreachable: {e}", status_code=502))
+        return
+    await websocket.accept()
+
+    async def to_pc():
+        while True:
+            await pc.send(await websocket.receive_text())
+
+    async def from_pc():
+        async for _ in pc:
+            pass
+
+    tasks = [asyncio.create_task(to_pc()), asyncio.create_task(from_pc())]
+    try:
+        await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+    finally:
+        for t in tasks:
+            t.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+        await pc.close()
+        try:
+            await websocket.close()
+        except (RuntimeError, WebSocketDisconnect):
+            pass  # the phone already went

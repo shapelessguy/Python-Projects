@@ -120,6 +120,24 @@ http {
             proxy_set_header X-Forwarded-Proto $scheme;
         }
 
+        # The Android app's Mouse section: a WebSocket, relayed on to
+        # CyanManager (api/routers/controls.py). nginx only passes the
+        # upgrade on when asked to, and the default 60s proxy_read_timeout
+        # would drop a socket left idle between touches (the app pings every
+        # 15s, but a longer margin costs nothing).
+        location = /api/controls/mouse {
+            proxy_pass http://127.0.0.1:${API_PORT}/api/controls/mouse;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+            proxy_read_timeout 3600s;
+            proxy_send_timeout 3600s;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
         # FastAPI backend — routers are already prefixed /api/... , so this
         # keeps the prefix as-is (no trailing slash on proxy_pass).
         location /api/ {

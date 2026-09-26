@@ -28,7 +28,6 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -73,42 +72,18 @@ private const val SENSITIVITY = 2f
 
 private enum class MouseMode { MOUSE, KEYBOARD }
 
-/** The mouse only works over the LAN (it talks straight to CyanManager, see
- *  MouseSocket), so off Wi-Fi there's nothing to try -- show a hint instead of
- *  spinning on a socket that can't connect. Polled every second so it loads
- *  the moment Wi-Fi comes back; [MouseContent] leaving the composition on a
- *  drop also closes the socket. */
+/** Straight to the PC on Wi-Fi, through CyanHouse otherwise (see MouseSocket),
+ *  so it works wherever the app does. */
 @Composable
 fun MouseScreen() {
-    val context = LocalContext.current
-    var onWifi by remember { mutableStateOf(isOnWifi(context)) }
-    LaunchedEffect(Unit) {
-        while (true) {
-            onWifi = isOnWifi(context)
-            delay(1000)
-        }
-    }
-    if (onWifi) {
-        MouseContent()
-    } else {
-        Column(
-            Modifier.fillMaxSize().padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Icon(
-                Icons.Default.WifiOff, contentDescription = null, modifier = Modifier.size(48.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text("Connect to Wi-Fi to use the mouse", fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-    }
+    MouseContent()
 }
 
 @Composable
 private fun MouseContent() {
     val connected by MouseSocket.connected.collectAsState()
     val lastError by MouseSocket.lastError.collectAsState()
+    val context = LocalContext.current
 
     // Connected only while this screen is on screen -- the socket isn't worth
     // holding open the rest of the time. connect() is a no-op once a socket
@@ -116,7 +91,7 @@ private fun MouseContent() {
     DisposableEffect(Unit) { onDispose { MouseSocket.disconnect() } }
     LaunchedEffect(Unit) {
         while (true) {
-            if (!connected) MouseSocket.connect()
+            if (!connected) MouseSocket.connect(isOnWifi(context))
             delay(2000)
         }
     }

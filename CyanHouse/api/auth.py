@@ -33,6 +33,7 @@ import secrets
 from urllib.parse import unquote
 
 from fastapi import Depends, HTTPException, Request, status
+from fastapi.requests import HTTPConnection
 
 from api.config import SECRET_USERS
 
@@ -60,7 +61,8 @@ def _split(b64: str) -> tuple[str, str] | None:
         return None
 
 
-def require_user(request: Request) -> str:
+def require_user(request: HTTPConnection) -> str:
+    # HTTPConnection rather than Request, so WebSocket routes sign in the same way.
     # Cookie first: it is what the SPA explicitly manages on login/logout. The
     # browser may keep auto-sending a stale `Authorization: Basic` header it
     # cached from an earlier 401 dialog — that must not override the cookie.
