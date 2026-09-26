@@ -10,16 +10,19 @@ version.
 
 Every mutating helper returns the caller's full catalogue snapshot so the reply
 already carries what the UI should render."""
+import ipaddress
 import json
 import mimetypes
 import re
 import secrets
 import shutil
+import socket
 import sqlite3
 import threading
 from contextlib import contextmanager
 from html.parser import HTMLParser
 from pathlib import Path
+from urllib.parse import urljoin, urlsplit
 
 import requests
 
@@ -66,6 +69,51 @@ CREATE TABLE IF NOT EXISTS meta (
 """
 
 _REQ_HEADERS = {"User-Agent": "Mozilla/5.0 (cyanhouse-food)"}
+
+# A dish's image and recipe URLs come from whoever edits it, and the server
+# fetches them -- from inside the home network. Left unchecked that reaches
+# what only trusts the LAN or localhost: the ESP32 boards (a GET switches the
+# lights), qBittorrent (no login from 127.0.0.1), the router. So only public
+# addresses are fetched, every redirect is checked the same way, and the body
+# is capped.
+_MAX_FETCH_BYTES = 15 * 1024 * 1024
+_MAX_REDIRECTS = 5
+
+
+def _check_public(url: str) -> None:
+    parts = urlsplit(url)
+    if parts.scheme not in ("http", "https") or not parts.hostname:
+        raise ValueError(f"not a web address: {url!r}")
+    try:
+        infos = socket.getaddrinfo(parts.hostname, parts.port or (443 if parts.scheme == "https" else 80))
+    except socket.gaierror as e:
+        raise ValueError(f"cannot resolve {parts.hostname}: {e}")
+    for info in infos:
+        ip = ipaddress.ip_address(info[4][0].split("%")[0])
+        if not ip.is_global:
+            raise ValueError(f"{parts.hostname} is not a public address")
+
+
+def _public_get(url: str, timeout: float) -> requests.Response:
+    """requests.get for a URL a user gave, refusing anything not on the
+    public internet (see above)."""
+    for _ in range(_MAX_REDIRECTS + 1):
+        _check_public(url)
+        resp = requests.get(url, headers=_REQ_HEADERS, timeout=timeout,
+                            allow_redirects=False, stream=True)
+        if resp.is_redirect and resp.headers.get("location"):
+            url = urljoin(url, resp.headers["location"])
+            resp.close()
+            continue
+        body = bytearray()
+        for chunk in resp.iter_content(64 * 1024):
+            body += chunk
+            if len(body) > _MAX_FETCH_BYTES:
+                resp.close()
+                raise ValueError("response too large")
+        resp._content = bytes(body)
+        return resp
+    raise ValueError("too many redirects")
 
 
 def _version_key(user: str) -> str:
@@ -256,7 +304,7 @@ def _ext_for(content_type: str, url: str) -> str:
 def download_image(url: str, name_hint: str) -> str:
     """Fetch a picked search-result URL into the shared image store; return the
     stored filename. Raises on network / HTTP error."""
-    resp = requests.get(url, headers=_REQ_HEADERS, timeout=20)
+    resp = _public_get(url, timeout=20)
     resp.raise_for_status()
     fname = f"{_slug(name_hint)}-{secrets.token_hex(4)}{_ext_for(resp.headers.get('content-type', ''), url)}"
     (FOOD_IMAGES_DIR / fname).write_bytes(resp.content)
@@ -307,7 +355,7 @@ def fetch_page_text(url: str) -> str:
     here must not fail the dish save -- it just means the url/text status dot
     stays red -- so errors are swallowed."""
     try:
-        resp = requests.get(url, headers=_REQ_HEADERS, timeout=15)
+        resp = _public_get(url, timeout=15)
         resp.raise_for_status()
         return _extract_text(resp.text)
     except Exception:
