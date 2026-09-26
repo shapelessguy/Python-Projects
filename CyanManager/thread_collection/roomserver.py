@@ -2,14 +2,13 @@ import base64
 import time
 import requests
 import json
-from PyQt5.QtWidgets import QLineEdit, QTimeEdit
+from PyQt5.QtWidgets import QTimeEdit
 from utils import Parameter
 from thread_collection import api_auth
 
 
 NAME = "Roomserver"
 PARAMETERS = {
-    "Hostname/port": Parameter("", QLineEdit),
     "Lights from": Parameter("09:00", QTimeEdit),
     "Lights to": Parameter("20:00", QTimeEdit),
 }
@@ -26,11 +25,10 @@ def request_roomserver(params, topic, arg, verbose=False, timeout=5):
         values["set_auto_time"] = {"from": params.get('Lights from', ''), "to": params.get('Lights to', '')}
     json_content = json.dumps(values)
 
-    # Signs in to CyanHouse as INSTANCE_ID / INSTANCE_TOKEN (.env).
+    # CyanHouse's Room actuator, at CYANHOUSE_URL, as INSTANCE_ID / INSTANCE_TOKEN (.env).
     username, token = api_auth.own_credentials() or ("", "")
 
-    host = params.get('Hostname/port', '').rstrip('/')
-    url = f"{host}/{topic}"
+    url = f"{api_auth.cyanhouse_url()}/api/controls/room/{topic}"
     creds = f"{username}:{token}"
     headers = {
         'Content-Type': 'application/json',

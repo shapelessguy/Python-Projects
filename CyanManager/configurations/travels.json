@@ -31,7 +31,6 @@
         "Roomserver": {
             "enabled": false,
             "parameters": {
-                "Hostname/port": "http://cyanroomserver.duckdns.org:10004",
                 "Lights from": "09:00",
                 "Lights to": "20:00"
             }

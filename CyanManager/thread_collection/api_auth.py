@@ -8,7 +8,7 @@ and CyanHouse forwards its caller's.
 .env holds only this instance's own CyanHouse user -- each device running
 CyanManager signs in as its own:
 
-    CYANHOUSE_URL=https://cyanroomserver.duckdns.org
+    CYANHOUSE_URL=https://cyanshape.duckdns.org   (LAN_HOST: CyanHouse on the same LAN)
     INSTANCE_ID=cyanpc
     INSTANCE_TOKEN=<cyanpc's token in CyanHouse's secrets.json>
 
@@ -55,8 +55,13 @@ def own_credentials() -> tuple[str, str] | None:
     return (name, token) if name and token else None
 
 
+def cyanhouse_url() -> str:
+    """CYANHOUSE_URL: where CyanHouse is, every address this PC calls it on is built from it."""
+    return (dotenv_values(ENV_PATH).get("CYANHOUSE_URL") or "").strip().rstrip("/")
+
+
 def _fetch() -> dict:
-    url = (dotenv_values(ENV_PATH).get("CYANHOUSE_URL") or "").strip().rstrip("/")
+    url = cyanhouse_url()
     creds = own_credentials()
     if not url or not creds:
         raise RuntimeError("set CYANHOUSE_URL, INSTANCE_ID and INSTANCE_TOKEN in .env")
