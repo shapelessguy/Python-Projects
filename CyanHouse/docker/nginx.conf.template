@@ -46,7 +46,7 @@ http {
         # bind mount (./docker/html -> /usr/share/nginx/html). Plain prefix
         # location (not `location = /`) — the exact-match form had trouble
         # resolving `index` to this root; more specific locations below
-        # (/ui/, /api/, /cyan_pc/) still win for their own paths regardless,
+        # (/ui/, /api/) still win for their own paths regardless,
         # since nginx always prefers the longest matching prefix.
         location / {
             root /usr/share/nginx/html;
@@ -124,34 +124,6 @@ http {
         # keeps the prefix as-is (no trailing slash on proxy_pass).
         location /api/ {
             proxy_pass http://127.0.0.1:${API_PORT}/api/;
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto $scheme;
-        }
-
-        # FastAPI's own interactive API docs (Swagger UI at /docs, ReDoc at
-        # /redoc, the schema at /openapi.json) — these aren't under /api/, so
-        # without this they'd fall through to the static root above and never
-        # reach the backend. Unauthenticated by design (FastAPI's built-in
-        # routes, not run through require_user like the /api/ ones): you can
-        # browse the API shape without signing in, but "Try it out" still
-        # hits the real, protected endpoints, so it still needs the same
-        # login as the app itself to actually execute anything.
-        location ~ ^/(docs|redoc|openapi\.json) {
-            proxy_pass http://127.0.0.1:${API_PORT};
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto $scheme;
-        }
-
-        # CyanControls fn service (CONTROLS_FN_HOST in secrets.json, LAN-only).
-        # Clients that used to hit that host:port directly now go through
-        # here instead, so it no longer needs to be forwarded from the router.
-        # Trailing slash on both location and proxy_pass strips /cyan_pc/.
-        location /cyan_pc/ {
-            proxy_pass http://${CONTROLS_FN_HOST}:${CONTROLS_FN_PORT}/;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;

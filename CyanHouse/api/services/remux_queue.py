@@ -283,7 +283,7 @@ def _run(job: dict) -> None:
                    percent=None)
             generated[track["key"]] = srt_gen.generate(
                 plan, track, stt_jobs=stt_jobs, report=report,
-                cancelled=lambda: bool(job.get("cancel")))
+                cancelled=lambda: bool(job.get("cancel")), user=job.get("by") or "")
         # Subtitles uploaded in the player, and the generated ones, are
         # copied into the film's folder for the mux to read.
         plan, copies = movie_prep.stage_uploads(plan)

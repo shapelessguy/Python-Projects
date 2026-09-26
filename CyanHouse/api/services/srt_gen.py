@@ -25,6 +25,7 @@ from pathlib import Path
 
 import requests
 
+from api.auth import basic_header
 from api.config import CONTROLS_FN_URL, FFMPEG, MOVIES_DATA_DIR
 from api.services import movies
 from api.services.movie_prep import PrepError
@@ -111,12 +112,13 @@ def _extract(video: Path, track: dict, out: Path, duration: float, report, cance
         raise PrepError("extracting the audio failed: " + " | ".join(tail), 502)
 
 
-def _status(job_id: str, cancelled) -> dict:
+def _status(job_id: str, cancelled, user: str) -> dict:
     """The service's view of a transcription, riding out short outages."""
     down_since = None
     while True:
         try:
-            r = requests.get(_url(f"/transcribe_movie/status/{job_id}"), timeout=15)
+            r = requests.get(_url(f"/transcribe_movie/status/{job_id}"), headers=basic_header(user),
+                             timeout=15)
             # 404 is the service's own answer for a job it does not know —
             # it was restarted, and the transcription went with it.
             if r.status_code == 404:
@@ -133,14 +135,16 @@ def _status(job_id: str, cancelled) -> dict:
             time.sleep(POLL_SECONDS)
 
 
-def generate(plan: dict, track: dict, *, stt_jobs: dict, report, cancelled) -> Path:
+def generate(plan: dict, track: dict, *, stt_jobs: dict, report, cancelled, user: str) -> Path:
     """The subtitle for one audio track: from the cache, from a transcription
     already running on the service, or generated from scratch.
 
     `stt_jobs` maps track keys to the service's job ids and is saved with the
     queue job (report(stt_jobs=...)), which is what lets a restart resume.
     Raises PrepError when the service reports a failure or loses the job —
-    the remux must not go ahead without the subtitle it was asked for."""
+    the remux must not go ahead without the subtitle it was asked for.
+    `user` (who queued the remux) is who the service is asked as: it signs
+    people in with the CyanHouse users."""
     fp = plan["fingerprint"]
     done = _cached(fp, track)
     if done.is_file():
@@ -150,7 +154,7 @@ def generate(plan: dict, track: dict, *, stt_jobs: dict, report, cancelled) -> P
 
     job_id = stt_jobs.get(track["key"])
     if job_id:
-        st = _status(job_id, cancelled)
+        st = _status(job_id, cancelled, user)
         if st.get("status") not in ("running", "done"):
             job_id = None   # lost with a service restart, or failed: start over
 
@@ -169,7 +173,7 @@ def generate(plan: dict, track: dict, *, stt_jobs: dict, report, cancelled) -> P
                 params["language"] = whisper
             try:
                 r = requests.post(_url("/transcribe_movie/start"), params=params,
-                                  data=audio.read_bytes(), timeout=600)
+                                  data=audio.read_bytes(), headers=basic_header(user), timeout=600)
                 r.raise_for_status()
                 job_id = r.json()["job_id"]
             except (requests.RequestException, KeyError, ValueError) as e:
@@ -184,7 +188,7 @@ def generate(plan: dict, track: dict, *, stt_jobs: dict, report, cancelled) -> P
     while True:
         if cancelled():
             raise Stopped()
-        st = _status(job_id, cancelled)
+        st = _status(job_id, cancelled, user)
         state = st.get("status")
         if state == "running":
             pct = float(st.get("percent") or 0)

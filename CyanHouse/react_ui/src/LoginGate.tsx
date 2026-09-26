@@ -1,9 +1,12 @@
 import { ReactNode, useEffect, useState } from "react";
-import { api } from "./api";
-import { clearAuth, hasAuth, setAuth } from "./auth";
+import { hasAuth, login, upgradeLegacyCookie } from "./auth";
 
 export function LoginGate({ children }: { children: ReactNode }) {
   const [authed, setAuthed] = useState(hasAuth());
+
+  useEffect(() => {
+    upgradeLegacyCookie();
+  }, []);
 
   useEffect(() => {
     const drop = () => setAuthed(false);
@@ -26,13 +29,11 @@ function LoginForm({ onDone }: { onDone: () => void }) {
     if (!username || !token || busy) return;
     setBusy(true);
     setError(null);
-    setAuth(username.trim(), token.trim());
     try {
-      await api.version(); // validates the cookie
-      onDone();
+      if (await login(username.trim(), token.trim())) onDone();
+      else setError("Wrong username or token.");
     } catch {
-      clearAuth();
-      setError("Wrong username or token.");
+      setError("Could not reach the server.");
     } finally {
       setBusy(false);
     }

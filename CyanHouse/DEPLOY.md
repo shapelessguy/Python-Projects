@@ -164,8 +164,8 @@ without killing it).
 
 ## 10. nginx + HTTPS (Docker)
 
-Same reverse-proxy setup as the Windows `nginx/` folder (`/ui`, `/api`,
-`/cyan_pc`), containerized instead of installing an nginx binary on the box.
+Same reverse-proxy setup as the Windows `nginx/` folder (`/ui`, `/api`),
+containerized instead of installing an nginx binary on the box.
 Runs with `network_mode: host`, so it reaches the FastAPI backend
 (`python -m api`, port `API_PORT` from secrets.json) on this same machine at
 `127.0.0.1:<API_PORT>` — the backend binds loopback only, so nginx is the only
@@ -222,7 +222,7 @@ docker stop nginx-bootstrap
 docker compose up -d
 ```
 
-Starts the real `nginx` (full config, HTTPS + `/ui`/`/api`/`/cyan_pc`) and
+Starts the real `nginx` (full config, HTTPS + `/ui`/`/api`) and
 `certbot` (renews automatically every ~12h, no-ops until the cert is close to
 expiry). After editing `secrets.json` or either `.template` file, re-render
 (above) and redeploy with a full recreate rather than a restart, so any

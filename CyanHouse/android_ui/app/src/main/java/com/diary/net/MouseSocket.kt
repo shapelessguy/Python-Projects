@@ -58,7 +58,11 @@ object MouseSocket {
         if (socket != null || connecting) return
         connecting = true
         try {
-            val request = Request.Builder().url(Config.MOUSE_WS_URL).build()
+            // CyanManager signs the mouse in with the CyanHouse user, same
+            // credential as every API call (its api_auth.py).
+            val request = Request.Builder().url(Config.MOUSE_WS_URL)
+                .apply { Auth.basicHeader()?.let { header("Authorization", it) } }
+                .build()
             socket = client.newWebSocket(request, object : WebSocketListener() {
                 override fun onOpen(webSocket: WebSocket, response: Response) {
                     _connected.value = true

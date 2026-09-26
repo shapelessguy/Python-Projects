@@ -94,6 +94,17 @@ def require_user(request: Request) -> str:
     raise HTTPException(status.HTTP_401_UNAUTHORIZED, "bad username or token")
 
 
+def basic_header(user: str) -> dict[str, str]:
+    """`user`'s own credential as an Authorization header, for services on
+    the LAN that sign people in with their CyanHouse users too (CyanManager's
+    fn service, see api/routers/controls.py)."""
+    token = (USERS.get(user) or {}).get("token")
+    if not token:
+        return {}
+    cred = base64.b64encode(f"{user}:{token}".encode("utf-8")).decode("ascii")
+    return {"Authorization": f"Basic {cred}"}
+
+
 def visible_panels(user: str) -> set[str] | None:
     """`None` means unrestricted (every panel) -- a user with no `visibility`
     entry in their permissions, which is every user unless explicitly

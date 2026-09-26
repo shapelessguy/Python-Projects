@@ -4,6 +4,7 @@ import uvicorn
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from dotenv import dotenv_values
 from utils import wait, ENV_PATH
+from thread_collection import api_auth
 from functions.mouse_remote import (
     move_relative,
     click,
@@ -50,6 +51,13 @@ def build_app():
 
     @app.websocket("/ws")
     async def ws_endpoint(websocket: WebSocket):
+        # Keyboard and mouse: only a CyanHouse user with the Controls panel
+        # (api_auth.py). A browser cannot set Authorization on a WebSocket,
+        # so no web page can drive this even from inside the LAN.
+        remote = websocket.client.host if websocket.client else None
+        if not api_auth.allowed(remote, websocket.headers.get("authorization")):
+            await websocket.close(code=1008)
+            return
         await websocket.accept()
         try:
             while True:

@@ -11,21 +11,24 @@ Router modules under ``api/routers/`` are auto-discovered — a new service is
 just a file there exposing ``router`` (and optionally ``init`` / ``versions``),
 with no edit to this file. See ``routers/food.py`` for the template.
 """
+import base64
 import importlib
 import pkgutil
+import secrets
 from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI, Request
+from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
+from pydantic import BaseModel
 from starlette.concurrency import run_in_threadpool
 
 from api import longpoll
 from api import routers as _routers_pkg
-from api.auth import granted, require_panel, require_user, visible_panels
+from api.auth import USERS, granted, require_panel, require_user, visible_panels
 from api.config import DEV_ORIGINS, FRONTEND_DIST
 from api.db import connect, diary_version_key, get_version, init_db
 
@@ -190,6 +193,45 @@ def me(user: str = Depends(require_user)):
     return {"username": user,
             "visible_panels": sorted(vis) if vis is not None else None,
             "permissions": granted(user)}
+
+
+# The browser's sign-in. The credential cookie is set here, by the server,
+# so it can be HttpOnly: no script on the page -- a bug in one of ours, or in
+# qBittorrent's or pyLoad's UIs proxied under /api -- can read it. The SPA
+# learns who is signed in from `diary_user`, the name alone, readable.
+AUTH_COOKIE, USER_COOKIE = "diary_auth", "diary_user"
+AUTH_MAX_AGE = 60 * 60 * 24 * 365
+
+
+class Login(BaseModel):
+    username: str
+    token: str
+
+
+def _https(request: Request) -> bool:
+    # Behind nginx the scheme arrives as a header; the backend itself is http.
+    return request.headers.get("x-forwarded-proto", request.url.scheme) == "https"
+
+
+@app.post("/api/login", tags=["meta"])
+def login(body: Login, request: Request, response: Response):
+    cred = base64.b64encode(f"{body.username}:{body.token}".encode("utf-8")).decode("ascii")
+    expected = (USERS.get(body.username) or {}).get("token")
+    if not expected or not secrets.compare_digest(expected.encode("utf-8"), body.token.encode("utf-8")):
+        raise HTTPException(401, "bad username or token")
+    secure = _https(request)
+    response.set_cookie(AUTH_COOKIE, cred, max_age=AUTH_MAX_AGE, path="/",
+                        httponly=True, secure=secure, samesite="strict")
+    response.set_cookie(USER_COOKIE, body.username, max_age=AUTH_MAX_AGE, path="/",
+                        secure=secure, samesite="strict")
+    return {"username": body.username}
+
+
+@app.post("/api/logout", tags=["meta"])
+def logout(response: Response):
+    response.delete_cookie(AUTH_COOKIE, path="/")
+    response.delete_cookie(USER_COOKIE, path="/")
+    return {}
 
 
 for _mod in ROUTER_MODULES:

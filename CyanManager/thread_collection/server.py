@@ -10,6 +10,7 @@ from utils import wait
 from flask import Flask, jsonify, request
 from whisper.utils import get_writer
 from thread_collection.stt import transcribe, transcribe_movie, synthesize_speech, askLLM, NAME as STT_NAME
+from thread_collection import api_auth
 
 
 PORT = 10000
@@ -31,6 +32,13 @@ def entrypoint(thread_manager):
 
     def get_funcs():
         return signal.reg_functions.get_functions()
+
+    # Every route runs something on this PC: see api_auth.py.
+    @app.before_request
+    def require_user():
+        controls = not request.path.startswith("/transcribe_movie/")
+        if not api_auth.allowed(request.remote_addr, request.headers.get("Authorization"), controls):
+            return jsonify({"error": "unauthorized"}), 401
 
     @app.route("/info", methods=["GET"])
     def get_info_():
