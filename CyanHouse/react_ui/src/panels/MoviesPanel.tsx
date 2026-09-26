@@ -928,6 +928,8 @@ export function MoviesPanel() {
       // Passed explicitly when a delay edit triggers the restart, because
       // the state update setting it hasn't landed yet.
       delays?: Delays;
+      // A forward skip from here: the start must end up past it.
+      after?: number;
     } = {}) => {
       const movie = selected;
       const meta = info;
@@ -966,8 +968,15 @@ export function MoviesPanel() {
       const req = ++playReq.current;
       let t = want;
       if (h === 0 && want > 0) {
-        try { t = await api.movieKeyframe(movie.id, want); } catch { /* keep `want` */ }
-        if (req !== playReq.current) return;
+        // A file indexed only every so often can snap a forward skip back
+        // to the keyframe already playing, so a skip that didn't get past
+        // where it started asks again further on.
+        const end = Math.max(0, meta.duration - 2);
+        for (let aim = want, tries = 0; tries < 5; tries++, aim = Math.min(end, aim + 30)) {
+          try { t = await api.movieKeyframe(movie.id, aim); } catch { t = aim; }
+          if (req !== playReq.current) return;
+          if (opts.after === undefined || t > opts.after + 1 || aim >= end) break;
+        }
       }
 
       const params = new URLSearchParams({
@@ -1009,6 +1018,29 @@ export function MoviesPanel() {
   }, [playing?.src]);
 
   const seek = (t: number) => (playing ? play({ t }) : setPosition(t));
+
+  /** The ◀◀ / ▶▶ buttons and the left and right arrow keys. */
+  const skip = (dir: -1 | 1) => {
+    const t = Math.max(0, Math.min(info?.duration ?? 0, position + dir * SKIP));
+    if (!playing) setPosition(t);
+    else play({ t, after: dir > 0 ? position : undefined });
+  };
+
+  // Left and right skip while a film is loaded, wherever the focus is
+  // except a text field or a dropdown (the track pickers use the arrows).
+  useEffect(() => {
+    if (!info) return;
+    const key = (e: KeyboardEvent) => {
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      if (e.altKey || e.ctrlKey || e.metaKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t?.closest("textarea, select, [contenteditable], input:not([type=range])")) return;
+      e.preventDefault();
+      skip(e.key === "ArrowLeft" ? -1 : 1);
+    };
+    window.addEventListener("keydown", key);
+    return () => window.removeEventListener("keydown", key);
+  });
 
   const clickTimer = useRef<number | undefined>(undefined);
 
@@ -1402,16 +1434,16 @@ export function MoviesPanel() {
       </div>
 
       <div className="mv-transport">
-        <button onClick={() => seek(Math.max(0, position - 30))} disabled={!info} title="Back 30s">
+        <button onClick={() => skip(-1)} disabled={!info} title="Back 2 min (←)">
           ◀◀
         </button>
         <button onClick={togglePlay} disabled={!info} title="Play / pause">
           {playing && !paused && !dead ? "❚❚" : "▶"}
         </button>
         <button
-          onClick={() => seek(Math.min(duration, position + 30))}
+          onClick={() => skip(1)}
           disabled={!info}
-          title="Forward 30s"
+          title="Forward 2 min (→)"
         >
           ▶▶
         </button>
@@ -2112,9 +2144,12 @@ export function MoviesPanel() {
 
 /** The keys that move a focused range input. Only these seek on key-up:
  *  any other key reaching the slider (the volume keys on Windows, say)
- *  would otherwise restart the stream where it already is. */
-const SEEK_KEYS = new Set(["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown",
-  "PageUp", "PageDown", "Home", "End"]);
+ *  would otherwise restart the stream where it already is. Left and right
+ *  are the window-wide skip instead. */
+const SEEK_KEYS = new Set(["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End"]);
+
+/** How far ◀◀ / ▶▶ and the left and right arrows jump, in seconds. */
+const SKIP = 120;
 
 /** The film library's player: a window in the middle of the screen over a
  *  dimmed page. A click outside it or Escape closes it (and stops the film). */
