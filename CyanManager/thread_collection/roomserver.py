@@ -26,7 +26,7 @@ def request_roomserver(params, topic, arg, verbose=False, timeout=5):
         values["set_auto_time"] = {"from": params.get('Lights from', ''), "to": params.get('Lights to', '')}
     json_content = json.dumps(values)
 
-    # Signs in to CyanHouse as ADMIN / ADMIN_TOKEN (.env).
+    # Signs in to CyanHouse as INSTANCE_ID / INSTANCE_TOKEN (.env).
     username, token = api_auth.own_credentials() or ("", "")
 
     host = params.get('Hostname/port', '').rstrip('/')

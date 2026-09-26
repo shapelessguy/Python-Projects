@@ -5,11 +5,12 @@ password -- so a caller signs in with its CyanHouse credentials, the same
 `Authorization: Basic base64(user:token)` the Android app sends to CyanHouse,
 and CyanHouse forwards its caller's.
 
-.env holds only this PC's own CyanHouse user:
+.env holds only this instance's own CyanHouse user -- each device running
+CyanManager signs in as its own:
 
     CYANHOUSE_URL=https://cyanroomserver.duckdns.org
-    ADMIN=cyanpc
-    ADMIN_TOKEN=<cyanpc's token in CyanHouse's secrets.json>
+    INSTANCE_ID=cyanpc
+    INSTANCE_TOKEN=<cyanpc's token in CyanHouse's secrets.json>
 
 It signs in with them to call CyanHouse (roomserver.py), and at startup
 (load_users(), from main_logic.py) to fetch everyone else from
@@ -47,10 +48,10 @@ _users: dict = {}
 
 
 def own_credentials() -> tuple[str, str] | None:
-    """(ADMIN, ADMIN_TOKEN): who this PC calls CyanHouse as."""
+    """(INSTANCE_ID, INSTANCE_TOKEN): who this instance calls CyanHouse as."""
     env = dotenv_values(ENV_PATH)
-    name = (env.get("ADMIN") or "").strip()
-    token = (env.get("ADMIN_TOKEN") or "").strip()
+    name = (env.get("INSTANCE_ID") or "").strip()
+    token = (env.get("INSTANCE_TOKEN") or "").strip()
     return (name, token) if name and token else None
 
 
@@ -58,7 +59,7 @@ def _fetch() -> dict:
     url = (dotenv_values(ENV_PATH).get("CYANHOUSE_URL") or "").strip().rstrip("/")
     creds = own_credentials()
     if not url or not creds:
-        raise RuntimeError("set CYANHOUSE_URL, ADMIN and ADMIN_TOKEN in .env")
+        raise RuntimeError("set CYANHOUSE_URL, INSTANCE_ID and INSTANCE_TOKEN in .env")
     r = requests.get(f"{url}/api/controls/users", auth=creds, timeout=10)
     r.raise_for_status()
     return r.json()
