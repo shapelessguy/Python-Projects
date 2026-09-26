@@ -1345,7 +1345,7 @@ export function MoviesPanel() {
               disabled={!info}
               onChange={(e) => setScrub(+e.target.value)}
               onPointerUp={(e) => seek(+(e.target as HTMLInputElement).value)}
-              onKeyUp={(e) => seek(+(e.target as HTMLInputElement).value)}
+              onKeyUp={(e) => SEEK_KEYS.has(e.key) && seek(+(e.target as HTMLInputElement).value)}
             />
             <span className="mv-time">{fmt(shown)} / {fmt(duration)}</span>
             <label className="mv-volume" title="Volume">
@@ -1394,7 +1394,7 @@ export function MoviesPanel() {
           disabled={!info}
           onChange={(e) => setScrub(+e.target.value)}
           onPointerUp={(e) => seek(+(e.target as HTMLInputElement).value)}
-          onKeyUp={(e) => seek(+(e.target as HTMLInputElement).value)}
+          onKeyUp={(e) => SEEK_KEYS.has(e.key) && seek(+(e.target as HTMLInputElement).value)}
         />
         <span className="mv-time">
           {fmt(shown)} / {fmt(duration)}
@@ -2109,6 +2109,12 @@ export function MoviesPanel() {
     </div>
   );
 }
+
+/** The keys that move a focused range input. Only these seek on key-up:
+ *  any other key reaching the slider (the volume keys on Windows, say)
+ *  would otherwise restart the stream where it already is. */
+const SEEK_KEYS = new Set(["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown",
+  "PageUp", "PageDown", "Home", "End"]);
 
 /** The film library's player: a window in the middle of the screen over a
  *  dimmed page. A click outside it or Escape closes it (and stops the film). */
