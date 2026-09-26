@@ -239,7 +239,7 @@ automatically after a reboot as long as the Docker daemon itself is running
 for those.
 
 
-## 11. Mount the Pangea drive (NTFS, auto-mount on access)
+## 11. Mount the Pangea drive (NTFS, USB dock)
 
 > **Before you start:** migrate `/var/lib/plexmediaserver/Library/Application Support/Plex Media Server` from the old server — Plex metadata lives there and won't carry over automatically.
 
@@ -248,13 +248,8 @@ Install ffmpeg if needed:
 sudo apt update && sudo apt install -y ffmpeg
 ```
 
-Add `x-systemd.automount` to the Pangea fstab entry so the drive mounts on first access rather than at boot:
-```bash
-sudo sed -i 's|UUID=E408CE9E08CE6F5C /mnt/pangea ntfs3 rw,uid=1000,gid=1000,umask=002,nofail 0 0|UUID=E408CE9E08CE6F5C /mnt/pangea ntfs3 rw,uid=1000,gid=1000,umask=002,nofail,x-systemd.automount 0 0|' /etc/fstab
-sudo systemctl daemon-reload
-sudo mount /mnt/pangea
-ls /mnt/pangea
-```
+The fstab entry, udev rule, systemd units and Plex/pyLoad settings the drive
+needs are all in [PANGEA.md](PANGEA.md), with what goes wrong at boot without them.
 
 ### Troubleshooting: Pangea randomly disconnects, needs a physical replug
 
