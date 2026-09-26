@@ -3,13 +3,16 @@
 Both run things on this PC -- typing text, pressing keys, typing the keyring
 password -- so a caller signs in with its CyanHouse credentials, the same
 `Authorization: Basic base64(user:token)` the Android app sends to CyanHouse,
-and CyanHouse forwards its caller's. The users are read from CyanHouse's
-secrets.json (`CYANHOUSE_SECRETS` in .env, default ../CyanHouse/secrets.json)
-on every call, so a user added or removed there counts at once.
+and CyanHouse forwards its caller's. The users, read again on every call:
 
-A user needs the Controls panel (`permissions.visibility` omitted, or listing
-"controls"), as in CyanHouse itself. Movie transcription (subtitles for the
-Media panel) only needs a valid user.
+  * `CYANHOUSE_USERS` in .env, a JSON dict of username -> token:
+        CYANHOUSE_USERS={"alice": "her-token", "bob": "his-token"}
+    Everyone listed may use everything.
+  * otherwise CyanHouse's own secrets.json (`CYANHOUSE_SECRETS` in .env,
+    default ../CyanHouse/secrets.json), where a user needs the Controls panel
+    (`permissions.visibility` omitted, or listing "controls"), as in
+    CyanHouse itself; movie transcription (subtitles for the Media panel)
+    only needs a valid user.
 
 Calls from this PC itself (127.0.0.1 / ::1, e.g. videoProcessing's transcribe
 client) need no credentials. With no users readable every other caller is
@@ -32,7 +35,16 @@ _DEFAULT_SECRETS = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
 
 
 def _users() -> dict:
-    path = (dotenv_values(ENV_PATH).get("CYANHOUSE_SECRETS") or "").strip() or _DEFAULT_SECRETS
+    """username -> {"token": ..., "permissions": {...}}, CyanHouse's shape."""
+    env = dotenv_values(ENV_PATH)
+    listed = (env.get("CYANHOUSE_USERS") or "").strip()
+    if listed:
+        try:
+            return {str(k): {"token": str(v), "permissions": {}} for k, v in json.loads(listed).items()}
+        except (ValueError, AttributeError) as e:
+            print(f"api_auth: CYANHOUSE_USERS in .env is not a JSON dict: {e}")
+            return {}
+    path = (env.get("CYANHOUSE_SECRETS") or "").strip() or _DEFAULT_SECRETS
     try:
         with open(path, encoding="utf-8") as f:
             return json.load(f).get("users") or {}
