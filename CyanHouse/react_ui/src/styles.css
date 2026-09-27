@@ -805,6 +805,10 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
   position: fixed; inset: 0; z-index: 100;
   background: rgba(0, 0, 0, 0.55);
   display: flex; align-items: center; justify-content: center;
+  /* The wheel over the backdrop, or over a modal's own edges, must not
+     scroll the page behind it: a scroll container that keeps its overscroll
+     to itself stops it here. */
+  overflow: auto; overscroll-behavior: contain;
 }
 .modal {
   background: var(--panel);
@@ -844,19 +848,16 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
 .dish-info-section { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 16px; }
 .dish-info-section h5, .dish-info-scroll > h5 { margin: 0 0 6px; }
 .ingredients-row-error { color: var(--accent); font-size: 0.74rem; margin: 2px 0 0 2px; }
+/* Both inside .dish-info-scroll, which scrolls the dialog: neither may keep
+   the wheel to itself, or the dialog stops scrolling under the pointer. */
 .dish-info-edit {
   width: 100%; margin: 0 0 12px; resize: vertical;
   font-family: inherit; font-size: 0.85rem; line-height: 1.5;
-  overscroll-behavior: contain;
 }
 .dish-info-body {
   margin: 0 0 12px; padding: 10px 14px;
   background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px;
   font-size: 0.85rem; line-height: 1.5;
-  overflow-y: auto;
-  /* The modal sits over a scrollable panel; without this, scrolling past
-     this box's own end/start hands the wheel event to the page behind it. */
-  overscroll-behavior: contain;
 }
 .dish-info-body.markdown > :first-child { margin-top: 0; }
 .dish-info-body.markdown > :last-child { margin-bottom: 0; }
