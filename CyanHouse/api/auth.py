@@ -15,14 +15,14 @@ Each user is `{"token": str, "permissions": dict}`:
     (the common case), a user sees/can call every panel -- an allowlist that
     only narrows things down when explicitly set.
   * `permissions.media`, the Media panel's folders beyond the public ones.
-    Films, Music and Images (PUBLIC_MEDIA) are everyone's; every other
+    Films, Music, Images and Documents (PUBLIC_MEDIA) are everyone's; every other
     folder -- a staging area and its output, by the name it has in
     secrets.json ("Downloads", "Audio", "TV Series", ...) -- only for users
     it is listed for. "downloaders" gives the Torrents and Downloads tabs
     (qBittorrent and pyLoad) together; "*" gives everything. Omitted, a user
     has the public folders only.
   * other names, opt-in flags, off unless set true: `publish` (move things
-    between the Media panel's folders). Albums (image_access.py) and
+    between the Media panel's folders). Albums and Documents folders (folder_access.py) and
     calendars (services/calendar.py) answer to their owners and whoever they
     were shared with, never to a flag.
 """
@@ -139,8 +139,8 @@ def granted(user: str) -> dict[str, bool]:
 
 # ── the Media panel's folders ──────────────────────────────────────────────
 # Area keys as the panel and movie_prep use them: "" the films, ":music",
-# ":images"; a staging area by its name, its output as "<name>:library".
-PUBLIC_MEDIA = {"", ":music", ":images"}
+# ":images", ":documents"; a staging area by its name, its output as "<name>:library".
+PUBLIC_MEDIA = {"", ":music", ":images", ":documents"}
 DOWNLOADERS = "downloaders"
 
 

@@ -306,8 +306,8 @@ export interface MovieSource {
   /** A staging area's icon (secrets.json "icon"), which its tab shows in
    *  place of its name when the tab row is narrow. */
   icon?: string;
-  /** Set on the libraries that are not films — the Music and Images tabs. */
-  media?: "music" | "images";
+  /** Set on the libraries that are not films — the Music, Images and Documents tabs. */
+  media?: "music" | "images" | "documents";
   /** What a staging pair holds: films (identify + remux) or songs
    *  (recognise + tag + file — api/services/music_prep.py). */
   type?: "film" | "music";
@@ -444,8 +444,8 @@ export interface StagedFile {
    *  in pixels, so a tile can be drawn at its shape before it loads. */
   width?: number;
   height?: number;
-  /** A folder of the Images library: who may see it and what this user may
-   *  do there (api/services/image_access.py). */
+  /** A folder of the Images or Documents library: who may see it and what
+   *  this user may do there (api/services/folder_access.py). */
   access?: FolderAccess;
 }
 
@@ -672,11 +672,11 @@ export const api = {
 
   // ── movie preparation (staging folders) ────────────────────────────
   prepAreas: () => f("/api/prep/areas").then(j<{ areas: StagingArea[]; sources: MovieSource[]; tmdb: boolean; languages: { code: string; name: string }[] }>),
-  prepAccess: (path: string) =>
-    f("/api/prep/access?" + new URLSearchParams({ path }))
+  prepAccess: (area: string, path: string) =>
+    f("/api/prep/access?" + new URLSearchParams({ area, path }))
       .then(j<{ path: string; rule: AccessRule; access: FolderAccess; users: string[] }>),
-  prepSetAccess: (path: string, visibility: AccessMode | null, people: AccessRule["people"]) =>
-    f("/api/prep/access?" + new URLSearchParams({ path }), {
+  prepSetAccess: (area: string, path: string, visibility: AccessMode | null, people: AccessRule["people"]) =>
+    f("/api/prep/access?" + new URLSearchParams({ area, path }), {
       method: "PUT", headers: JSON_HEADERS, body: JSON.stringify({ visibility, people }),
     }).then(j<FolderAccess>),
   prepFiles: (area: string) =>
@@ -688,8 +688,9 @@ export const api = {
       .then(j<{ name: string; size: number; encoding: string; text: string }>),
   prepInfo: (area: string, path: string) =>
     f("/api/prep/info?" + new URLSearchParams({ area, path })).then(j<Record<string, any>>),
-  prepRawUrl: (area: string, path: string) =>
-    "/api/prep/raw?" + new URLSearchParams({ area, path }),
+  /** `download`: save it rather than open it (Documents). */
+  prepRawUrl: (area: string, path: string, download = false) =>
+    "/api/prep/raw?" + new URLSearchParams({ area, path, ...(download ? { download: "true" } : {}) }),
   /** A picture scaled down to about `width` pixels, for galleries. `version`
    *  (the file's time) makes a changed picture a new URL. */
   prepThumbUrl: (area: string, path: string, width: number, version: number) =>

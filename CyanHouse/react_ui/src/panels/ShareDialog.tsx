@@ -34,14 +34,17 @@ export function AccessBadge({ access, onShare, className = "" }: {
 }
 
 type Level = "see" | "add" | "manage";
-const LEVEL_TEXT: Record<Level, string> = { see: "can see", add: "can add photos", manage: "can manage" };
+const levelText = (area: string): Record<Level, string> =>
+  ({ see: "can see", add: area === ":documents" ? "can add files" : "can add photos", manage: "can manage" });
 
-/** Who sees an album, set by its owner (or an admin): shared with chosen
+/** Who sees an album (or a Documents folder), set by its owner: shared with chosen
  *  people — each with what they may do; everyone, for a public album — or
  *  private. A subfolder may also simply follow the folder it is in. An album
- *  never set is public (the server's default), and shows as shared with all. api/services/image_access.py
+ *  never set is public (the server's default), and shows as shared with all. api/services/folder_access.py
  *  holds the rules; this only edits them. */
-export function ShareDialog({ path, onClose, onSaved }: {
+export function ShareDialog({ area, path, onClose, onSaved }: {
+  /** The library: ":images" or ":documents". */
+  area: string;
   path: string;
   onClose: () => void;
   onSaved: () => void;
@@ -57,7 +60,7 @@ export function ShareDialog({ path, onClose, onSaved }: {
   const name = path.split("/").pop();
 
   useEffect(() => {
-    api.prepAccess(path).then((r) => {
+    api.prepAccess(area, path).then((r) => {
       setUsers(r.users);
       setOwner(r.access.owner);
       setInherited(r.access);
@@ -74,7 +77,7 @@ export function ShareDialog({ path, onClose, onSaved }: {
         setPeople(r.rule.people ?? {});
       }
     }).catch((e) => setError(String(e).replace(/^Error:\s*/, "")));
-  }, [path, nested]);
+  }, [area, path, nested]);
 
   useEffect(() => {
     const key = (e: KeyboardEvent) => { if (e.key === "Escape") { e.stopPropagation(); onClose(); } };
@@ -89,7 +92,7 @@ export function ShareDialog({ path, onClose, onSaved }: {
       // Only who was given something beyond what the mode already gives.
       const keep = Object.fromEntries(Object.entries(people)
         .filter(([u]) => u !== owner));
-      await api.prepSetAccess(path, mode, mode === "private" ? {} : keep);
+      await api.prepSetAccess(area, path, mode, mode === "private" ? {} : keep);
       onSaved();
       onClose();
     } catch (e) {
@@ -140,7 +143,7 @@ export function ShareDialog({ path, onClose, onSaved }: {
                     });
                   }}>
                     <option value="">no access</option>
-                    {(["see", "add", "manage"] as Level[]).map((l) => <option key={l} value={l}>{LEVEL_TEXT[l]}</option>)}
+                    {(["see", "add", "manage"] as Level[]).map((l) => <option key={l} value={l}>{levelText(area)[l]}</option>)}
                   </select>
                 </div>
               );

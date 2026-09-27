@@ -112,6 +112,7 @@ MOVIES_DIR = Path(os.environ.get("MOVIES_DIR", "/mnt/pangea/Video/Movies"))
 # browsed like the film library. Unset means no tab.
 MUSIC_DIR = Path(os.environ["MUSIC_DIR"]).expanduser() if os.environ.get("MUSIC_DIR", "").strip() else None
 IMAGE_DIR = Path(os.environ["IMAGE_DIR"]).expanduser() if os.environ.get("IMAGE_DIR", "").strip() else None
+DOCUMENTS_DIR = Path(os.environ["DOCUMENTS_DIR"]).expanduser() if os.environ.get("DOCUMENTS_DIR", "").strip() else None
 # The staging folders, one list in the order the panel shows them:
 #   "staging": {"<name>": {"type": "film" | "music", "inbox": "/path/in",
 #                          "output": "/path/out", "moves_to": [...], ...}}

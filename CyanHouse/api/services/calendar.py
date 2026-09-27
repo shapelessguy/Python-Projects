@@ -6,7 +6,7 @@ Every event belongs to exactly one calendar (`calendar_id`), and every
 calendar has an owner — whoever made it; every user gets a "Default" one
 lazily the first time they need it, and can make more (`create_calendar`).
 A calendar is private to its owner until the owner shares it, the same way
-an album of the Images library is shared (api/services/image_access.py):
+an album of the Images library is shared (api/services/folder_access.py):
 `people` names who else sees it and what they may do there —
   - "see":    its events show in their calendar, read-only (they may still
               acknowledge or snooze an event's alarm);

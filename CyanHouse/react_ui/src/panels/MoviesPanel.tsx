@@ -51,9 +51,14 @@ const EXTERNAL = [
 ] as const;
 
 /** The tabs that keep only their icon when the tab row runs out of room
- *  (styles.css, .mv-sources): the film library (key ""), and the music and
- *  image libraries. A staging area's icon comes from secrets.json. */
-const TAB_ICONS: Record<string, string> = { "": "🎬", ":music": "🎵", ":images": "🖼️" };
+ *  (styles.css, .mv-sources): the film library (key ""), and the music,
+ *  image and document libraries. A staging area's icon comes from secrets.json. */
+const TAB_ICONS: Record<string, string> = { "": "🎬", ":music": "🎵", ":images": "🖼️", ":documents": "📄" };
+/** The libraries, which come before the staging areas. */
+const LIBRARIES = new Set(["", ":music", ":images", ":documents"]);
+/** The libraries whose folders each carry their own sharing — who may see,
+ *  add, manage (api/services/folder_access.py). */
+const SHARED = new Set([":images", ":documents"]);
 
 /** A tab's face: its icon, if it has one, and its name — which goes when
  *  the row is narrow, leaving the icon (and the name as a tooltip). */
@@ -282,8 +287,8 @@ export function MoviesPanel() {
   const setThumbSize = (n: number) => { setThumbSizeState(n); writeCookie(THUMB_COOKIE, String(n)); };
   // The gallery's open folder ("" is its first layer, the folders).
   const [galleryFolder, setGalleryFolder] = useState("");
-  // The album whose sharing is being edited (ShareDialog), if any.
-  const [sharing, setSharing] = useState<string | null>(null);
+  // The folder whose sharing is being edited (ShareDialog), if any.
+  const [sharing, setSharing] = useState<{ area: string; path: string } | null>(null);
   const [viewing, setViewing] = useState<{ area: string; list: StagedFile[]; index: number } | null>(null);
   // The Music tab's player: the song loaded, a fresh object each time it
   // should start playing, and the album or list it came from.
@@ -324,10 +329,13 @@ export function MoviesPanel() {
   const [height, setHeight] = useState(360);
 
   // Again whenever the counter moves: the server follows the library folder
-  // and moves it when something lands there, however it got there.
+  // and moves it when something lands there, however it got there. Only
+  // while the film library's tab is open: the other tabs have nothing to do
+  // with it, and must not wait on (or show the errors of) its drive.
   useEffect(() => {
+    if (tab !== "") return;
     api.movies().then((m) => { setMovies(m); setListError(""); }).catch((e) => setListError(String(e)));
-  }, [versions.prep]);
+  }, [versions.prep, tab]);
 
   // Which folders exist is configuration, and configuration changes: it is
   // re-read on the same counter the listings use, so correcting a path in
@@ -522,11 +530,11 @@ export function MoviesPanel() {
   /** Both folders of a workspace. */
   const workspaceFolders = (ws: string) =>
     sources.filter((s) => s.group === ws && (s.kind === "inbox" || s.kind === "output")).map((s) => s.key);
-  // The Images library: every album carries its own rule (who may add,
-  // who may manage — api/services/image_access.py), which the tree and the
-  // gallery apply per folder and the server enforces; so the area as a
-  // whole is open to change for everyone.
-  const canEditArea = (area: string) => publisher || area === ":images" || workspaceOf(area) !== null;
+  // The Images and Documents libraries: every folder carries its own rule
+  // (who may add, who may manage — api/services/folder_access.py), which the
+  // tree and the gallery apply per folder and the server enforces; so the
+  // area as a whole is open to change for everyone.
+  const canEditArea = (area: string) => publisher || SHARED.has(area) || workspaceOf(area) !== null;
   /** Whether the move rules (secrets.json, sent with the sources) let
    *  things in `from` go into `to`. */
   const movesTo = (from: string, to: string) =>
@@ -534,7 +542,7 @@ export function MoviesPanel() {
   /** Which folders' entries may be dropped into `area`. */
   const acceptsFrom = (area: string): string[] => {
     const ws = workspaceOf(area);
-    const from = publisher ? sources.map((x) => x.key) : ws ? workspaceFolders(ws) : area === ":images" ? [area] : [];
+    const from = publisher ? sources.map((x) => x.key) : ws ? workspaceFolders(ws) : SHARED.has(area) ? [area] : [];
     return from.filter((k) => movesTo(k, area));
   };
 
@@ -1289,7 +1297,7 @@ export function MoviesPanel() {
     const lib = sources.find((x) => x.kind === "library");
     const main = tab === "" ? lib : g ? tabTarget(g) : undefined;
     return {
-      template: tab === "" ? "movies"
+      template: tab === "" ? "movies" : tab === ":documents" ? "documents"
         : g?.todo ? (g.todo.type === "music" ? "music-workspace" : "workspace") : "output",
       description: main?.description,
       vars: {
@@ -1499,9 +1507,9 @@ export function MoviesPanel() {
           // any output-only entry — looks like the film library, because
           // that is what it is.
           const kind = g.todo ? (g.done ? "pair" : "inbox") : "library";
-          // The libraries (films, music, pictures) end at a divider, before
-          // the staging areas.
-          const lastLibrary = g.key === ":images" && i < groups.length - 1;
+          // The libraries (films, music, pictures, documents) end at a
+          // divider, before the staging areas.
+          const lastLibrary = LIBRARIES.has(g.key) && i < groups.length - 1 && !LIBRARIES.has(groups[i + 1].key);
           return (
             <Fragment key={g.key}>
             <button
@@ -1675,7 +1683,8 @@ export function MoviesPanel() {
             )}
           </span>
         </div>
-        {listError && <p className="error small">{listError}</p>}
+        {/* The film library's own error (api.movies): only on its tab. */}
+        {listError && tab === "" && <p className="error small">{listError}</p>}
         {treeNote && (
           <p className={(treeNote.bad ? "error" : "muted") + " small mv-note"}>{treeNote.text}</p>
         )}
@@ -1700,7 +1709,7 @@ export function MoviesPanel() {
             onFolder={setGalleryFolder}
             onOpen={(list, index) => setViewing({ area: ":images", list, index })}
             onUpload={(dt, folder) => actionsFor(":images").upload(dt, folder)}
-            onShare={setSharing}
+            onShare={(path) => setSharing({ area: ":images", path })}
           />
         ) : panes.length ? (
           // A library is one tree; a staging area is two, the inbox on top
@@ -1760,8 +1769,8 @@ export function MoviesPanel() {
                     activePath={source === pane.key ? viewFile?.path ?? null : null}
                     activeMovieId={selected?.id ?? null}
                     canEdit={canEditArea(pane.key)}
-                    onShare={pane.key === ":images" ? setSharing : undefined}
-                    rootLevel={pane.key === ":images" ? "add" : undefined}
+                    onShare={SHARED.has(pane.key) ? (path) => setSharing({ area: pane.key, path }) : undefined}
+                    rootLevel={SHARED.has(pane.key) ? "add" : undefined}
                     onPick={(f) => pickFile(f, pane.key)}
                     onPlay={(f) => {
                       if (pane.key === ":music") { const s = songOf(f); openSong(s, true, [s], 0); return; }
@@ -1772,7 +1781,7 @@ export function MoviesPanel() {
                     onPicked={(next) => { setPickedArea(pane.key); setPicked(next); }}
                     destinations={destinationsFor(pane.key)}
                     acceptsFrom={acceptsFrom(pane.key)}
-                    pickOnMove={pane.key !== ":images"}
+                    pickOnMove={!SHARED.has(pane.key)}
                   />
                 )}
               </div>
@@ -2111,7 +2120,7 @@ export function MoviesPanel() {
         </FilmDialog>
       )}
       {sharing !== null && (
-        <ShareDialog path={sharing} onClose={() => setSharing(null)}
+        <ShareDialog area={sharing.area} path={sharing.path} onClose={() => setSharing(null)}
                      onSaved={() => { if (paneKeys !== null) loadPanes(paneKeys.split("|")).catch(() => {}); }} />
       )}
       {viewing && tab === viewing.area && (

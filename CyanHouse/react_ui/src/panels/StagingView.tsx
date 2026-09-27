@@ -49,6 +49,18 @@ export function FileView({ area, file, play, onEnded }: {
       </p>
       {error && <p className="error small">{error}</p>}
 
+      {/* Documents: whatever it is, it can be opened in the browser or saved
+          (the server decides which kinds are safe to open). */}
+      {area === ":documents" && (
+        <p className="mv-fileactions">
+          <button onClick={() => window.open(api.prepRawUrl(area, file.path), "_blank", "noopener")}>Open</button>{" "}
+          {/* Sent as an attachment, so the page stays where it is. */}
+          <button className="ghost" onClick={() => { window.location.href = api.prepRawUrl(area, file.path, true); }}>
+            Download
+          </button>
+        </p>
+      )}
+
       {file.kind === "image" && (
         <img className="mv-fileimg" src={api.prepRawUrl(area, file.path)} alt={file.name} />
       )}

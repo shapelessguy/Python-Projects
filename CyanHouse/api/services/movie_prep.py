@@ -50,6 +50,7 @@ from api.config import (
     LIBRARY_MOVES,
     FFMPEG,
     IMAGE_DIR,
+    DOCUMENTS_DIR,
     FFPROBE,
     MOVIES_DATA_DIR,
     MOVIES_DIR,
@@ -147,11 +148,11 @@ def workspace_of(key: str) -> str | None:
 
 
 # The libraries by the names the move rules use (LIBRARY_MOVES).
-LIBRARY_NAMES = {"": "Movies", ":music": "Music", ":images": "Images"}
+LIBRARY_NAMES = {"": "Movies", ":music": "Music", ":images": "Images", ":documents": "Documents"}
 
 
 def folder_name(key: str) -> str:
-    """A source key as the move rules name it: "Movies", "Music", "Images",
+    """A source key as the move rules name it: "Movies", "Music", "Images", "Documents",
     or the staging entry's name for either of its halves."""
     return LIBRARY_NAMES.get(key) or key.removesuffix(":library")
 
@@ -234,6 +235,7 @@ def sources() -> list[dict]:
 MEDIA_LIBRARIES: dict[str, tuple[str, Path | None]] = {
     ":music": ("Music", MUSIC_DIR),
     ":images": ("Images", IMAGE_DIR),
+    ":documents": ("Documents", DOCUMENTS_DIR),
 }
 
 

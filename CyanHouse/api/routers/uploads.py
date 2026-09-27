@@ -15,9 +15,8 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from starlette.concurrency import run_in_threadpool
 
 from api.auth import require_user, require_media_area
-from api.config import IMAGE_DIR
-from api.routers.prep import IMAGES, _image, may_change
-from api.services import image_access, uploads
+from api.routers.prep import _shared, may_change
+from api.services import folder_access, uploads
 
 router = APIRouter(prefix="/api/uploads", tags=["uploads"], dependencies=[Depends(require_media_area)])
 
@@ -79,22 +78,22 @@ async def create(request: Request, user: str = Depends(require_user)) -> Respons
     may_change(user, area)
     name = meta.get("relativePath") or meta.get("filename") or ""
     folder = meta.get("folder", "")
-    # A folder dropped into the Images library becomes an album of its own,
-    # the uploader's (image_access.claim) — only when it is new, so dropping
+    # A folder dropped into the Images or Documents library becomes one of its own,
+    # the uploader's (folder_access.claim) — only when it is new, so dropping
     # into an existing one of the same name does not take it over.
     album = None
-    if area == IMAGES:
-        _image(user, area, folder, "add")
+    if folder_access.shared(area):
+        _shared(user, area, folder, "add")
         if "/" in name.strip("/"):
             top = name.strip("/").split("/")[0]
             album = f"{folder}/{top}" if folder else top
-            if await run_in_threadpool(lambda: (IMAGE_DIR / album).exists()):
+            if await run_in_threadpool(lambda: (folder_access.LIBRARIES[area] / album).exists()):
                 album = None
     try:
         state = await run_in_threadpool(
             uploads.create, area, folder, name, length)
         if album:
-            await run_in_threadpool(image_access.claim, album, user)
+            await run_in_threadpool(folder_access.claim, area, album, user)
     except uploads.UploadError as e:
         raise _wrap(e)
     except Exception as e:                      # a bad area, a vanished mount

@@ -1,4 +1,6 @@
-"""Who may see and change which album of the Images library.
+"""Who may see and change which folder of the shared libraries: Images
+(its albums) and Documents. Both follow the same rules, each library on
+its own.
 
 The rule for a folder lives in the folder itself, in a hidden file
 (`.cyanhouse.json`), so it goes wherever the folder goes — renamed, moved —
@@ -20,8 +22,10 @@ that has one; with none anywhere up to the top, it is public, as every
 folder was before these rules. Nobody sees past a rule: there is no admin
 over the albums, and `publish` gives nothing here.
 
-At the top of the library everyone may add: anyone can start an album
+At the top of the library everyone may add: anyone can start a folder
 there, and it is theirs.
+
+Every function takes the library by its area key (LIBRARIES).
 """
 import json
 import os
@@ -29,9 +33,11 @@ import threading
 from pathlib import Path
 
 from api.auth import USERS, visible_panels
-from api.config import IMAGE_DIR
+from api.config import DOCUMENTS_DIR, IMAGE_DIR
 
 SIDE = ".cyanhouse.json"
+# The libraries these rules apply to, by area key (api/services/movie_prep.py).
+LIBRARIES = {":images": IMAGE_DIR, ":documents": DOCUMENTS_DIR}
 LEVELS = ("none", "see", "add", "manage")
 MODES = ("public", "shared", "private")
 
@@ -49,14 +55,20 @@ def _rank(level: str | None) -> int:
     return LEVELS.index(level) if level in LEVELS else 0
 
 
-def _dir(rel: str) -> Path:
-    return IMAGE_DIR / rel if rel else IMAGE_DIR
+def shared(area: str) -> bool:
+    """Whether `area` is a library whose folders carry these rules."""
+    return LIBRARIES.get(area) is not None
 
 
-def _rule(rel: str) -> dict | None:
+def _dir(area: str, rel: str) -> Path:
+    root = LIBRARIES[area]
+    return root / rel if rel else root
+
+
+def _rule(area: str, rel: str) -> dict | None:
     """The rule file of one folder, if it has one — read again only when it
     changed."""
-    side = _dir(rel) / SIDE
+    side = _dir(area, rel) / SIDE
     try:
         mtime = side.stat().st_mtime
     except OSError:
@@ -76,23 +88,23 @@ def _rule(rel: str) -> dict | None:
     return data
 
 
-def _chain(folder: str) -> list[tuple[str, dict]]:
+def _chain(area: str, folder: str) -> list[tuple[str, dict]]:
     """The rules from the top of the library down to `folder`, inclusive."""
     parts = [p for p in folder.split("/") if p]
     out = []
     for i in range(len(parts) + 1):
         rel = "/".join(parts[:i])
-        r = _rule(rel)
+        r = _rule(area, rel)
         if r:
             out.append((rel, r))
     return out
 
 
-def access(user: str, folder: str) -> dict:
+def access(user: str, area: str, folder: str) -> dict:
     """What `user` may do in `folder` (a folder of the library, "" the top),
     and what the folder is: its mode, its owner, where its visibility comes
     from, and whether this user may change it."""
-    chain = _chain(folder)
+    chain = _chain(area, folder)
     owners = [r.get("owner") for _, r in chain if r.get("owner")]
     vis = next(((rel, r) for rel, r in reversed(chain) if r.get("visibility") in MODES), None)
     mode = vis[1]["visibility"] if vis else "public"
@@ -120,29 +132,29 @@ def access(user: str, folder: str) -> dict:
     }
 
 
-def can(user: str, path: str, need: str, *, cache: dict | None = None) -> bool:
+def can(user: str, area: str, path: str, need: str, *, cache: dict | None = None) -> bool:
     """Whether `user` has at least `need` on `path`: a folder is judged by
     its own rule, a file by its folder's."""
-    p = _dir(path)
+    p = _dir(area, path)
     folder = path if (not path or p.is_dir()) else os.path.dirname(path)
     if cache is not None:
         if folder not in cache:
-            cache[folder] = access(user, folder)
+            cache[folder] = access(user, area, folder)
         a = cache[folder]
     else:
-        a = access(user, folder)
+        a = access(user, area, folder)
     return _rank(a["level"]) >= _rank(need)
 
 
-def require(user: str, path: str, need: str) -> None:
-    if not can(user, path, need):
+def require(user: str, area: str, path: str, need: str) -> None:
+    if not can(user, area, path, need):
         what = {"see": "see", "add": "add to", "manage": "change"}[need]
-        # "Not found" for what the user may not even see: a private album's
+        # "Not found" for what the user may not even see: a private folder's
         # name is not something to confirm to them.
         raise AccessError(f"not permitted to {what} that", 404 if need == "see" else 403)
 
 
-def filter_listing(user: str, files: list[dict]) -> list[dict]:
+def filter_listing(user: str, area: str, files: list[dict]) -> list[dict]:
     """A browse() listing of the library narrowed to what `user` may see,
     each folder carrying its `access` — the panel shows the lock and offers
     Sharing from it."""
@@ -152,7 +164,7 @@ def filter_listing(user: str, files: list[dict]) -> list[dict]:
         is_folder = f.get("kind") == "folder"
         folder = f["path"] if is_folder else f.get("folder", "")
         if folder not in cache:
-            cache[folder] = access(user, folder)
+            cache[folder] = access(user, area, folder)
         a = cache[folder]
         if _rank(a["level"]) < _rank("see"):
             continue
@@ -162,26 +174,26 @@ def filter_listing(user: str, files: list[dict]) -> list[dict]:
     return out
 
 
-def claim(folder: str, user: str) -> None:
+def claim(area: str, folder: str, user: str) -> None:
     """`user` made `folder`: it is theirs. Its visibility is left to follow
     the folder it is in until the owner says otherwise."""
-    side = _dir(folder) / SIDE
+    side = _dir(area, folder) / SIDE
     if not folder or side.exists():
         return
     side.write_text(json.dumps({"owner": user}, indent=2), encoding="utf-8")
 
 
-def rule_here(folder: str) -> dict:
-    return dict(_rule(folder) or {})
+def rule_here(area: str, folder: str) -> dict:
+    return dict(_rule(area, folder) or {})
 
 
-def set_rule(user: str, folder: str, visibility: str | None, people: dict[str, str]) -> dict:
+def set_rule(user: str, area: str, folder: str, visibility: str | None, people: dict[str, str]) -> dict:
     """Change who may see `folder`: only its owner (or the owner of a folder
     above it) may. `visibility` None goes back to following the
     folder above."""
-    if not folder or not _dir(folder).is_dir():
+    if not folder or not _dir(area, folder).is_dir():
         raise AccessError("that is not a folder of the library", 404)
-    if not access(user, folder)["can_share"]:
+    if not access(user, area, folder)["can_share"]:
         raise AccessError("only the folder's owner can change who sees it")
     if visibility is not None and visibility not in MODES:
         raise AccessError(f"visibility is one of {', '.join(MODES)}", 400)
@@ -193,19 +205,19 @@ def set_rule(user: str, folder: str, visibility: str | None, people: dict[str, s
         if level not in ("see", "add", "manage"):
             raise AccessError("a person's access is see, add or manage", 400)
         clean[name] = level
-    rule = rule_here(folder)
+    rule = rule_here(area, folder)
     rule.pop("visibility", None)
     rule.pop("people", None)
     if visibility is not None:
         rule["visibility"] = visibility
         if clean:
             rule["people"] = clean
-    side = _dir(folder) / SIDE
+    side = _dir(area, folder) / SIDE
     if rule:
         side.write_text(json.dumps(rule, indent=2), encoding="utf-8")
     elif side.exists():
         side.unlink()
-    return access(user, folder)
+    return access(user, area, folder)
 
 
 def users() -> list[str]:
