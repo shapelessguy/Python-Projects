@@ -1,4 +1,0 @@
-build
-chats
-dist
-structure
