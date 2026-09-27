@@ -32,6 +32,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandLess
@@ -40,6 +41,8 @@ import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -74,12 +77,14 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.diary.Prefs
 import com.diary.net.Api
+import com.diary.net.CatalogIngredient
 import com.diary.net.Dish
 import com.diary.net.DishBody
 import com.diary.net.DishPatch
 import com.diary.net.FoodImages
 import com.diary.net.ImageHit
 import com.diary.net.IngredientEntry
+import com.diary.net.IngredientPatch
 import com.diary.net.IngredientsData
 import kotlinx.serialization.json.Json
 import kotlin.math.roundToInt
@@ -126,6 +131,7 @@ fun FoodScreen(vm: FoodViewModel = viewModel()) {
     var confirmDeleteId by remember { mutableStateOf<Int?>(null) }
     var editingInstructions by remember { mutableStateOf<Dish?>(null) }
     var editingIngredients by remember { mutableStateOf<Dish?>(null) }
+    var showCatalog by remember { mutableStateOf(false) }
     // 0f = min zoom (many small columns) … 1f = max zoom (1–2 columns).
     var zoom by remember { mutableStateOf((Prefs.foodZoomPct.coerceIn(0, 100)) / 100f) }
 
@@ -187,6 +193,7 @@ fun FoodScreen(vm: FoodViewModel = viewModel()) {
                     valueRange = 0f..1f,
                     modifier = Modifier.weight(1f),
                 )
+                TextButton(onClick = { showCatalog = true }) { Text("🥕") }
                 TextButton(onClick = { enterGroceryMode() }) { Text("🛒 Grocery") }
                 TextButton(onClick = { editing = Editing.New }) { Text("+ Add") }
             }
@@ -323,6 +330,117 @@ fun FoodScreen(vm: FoodViewModel = viewModel()) {
             onDismiss = { editingIngredients = null },
             onSave = { payload -> vm.patchDish(d.id, DishPatch(ingredients = payload)); editingIngredients = null },
         )
+    }
+
+    if (showCatalog) {
+        IngredientCatalogSheet(
+            items = data?.ingredients.orEmpty(),
+            error = vm.error,
+            onPatch = { name, patch -> vm.patchIngredient(name, patch) },
+            onDelete = { vm.deleteIngredient(it) },
+            onDismiss = { showCatalog = false },
+        )
+    }
+}
+
+private val UNIT_LABEL = linkedMapOf("g" to "g", "ml" to "ml", "" to "pieces")
+
+/** The ingredient list: every ingredient the generated recipes use, each in
+ *  the one unit it is bought by (api/services/food.py, food_ingredients).
+ *  Renaming one into another merges them; changing a unit converts every
+ *  recipe's amount, asking how much one old unit is unless it is g <-> ml. */
+@Composable
+private fun IngredientCatalogSheet(
+    items: List<CatalogIngredient>,
+    error: String?,
+    onPatch: (String, IngredientPatch) -> Unit,
+    onDelete: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val sheet = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var query by remember { mutableStateOf("") }
+    // Names being edited, by the ingredient they were.
+    val names = remember { mutableStateMapOf<String, String>() }
+    // A unit change that needs a conversion: (ingredient, new unit), and the amount typed.
+    var converting by remember { mutableStateOf<Pair<String, String>?>(null) }
+    var factor by remember { mutableStateOf("") }
+    // Which ingredient's unit menu is open.
+    var unitMenu by remember { mutableStateOf<String?>(null) }
+
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheet) {
+        Column(
+            Modifier.fillMaxWidth().fillMaxHeight(0.9f)
+                .padding(horizontal = 16.dp).padding(bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text("Ingredients", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+            Text("Every ingredient the recipes use, in the unit it is bought by. Rename one into another to merge them.",
+                fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            OutlinedTextField(
+                value = query, onValueChange = { query = it.lowercase() },
+                placeholder = { Text("Search ${items.size} ingredients") },
+                singleLine = true, modifier = Modifier.fillMaxWidth(),
+            )
+            Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+                if (items.isEmpty()) {
+                    Text("Empty so far — it fills up as the recipes' ingredients are worked out.",
+                        fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                items.filter { query.isBlank() || it.name.contains(query.trim()) }.forEach { it0 ->
+                    val typed = names[it0.name] ?: it0.name
+                    val renamed = typed.trim().isNotEmpty() && typed.trim() != it0.name
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        OutlinedTextField(
+                            value = typed, onValueChange = { v -> names[it0.name] = v.lowercase() },
+                            singleLine = true, modifier = Modifier.weight(1f),
+                        )
+                        if (renamed) {
+                            IconButton(onClick = { onPatch(it0.name, IngredientPatch(name = typed.trim())); names.remove(it0.name) }) {
+                                Icon(Icons.Default.Check, "Rename", tint = MaterialTheme.colorScheme.primary)
+                            }
+                        }
+                        Box {
+                            TextButton(onClick = { unitMenu = it0.name }) { Text(UNIT_LABEL[it0.unit] ?: it0.unit) }
+                            DropdownMenu(expanded = unitMenu == it0.name, onDismissRequest = { unitMenu = null }) {
+                                UNIT_LABEL.forEach { (u, label) ->
+                                    DropdownMenuItem(text = { Text(label) }, onClick = {
+                                        unitMenu = null
+                                        if (u == it0.unit) return@DropdownMenuItem
+                                        if (setOf(u, it0.unit) == setOf("g", "ml") || it0.uses == 0) {
+                                            onPatch(it0.name, IngredientPatch(unit = u))
+                                        } else {
+                                            converting = it0.name to u
+                                            factor = ""
+                                        }
+                                    })
+                                }
+                            }
+                        }
+                        Text("${it0.uses}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        IconButton(onClick = { onDelete(it0.name) }, enabled = it0.uses == 0, modifier = Modifier.size(32.dp)) {
+                            Icon(Icons.Default.Delete, "Remove", modifier = Modifier.size(18.dp))
+                        }
+                    }
+                    converting?.takeIf { c -> c.first == it0.name }?.let { (_, to) ->
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier.padding(start = 8.dp, bottom = 6.dp)) {
+                            Text("1 ${if (it0.unit == "") "piece" else it0.unit} =", fontSize = 13.sp)
+                            OutlinedTextField(value = factor, onValueChange = { factor = it }, singleLine = true,
+                                modifier = Modifier.width(80.dp))
+                            Text(UNIT_LABEL[to] ?: to, fontSize = 13.sp)
+                            val n = factor.replace(',', '.').toDoubleOrNull()
+                            TextButton(enabled = n != null && n > 0, onClick = {
+                                onPatch(it0.name, IngredientPatch(unit = to, factor = n))
+                                converting = null
+                            }) { Text("Convert") }
+                            TextButton(onClick = { converting = null }) { Text("Cancel") }
+                        }
+                    }
+                }
+            }
+            error?.let { Text(it, color = MaterialTheme.colorScheme.primary, fontSize = 12.sp) }
+            Button(onClick = onDismiss) { Text("Done") }
+        }
     }
 }
 
@@ -659,7 +777,10 @@ private fun IngredientRow.error(): String? {
     return null
 }
 
-private val ingredientsJson = Json { ignoreUnknownKeys = true }
+// encodeDefaults: an ingredient with no amount (salt, pepper) is
+// {"quantity": "", "unit": ""}, and "" is the default -- without it both
+// keys are dropped, and the backend refuses the whole list over the `{}`.
+private val ingredientsJson = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 
 @Composable
 private fun IngredientsEditorSheet(

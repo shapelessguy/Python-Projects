@@ -14,9 +14,18 @@ export interface Dish {
   ingredients: string;
 }
 
+/** One ingredient of the list: the one unit it is bought and measured in
+ *  ("g", "ml", or "" for pieces), and how many dishes use it. */
+export interface CatalogIngredient {
+  name: string;
+  unit: string;
+  uses: number;
+}
+
 export interface FoodData {
   dishes: Dish[];
   categories: string[];
+  ingredients: CatalogIngredient[];
   version: number;
 }
 
@@ -75,6 +84,18 @@ export const foodApi = {
 
   remove: (id: number) =>
     f(`/api/food/dishes/${id}`, { method: "DELETE" }).then(j<FoodData>),
+
+  /** Rename an ingredient of the list (into another: they merge), or change
+   *  its unit -- `factor` is how many of the new unit one of the old is. */
+  patchIngredient: (name: string, body: { name?: string; unit?: string; factor?: number }) =>
+    f(`/api/food/ingredients/${encodeURIComponent(name)}`, {
+      method: "PATCH",
+      headers: JSON_HEADERS,
+      body: JSON.stringify(body),
+    }).then(j<FoodData>),
+
+  removeIngredient: (name: string) =>
+    f(`/api/food/ingredients/${encodeURIComponent(name)}`, { method: "DELETE" }).then(j<FoodData>),
 
   searchImages: (q: string, num = 60) =>
     f(`/api/food/image-search?q=${encodeURIComponent(q)}&num=${num}`).then(

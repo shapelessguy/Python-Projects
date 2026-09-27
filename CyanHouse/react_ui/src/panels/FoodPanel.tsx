@@ -3,6 +3,7 @@ import DOMPurify from "dompurify";
 import { marked } from "marked";
 import { useVersionPoll } from "../api";
 import {
+  CatalogIngredient,
   Dish,
   DishInput,
   FoodData,
@@ -71,6 +72,7 @@ export function FoodPanel() {
   const [zoom, setZoom] = useState<number>(loadZoom);
   const [editingIngredients, setEditingIngredients] = useState<Dish | null>(null);
   const [editingInstructions, setEditingInstructions] = useState<Dish | null>(null);
+  const [showCatalog, setShowCatalog] = useState(false);
   const [groceryList, setGroceryList] = useState<GroceryList>(() => loadGroceryList());
   const [groceryMode, setGroceryMode] = useState(false);
   const [pendingSelection, setPendingSelection] = useState<Set<number>>(() => new Set());
@@ -266,6 +268,7 @@ export function FoodPanel() {
             </>
           ) : (
             <>
+              <button className="ghost" onClick={() => setShowCatalog(true)}>🥕 Ingredients</button>
               <button className="ghost" onClick={enterGroceryMode}>🛒 Grocery</button>
               <button className="active" onClick={() => setEditing("new")}>
                 + Add dish
@@ -344,6 +347,10 @@ export function FoodPanel() {
             )
           }
         />
+      )}
+
+      {showCatalog && (
+        <IngredientCatalog items={data.ingredients ?? []} onChanged={apply} onClose={() => setShowCatalog(false)} />
       )}
 
       {editingIngredients && (
@@ -931,6 +938,115 @@ function rowError(r: IngredientRow): string | null {
   if (unit && !LOWER_WORD_RE.test(unit)) return "unit must be lowercase letters only";
   if (unit && !qty) return "a unit needs a quantity";
   return null;
+}
+
+const UNIT_LABEL: Record<string, string> = { g: "g", ml: "ml", "": "pieces" };
+
+/** What the server said, from a failed foodApi call ("409 Conflict — {"detail": ...}"). */
+function serverMessage(e: unknown): string {
+  const text = String(e);
+  const body = text.slice(text.indexOf("— ") + 2);
+  try { return JSON.parse(body).detail ?? text; } catch { return text; }
+}
+
+/** The ingredient list: every ingredient the generated recipes use, each in
+ *  the one unit it is bought by (api/services/food.py, food_ingredients).
+ *  Renaming one into another merges them; changing a unit converts every
+ *  recipe's amount, asking how much one old unit is unless it is g <-> ml. */
+function IngredientCatalog({ items, onChanged, onClose }: {
+  items: CatalogIngredient[];
+  onChanged: (d: FoodData) => void;
+  onClose: () => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [names, setNames] = useState<Record<string, string>>({});
+  // A unit change that needs a conversion: which ingredient, to what, and
+  // the amount typed so far.
+  const [converting, setConverting] = useState<{ name: string; from: string; to: string; factor: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const run = (p: Promise<FoodData>) => {
+    setBusy(true);
+    setError(null);
+    return p.then((d) => { onChanged(d); return true; })
+      .catch((e) => { setError(serverMessage(e)); return false; })
+      .finally(() => setBusy(false));
+  };
+  const rename = (it: CatalogIngredient) => {
+    const to = (names[it.name] ?? it.name).trim().toLowerCase();
+    if (!to || to === it.name) return;
+    run(foodApi.patchIngredient(it.name, { name: to }))
+      .then((ok) => ok && setNames((n) => { const { [it.name]: _, ...rest } = n; return rest; }));
+  };
+  const changeUnit = (it: CatalogIngredient, to: string) => {
+    if (to === it.unit) return;
+    if ((it.unit === "g" && to === "ml") || (it.unit === "ml" && to === "g") || it.uses === 0) {
+      run(foodApi.patchIngredient(it.name, { unit: to }));
+    } else {
+      setConverting({ name: it.name, from: it.unit, to, factor: "" });
+    }
+  };
+  const shown = items.filter((it) => it.name.includes(query.trim().toLowerCase()));
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal dish-info" onClick={(e) => e.stopPropagation()}>
+        <h4>Ingredients</h4>
+        <p className="muted small">
+          Every ingredient the recipes use, in the unit it is bought by. Rename one into another to merge them.
+        </p>
+        <input placeholder={`Search ${items.length} ingredients…`} value={query} onChange={(e) => setQuery(e.target.value)} />
+        <div className="dish-info-scroll">
+          <div className="ingredients-rows">
+            {shown.map((it) => (
+              <div key={it.name}>
+                <div className="ingredients-row">
+                  <input
+                    value={names[it.name] ?? it.name}
+                    onChange={(e) => setNames((n) => ({ ...n, [it.name]: e.target.value.toLowerCase() }))}
+                    onBlur={() => rename(it)}
+                    onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+                    disabled={busy}
+                  />
+                  <select value={it.unit} disabled={busy} onChange={(e) => changeUnit(it, e.target.value)}>
+                    {Object.entries(UNIT_LABEL).map(([u, label]) => <option key={u} value={u}>{label}</option>)}
+                  </select>
+                  <span className="muted small" title="Dishes using it">{it.uses} dish{it.uses === 1 ? "" : "es"}</span>
+                  <button type="button" className="ghost danger" disabled={busy || it.uses > 0}
+                          title={it.uses ? "In use — rename it into another instead" : "Remove"}
+                          onClick={() => run(foodApi.removeIngredient(it.name))}>
+                    🗑
+                  </button>
+                </div>
+                {converting?.name === it.name && (
+                  <div className="ingredients-row-error">
+                    1 {converting.from === "" ? "piece" : converting.from} ={" "}
+                    <input style={{ width: "5em" }} autoFocus inputMode="decimal" value={converting.factor}
+                           onChange={(e) => setConverting({ ...converting, factor: e.target.value })} />{" "}
+                    {UNIT_LABEL[converting.to]}{" "}
+                    <button type="button" disabled={busy || !(Number(converting.factor) > 0)}
+                            onClick={() => run(foodApi.patchIngredient(it.name, { unit: converting.to, factor: Number(converting.factor) }))
+                              .then((ok) => ok && setConverting(null))}>
+                      Convert {it.uses} dish{it.uses === 1 ? "" : "es"}
+                    </button>{" "}
+                    <button type="button" className="ghost" onClick={() => setConverting(null)}>Cancel</button>
+                  </div>
+                )}
+              </div>
+            ))}
+            {items.length === 0 && (
+              <p className="muted small">Empty so far — it fills up as the recipes' ingredients are worked out.</p>
+            )}
+          </div>
+        </div>
+        {error && <p className="error small">{error}</p>}
+        <div className="row-actions">
+          <button type="button" className="active" onClick={onClose}>Done</button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function IngredientsEditor({

@@ -202,6 +202,15 @@ object Api {
     suspend fun deleteDish(id: Int): FoodData =
         client.delete(u("/api/food/dishes/$id")).body()
 
+    suspend fun patchIngredient(name: String, patch: IngredientPatch): FoodData =
+        client.patch(u("/api/food/ingredients/${name.encodeURLPathPart()}")) {
+            contentType(ContentType.Application.Json)
+            setBody(patch)
+        }.body()
+
+    suspend fun deleteIngredient(name: String): FoodData =
+        client.delete(u("/api/food/ingredients/${name.encodeURLPathPart()}")).body()
+
     suspend fun searchDishImages(query: String, num: Int = 60): ImageSearchResult =
         client.get(u("/api/food/image-search")) {
             parameter("q", query)

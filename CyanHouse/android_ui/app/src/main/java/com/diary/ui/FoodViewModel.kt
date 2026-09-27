@@ -12,6 +12,7 @@ import com.diary.net.DishBody
 import com.diary.net.DishPatch
 import com.diary.net.FoodData
 import com.diary.net.ImageHit
+import com.diary.net.IngredientPatch
 import com.diary.net.IngredientsData
 import com.diary.net.versionPoll
 import kotlinx.coroutines.launch
@@ -141,6 +142,8 @@ class FoodViewModel : ViewModel() {
     fun addDish(body: DishBody) = mutate { Api.addDish(body) }
     fun patchDish(id: Int, patch: DishPatch) = mutate { Api.patchDish(id, patch) }
     fun deleteDish(id: Int) = mutate { Api.deleteDish(id) }
+    fun patchIngredient(name: String, patch: IngredientPatch) = mutate { Api.patchIngredient(name, patch) }
+    fun deleteIngredient(name: String) = mutate { Api.deleteIngredient(name) }
 
     /** One-shot image search for the picker; result delivered via callback so
      *  the composable can hold it in local state. */

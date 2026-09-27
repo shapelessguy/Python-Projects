@@ -90,6 +90,32 @@ async def delete_dish(dish_id: int, user: str = Depends(require_user)):
         raise HTTPException(404, f"no dish {dish_id}")
 
 
+# ── the ingredient list ────────────────────────────────────────────────────
+class IngredientPatch(BaseModel):
+    name: str | None = None
+    unit: str | None = None
+    # How many of the new unit one of the old is (1 onion = 150 g).
+    factor: float | None = None
+
+
+@router.patch("/ingredients/{name}")
+async def patch_ingredient(name: str, body: IngredientPatch, user: str = Depends(require_user)):
+    """Rename an ingredient (into another one, merging them), or change its
+    unit -- every recipe with it follows."""
+    try:
+        return await run_in_threadpool(food.update_ingredient, user, name, body.name, body.unit, body.factor)
+    except food.IngredientError as e:
+        raise HTTPException(e.status_code, str(e))
+
+
+@router.delete("/ingredients/{name}")
+async def delete_ingredient(name: str, user: str = Depends(require_user)):
+    try:
+        return await run_in_threadpool(food.delete_ingredient, user, name)
+    except food.IngredientError as e:
+        raise HTTPException(e.status_code, str(e))
+
+
 # ── image search (server-side proxy; the serper key never reaches clients) ─
 @router.get("/image-search")
 async def image_search(

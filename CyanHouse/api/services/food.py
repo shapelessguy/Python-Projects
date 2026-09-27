@@ -62,6 +62,12 @@ CREATE TABLE IF NOT EXISTS food_ratings (
     PRIMARY KEY (dish_id, username)
 );
 CREATE INDEX IF NOT EXISTS idx_food_ratings_user ON food_ratings(username);
+-- The ingredient list: every ingredient the generated recipes use, with
+-- the one unit it is bought and measured in (SHOP_UNITS).
+CREATE TABLE IF NOT EXISTS food_ingredients (
+    name TEXT PRIMARY KEY,
+    unit TEXT NOT NULL DEFAULT ''
+);
 CREATE TABLE IF NOT EXISTS meta (
     key   TEXT PRIMARY KEY,
     value INTEGER NOT NULL DEFAULT 0
@@ -279,6 +285,9 @@ def snapshot(conn: sqlite3.Connection, user: str) -> dict:
     return {
         "dishes": dishes,
         "categories": categories,
+        # The ingredient list (food_ingredients) -- ships with the dishes, so
+        # a correction reaches the clients on the same poll.
+        "ingredients": _catalog_rows(conn),
         "version": get_version(conn, _version_key(user)),
     }
 
@@ -495,31 +504,67 @@ def _spawn_instructions_processing() -> None:
 _LOWER_WORD_RE = re.compile(r"^[a-z]+(?: [a-z]+)*$")
 _PLAIN_NUMBER_RE = re.compile(r"^\d+(?:\.\d+)?$")
 _MAX_INGREDIENT_ATTEMPTS = 3
+# The shopping units an ingredient of the list (food_ingredients) is measured
+# in: what it is sold by at the supermarket, so the shopping list adds each
+# ingredient up across recipes and says it the way it is bought. A count is
+# "" in a recipe, "count" to the model. Manual edits of a dish are not held
+# to this.
+SHOP_UNITS = ("g", "ml", "")
+_MODEL_UNIT = {"g": "g", "ml": "ml", "": "count"}
+_FROM_MODEL_UNIT = {v: k for k, v in _MODEL_UNIT.items()}
 
 _INGREDIENTS_SYSTEM_PROMPT = (
-    "You extract structured ingredient data from messy text scraped from a "
-    "recipe webpage. Output ONLY a single JSON object (no markdown fences, "
-    "no commentary) with exactly this shape:\n\n"
-    '{"quantity": "<number>", "unit": "<recipe yield unit, e.g. persons, '
-    'servings, kg -- lowercase>", "ingredients": {"<ingredient name>": '
-    '{"quantity": "<number or empty string>", "unit": "<unit or empty '
-    'string>"}, ...}}\n\n'
+    "You extract the ingredients of a recipe from messy text scraped from "
+    "its webpage, for a shopping list. You are given the INGREDIENT LIST: "
+    "every ingredient already known, each with the one unit it is always "
+    "measured in. Work in two steps.\n\n"
+    "Step 1 -- new ingredients. Go through the recipe's ingredients. Each one "
+    "that is the same thing to buy as an ingredient of the list IS that "
+    "ingredient: use the list's name. Only one that is genuinely different "
+    "to buy is new: give it a name and decide its unit, the way a "
+    "supermarket sells it:\n"
+    '  - "g" for anything sold by weight: vegetables, fruit, meat, fish, '
+    "cheese, pasta, rice, flour, sugar, butter, bread, nuts, herbs, spices, "
+    "salt.\n"
+    '  - "ml" for liquids sold by volume: oil, vinegar, milk, cream, wine, '
+    "beer, stock, water, passata, sauces sold in bottles.\n"
+    '  - "count" only for things sold and used as whole pieces: egg, lemon, '
+    "lime, avocado, bread roll.\n\n"
+    "Step 2 -- the recipe. Write every ingredient in exactly the unit the "
+    "list (or your step 1) gives it, converting the recipe's amounts: kg, "
+    "pounds, ounces and cups to g or ml; spoons of a liquid to ml (1 tbsp = "
+    "15 ml, 1 tsp = 5 ml); spoons of a solid to g (1 tbsp flour or sugar = "
+    "12 g, 1 tsp salt = 5 g, 1 tsp of a dried spice = 2 g); pieces to g "
+    "with the typical weight of that exact ingredient (1 medium onion = "
+    "150 g, 1 potato = 200 g, 1 carrot = 60 g, 1 celery stalk = 40 g, "
+    "1 garlic clove = 5 g, 1 tomato = 120 g, 1 cherry tomato = 15 g). "
+    "Round converted amounts sensibly (150 g, not 147.87 g).\n\n"
+    "Output ONLY a single JSON object (no markdown fences, no commentary) "
+    "with exactly this shape, the keys in this order:\n\n"
+    '{"new_ingredients": {"<name>": "<g, ml or count>", ...}, '
+    '"quantity": "<number>", "unit": "<recipe yield unit, e.g. persons, '
+    'servings -- lowercase>", "ingredients": {"<name>": '
+    '{"quantity": "<number or empty string>", "unit": "<the ingredient\'s '
+    'unit, or empty string>"}, ...}}\n\n'
     "Rules, all mandatory:\n"
-    "- Every ingredient name and unit must be in English, regardless of "
-    "what language the source page is written in -- always translate, "
-    'never leave a name in the original language (e.g. "onion" not '
-    '"cipolla", "wine" not "vino").\n'
-    "- Every ingredient name must be lowercase and singular "
-    '(e.g. "onion" not "Onions", "egg" not "eggs").\n'
-    '- An ingredient\'s "quantity" is a plain number, or "" if the source '
-    'gives no quantity at all (e.g. "salt to taste"). Never a range, a '
-    "fraction, or free text -- if there's no clean number, use \"\".\n"
-    '- An ingredient\'s "unit" is a lowercase word (e.g. "g", "tbsp", '
-    '"clove"), or "" when there isn\'t a natural unit -- e.g. 5 eggs is '
-    '{"quantity": "5", "unit": ""}, not {"quantity": "5", "unit": "egg"}. '
-    'Never set "unit" while "quantity" is "".\n'
-    "- Use standard/scientific unit abbreviations where a unit is used "
-    "(g, kg, ml, l, tsp, tbsp, ...).\n"
+    '- "new_ingredients" holds only names that are not in the list, each '
+    "used in the recipe; {} when there are none.\n"
+    "- Every name is in English whatever the page's language (\"onion\" not "
+    '"cipolla"), lowercase and singular ("egg" not "eggs"), and the plain '
+    "name it is bought under: no quality, brand or preparation words "
+    '("olive oil" not "extra virgin olive oil", "tomato" not "chopped '
+    'tomato", "parmesan" not "grated parmesan cheese"). Keep a word only '
+    'when it names a different thing to buy ("cherry tomato", "red onion").\n'
+    "- Name the product, not a part of it: \"celery\" not \"celery stalk\", "
+    '"garlic" (in g) not "garlic clove", "parsley" not "parsley leaf". And '
+    'not a whole category: the cheese, bean or pasta it actually is ("provola", '
+    '"cannellini bean"), never just "cheese".\n'
+    '- An ingredient\'s "quantity" is a plain number, or "" when the '
+    'recipe gives no amount ("salt to taste"). Never a range, a fraction '
+    "or text.\n"
+    '- An ingredient\'s "unit" is "g" or "ml" when its unit is g or ml, and '
+    '"" when its unit is count (2 eggs is {"quantity": "2", "unit": ""}). '
+    'With no amount, both are "": {"quantity": "", "unit": ""}.\n'
     "- Do not include any text outside the JSON object."
 )
 
@@ -529,7 +574,8 @@ def _validate_ingredients_json(text: str) -> tuple[dict | None, list[str]]:
     (None, [reason, ...]) listing EVERY violation found, not just the first
     -- fed back to the model in full on a retry, so fixing one problem can't
     reveal a second one it was never told about and burn the remaining
-    attempts one-issue-at-a-time."""
+    attempts one-issue-at-a-time. Only the shape: what a generated recipe
+    must also meet is _validate_generated's."""
     try:
         data = json.loads(text)
     except Exception as e:
@@ -563,27 +609,84 @@ def _validate_ingredients_json(text: str) -> tuple[dict | None, list[str]]:
     return data, []
 
 
-def _generate_ingredients(dish_name: str, page_text: str) -> str:
+def _validate_generated(text: str, catalog: dict[str, str]) -> tuple[dict | None, dict[str, str], list[str]]:
+    """The model's answer (_INGREDIENTS_SYSTEM_PROMPT) against the ingredient
+    list `catalog` (name -> unit): (recipe, the new ingredients with their
+    units, []) when every ingredient is in the list or declared new and is
+    in its unit; otherwise (None, {}, [reason, ...])."""
+    try:
+        data = json.loads(text)
+    except Exception as e:
+        return None, {}, [f"not valid JSON ({e})"]
+    if not isinstance(data, dict) or "new_ingredients" not in data:
+        return None, {}, ['top-level value must be a JSON object with the keys "new_ingredients", '
+                          '"quantity", "unit", "ingredients"']
+    new_raw = data.pop("new_ingredients")
+    recipe, errors = _validate_ingredients_json(json.dumps(data))
+    if not isinstance(new_raw, dict):
+        return None, {}, errors + ['"new_ingredients" must be a JSON object ({} when there are none)']
+    new: dict[str, str] = {}
+    for name, unit in new_raw.items():
+        if not isinstance(name, str) or not _LOWER_WORD_RE.match(name):
+            errors.append(f'new ingredient name "{name}" must be lowercase singular word(s)')
+        elif name in catalog:
+            errors.append(f'"{name}" is already in the ingredient list (unit {_MODEL_UNIT[catalog[name]]}) '
+                          '-- use it; do not add it to "new_ingredients"')
+        elif unit not in _FROM_MODEL_UNIT:
+            errors.append(f'new ingredient "{name}" unit "{unit}" must be "g", "ml" or "count"')
+        else:
+            new[name] = _FROM_MODEL_UNIT[unit]
+    if recipe is None:
+        return None, {}, errors
+    units = {**catalog, **new}
+    for name, entry in recipe["ingredients"].items():
+        if name not in units:
+            if name not in new_raw:
+                errors.append(f'ingredient "{name}" is not in the ingredient list -- use the list\'s name for '
+                              'it, or, if it is genuinely different to buy, add it to "new_ingredients"')
+            continue
+        want = units[name]
+        if entry["quantity"] and entry["unit"] != want:
+            errors.append(f'ingredient "{name}" must be in {_MODEL_UNIT[want]} as the list says'
+                          + (' (unit "")' if want == "" else f' (unit "{want}")')
+                          + f', not "{entry["unit"]}" -- convert the amount')
+    for name in new_raw:
+        if name not in catalog and name not in recipe["ingredients"]:
+            errors.append(f'new ingredient "{name}" is not used in "ingredients" -- drop it or use it')
+    if errors:
+        return None, {}, errors
+    return recipe, new, []
+
+
+def catalog(conn) -> dict[str, str]:
+    """The ingredient list: name -> unit ("g", "ml", or "" for a count)."""
+    return {r["name"]: r["unit"] for r in conn.execute("SELECT name, unit FROM food_ingredients")}
+
+
+def _generate_ingredients(dish_name: str, page_text: str, known: dict[str, str]) -> tuple[str, dict[str, str]]:
     """Up to _MAX_INGREDIENT_ATTEMPTS attempts: each time the model's output
     fails validation, the invalid output and the specific reason are fed
     back so it can correct itself. A network/API failure is a different
     failure mode -- not worth retrying against, so it aborts immediately
     instead of spending the remaining attempts. Returns the canonical
-    (re-serialized) JSON string on success, or "" if it never validated."""
+    (re-serialized) recipe JSON and the ingredients it adds to the list
+    (`known`, the list as it is), or ("", {}) if it never validated."""
     if not OPENROUTER_KEY:
-        return ""
+        return "", {}
+    listing = "\n".join(f"{n}: {_MODEL_UNIT[u]}" for n, u in sorted(known.items())) or "(empty -- every ingredient is new)"
     messages = [
         {"role": "system", "content": _INGREDIENTS_SYSTEM_PROMPT},
-        {"role": "user", "content": f"Dish: {dish_name}\n\n{page_text[:_MAX_LLM_INPUT_CHARS]}"},
+        {"role": "user", "content": f"INGREDIENT LIST (name: unit):\n{listing}\n\n"
+                                    f"Dish: {dish_name}\n\n{page_text[:_MAX_LLM_INPUT_CHARS]}"},
     ]
     for _attempt in range(_MAX_INGREDIENT_ATTEMPTS):
         try:
             raw = _openrouter_chat(messages)
         except Exception:
-            return ""
-        data, errors = _validate_ingredients_json(raw)
-        if data is not None:
-            return json.dumps(data)
+            return "", {}
+        recipe, new, errors = _validate_generated(raw, known)
+        if recipe is not None:
+            return json.dumps(recipe), new
         messages.append({"role": "assistant", "content": raw})
         bullets = "\n".join(f"- {e}" for e in errors)
         messages.append({
@@ -597,7 +700,7 @@ def _generate_ingredients(dish_name: str, page_text: str) -> str:
                 "not reintroduce a problem in another."
             ),
         })
-    return ""
+    return "", {}
 
 
 _INGREDIENTS_LOCK = threading.Lock()
@@ -620,13 +723,20 @@ def _process_pending_ingredients() -> None:
                     "ORDER BY id LIMIT 1",
                     tuple(failed_ids),
                 ).fetchone()
+                # Read again for every dish: the one just done may have
+                # added to it.
+                known = catalog(conn)
             if row is None:
                 return
-            ingredients = _generate_ingredients(row["name"], row["page_text"])
+            ingredients, new = _generate_ingredients(row["name"], row["page_text"], known)
             if not ingredients:
                 failed_ids.add(row["id"])
                 continue
             with connect() as conn:
+                # The new ingredients join the list together with the dish
+                # that brought them, never on their own.
+                conn.executemany("INSERT OR IGNORE INTO food_ingredients (name, unit) VALUES (?, ?)",
+                                 list(new.items()))
                 conn.execute(
                     "UPDATE food_dishes SET ingredients = ? WHERE id = ?",
                     (ingredients, row["id"]),
@@ -825,4 +935,120 @@ def delete_dish(user: str, dish_id: int) -> dict:
         conn.execute("DELETE FROM food_dishes WHERE id = ?", (dish_id,))
         _bump_all(conn)
         _forget_image(row["image"])
+        return snapshot(conn, user)
+
+
+# ── the ingredient list, as people correct it ────────────────────────────
+class IngredientError(Exception):
+    def __init__(self, message: str, status_code: int = 400):
+        super().__init__(message)
+        self.status_code = status_code
+
+
+def _catalog_rows(conn: sqlite3.Connection) -> list[dict]:
+    """The list for the clients: each ingredient, its unit, and how many
+    dishes use it."""
+    uses: dict[str, int] = {}
+    for (text,) in conn.execute("SELECT ingredients FROM food_dishes WHERE ingredients != ''"):
+        try:
+            for name in json.loads(text)["ingredients"]:
+                uses[name] = uses.get(name, 0) + 1
+        except (ValueError, KeyError, TypeError):
+            continue
+    return [{"name": n, "unit": u, "uses": uses.get(n, 0)} for n, u in sorted(catalog(conn).items())]
+
+
+def _fmt_qty(x: float) -> str:
+    """An amount after a conversion, rounded the way a recipe writes it."""
+    x = round(x) if x >= 10 else round(x, 1) if x >= 1 else round(x, 2)
+    return f"{x:g}"
+
+
+def _rewrite_dishes(conn: sqlite3.Connection, change) -> None:
+    """Apply `change(ingredients: dict) -> bool` (True when it changed
+    something) to every dish's ingredients."""
+    for row in conn.execute("SELECT id, ingredients FROM food_dishes WHERE ingredients != ''").fetchall():
+        try:
+            data = json.loads(row["ingredients"])
+            items = data["ingredients"]
+        except (ValueError, KeyError, TypeError):
+            continue
+        if change(items):
+            conn.execute("UPDATE food_dishes SET ingredients = ? WHERE id = ?",
+                         (json.dumps(data), row["id"]))
+
+
+def update_ingredient(user: str, name: str, new_name: str | None, unit: str | None,
+                      factor: float | None) -> dict:
+    """Correct one ingredient of the list, and every recipe with it.
+
+    `unit`: its new unit; the amounts in it are multiplied by `factor` (how
+    many of the new unit one of the old is -- 1 g of water is 1 ml, so g and
+    ml may leave it out; a count and a weight need it: 1 onion = 150 g).
+    `new_name`: renamed, and when that name is already in the list the two
+    become one -- they have to be in the same unit by then -- and a recipe
+    with both adds them up."""
+    with connect() as conn:
+        units = catalog(conn)
+        if name not in units:
+            raise IngredientError(f"no ingredient {name!r}", 404)
+        old = units[name]
+        if unit is not None and unit != old:
+            if unit not in SHOP_UNITS:
+                raise IngredientError('the unit is "g", "ml" or "" (a count)')
+            if factor is None:
+                if {old, unit} != {"g", "ml"}:
+                    per = {"g": "g", "ml": "ml", "": "pieces"}
+                    raise IngredientError(f"say how many {per[unit]} one {'piece' if old == '' else old} is")
+                factor = 1.0
+            if factor <= 0:
+                raise IngredientError("the conversion has to be a positive number")
+
+            def convert(items: dict) -> bool:
+                e = items.get(name)
+                if not e or e.get("unit", "") != old or not _PLAIN_NUMBER_RE.match(e.get("quantity", "")):
+                    return False
+                e["quantity"], e["unit"] = _fmt_qty(float(e["quantity"]) * factor), unit
+                return True
+            _rewrite_dishes(conn, convert)
+            conn.execute("UPDATE food_ingredients SET unit = ? WHERE name = ?", (unit, name))
+            old = unit
+        target = (new_name or "").strip().lower()
+        if target and target != name:
+            if not _LOWER_WORD_RE.match(target):
+                raise IngredientError("a name is lowercase letters, words separated by single spaces")
+            if target in units and units[target] != old:
+                raise IngredientError(
+                    f"{target!r} is measured in {_MODEL_UNIT[units[target]]} and {name!r} in "
+                    f"{_MODEL_UNIT[old]} -- give them the same unit first", 409)
+
+            def rename(items: dict) -> bool:
+                if name not in items:
+                    return False
+                moved = items.pop(name)
+                have = items.get(target)
+                if have is None:
+                    items[target] = moved
+                elif _PLAIN_NUMBER_RE.match(have["quantity"]) and _PLAIN_NUMBER_RE.match(moved["quantity"]):
+                    have["quantity"] = _fmt_qty(float(have["quantity"]) + float(moved["quantity"]))
+                elif not have["quantity"]:
+                    items[target] = moved
+                return True
+            _rewrite_dishes(conn, rename)
+            conn.execute("DELETE FROM food_ingredients WHERE name = ?", (name,))
+            conn.execute("INSERT OR IGNORE INTO food_ingredients (name, unit) VALUES (?, ?)", (target, old))
+        _bump_all(conn)
+        return snapshot(conn, user)
+
+
+def delete_ingredient(user: str, name: str) -> dict:
+    """Take an ingredient off the list -- only one no recipe uses."""
+    with connect() as conn:
+        if name not in catalog(conn):
+            raise IngredientError(f"no ingredient {name!r}", 404)
+        used = next((r for r in _catalog_rows(conn) if r["name"] == name), {}).get("uses", 0)
+        if used:
+            raise IngredientError(f"{used} dish(es) use {name!r} -- rename it into another instead", 409)
+        conn.execute("DELETE FROM food_ingredients WHERE name = ?", (name,))
+        _bump_all(conn)
         return snapshot(conn, user)

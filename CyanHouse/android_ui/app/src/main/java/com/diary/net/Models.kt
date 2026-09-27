@@ -134,8 +134,20 @@ data class Dish(
 data class FoodData(
     val dishes: List<Dish> = emptyList(),
     val categories: List<String> = emptyList(),
+    val ingredients: List<CatalogIngredient> = emptyList(),
     val version: Int = 0,
 )
+
+/** One ingredient of the list (api/services/food.py, food_ingredients): the
+ *  one unit it is bought and measured in -- "g", "ml", or "" for pieces --
+ *  and how many dishes use it. */
+@Serializable
+data class CatalogIngredient(val name: String, val unit: String = "", val uses: Int = 0)
+
+/** Rename an ingredient of the list (into another: they merge), or change its
+ *  unit -- `factor` is how many of the new unit one of the old is. */
+@Serializable
+data class IngredientPatch(val name: String? = null, val unit: String? = null, val factor: Double? = null)
 
 @Serializable
 data class DishBody(
