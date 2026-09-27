@@ -44,6 +44,9 @@ export interface DishInput {
   url?: string;
   instructions?: string;
   ingredients?: string;
+  /** Ingredients a hand edit adds to the ingredient list, with their units
+   *  ("g", "ml", "" for pieces) -- saved together with the dish. */
+  new_ingredients?: Record<string, string>;
 }
 
 async function j<T>(r: Response): Promise<T> {

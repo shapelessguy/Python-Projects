@@ -356,6 +356,7 @@ export function FoodPanel() {
       {editingIngredients && (
         <IngredientsEditor
           dish={editingIngredients}
+          catalog={data.ingredients ?? []}
           onCancel={() => setEditingIngredients(null)}
           onSaved={(d) => {
             apply(d);
@@ -932,11 +933,8 @@ const PLAIN_NUMBER_RE = /^\d+(?:\.\d+)?$/;
 function rowError(r: IngredientRow): string | null {
   const name = r.name.trim();
   const qty = r.quantity.trim();
-  const unit = r.unit.trim();
   if (name && !LOWER_WORD_RE.test(name)) return "name must be lowercase letters only";
   if (qty && !PLAIN_NUMBER_RE.test(qty)) return "quantity must be a number, or left blank";
-  if (unit && !LOWER_WORD_RE.test(unit)) return "unit must be lowercase letters only";
-  if (unit && !qty) return "a unit needs a quantity";
   return null;
 }
 
@@ -1049,15 +1047,25 @@ function IngredientCatalog({ items, onChanged, onClose }: {
   );
 }
 
+/** One dish's ingredients, by hand. Each name is picked from the ingredient
+ *  list (typing offers its names), and its unit is the list's -- only the
+ *  amount is typed. A name not in the list is a new ingredient: its unit is
+ *  chosen here, and it joins the list when the dish is saved. The server
+ *  holds a hand edit to the same (food.py, _check_hand_edit). */
 function IngredientsEditor({
   dish,
+  catalog,
   onCancel,
   onSaved,
 }: {
   dish: Dish;
+  catalog: CatalogIngredient[];
   onCancel: () => void;
   onSaved: (d: FoodData) => void;
 }) {
+  const units = useMemo(() => new Map(catalog.map((c) => [c.name, c.unit])), [catalog]);
+  /** A new ingredient's unit: the one picked, or grams until then. */
+  const newUnit = (r: IngredientRow) => (r.unit in UNIT_LABEL ? r.unit : "g");
   const initial = useMemo(() => parseIngredients(dish.ingredients), [dish.ingredients]);
   const [quantity, setQuantity] = useState(initial.quantity);
   const [unit, setUnit] = useState(initial.unit);
@@ -1082,10 +1090,14 @@ function IngredientsEditor({
       return;
     }
     const ingredients: Record<string, { quantity: string; unit: string }> = {};
+    const added: Record<string, string> = {};
     for (const r of rows) {
       const name = r.name.trim();
       if (!name) continue;
-      ingredients[name] = { quantity: r.quantity.trim(), unit: r.unit.trim() };
+      let u = units.get(name);
+      if (u === undefined) added[name] = u = newUnit(r);
+      const qty = r.quantity.trim();
+      ingredients[name] = { quantity: qty, unit: qty ? u : "" };
     }
     // No rows left -> clear the field entirely (an empty {} would fail the
     // backend's "non-empty object" check, and isn't what "cleared" means).
@@ -1094,7 +1106,7 @@ function IngredientsEditor({
       : "";
     setSaving(true);
     foodApi
-      .patch(dish.id, { ingredients: payload })
+      .patch(dish.id, { ingredients: payload, new_ingredients: added })
       .then(onSaved)
       .catch((e) => setError(String(e)))
       .finally(() => setSaving(false));
@@ -1115,6 +1127,9 @@ function IngredientsEditor({
               <input value={unit} onChange={(e) => setUnit(lower(e.target.value))} placeholder="e.g. persons" />
             </label>
           </div>
+          <datalist id="food-ingredient-names">
+            {catalog.map((c) => <option key={c.name} value={c.name}>{UNIT_LABEL[c.unit]}</option>)}
+          </datalist>
           <div className="ingredients-rows">
             {rows.map((r, i) => {
               const err = r.name.trim() ? rowError(r) : null;
@@ -1123,6 +1138,7 @@ function IngredientsEditor({
                   <div className={"ingredients-row" + (err ? " invalid" : "")}>
                     <input
                       value={r.name}
+                      list="food-ingredient-names"
                       onChange={(e) => updateRow(i, { name: lower(e.target.value) })}
                       placeholder="name"
                     />
@@ -1131,11 +1147,16 @@ function IngredientsEditor({
                       onChange={(e) => updateRow(i, { quantity: e.target.value })}
                       placeholder="qty"
                     />
-                    <input
-                      value={r.unit}
-                      onChange={(e) => updateRow(i, { unit: lower(e.target.value) })}
-                      placeholder="unit"
-                    />
+                    {!r.name.trim() ? <span /> : units.has(r.name.trim()) ? (
+                      <span className="muted small" title="The unit it is bought by (the ingredient list)">
+                        {UNIT_LABEL[units.get(r.name.trim()) ?? ""]}
+                      </span>
+                    ) : (
+                      <select value={newUnit(r)} title="Not in the list yet: added, in this unit, when you save"
+                              onChange={(e) => updateRow(i, { unit: e.target.value })}>
+                        {Object.entries(UNIT_LABEL).map(([u, label]) => <option key={u} value={u}>＋ new · {label}</option>)}
+                      </select>
+                    )}
                     <button type="button" className="ghost danger" title="Remove" onClick={() => removeRow(i)}>
                       🗑
                     </button>

@@ -48,6 +48,9 @@ class DishPatch(BaseModel):
     url: str | None = None
     instructions: str | None = None  # manual edit from the Instructions modal
     ingredients: str | None = None  # manual edit from the Ingredients modal (JSON text)
+    # Ingredients the edit adds to the ingredient list, with their units
+    # ("g", "ml", "" for pieces) -- saved together with the dish.
+    new_ingredients: dict[str, str] | None = None
 
 
 # ── dishes ───────────────────────────────────────────────────────────────

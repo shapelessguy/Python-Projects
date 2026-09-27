@@ -845,6 +845,39 @@ def create_dish(user: str, name: str, category: str, rating, image_url: str | No
     return result
 
 
+_UNIT_WORD = {"g": "g", "ml": "ml", "": "pieces"}
+
+
+def _check_hand_edit(conn: sqlite3.Connection, data: dict,
+                     new: dict[str, str]) -> tuple[dict[str, str], list[str]]:
+    """A dish's ingredients as a person edited them, against the ingredient
+    list: each one in the list, or in `new` (name -> unit, what the edit adds
+    to it), and each amount in its unit. (the ingredients to add, [])
+    when it holds, else ({}, [reason, ...])."""
+    units = catalog(conn)
+    errors: list[str] = []
+    added: dict[str, str] = {}
+    told: set[str] = set()  # already has its error
+    for name, unit in new.items():
+        name = str(name).strip().lower()
+        if name not in data["ingredients"]:
+            continue  # offered, then removed again before saving
+        if unit not in SHOP_UNITS:
+            errors.append(f'the unit of "{name}" is g, ml or pieces')
+        elif name in units and units[name] != unit:
+            errors.append(f'"{name}" is already in the ingredient list, in {_UNIT_WORD[units[name]]}')
+            told.add(name)
+        elif name not in units:
+            added[name] = unit
+    units = {**units, **added}
+    for name, entry in data["ingredients"].items():
+        if name not in units:
+            errors.append(f'"{name}" is not in the ingredient list -- pick it from the list, or add it as new')
+        elif entry["quantity"] and entry["unit"] != units[name] and name not in told:
+            errors.append(f'"{name}" is measured in {_UNIT_WORD[units[name]]}')
+    return ({}, errors) if errors else (added, [])
+
+
 def update_dish(user: str, dish_id: int, patch: dict) -> dict:
     with connect() as conn:
         row = conn.execute(
@@ -891,8 +924,11 @@ def update_dish(user: str, dish_id: int, patch: dict) -> dict:
             if ins != row["instructions"]:
                 shared["instructions"] = ins
         # Manual edit from the Ingredients modal -- held to the exact same
-        # structure/regex rules as the LLM output, so nothing downstream
-        # ever has to distinguish "generated" from "hand-edited" data.
+        # rules as the LLM output: the shape, and the ingredient list (every
+        # ingredient in it, or added to it by this edit, in its unit), so
+        # nothing downstream ever has to distinguish "generated" from
+        # "hand-edited" data.
+        added: dict[str, str] = {}
         if patch.get("ingredients") is not None:
             ing = str(patch["ingredients"]).strip()
             if ing != row["ingredients"]:
@@ -900,6 +936,9 @@ def update_dish(user: str, dish_id: int, patch: dict) -> dict:
                     data, errors = _validate_ingredients_json(ing)
                     if errors:
                         raise ValueError("invalid ingredients: " + "; ".join(errors))
+                    added, errors = _check_hand_edit(conn, data, patch.get("new_ingredients") or {})
+                    if errors:
+                        raise ValueError("; ".join(errors))
                     ing = json.dumps(data)  # canonical formatting
                 shared["ingredients"] = ing
 
@@ -907,6 +946,9 @@ def update_dish(user: str, dish_id: int, patch: dict) -> dict:
             sets = ", ".join(f"{k} = ?" for k in shared)
             conn.execute(f"UPDATE food_dishes SET {sets} WHERE id = ?",
                          (*shared.values(), dish_id))
+            # The ingredients the edit brought join the list with it.
+            conn.executemany("INSERT OR IGNORE INTO food_ingredients (name, unit) VALUES (?, ?)",
+                             list(added.items()))
             if "image" in shared:
                 _forget_image(row["image"])
 

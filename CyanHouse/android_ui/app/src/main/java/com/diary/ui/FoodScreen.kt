@@ -43,6 +43,8 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -327,8 +329,11 @@ fun FoodScreen(vm: FoodViewModel = viewModel()) {
     editingIngredients?.let { d ->
         IngredientsEditorSheet(
             dish = d,
+            catalog = data?.ingredients.orEmpty(),
             onDismiss = { editingIngredients = null },
-            onSave = { payload -> vm.patchDish(d.id, DishPatch(ingredients = payload)); editingIngredients = null },
+            onSave = { payload, added ->
+                vm.patchDish(d.id, DishPatch(ingredients = payload, new_ingredients = added)); editingIngredients = null
+            },
         )
     }
 
@@ -767,14 +772,47 @@ private val PLAIN_NUMBER_RE = Regex("^\\d+(\\.\\d+)?$")
 private data class IngredientRow(val name: String, val quantity: String, val unit: String)
 
 /** Same shape rules as the backend's _validate_ingredients_json, applied
- *  per-field since the editor keeps quantity/unit apart. null = valid. */
+ *  per-field. The unit is not typed: it is the ingredient list's (or, for a
+ *  new ingredient, the one picked). null = valid. */
 private fun IngredientRow.error(): String? {
-    val n = name.trim(); val q = quantity.trim(); val u = unit.trim()
+    val n = name.trim(); val q = quantity.trim()
     if (n.isNotEmpty() && !LOWER_WORD_RE.matches(n)) return "name must be lowercase letters only"
     if (q.isNotEmpty() && !PLAIN_NUMBER_RE.matches(q)) return "quantity must be a number, or left blank"
-    if (u.isNotEmpty() && !LOWER_WORD_RE.matches(u)) return "unit must be lowercase letters only"
-    if (u.isNotEmpty() && q.isEmpty()) return "a unit needs a quantity"
     return null
+}
+
+/** A new ingredient's unit: the one picked, or grams until then. */
+private fun IngredientRow.newUnit(): String = if (unit in UNIT_LABEL) unit else "g"
+
+/** An ingredient's name, picked from the ingredient list: typing offers the
+ *  names containing it. Anything else typed is a new ingredient. */
+@Composable
+private fun IngredientNameField(
+    value: String,
+    catalog: List<CatalogIngredient>,
+    isError: Boolean,
+    onChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var open by remember { mutableStateOf(false) }
+    val q = value.trim()
+    val matches = remember(q, catalog) {
+        if (q.isEmpty()) emptyList() else catalog.filter { it.name.contains(q) && it.name != q }.take(8)
+    }
+    val showing = open && matches.isNotEmpty()
+    ExposedDropdownMenuBox(expanded = showing, onExpandedChange = { open = it }, modifier = modifier) {
+        OutlinedTextField(
+            value = value, onValueChange = { onChange(it.lowercase()); open = true },
+            placeholder = { Text("name") }, singleLine = true, isError = isError,
+            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryEditable, true),
+        )
+        ExposedDropdownMenu(expanded = showing, onDismissRequest = { open = false }) {
+            matches.forEach { c ->
+                DropdownMenuItem(text = { Text("${c.name} · ${UNIT_LABEL[c.unit] ?: c.unit}") },
+                    onClick = { onChange(c.name); open = false })
+            }
+        }
+    }
 }
 
 // encodeDefaults: an ingredient with no amount (salt, pepper) is
@@ -785,9 +823,13 @@ private val ingredientsJson = Json { ignoreUnknownKeys = true; encodeDefaults = 
 @Composable
 private fun IngredientsEditorSheet(
     dish: Dish,
+    catalog: List<CatalogIngredient>,
     onDismiss: () -> Unit,
-    onSave: (String) -> Unit,
+    onSave: (String, Map<String, String>) -> Unit,
 ) {
+    val units = remember(catalog) { catalog.associate { it.name to it.unit } }
+    // Which row's new-ingredient unit menu is open.
+    var unitMenu by remember { mutableStateOf<Int?>(null) }
     val sheet = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val initial = remember(dish.ingredients) { parseIngredients(dish.ingredients) }
     var quantity by remember { mutableStateOf(initial.quantity) }
@@ -803,15 +845,19 @@ private fun IngredientsEditorSheet(
             error = "Fix the highlighted ingredient(s) before saving."
             return
         }
+        val added = mutableMapOf<String, String>()
         val map = rows.mapNotNull { r ->
             val name = r.name.trim()
-            if (name.isEmpty()) null else name to IngredientEntry(r.quantity.trim(), r.unit.trim())
+            if (name.isEmpty()) return@mapNotNull null
+            val u = units[name] ?: r.newUnit().also { added[name] = it }
+            val q = r.quantity.trim()
+            name to IngredientEntry(q, if (q.isEmpty()) "" else u)
         }.toMap()
         // No rows left -> clear the field entirely (an empty {} would fail
         // the backend's "non-empty object" check, and isn't what "cleared" means).
         val payload = if (map.isEmpty()) "" else
             ingredientsJson.encodeToString(IngredientsData.serializer(), IngredientsData(quantity.trim(), unit.trim(), map))
-        onSave(payload)
+        onSave(payload, added)
     }
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheet) {
@@ -838,21 +884,39 @@ private fun IngredientsEditorSheet(
                     val err = if (r.name.trim().isNotEmpty()) r.error() else null
                     Column(Modifier.padding(vertical = 3.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            OutlinedTextField(
-                                value = r.name, onValueChange = { v -> rows = rows.toMutableList().also { it[i] = r.copy(name = v.lowercase()) } },
-                                placeholder = { Text("name") }, singleLine = true,
-                                isError = err != null, modifier = Modifier.weight(2f),
+                            IngredientNameField(
+                                value = r.name, catalog = catalog, isError = err != null,
+                                onChange = { v -> rows = rows.toMutableList().also { it[i] = it[i].copy(name = v) } },
+                                modifier = Modifier.weight(2f),
                             )
                             OutlinedTextField(
                                 value = r.quantity, onValueChange = { v -> rows = rows.toMutableList().also { it[i] = r.copy(quantity = v) } },
                                 placeholder = { Text("qty") }, singleLine = true,
                                 isError = err != null, modifier = Modifier.weight(1f),
                             )
-                            OutlinedTextField(
-                                value = r.unit, onValueChange = { v -> rows = rows.toMutableList().also { it[i] = r.copy(unit = v.lowercase()) } },
-                                placeholder = { Text("unit") }, singleLine = true,
-                                isError = err != null, modifier = Modifier.weight(1f),
-                            )
+                            // The list's unit, not typed; for a name not in the
+                            // list, the unit it joins the list with on save.
+                            val known = units[r.name.trim()]
+                            Box(Modifier.weight(1f)) {
+                                when {
+                                    r.name.isBlank() -> {}
+                                    known != null -> Text(UNIT_LABEL[known] ?: known, fontSize = 13.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    else -> {
+                                        TextButton(onClick = { unitMenu = i }) { Text("＋ ${UNIT_LABEL[r.newUnit()]}", fontSize = 12.sp) }
+                                        DropdownMenu(expanded = unitMenu == i, onDismissRequest = { unitMenu = null }) {
+                                            Text("New ingredient — bought by:", fontSize = 12.sp,
+                                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp))
+                                            UNIT_LABEL.forEach { (u, label) ->
+                                                DropdownMenuItem(text = { Text(label) }, onClick = {
+                                                    rows = rows.toMutableList().also { it[i] = it[i].copy(unit = u) }
+                                                    unitMenu = null
+                                                })
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                             IconButton(onClick = { rows = rows.toMutableList().also { it.removeAt(i) } }, modifier = Modifier.size(28.dp)) {
                                 Icon(Icons.Default.Delete, "Remove", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
                             }

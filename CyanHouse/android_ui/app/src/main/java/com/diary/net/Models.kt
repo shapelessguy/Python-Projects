@@ -167,6 +167,9 @@ data class DishPatch(
     val url: String? = null,
     val instructions: String? = null,
     val ingredients: String? = null,
+    /** Ingredients a hand edit adds to the ingredient list, with their units
+     *  ("g", "ml", "" for pieces) -- saved together with the dish. */
+    val new_ingredients: Map<String, String>? = null,
 )
 
 // ── ingredients — canonical JSON stored in Dish.ingredients (see
