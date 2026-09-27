@@ -71,7 +71,6 @@ export function FoodPanel() {
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
   const [zoom, setZoom] = useState<number>(loadZoom);
   const [editingIngredients, setEditingIngredients] = useState<Dish | null>(null);
-  const [editingInstructions, setEditingInstructions] = useState<Dish | null>(null);
   const [showCatalog, setShowCatalog] = useState(false);
   const [groceryList, setGroceryList] = useState<GroceryList>(() => loadGroceryList());
   const [groceryMode, setGroceryMode] = useState(false);
@@ -317,7 +316,6 @@ export function FoodPanel() {
                     mutate(foodApi.remove(id));
                   }}
                   onEditIngredients={setEditingIngredients}
-                  onEditInstructions={setEditingInstructions}
                   groceryMode={groceryMode}
                   selection={pendingSelection}
                   onToggleSelect={toggleSelect}
@@ -355,17 +353,6 @@ export function FoodPanel() {
           onSaved={(d) => {
             apply(d);
             setEditingIngredients(null);
-          }}
-        />
-      )}
-
-      {editingInstructions && (
-        <InstructionsEditor
-          dish={editingInstructions}
-          onCancel={() => setEditingInstructions(null)}
-          onSaved={(d) => {
-            apply(d);
-            setEditingInstructions(null);
           }}
         />
       )}
@@ -588,7 +575,6 @@ function CategoryGrid({
   onCancelArm,
   onDelete,
   onEditIngredients,
-  onEditInstructions,
   groceryMode,
   selection,
   onToggleSelect,
@@ -603,7 +589,6 @@ function CategoryGrid({
   onCancelArm: () => void;
   onDelete: (id: number) => void;
   onEditIngredients: (d: Dish) => void;
-  onEditInstructions: (d: Dish) => void;
   groceryMode: boolean;
   selection: Set<number>;
   onToggleSelect: (id: number) => void;
@@ -651,7 +636,6 @@ function CategoryGrid({
             onDelete={() => onDelete(d.id)}
             onImgSettled={() => onImgSettled(d.id)}
             onEditIngredients={() => onEditIngredients(d)}
-            onEditInstructions={() => onEditInstructions(d)}
             groceryMode={groceryMode}
             selected={selection.has(d.id)}
             onToggleSelect={() => onToggleSelect(d.id)}
@@ -671,7 +655,6 @@ function DishCard({
   onDelete,
   onImgSettled,
   onEditIngredients,
-  onEditInstructions,
   groceryMode,
   selected,
   onToggleSelect,
@@ -684,7 +667,6 @@ function DishCard({
   onDelete: () => void;
   onImgSettled?: () => void;
   onEditIngredients: () => void;
-  onEditInstructions: () => void;
   groceryMode: boolean;
   selected: boolean;
   onToggleSelect: () => void;
@@ -749,7 +731,7 @@ function DishCard({
         type="button"
         className="dish-card-img clickable"
         onClick={onEditIngredients}
-        title={dish.ingredients ? "Edit ingredients" : "Add ingredients"}
+        title="Ingredients and instructions"
       >
         {img}
       </button>
@@ -783,13 +765,6 @@ function DishCard({
                   title={dish.has_text ? "Recipe text saved" : "Recipe text not fetched yet"}
                 />
               )}
-              <button
-                className="ghost"
-                title={dish.instructions ? "Edit instructions" : "Add instructions"}
-                onClick={onEditInstructions}
-              >
-                📄
-              </button>
               {dish.url && (
                 <button
                   className="ghost"
@@ -808,83 +783,6 @@ function DishCard({
             </div>
           </>
         )}
-      </div>
-    </div>
-  );
-}
-
-function InstructionsEditor({
-  dish,
-  onCancel,
-  onSaved,
-}: {
-  dish: Dish;
-  onCancel: () => void;
-  onSaved: (d: FoodData) => void;
-}) {
-  // Nothing to look at yet -> go straight to editing; otherwise show the
-  // rendered result first, with an explicit Edit step.
-  const [mode, setMode] = useState<"view" | "edit">(dish.instructions ? "view" : "edit");
-  const [text, setText] = useState(dish.instructions);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const save = () => {
-    setSaving(true);
-    setError(null);
-    foodApi
-      .patch(dish.id, { instructions: text })
-      .then(onSaved)
-      .catch((e) => setError(String(e)))
-      .finally(() => setSaving(false));
-  };
-
-  return (
-    <div className="modal-backdrop">
-      <div className="modal dish-info" onClick={(e) => e.stopPropagation()}>
-        <h4>{dish.name} — Instructions</h4>
-        {mode === "edit" ? (
-          <textarea
-            className="dish-info-edit"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            rows={12}
-            placeholder="Write the steps in Markdown…"
-            autoFocus
-          />
-        ) : (
-          <MarkdownView text={dish.instructions} />
-        )}
-        {error && <p className="error small">{error}</p>}
-        <div className="row-actions">
-          {mode === "edit" ? (
-            <>
-              <button type="button" className="active" onClick={save} disabled={saving}>
-                {saving ? "Saving…" : "Save"}
-              </button>
-              <button
-                type="button"
-                className="ghost"
-                onClick={() => {
-                  setText(dish.instructions);
-                  if (dish.instructions) setMode("view");
-                  else onCancel();
-                }}
-              >
-                Cancel
-              </button>
-            </>
-          ) : (
-            <>
-              <button type="button" className="active" onClick={() => setMode("edit")}>
-                Edit
-              </button>
-              <button type="button" className="ghost" onClick={onCancel}>
-                Close
-              </button>
-            </>
-          )}
-        </div>
       </div>
     </div>
   );
@@ -1064,6 +962,10 @@ function IngredientsEditor({
   const [quantity, setQuantity] = useState(initial.quantity);
   const [unit, setUnit] = useState(initial.unit);
   const [rows, setRows] = useState<IngredientRow[]>(initial.rows);
+  // The instructions, below the ingredients: shown rendered, or -- with
+  // nothing to show yet, or after Edit -- as the Markdown being written.
+  const [insEditing, setInsEditing] = useState(!dish.instructions);
+  const [insText, setInsText] = useState(dish.instructions);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -1073,19 +975,11 @@ function IngredientsEditor({
   const addRow = () => setRows((rs) => [...rs, { name: "", quantity: "", unit: "" }]);
   const lower = (s: string) => s.toLowerCase();
 
-  const save = () => {
-    setError(null);
-    // Mirrors the backend's own checks (see _validate_ingredients_json) so a
-    // bad row is flagged before a round trip, not just via whatever error
-    // text a failed PATCH happens to return.
-    const bad = rows.filter((r) => r.name.trim() && rowError(r));
-    if (bad.length) {
-      setError("Fix the highlighted ingredient(s) before saving.");
-      return;
-    }
+  /** The ingredients as they would be saved, and what they add to the list. */
+  const build = (rs: IngredientRow[]) => {
     const ingredients: Record<string, { quantity: string; unit: string }> = {};
     const added: Record<string, string> = {};
-    for (const r of rows) {
+    for (const r of rs) {
       const name = r.name.trim();
       if (!name) continue;
       let u = units.get(name);
@@ -1098,9 +992,31 @@ function IngredientsEditor({
     const payload = Object.keys(ingredients).length
       ? JSON.stringify({ quantity: quantity.trim(), unit: unit.trim(), ingredients })
       : "";
+    return { payload, added };
+  };
+  // What opening changed nothing would save: only sent when it differs.
+  const unchanged = useMemo(() => build(initial.rows).payload, [initial]);  // eslint-disable-line react-hooks/exhaustive-deps
+
+  const save = () => {
+    setError(null);
+    const { payload, added } = build(rows);
+    const body: Partial<DishInput> = {};
+    if (payload !== unchanged || quantity !== initial.quantity || unit !== initial.unit) {
+      // Mirrors the backend's own checks (see _validate_ingredients_json) so
+      // a bad row is flagged before a round trip, not just via whatever
+      // error text a failed PATCH happens to return.
+      if (rows.some((r) => r.name.trim() && rowError(r))) {
+        setError("Fix the highlighted ingredient(s) before saving.");
+        return;
+      }
+      body.ingredients = payload;
+      body.new_ingredients = added;
+    }
+    if (insText !== dish.instructions) body.instructions = insText;
+    if (!Object.keys(body).length) { onCancel(); return; }
     setSaving(true);
     foodApi
-      .patch(dish.id, { ingredients: payload, new_ingredients: added })
+      .patch(dish.id, body)
       .then(onSaved)
       .catch((e) => setError(String(e)))
       .finally(() => setSaving(false));
@@ -1109,8 +1025,9 @@ function IngredientsEditor({
   return (
     <div className="modal-backdrop">
       <div className="modal dish-info" onClick={(e) => e.stopPropagation()}>
-        <h4>{dish.name} — Ingredients</h4>
+        <h4>{dish.name}</h4>
         <div className="dish-info-scroll">
+          <h5>Ingredients</h5>
           <div className="ingredients-top">
             <label>
               Quantity
@@ -1163,6 +1080,24 @@ function IngredientsEditor({
           <button type="button" className="ghost" onClick={addRow}>
             + Add ingredient
           </button>
+
+          <div className="dish-info-section">
+            <h5>Instructions</h5>
+            {!insEditing && (
+              <button type="button" className="ghost" onClick={() => setInsEditing(true)}>Edit</button>
+            )}
+          </div>
+          {insEditing ? (
+            <textarea
+              className="dish-info-edit"
+              value={insText}
+              onChange={(e) => setInsText(e.target.value)}
+              rows={10}
+              placeholder="Write the steps in Markdown…"
+            />
+          ) : (
+            <MarkdownView text={dish.instructions} />
+          )}
         </div>
         {error && <p className="error small">{error}</p>}
         <div className="row-actions">

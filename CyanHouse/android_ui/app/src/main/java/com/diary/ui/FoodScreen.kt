@@ -53,6 +53,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -131,7 +133,6 @@ fun FoodScreen(vm: FoodViewModel = viewModel()) {
     val data = vm.data
     var editing by remember { mutableStateOf<Editing?>(null) }
     var confirmDeleteId by remember { mutableStateOf<Int?>(null) }
-    var editingInstructions by remember { mutableStateOf<Dish?>(null) }
     var editingIngredients by remember { mutableStateOf<Dish?>(null) }
     var showCatalog by remember { mutableStateOf(false) }
     // 0f = min zoom (many small columns) … 1f = max zoom (1–2 columns).
@@ -282,7 +283,6 @@ fun FoodScreen(vm: FoodViewModel = viewModel()) {
                                 vm.deleteDish(dish.id)
                             },
                             onImgSettled = { onImgSettled(cat, dish.id, total) },
-                            onEditInstructions = { editingInstructions = dish },
                             onEditIngredients = { editingIngredients = dish },
                             groceryMode = groceryMode,
                             selected = dish.id in pendingSelection,
@@ -317,23 +317,12 @@ fun FoodScreen(vm: FoodViewModel = viewModel()) {
         )
     }
 
-    editingInstructions?.let { d ->
-        InstructionsEditorSheet(
-            dish = d,
-            onDismiss = { editingInstructions = null },
-            onSave = { text -> vm.patchDish(d.id, DishPatch(instructions = text)); editingInstructions = null },
-            onEditIngredients = { editingInstructions = null; editingIngredients = d },
-        )
-    }
-
     editingIngredients?.let { d ->
-        IngredientsEditorSheet(
+        DishDetailsSheet(
             dish = d,
             catalog = data?.ingredients.orEmpty(),
             onDismiss = { editingIngredients = null },
-            onSave = { payload, added ->
-                vm.patchDish(d.id, DishPatch(ingredients = payload, new_ingredients = added)); editingIngredients = null
-            },
+            onSave = { patch -> vm.patchDish(d.id, patch); editingIngredients = null },
         )
     }
 
@@ -581,7 +570,6 @@ private fun DishCard(
     onCancelArm: () -> Unit,
     onDelete: () -> Unit,
     onImgSettled: () -> Unit,
-    onEditInstructions: () -> Unit,
     onEditIngredients: () -> Unit,
     groceryMode: Boolean,
     selected: Boolean,
@@ -693,9 +681,6 @@ private fun DishCard(
                         )
                         Spacer(Modifier.width(4.dp))
                     }
-                    IconButton(onClick = onEditInstructions, modifier = Modifier.size(28.dp)) {
-                        Text("📄", fontSize = 13.sp)
-                    }
                     if (dish.url.isNotBlank()) {
                         IconButton(
                             onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(dish.url))) },
@@ -711,55 +696,6 @@ private fun DishCard(
                         Icon(Icons.Default.Delete, "Delete",
                             tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(15.dp))
                     }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun InstructionsEditorSheet(
-    dish: Dish,
-    onDismiss: () -> Unit,
-    onSave: (String) -> Unit,
-    onEditIngredients: () -> Unit,
-) {
-    val sheet = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    // Nothing to look at yet -> go straight to editing; otherwise show the
-    // saved text first, with an explicit Edit step.
-    var editMode by remember { mutableStateOf(dish.instructions.isBlank()) }
-    var text by remember { mutableStateOf(dish.instructions) }
-
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheet) {
-        Column(
-            Modifier.fillMaxWidth().fillMaxHeight(0.85f)
-                .padding(horizontal = 16.dp).padding(bottom = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Text("${dish.name} — Instructions", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
-            if (editMode) {
-                OutlinedTextField(
-                    value = text, onValueChange = { text = it },
-                    placeholder = { Text("Write the steps…") },
-                    modifier = Modifier.fillMaxWidth().weight(1f),
-                )
-            } else {
-                Text(
-                    dish.instructions, fontSize = 13.sp,
-                    modifier = Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()),
-                )
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                if (editMode) {
-                    Button(onClick = { onSave(text) }) { Text("Save") }
-                    TextButton(onClick = {
-                        text = dish.instructions
-                        if (dish.instructions.isNotBlank()) editMode = false else onDismiss()
-                    }) { Text("Cancel") }
-                } else {
-                    Button(onClick = { editMode = true }) { Text("Edit") }
-                    TextButton(onClick = onEditIngredients) { Text("Ingredients") }
-                    TextButton(onClick = onDismiss) { Text("Close") }
                 }
             }
         }
@@ -820,14 +756,22 @@ private fun IngredientNameField(
 // keys are dropped, and the backend refuses the whole list over the `{}`.
 private val ingredientsJson = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 
+/** A dish's ingredients and instructions, opened from its picture: two tabs
+ *  and one Save for both (the web shows them one above the other). */
 @Composable
-private fun IngredientsEditorSheet(
+private fun DishDetailsSheet(
     dish: Dish,
     catalog: List<CatalogIngredient>,
     onDismiss: () -> Unit,
-    onSave: (String, Map<String, String>) -> Unit,
+    onSave: (DishPatch) -> Unit,
 ) {
     val units = remember(catalog) { catalog.associate { it.name to it.unit } }
+    // 0 = Ingredients, 1 = Instructions.
+    var tab by remember { mutableStateOf(0) }
+    // The instructions: shown as saved, or -- with nothing saved yet, or
+    // after Edit -- as the text being written.
+    var insEditing by remember { mutableStateOf(dish.instructions.isBlank()) }
+    var insText by remember { mutableStateOf(dish.instructions) }
     // Which row's new-ingredient unit menu is open.
     var unitMenu by remember { mutableStateOf<Int?>(null) }
     val sheet = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -839,14 +783,10 @@ private fun IngredientsEditorSheet(
     }
     var error by remember { mutableStateOf<String?>(null) }
 
-    fun save() {
-        val bad = rows.any { it.name.trim().isNotEmpty() && it.error() != null }
-        if (bad) {
-            error = "Fix the highlighted ingredient(s) before saving."
-            return
-        }
+    /** The ingredients as they would be saved, and what they add to the list. */
+    fun build(rs: List<IngredientRow>): Pair<String, Map<String, String>> {
         val added = mutableMapOf<String, String>()
-        val map = rows.mapNotNull { r ->
+        val map = rs.mapNotNull { r ->
             val name = r.name.trim()
             if (name.isEmpty()) return@mapNotNull null
             val u = units[name] ?: r.newUnit().also { added[name] = it }
@@ -857,7 +797,27 @@ private fun IngredientsEditorSheet(
         // the backend's "non-empty object" check, and isn't what "cleared" means).
         val payload = if (map.isEmpty()) "" else
             ingredientsJson.encodeToString(IngredientsData.serializer(), IngredientsData(quantity.trim(), unit.trim(), map))
-        onSave(payload, added)
+        return payload to added
+    }
+    // What saving with nothing changed would send: the ingredients only go
+    // when they differ from it.
+    val unchanged = remember(initial) { build(initial.ingredients.map { (n, e) -> IngredientRow(n, e.quantity, e.unit) }).first }
+
+    fun save() {
+        val (payload, added) = build(rows)
+        val ingredientsChanged = payload != unchanged || quantity != initial.quantity || unit != initial.unit
+        if (ingredientsChanged && rows.any { it.name.trim().isNotEmpty() && it.error() != null }) {
+            error = "Fix the highlighted ingredient(s) before saving."
+            tab = 0
+            return
+        }
+        val instructionsChanged = insText != dish.instructions
+        if (!ingredientsChanged && !instructionsChanged) { onDismiss(); return }
+        onSave(DishPatch(
+            ingredients = if (ingredientsChanged) payload else null,
+            new_ingredients = if (ingredientsChanged) added else null,
+            instructions = if (instructionsChanged) insText else null,
+        ))
     }
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheet) {
@@ -866,7 +826,12 @@ private fun IngredientsEditorSheet(
                 .padding(horizontal = 16.dp).padding(bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Text("${dish.name} — Ingredients", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+            Text(dish.name, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+            TabRow(selectedTabIndex = tab) {
+                Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text("Ingredients") })
+                Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text("Instructions") })
+            }
+            if (tab == 0) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = quantity, onValueChange = { quantity = it },
@@ -926,9 +891,22 @@ private fun IngredientsEditorSheet(
                 }
                 TextButton(onClick = { rows = rows + IngredientRow("", "", "") }) { Text("+ Add ingredient") }
             }
+            } else if (insEditing) {
+                OutlinedTextField(
+                    value = insText, onValueChange = { insText = it },
+                    placeholder = { Text("Write the steps…") },
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                )
+            } else {
+                Text(
+                    dish.instructions, fontSize = 13.sp,
+                    modifier = Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()),
+                )
+            }
             error?.let { Text(it, color = MaterialTheme.colorScheme.primary, fontSize = 12.sp) }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Button(onClick = { save() }) { Text("Save") }
+                if (tab == 1 && !insEditing) TextButton(onClick = { insEditing = true }) { Text("Edit") }
                 TextButton(onClick = onDismiss) { Text("Cancel") }
             }
         }

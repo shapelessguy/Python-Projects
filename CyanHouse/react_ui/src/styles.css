@@ -840,6 +840,9 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
 .ingredients-rows { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
 .ingredients-row { display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 6px; align-items: center; }
 .ingredients-row.invalid input { border-color: var(--accent); }
+/* The dish dialog's Instructions heading, with its Edit button at the end. */
+.dish-info-section { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 16px; }
+.dish-info-section h5, .dish-info-scroll > h5 { margin: 0 0 6px; }
 .ingredients-row-error { color: var(--accent); font-size: 0.74rem; margin: 2px 0 0 2px; }
 .dish-info-edit {
   width: 100%; margin: 0 0 12px; resize: vertical;
