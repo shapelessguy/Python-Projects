@@ -129,7 +129,6 @@ class FoodViewModel : ViewModel() {
         if (next.size != groceryList.size) {
             groceryList = next
             Prefs.saveGroceryList(next)
-            resetChecked()
         }
     }
 
@@ -156,9 +155,10 @@ class FoodViewModel : ViewModel() {
     }
 
     // ── grocery list ─────────────────────────────────────────────────────
-    // Checked-off shopping-list lines are only meaningful for the exact
-    // selection/quantities that produced them -- any change to either wipes
-    // them rather than carrying stale checks forward.
+    // Checked-off shopping-list lines (bought) survive changes to the
+    // selection -- a dish added or removed, a quantity stepped -- since what
+    // is already in the bag stays bought. Only clearing the list as a whole
+    // starts them over.
     private fun resetChecked() {
         checkedIngredients = emptySet()
         Prefs.saveCheckedIngredients(emptySet())
@@ -176,21 +176,18 @@ class FoodViewModel : ViewModel() {
         }
         groceryList = next
         Prefs.saveGroceryList(next)
-        resetChecked()
     }
 
     fun setGroceryQty(id: Int, qty: Int) {
         val next = groceryList + (id to qty.coerceAtLeast(1))
         groceryList = next
         Prefs.saveGroceryList(next)
-        resetChecked()
     }
 
     fun removeFromGrocery(id: Int) {
         val next = groceryList - id
         groceryList = next
         Prefs.saveGroceryList(next)
-        resetChecked()
     }
 
     fun clearGroceryList() {

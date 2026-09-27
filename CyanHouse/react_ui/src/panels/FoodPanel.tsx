@@ -128,12 +128,10 @@ export function FoodPanel() {
       setEditing(null);
     }).catch((e) => setError(String(e)));
 
-  // Checked-off shopping-list lines are only meaningful for the exact
-  // selection/quantities that produced them -- any change to either
-  // (a dish added/removed, a quantity stepped) changes the totals, so a
-  // checkmark from before could now be sitting against a different amount
-  // or a different set of ingredients entirely. Wipe it rather than carry
-  // stale checks forward.
+  // Checked-off shopping-list lines (bought) survive changes to the
+  // selection -- a dish added or removed, a quantity stepped -- since what
+  // is already in the bag stays bought. Only clearing the list as a whole
+  // starts them over.
   const resetChecked = () => {
     setCheckedIngredients(new Set());
     saveCheckedIngredients(new Set());
@@ -154,7 +152,6 @@ export function FoodPanel() {
       }
       if (!changed) return gl;
       saveGroceryList(next);
-      resetChecked();
       return next;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -188,7 +185,6 @@ export function FoodPanel() {
     }
     setGroceryList(next);
     saveGroceryList(next);
-    resetChecked();
     setGroceryMode(false);
   };
   const setGroceryQty = (id: number, qty: number) => {
@@ -197,7 +193,6 @@ export function FoodPanel() {
       saveGroceryList(next);
       return next;
     });
-    resetChecked();
   };
   const removeFromGrocery = (id: number) => {
     setGroceryList((gl) => {
@@ -206,7 +201,6 @@ export function FoodPanel() {
       saveGroceryList(next);
       return next;
     });
-    resetChecked();
   };
   const clearGroceryList = () => {
     setGroceryList({});
