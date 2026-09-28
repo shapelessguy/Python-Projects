@@ -44,7 +44,8 @@ function justify(list: StagedFile[], width: number, target: number, complete: bo
 
 /** A folder shown as a card on the gallery's first layer: every picture
  *  under it (its subfolders' too), and the one on its cover. */
-type Album = { path: string; name: string; count: number; albums: number; cover: StagedFile | null; depth: number };
+/** `count` is its pictures and `videos` its videos, each counted apart. */
+type Album = { path: string; name: string; count: number; videos: number; albums: number; cover: StagedFile | null; depth: number };
 
 const byName = (a: string, b: string) => a.localeCompare(b, undefined, { numeric: true });
 
@@ -133,9 +134,10 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
       const path = at ? `${at}/${rest[0]}` : rest[0];
       const depth = rest.length;
       const a = cards.get(path);
-      if (!a) cards.set(path, { path, name: rest[0], count: 1, albums: 0, cover: f, depth });
+      const video = isVideo(f);
+      if (!a) cards.set(path, { path, name: rest[0], count: video ? 0 : 1, videos: video ? 1 : 0, albums: 0, cover: f, depth });
       else {
-        a.count++;
+        if (video) a.videos++; else a.count++;
         // The cover: the first picture of the shallowest folder in it.
         if (!a.cover || depth < a.depth || (depth === a.depth && byName(f.path, a.cover.path) < 0)) {
           a.cover = f;
@@ -153,7 +155,7 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
       if (f.kind !== "folder" || !inside(f.path) || f.path === at) continue;
       const rest = (at ? f.path.slice(at.length + 1) : f.path).split("/");
       const path = at ? `${at}/${rest[0]}` : rest[0];
-      if (!cards.has(path)) cards.set(path, { path, name: rest[0], count: 0, albums: 0, cover: null, depth: 99 });
+      if (!cards.has(path)) cards.set(path, { path, name: rest[0], count: 0, videos: 0, albums: 0, cover: null, depth: 99 });
       if (rest.length > 1) {
         const k = kids.get(path) ?? new Set<string>();
         k.add(rest[1]);
@@ -263,8 +265,11 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
                 </span>
                 <span className="ig-albumname">{a.name}</span>
                 <span className="ig-albumsub">
-                  {a.count} {a.count === 1 ? "picture" : "pictures"}
-                  {a.albums > 0 && ` · ${a.albums} ${a.albums === 1 ? "folder" : "folders"}`}
+                  {[
+                    (a.count > 0 || !a.videos) && `${a.count} ${a.count === 1 ? "picture" : "pictures"}`,
+                    a.videos > 0 && `${a.videos} ${a.videos === 1 ? "video" : "videos"}`,
+                    a.albums > 0 && `${a.albums} ${a.albums === 1 ? "folder" : "folders"}`,
+                  ].filter(Boolean).join(" · ")}
                 </span>
               </button>
             ))}
