@@ -107,7 +107,7 @@ CALENDAR_DB = Path(os.environ.get("CALENDAR_DB", API_DATA_DIR / "calendar.db"))
 # ffprobe per file. MOVIES_CACHE_DIR only ever holds throwaway artefacts —
 # extracted subtitle tracks — so it lives under the normal data root and can
 # be deleted at any time.
-MOVIES_DIR = Path(os.environ.get("MOVIES_DIR", "/mnt/pangea/Video/Movies"))
+MOVIES_DIR = Path(os.environ.get("MOVIES_DIR", "/mnt/earth/CYAN/Video/Movies"))
 # The music and picture libraries: each is one more tab in the Media panel,
 # browsed like the film library. Unset means no tab.
 MUSIC_DIR = Path(os.environ["MUSIC_DIR"]).expanduser() if os.environ.get("MUSIC_DIR", "").strip() else None
@@ -233,6 +233,20 @@ PYLOAD_URL = os.environ.get("PYLOAD_URL", "http://127.0.0.1:8100").strip().rstri
 # its Preferences.xml); without one, Plex is simply not told.
 PLEX_URL = os.environ.get("PLEX_URL", "http://127.0.0.1:32400").strip().rstrip("/")
 PLEX_TOKEN = os.environ.get("PLEX_TOKEN", "").strip()
+
+# ── the media drive ────────────────────────────────────────────────────────
+# api/services/drive_watch.py runs Plex, qBittorrent and pyLoad only while
+# the drive's server folder is there: it mounts the drive when it appears,
+# starts them once the folder is readable, and stops them when it's gone.
+# The mount and Plex are system units, allowed to the API by a polkit rule
+# (EARTH.md); the containers only need the docker group.
+MEDIA_DRIVE_UUID = os.environ.get("MEDIA_DRIVE_UUID", "BEB01463B0142505").strip()
+MEDIA_DRIVE_MOUNT = os.environ.get("MEDIA_DRIVE_MOUNT", "/mnt/earth").strip().rstrip("/")
+MEDIA_DRIVE_READY_DIR = Path(os.environ.get("MEDIA_DRIVE_READY_DIR", "/mnt/earth/CYAN"))
+MEDIA_DRIVE_SERVICES = [s for s in os.environ.get("MEDIA_DRIVE_SERVICES", "plexmediaserver").split(",") if s.strip()]
+MEDIA_DRIVE_CONTAINERS = [c for c in os.environ.get(
+    "MEDIA_DRIVE_CONTAINERS", "cyanhouse-qbittorrent,cyanhouse-pyload").split(",") if c.strip()]
+MEDIA_DRIVE_INTERVAL = int(os.environ.get("MEDIA_DRIVE_INTERVAL", "10"))
 
 # ── public address ─────────────────────────────────────────────────────────
 # api/services/public_ip.py keeps two things pointing at the home connection

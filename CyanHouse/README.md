@@ -130,7 +130,7 @@ users start from the default `schema.json` / `units.json` with unrated dishes.
   (needs `SERPER_API_KEY` in `secrets.json`; the key never reaches the clients)
 - `GET  /api/food/images/{file}` → a stored dish image
 - `GET  /api/movies/list[?refresh=true]` → the films under `MOVIES_DIR`
-  (`/mnt/pangea/Video/Movies`), one entry per folder — the biggest video file
+  (`/mnt/earth/CYAN/Video/Movies`), one entry per folder — the biggest video file
   in it wins. Cached for `MOVIES_SCAN_TTL`
 - `GET  /api/movies/info?id=` → ffprobe: duration, video codec/size/HDR, and
   the audio + subtitle tracks to choose between (sidecar `.srt`/`.ass` files

@@ -39,9 +39,10 @@ services:
   # interface (Connection\Interface=nordlynx): if the VPN is down it does not
   # fall back to the open line, and that needs the host's interfaces.
   # The drive keeps its host path, so the save paths in its settings and in
-  # each torrent (/mnt/pangea/downloads when done) mean the same inside. rslave: when the drive is unmounted and
-  # mounted again (automount-pangea.service), the new mount reaches the
-  # container too, instead of it holding on to the empty mount point.
+  # each torrent (/mnt/earth/CYAN/downloads when done) mean the same inside.
+  # The bind is the mount point, not CYAN: it exists before the drive is
+  # mounted, and with rslave the mount reaches the container whenever it
+  # happens (the drive shows up late at boot, or after a replug).
   qbittorrent:
     image: lscr.io/linuxserver/qbittorrent:latest
     container_name: cyanhouse-qbittorrent
@@ -60,11 +61,11 @@ services:
       # zeros up to wherever a piece is written — the first piece near the
       # end of a 25 GB film meant 25 GB of zeros on the USB drive, and
       # qBittorrent stalled behind it. Finished, a torrent is moved to
-      # /mnt/pangea/downloads in one straight copy.
+      # /mnt/earth/CYAN/downloads in one straight copy.
       - /home/claudio/torrent-temp:/torrent-temp
       - type: bind
-        source: /mnt/pangea
-        target: /mnt/pangea
+        source: /mnt/earth
+        target: /mnt/earth
         bind:
           propagation: rslave
 
@@ -100,8 +101,9 @@ services:
       - LOG_LEVEL=info
 
   # pyLoad-ng: hoster/debrid downloads, laid out like qBittorrent's: work in
-  # progress under /mnt/pangea/temp, finished packages (extracted, if they
-  # were archives) moved into /mnt/pangea/downloads beside the torrents —
+  # progress under /mnt/earth/CYAN/temp, finished packages (extracted, if
+  # they were archives) moved into /mnt/earth/CYAN/downloads beside the
+  # torrents —
   # by docker/pyload-overrides/move_to_complete.sh.
   # Its web UI is only published on the
   # loopback — the Media panel's Downloads tab reaches it through the API
@@ -118,9 +120,15 @@ services:
       - "127.0.0.1:8100:8000"
     volumes:
       - ./docker/pyload/config:/config
-      # The whole drive, once: in progress (/pangea/temp/pyload) and finished
-      # (/pangea/downloads) then share a mount, so the move is a rename, not
-      # a copy of every byte to the same disk.
-      - /mnt/pangea:/pangea
+      # The whole drive, once, at its host path: in progress
+      # (/mnt/earth/CYAN/temp/pyload) and finished (/mnt/earth/CYAN/downloads)
+      # then share a mount, so the move is a rename, not a copy of every byte
+      # to the same disk. rslave, like qBittorrent: the drive mounts after
+      # the container starts at boot.
+      - type: bind
+        source: /mnt/earth
+        target: /mnt/earth
+        bind:
+          propagation: rslave
       - ./docker/pyload-overrides/svc-pyload-run:/etc/s6-overlay/s6-rc.d/svc-pyload/run:ro
       - ./docker/pyload-overrides/move_to_complete.sh:/config/scripts/archive_processed/move_to_complete.sh:ro

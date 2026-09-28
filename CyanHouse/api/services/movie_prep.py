@@ -57,7 +57,7 @@ from api.config import (
     MUSIC_DIR,
     STAGING,
 )
-from api.services import movie_subs, movies, plex, prep_configs
+from api.services import drive_watch, movie_subs, movies, plex, prep_configs
 
 VIDEO_EXT = movies.VIDEO_EXT
 SUB_EXT = movies.SUB_EXT | {".idx"}
@@ -102,7 +102,7 @@ def areas() -> dict[str, dict]:
         dest = cfg.get("output") or cfg.get("library") or (
             (MUSIC_DIR or MOVIES_DIR) if media == "music" else MOVIES_DIR)
         library = Path(str(dest)).expanduser()
-        ready = bool(inbox and inbox.is_dir())
+        ready = bool(inbox and drive_watch.usable(inbox))
         # What this folder is for, in words, shown in the panel's help text
         # (react_ui/src/panels/help): {"en": ..., "it": ...}, or one string
         # for both languages.
@@ -196,7 +196,7 @@ def sources() -> list[dict]:
         "key": "", "label": MOVIES_DIR.name or str(MOVIES_DIR),
         "short": MOVIES_DIR.name or str(MOVIES_DIR),
         "path": str(MOVIES_DIR), "kind": "library", "role": "done",
-        "group": "", "ready": MOVIES_DIR.is_dir(),
+        "group": "", "ready": drive_watch.usable(MOVIES_DIR),
     }]
     # Music and pictures sit right after the films: libraries like it, just
     # not of films.
@@ -205,7 +205,7 @@ def sources() -> list[dict]:
             out.append({
                 "key": key, "label": label, "short": label,
                 "path": str(folder), "kind": "library", "role": "done",
-                "group": "", "ready": folder.is_dir(), "media": key[1:],
+                "group": "", "ready": drive_watch.usable(folder), "media": key[1:],
             })
     for name, cfg in areas().items():
         if cfg["inbox"]:
@@ -224,7 +224,7 @@ def sources() -> list[dict]:
             "key": f"{name}:library", "label": f"{name} / {library.name or library}",
             "short": library.name or str(library),
             "path": str(library), "kind": "output", "role": "done",
-            "group": name, "ready": library.is_dir(), "description": cfg["description"],
+            "group": name, "ready": drive_watch.usable(library), "description": cfg["description"],
             "type": cfg["type"], "icon": cfg["icon"],
         })
     return out
@@ -1889,7 +1889,7 @@ def disk_usage(area_name: str) -> dict:
     Shown beside the search box because the question it answers — "can I
     still put a 40 GB remux here?" — is asked in front of the folder, not in
     a terminal. The name is the mount point's own last component, which is
-    what these disks are actually called (/mnt/pangea -> "pangea")."""
+    what these disks are actually called (/mnt/earth -> "earth")."""
     root, _ = area(area_name)
     root = root.resolve()
     usage = shutil.disk_usage(root)

@@ -18,7 +18,7 @@ from pathlib import Path
 import mutagen
 
 from api.config import API_DATA_DIR, MUSIC_DIR
-from api.services import movie_prep
+from api.services import drive_watch, movie_prep
 from api.services.movie_prep import PrepError
 
 _lock = threading.Lock()
@@ -99,8 +99,8 @@ def _read(path: Path, rel: str) -> dict:
 
 def songs() -> list[dict]:
     """Every song in the music library, with its tags."""
-    if MUSIC_DIR is None or not MUSIC_DIR.is_dir():
-        raise PrepError("no music library configured", 404)
+    if MUSIC_DIR is None or not drive_watch.usable(MUSIC_DIR):
+        raise PrepError("the music library is not available", 404)
     with _scan:
         return _songs()
 

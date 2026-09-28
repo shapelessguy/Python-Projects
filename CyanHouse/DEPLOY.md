@@ -99,7 +99,7 @@ Fill in for *this* machine specifically: `PUBLIC_HOST`,
 `CONTROLS_FN_HOST`/`CONTROLS_FN_PORT`,
 `DATA_DIR` (blank unless you want data elsewhere), `SERPER_API_KEY`,
 `OPENROUTER_KEY`/`LLM_FOOD_MODEL`, `MOVIES_DIR` (the film library — defaults
-to `/mnt/pangea/Video/Movies`, see step 11).
+to `/mnt/earth/CYAN/Video/Movies`, see step 11).
 
 Optional movie knobs, all with working defaults: `MOVIES_ENCODER`
 (`auto`), `MOVIES_MAX_STREAMS` (`2` concurrent transcodes),
@@ -146,11 +146,18 @@ User=claudio
 WorkingDirectory=/home/claudio/Documents/sharedCode/CyanHouse
 ExecStart=/usr/bin/tmux new -s cyanhouse-api -d '/home/claudio/Documents/sharedCode/.venv/bin/python -m api'
 ExecStop=/usr/bin/tmux kill-session -t cyanhouse-api
+# The API runs Plex, qBittorrent and pyLoad while the media drive is there
+# (api/services/drive_watch.py); when it stops, or dies, they stop with it.
+ExecStopPost=-/usr/bin/docker stop cyanhouse-qbittorrent cyanhouse-pyload
+ExecStopPost=-/usr/bin/systemctl --no-ask-password stop plexmediaserver.service
 Restart=always
 
 [Install]
 WantedBy=multi-user.target
 ```
+
+The two `ExecStopPost` lines, and the API starting Plex and the drive's
+mount, need the polkit rule in [EARTH.md](EARTH.md).
 
 ```bash
 sudo systemctl daemon-reload
@@ -239,7 +246,7 @@ automatically after a reboot as long as the Docker daemon itself is running
 for those.
 
 
-## 11. Mount the Pangea drive (NTFS, USB dock)
+## 11. Mount the Earth drive (NTFS, USB dock)
 
 > **Before you start:** migrate `/var/lib/plexmediaserver/Library/Application Support/Plex Media Server` from the old server — Plex metadata lives there and won't carry over automatically.
 
@@ -248,12 +255,12 @@ Install ffmpeg if needed:
 sudo apt update && sudo apt install -y ffmpeg
 ```
 
-The fstab entry, udev rule, systemd units and Plex/pyLoad settings the drive
-needs are all in [PANGEA.md](PANGEA.md), with what goes wrong at boot without them.
+The fstab entry, folder layout (EARTH shared to the PC, CYAN for this
+server), Samba share and Plex notes are all in [EARTH.md](EARTH.md).
 
-### Troubleshooting: Pangea randomly disconnects, needs a physical replug
+### Troubleshooting: the drive randomly disconnects, needs a physical replug
 
-Pangea is a HDD in a powered Ugreen USB3-to-SATA dock, not an internal SATA
+Pangea, Earth's predecessor, was a HDD in a powered Ugreen USB3-to-SATA dock, not an internal SATA
 drive. `journalctl -k` shows its USB bridge chip (`idVendor=1f75`, an
 Innostor bridge) issuing a `reset SuperSpeed USB device` on an almost exact
 10-minute cadence whenever the drive has been idle -- with no correlation to
@@ -264,9 +271,9 @@ renegotiation is harmless, but it occasionally fails outright and drops the
 whole USB device, which is what looks like a random disconnect and needs a
 physical unplug/replug to recover (that power-cycles the bridge chip).
 
-Workaround: `scripts/keep_pangea_awake.py`, run every 5 minutes via crontab
+Workaround: `scripts/keep_earth_awake.py`, run every 5 minutes via crontab
 (`crontab -l` to check it's there), writes and `fsync`s a tiny file on
-Pangea so the drive never idles long enough for the dock's timer to fire.
+the drive so it never idles long enough for the dock's timer to fire.
 It's a mitigation for the dock's firmware behavior, not a real fix -- if a
 full disconnect still happens occasionally, a replug is still the recovery.
 
