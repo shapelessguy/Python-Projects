@@ -2130,6 +2130,22 @@ export function MoviesPanel() {
           index={viewing.index}
           onIndex={(index) => setViewing({ ...viewing, index })}
           onClose={() => setViewing(null)}
+          // Only where the folder says this user manages it (the server
+          // checks again): the Images and Documents folders carry that.
+          mayDelete={(f) => (listings[viewing.area] ?? [])
+            .some((x) => x.kind === "folder" && x.path === f.folder && x.access?.level === "manage")}
+          onDelete={async (f) => {
+            try {
+              await api.prepDelete(viewing.area, f.path);
+            } catch (e) {
+              say(String(e).replace(/^Error:\s*/, ""), true);
+              return;
+            }
+            const list = viewing.list.filter((x) => x.path !== f.path);
+            setViewing(list.length ? { ...viewing, list, index: Math.min(viewing.index, list.length - 1) } : null);
+            say(`Deleted ${f.name}`);
+            refreshListing();
+          }}
         />
       )}
       {conflicts && (

@@ -2108,6 +2108,8 @@ select.mv-preplang:invalid, select.mv-preplang[data-empty="true"] { color: var(-
   transition: background 0.15s ease;
 }
 .iv-nav:hover { background: rgba(255, 255, 255, 0.16); }
+.iv-menu { z-index: 1001; cursor: default; }
+.iv-menu button.armed { background: #6b2b2b; color: #fff; }
 .iv-nav.prev { left: 16px; }
 .iv-nav.next { right: 16px; }
 @media (max-width: 600px) {

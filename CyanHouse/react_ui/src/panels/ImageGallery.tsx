@@ -411,26 +411,33 @@ function Tile({ file, src, width, grow, onClick }: {
 
 /** A picture full screen, over everything. ← → (or the side arrows, or a
  *  swipe) step through `list`; Esc, the ✕ or a click beside the picture
- *  closes it. The neighbours are loaded ahead, so stepping is instant. */
-export function ImageViewer({ area, list, index, onIndex, onClose }: {
+ *  closes it. The neighbours are loaded ahead, so stepping is instant.
+ *  Right-click on the picture offers Delete to whoever may manage its
+ *  folder (`mayDelete`); it deletes for good, so it asks a second click. */
+export function ImageViewer({ area, list, index, onIndex, onClose, mayDelete, onDelete }: {
   area: string;
   list: StagedFile[];
   index: number;
   onIndex: (i: number) => void;
   onClose: () => void;
+  mayDelete?: (file: StagedFile) => boolean;
+  onDelete?: (file: StagedFile) => Promise<void>;
 }) {
   const file = list[index];
   const [loaded, setLoaded] = useState(false);
   const [touch, setTouch] = useState<number | null>(null);
+  // The right-click menu: where it opened, and whether Delete is armed.
+  const [menu, setMenu] = useState<{ x: number; y: number; armed: boolean } | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const go = (d: number) => {
     const i = index + d;
     if (i >= 0 && i < list.length) onIndex(i);
   };
 
-  useEffect(() => { setLoaded(false); }, [file?.path]);
+  useEffect(() => { setLoaded(false); setMenu(null); }, [file?.path]);
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") { if (menu) setMenu(null); else onClose(); }
       else if (e.key === "ArrowLeft") go(-1);
       else if (e.key === "ArrowRight") go(1);
       else return;
@@ -451,7 +458,7 @@ export function ImageViewer({ area, list, index, onIndex, onClose }: {
 
   if (!file) return null;
   return (
-    <div className="iv-overlay" onClick={onClose}
+    <div className="iv-overlay" onClick={() => (menu ? setMenu(null) : onClose())}
          onTouchStart={(e) => setTouch(e.touches[0].clientX)}
          onTouchEnd={(e) => {
            if (touch === null) return;
@@ -470,7 +477,28 @@ export function ImageViewer({ area, list, index, onIndex, onClose }: {
       </div>
       {!loaded && <span className="mv-ring iv-spin" aria-hidden />}
       <img key={file.path} className={"iv-img" + (loaded ? " in" : "")} src={api.prepRawUrl(area, file.path)}
-           alt={file.name} onLoad={() => setLoaded(true)} onClick={(e) => e.stopPropagation()} draggable={false} />
+           alt={file.name} onLoad={() => setLoaded(true)} draggable={false}
+           onClick={(e) => { e.stopPropagation(); setMenu(null); }}
+           onContextMenu={(e) => {
+             // Without the right to delete, the browser's own menu stays.
+             if (!onDelete || !mayDelete?.(file)) return;
+             e.preventDefault();
+             e.stopPropagation();
+             setMenu({ x: e.clientX, y: e.clientY, armed: false });
+           }} />
+      {menu && (
+        <div className="mv-menu iv-menu" style={{ left: menu.x, top: menu.y }}
+             onClick={(e) => e.stopPropagation()} onContextMenu={(e) => e.preventDefault()}>
+          <button className={"danger" + (menu.armed ? " armed" : "")} disabled={deleting}
+                  onClick={async () => {
+                    if (!menu.armed) { setMenu({ ...menu, armed: true }); return; }
+                    setDeleting(true);
+                    try { await onDelete!(file); } finally { setDeleting(false); setMenu(null); }
+                  }}>
+            {deleting ? "Deleting…" : menu.armed ? `Delete ${file.name}? click again` : "🗑 Delete"}
+          </button>
+        </div>
+      )}
       {index > 0 && (
         <button className="iv-nav prev" title="Previous (←)" onClick={(e) => { e.stopPropagation(); go(-1); }}>‹</button>
       )}
