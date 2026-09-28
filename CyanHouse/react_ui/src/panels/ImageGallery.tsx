@@ -44,15 +44,18 @@ function justify(list: StagedFile[], width: number, target: number, complete: bo
 
 /** A folder shown as a card on the gallery's first layer: every picture
  *  under it (its subfolders' too), and the one on its cover. */
-/** `count` is its pictures and `videos` its videos, each counted apart. */
-type Album = { path: string; name: string; count: number; videos: number; albums: number; cover: StagedFile | null; depth: number };
+/** `count` is its pictures, `videos` its videos and `audios` its sound
+ *  files, each counted apart. */
+type Album = { path: string; name: string; count: number; videos: number; audios: number; albums: number; cover: StagedFile | null; depth: number };
 
 const byName = (a: string, b: string) => a.localeCompare(b, undefined, { numeric: true });
+/** Pictures: the most recently modified first, name order among equals. */
+export const byDate = (a: StagedFile, b: StagedFile) => b.modified - a.modified || byName(a.name, b.name);
 
 /** The Images tab's default view. First the folders, as cards with a
  *  picture on the cover — ten thousand photos are not all put on one page —
  *  and inside one, its own subfolders the same way and then its pictures,
- *  in justified rows: left to right in name order, every picture of a row
+ *  in justified rows: left to right, the most recently modified first, every picture of a row
  *  the same height and the row as wide as the page, none of them cropped.
  *  The rows are worked out from the pictures' sizes (the server knows them
  *  before any thumbnail loads), so nothing moves as they load, and loading
@@ -134,12 +137,14 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
       const path = at ? `${at}/${rest[0]}` : rest[0];
       const depth = rest.length;
       const a = cards.get(path);
-      const video = isVideo(f);
-      if (!a) cards.set(path, { path, name: rest[0], count: video ? 0 : 1, videos: video ? 1 : 0, albums: 0, cover: f, depth });
+      const video = isVideo(f), audio = isAudio(f);
+      // A sound file has no picture to put on the cover.
+      if (!a) cards.set(path, { path, name: rest[0], count: video || audio ? 0 : 1, videos: video ? 1 : 0,
+                                audios: audio ? 1 : 0, albums: 0, cover: audio ? null : f, depth: audio ? 99 : depth });
       else {
-        if (video) a.videos++; else a.count++;
+        if (video) a.videos++; else if (audio) a.audios++; else a.count++;
         // The cover: the first picture of the shallowest folder in it.
-        if (!a.cover || depth < a.depth || (depth === a.depth && byName(f.path, a.cover.path) < 0)) {
+        if (!audio && (!a.cover || depth < a.depth || (depth === a.depth && byName(f.path, a.cover.path) < 0))) {
           a.cover = f;
           a.depth = depth;
         }
@@ -155,7 +160,7 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
       if (f.kind !== "folder" || !inside(f.path) || f.path === at) continue;
       const rest = (at ? f.path.slice(at.length + 1) : f.path).split("/");
       const path = at ? `${at}/${rest[0]}` : rest[0];
-      if (!cards.has(path)) cards.set(path, { path, name: rest[0], count: 0, videos: 0, albums: 0, cover: null, depth: 99 });
+      if (!cards.has(path)) cards.set(path, { path, name: rest[0], count: 0, videos: 0, audios: 0, albums: 0, cover: null, depth: 99 });
       if (rest.length > 1) {
         const k = kids.get(path) ?? new Set<string>();
         k.add(rest[1]);
@@ -163,7 +168,7 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
       }
     }
     for (const [path, k] of kids) cards.get(path)!.albums = k.size;
-    own.sort((a, b) => byName(a.name, b.name));
+    own.sort(byDate);
     return [[...cards.values()].sort((a, b) => byName(a.name, b.name)), own] as const;
   }, [files, at]);
 
@@ -178,7 +183,7 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
       l.push(f);
       by.set(f.folder, l);
     }
-    for (const l of by.values()) l.sort((a, b) => byName(a.name, b.name));
+    for (const l of by.values()) l.sort(byDate);
     // The open folder first, then the others by name.
     return [...by.entries()].sort(([a], [b]) => (a === at ? -1 : b === at ? 1 : byName(a, b)));
   }, [files, q, at, direct]);
@@ -233,8 +238,14 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
     budget -= take;
     return [folder, list, take] as const;
   }).filter(([, , take]) => take > 0)
-    .map(([folder, list, take]) =>
-      [folder, list, width > 0 ? justify(list.slice(0, take), width, size, take === list.length) : []] as const);
+    .map(([folder, list, take]) => {
+      // Pictures and videos in justified rows; sound files have no picture
+      // to size a tile by, so they go in a list of their own underneath.
+      const part = list.slice(0, take);
+      const visual = part.filter((f) => !isAudio(f));
+      return [folder, list, width > 0 ? justify(visual, width, size, take === list.length) : [],
+              part.filter(isAudio)] as const;
+    });
 
   const crumbs = at ? at.split("/") : [];
   // A new folder, here: offered where this user may add (image_access.py).
@@ -266,8 +277,9 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
                 <span className="ig-albumname">{a.name}</span>
                 <span className="ig-albumsub">
                   {[
-                    (a.count > 0 || !a.videos) && `${a.count} ${a.count === 1 ? "picture" : "pictures"}`,
+                    (a.count > 0 || (!a.videos && !a.audios)) && `${a.count} ${a.count === 1 ? "picture" : "pictures"}`,
                     a.videos > 0 && `${a.videos} ${a.videos === 1 ? "video" : "videos"}`,
+                    a.audios > 0 && `${a.audios} audio`,
                     a.albums > 0 && `${a.albums} ${a.albums === 1 ? "folder" : "folders"}`,
                   ].filter(Boolean).join(" · ")}
                 </span>
@@ -284,7 +296,7 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
           {loading ? "Reading the library…" : q ? "No pictures match." : "No pictures here yet."}
         </p>
       )}
-      {drawn.map(([folder, list, rows]) => (
+      {drawn.map(([folder, list, rows, sounds]) => (
         <section key={folder} className={"ig-section" + (dropOn === "s:" + folder ? " dropping" : "")}
                  {...dropProps(folder, "s:" + folder)}>
           {(q || (showAlbums && !picturesFirst)) && (
@@ -298,14 +310,22 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
           <div className="ig-rows">
             {rows.map((row, r) => (
               <div key={r} className="ig-row" style={{ height: Math.round(row.h) }}>
-                {row.items.map(({ file, index, w }) => (
+                {row.items.map(({ file, w }) => (
                   <Tile key={file.path} file={file} width={w} grow={row.full}
                         src={api.prepThumbUrl(area, file.path, Math.round(w * dpr), file.modified)}
-                        onClick={() => onOpen(list, index)} />
+                        onClick={() => onOpen(list, list.indexOf(file))} />
                 ))}
               </div>
             ))}
           </div>
+          {sounds.length > 0 && (
+            <div className="ig-sounds">
+              {sounds.map((file) => (
+                <SoundCard key={file.path} file={file} src={api.prepRawUrl(area, file.path)}
+                           onClick={() => onOpen(list, list.indexOf(file))} />
+              ))}
+            </div>
+          )}
         </section>
       ))}
       {limit < total && <div ref={more} className="ig-more" aria-hidden />}
@@ -398,8 +418,11 @@ function AlbumCover({ src }: { src: string }) {
  *  (.avi, .mpg, ...) stay out of the gallery until converted to MP4. */
 const PLAYABLE = /\.(mp4|m4v|webm|mov)$/i;
 export const isVideo = (f: StagedFile) => f.kind === "video" && PLAYABLE.test(f.name);
-/** What the gallery shows: pictures, and the videos it can play. */
-export const shown = (f: StagedFile) => f.kind === "image" || isVideo(f);
+/** Sound a browser plays by itself (the server serves any audio raw). */
+const PLAYABLE_AUDIO = /\.(mp3|m4a|aac|ogg|oga|opus|wav|flac)$/i;
+export const isAudio = (f: StagedFile) => f.kind === "audio" && PLAYABLE_AUDIO.test(f.name);
+/** What the gallery shows: pictures, and the videos and sound it can play. */
+export const shown = (f: StagedFile) => f.kind === "image" || isVideo(f) || isAudio(f);
 
 function Tile({ file, src, width, grow, onClick }: {
   file: StagedFile; src: string; width: number; grow: boolean; onClick: () => void;
@@ -422,8 +445,54 @@ function Tile({ file, src, width, grow, onClick }: {
   );
 }
 
-/** A picture full screen, over everything — or a video, playing, with the
- *  browser's own controls. ← → (or the side arrows, or a swipe) step
+/** A sound file in the gallery: its name, how long it plays (read from the
+ *  file's header by the browser once the card comes into view — a range
+ *  request, not the whole file) and when it was last changed. */
+function SoundCard({ file, src, onClick }: { file: StagedFile; src: string; onClick: () => void }) {
+  const ref = useRef<HTMLButtonElement | null>(null);
+  const [length, setLength] = useState<number | null>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    let probe: HTMLAudioElement | null = null;
+    const io = new IntersectionObserver((seen) => {
+      if (!seen.some((x) => x.isIntersecting) || probe) return;
+      io.disconnect();
+      probe = new Audio();
+      probe.preload = "metadata";
+      probe.onloadedmetadata = () => { if (probe && isFinite(probe.duration)) setLength(probe.duration); };
+      probe.src = src;
+    }, { rootMargin: "400px 0px" });
+    io.observe(el);
+    return () => {
+      io.disconnect();
+      if (probe) { probe.removeAttribute("src"); probe.load(); }
+    };
+  }, [src]);
+  const ext = file.name.split(".").pop()?.toUpperCase();
+  return (
+    <button ref={ref} className="ig-sound" onClick={onClick} title={file.name}>
+      <span className="ig-soundicon" aria-hidden>♪</span>
+      <span className="ig-soundtext">
+        <span className="ig-soundname">{file.name.replace(/\.[^.]+$/, "")}</span>
+        <span className="ig-soundmeta">
+          {[length !== null ? fmtLength(length) : null, ext,
+            file.modified ? new Date(file.modified * 1000).toLocaleDateString(undefined,
+              { day: "numeric", month: "short", year: "numeric" }) : null].filter(Boolean).join(" · ")}
+        </span>
+      </span>
+    </button>
+  );
+}
+
+function fmtLength(sec: number): string {
+  const s = Math.round(sec);
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), r = s % 60;
+  return h ? `${h}:${String(m).padStart(2, "0")}:${String(r).padStart(2, "0")}` : `${m}:${String(r).padStart(2, "0")}`;
+}
+
+/** A picture full screen, over everything — or a video or a sound file,
+ *  playing, with the browser's own controls. ← → (or the side arrows, or a swipe) step
  *  through `list`; Esc, the ✕ or a click beside the picture closes it. The
  *  neighbouring pictures are loaded ahead, so stepping is instant.
  *  Right-click on the picture offers Delete to whoever may manage its
@@ -466,7 +535,7 @@ export function ImageViewer({ area, list, index, onIndex, onClose, mayDelete, on
   useEffect(() => {
     for (const d of [-1, 1]) {
       const n = list[index + d];
-      if (n && !isVideo(n)) new Image().src = api.prepRawUrl(area, n.path);
+      if (n && n.kind === "image") new Image().src = api.prepRawUrl(area, n.path);
     }
   }, [area, list, index]);
 
@@ -497,7 +566,14 @@ export function ImageViewer({ area, list, index, onIndex, onClose, mayDelete, on
         <button className="iv-btn" onClick={onClose} title="Close (Esc)">✕</button>
       </div>
       {!loaded && <span className="mv-ring iv-spin" aria-hidden />}
-      {isVideo(file) ? (
+      {isAudio(file) ? (
+        <div key={file.path} className="iv-audio" onClick={(e) => { e.stopPropagation(); setMenu(null); }}
+             onContextMenu={openMenu}>
+          <span className="iv-audionote" aria-hidden>♪</span>
+          <audio src={api.prepRawUrl(area, file.path)} controls autoPlay
+                 onLoadedData={() => setLoaded(true)} onError={() => setLoaded(true)} />
+        </div>
+      ) : isVideo(file) ? (
         <video key={file.path} className={"iv-img" + (loaded ? " in" : "")} src={api.prepRawUrl(area, file.path)}
                controls autoPlay playsInline onLoadedData={() => setLoaded(true)}
                onClick={(e) => { e.stopPropagation(); setMenu(null); }} onContextMenu={openMenu} />
