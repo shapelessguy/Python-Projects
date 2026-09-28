@@ -1729,6 +1729,8 @@ export function MoviesPanel() {
             onOpen={(list, index) => setViewing({ area: ":images", list, index })}
             onUpload={(dt, folder) => actionsFor(":images").upload(dt, folder)}
             onShare={(path) => setSharing({ area: ":images", path })}
+            onMove={(paths, to) => actionsFor(":images").move(paths, to, ":images")}
+            onRemove={(paths) => deletePaths(":images", paths)}
           />
         ) : panes.length ? (
           // A library is one tree; a staging area is two, the inbox on top

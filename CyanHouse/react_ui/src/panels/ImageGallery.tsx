@@ -68,7 +68,7 @@ export const byDate = (a: StagedFile, b: StagedFile) => b.modified - a.modified 
  *  thumbs.py); the viewer shows the picture itself. Photos dropped on a
  *  folder's card, or on the open folder, from the computer are added to it;
  *  moving and renaming them is the Folders view's job. */
-export function ImageGallery({ area, files, loading, query, size, folder: at, onFolder, onOpen, onUpload, onShare }: {
+export function ImageGallery({ area, files, loading, query, size, folder: at, onFolder, onOpen, onUpload, onShare, onMove, onRemove }: {
   area: string;
   files: StagedFile[];
   /** The listing has not arrived yet. */
@@ -86,6 +86,10 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
   /** Open an album's sharing — offered on the badge of albums this user
    *  may change (their own; for an admin, the ones nobody owns). */
   onShare?: (folder: string) => void;
+  /** Move the picked pictures and folders into `to` ("" is the top), or
+   *  delete them (to the library's trash). */
+  onMove?: (paths: string[], to: string) => Promise<void>;
+  onRemove?: (paths: string[]) => Promise<void>;
 }) {
   const q = query.trim().toLowerCase();
   // What a drag of files is over: a folder's card ("a:" + folder), a
@@ -104,6 +108,40 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
     const a = accessOf.get(folder);
     return !!a && ACCESS_RANK[a.level] >= ACCESS_RANK.add;
   };
+  // What this user may move or delete: whatever sits in a folder they
+  // manage (a folder by its own access), or a loose file at the top that
+  // they put there (it carries its own).
+  const pickable = useMemo(() => {
+    const manages = (folder: string) => {
+      const a = accessOf.get(folder);
+      return !!a && ACCESS_RANK[a.level] >= ACCESS_RANK.manage;
+    };
+    const m = new Set<string>();
+    for (const f of files) {
+      const ok = f.kind === "folder" ? manages(f.path)
+        : f.access ? ACCESS_RANK[f.access.level] >= ACCESS_RANK.manage : manages(f.folder);
+      if (ok) m.add(f.path);
+    }
+    return m;
+  }, [files, accessOf]);
+  // The picked pictures and folders. Picking starts from a tile's tick (or a
+  // Ctrl-click); while anything is picked a click picks rather than opens,
+  // and Shift picks everything between the last one and this one.
+  const [sel, setSel] = useState<Set<string>>(() => new Set());
+  const anchor = useRef<string | null>(null);
+  const [moving, setMoving] = useState(false);
+  const [armed, setArmed] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const clearSel = () => { setSel(new Set()); anchor.current = null; setMoving(false); setArmed(false); };
+  useEffect(clearSel, [at, q]);
+  useEffect(() => { setArmed(false); }, [sel]);
+  useEffect(() => {
+    if (!sel.size) return;
+    const key = (e: KeyboardEvent) => { if (e.key === "Escape") clearSel(); };
+    window.addEventListener("keydown", key);
+    return () => window.removeEventListener("keydown", key);
+  }, [sel.size]);
+
   const dropProps = (folder: string, zone: string) => onUpload && mayAdd(folder) ? {
     onDragOver: (e: React.DragEvent) => {
       if (!e.dataTransfer.types.includes("Files")) return;
@@ -188,6 +226,84 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
     return [...by.entries()].sort(([a], [b]) => (a === at ? -1 : b === at ? 1 : byName(a, b)));
   }, [files, q, at, direct]);
 
+  // Everything pickable in the order it is shown, for Shift ranges and
+  // "all": the folder cards, then the pictures, section by section.
+  const shownOrder = () => [
+    ...(q ? [] : albums.map((a) => a.path)),
+    ...sections.flatMap(([, list]) => list.map((f) => f.path)),
+  ].filter((p) => pickable.has(p));
+  const pick = (path: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const from = anchor.current;
+    setSel((cur) => {
+      const next = new Set(cur);
+      if (e.shiftKey && from && from !== path) {
+        const order = shownOrder();
+        const i = order.indexOf(from), j = order.indexOf(path);
+        if (i >= 0 && j >= 0) {
+          for (const p of order.slice(Math.min(i, j), Math.max(i, j) + 1)) next.add(p);
+          return next;
+        }
+      }
+      if (next.has(path)) next.delete(path); else next.add(path);
+      return next;
+    });
+    anchor.current = path;
+  };
+  /** A click on a tile or card: picks while picking (or with a modifier),
+   *  otherwise does `open`. */
+  const clickOr = (path: string, open: () => void) => (e: React.MouseEvent) => {
+    if (sel.size || e.ctrlKey || e.metaKey || e.shiftKey) {
+      if (pickable.has(path)) pick(path, e);
+      else e.preventDefault();
+      return;
+    }
+    open();
+  };
+  // Where the picked things may go: any folder this user may add to, but
+  // not into one of the picked folders, nor where they all already are.
+  const destinations = useMemo(() => {
+    if (!sel.size) return [];
+    const picked = [...sel];
+    const folders = new Set(files.filter((f) => f.kind === "folder").map((f) => f.path));
+    const pickedFolders = picked.filter((p) => folders.has(p));
+    const parents = new Set(picked.map((p) => (p.includes("/") ? p.slice(0, p.lastIndexOf("/")) : "")));
+    return ["", ...folders].filter((p) => mayAdd(p)
+      && !pickedFolders.some((f) => p === f || p.startsWith(f + "/"))
+      && !(parents.size === 1 && parents.has(p)))
+      .sort(byName);
+  }, [sel, files, accessOf]);
+  const run = async (what: () => Promise<void>) => {
+    setBusy(true);
+    try { await what(); clearSel(); } finally { setBusy(false); setArmed(false); setMoving(false); }
+  };
+  const selBar = sel.size > 0 && (
+    <div className="ig-selbar" onClick={(e) => e.stopPropagation()}>
+      <span className="ig-selcount">{sel.size} selected</span>
+      <button className="ghost" disabled={busy}
+              onClick={() => setSel(new Set(shownOrder()))}>Select all</button>
+      {onMove && (
+        <span className="ig-movewrap">
+          <button disabled={busy} onClick={() => setMoving((m) => !m)}>
+            {busy && moving ? "Moving…" : "Move to…"}
+          </button>
+          {moving && !busy && (
+            <MovePicker folders={destinations} onClose={() => setMoving(false)}
+                        onPick={(to) => run(() => onMove([...sel], to))} />
+          )}
+        </span>
+      )}
+      {onRemove && (
+        <button className={"danger" + (armed ? " armed" : "")} disabled={busy}
+                onClick={() => { if (!armed) { setArmed(true); return; } run(() => onRemove([...sel])); }}>
+          {busy && !moving ? "Deleting…" : armed ? `Delete ${sel.size}? click again` : "🗑 Delete"}
+        </button>
+      )}
+      <button className="ghost" disabled={busy} onClick={clearSel} title="Clear the selection (Esc)">✕</button>
+    </div>
+  );
+
   // The width the rows fill: the gallery's, less its padding.
   const box = useRef<HTMLDivElement | null>(null);
   const [width, setWidth] = useState(0);
@@ -263,9 +379,11 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
       )}
       <div className="ig-albums" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${size}px, 1fr))` }}>
             {albums.map((a) => (
-              <button key={a.path} className={"ig-album" + (dropOn === "a:" + a.path ? " dropping" : "")}
-                      title={a.path} onClick={() => go(a.path)} {...dropProps(a.path, "a:" + a.path)}>
+              <button key={a.path}
+                      className={"ig-album" + (dropOn === "a:" + a.path ? " dropping" : "") + (sel.has(a.path) ? " picked" : "")}
+                      title={a.path} onClick={clickOr(a.path, () => go(a.path))} {...dropProps(a.path, "a:" + a.path)}>
                 <span className="ig-cover">
+                  {pickable.has(a.path) && <Check on={sel.has(a.path)} onPick={(e) => pick(a.path, e)} />}
                   {accessOf.get(a.path) && (
                     <AccessBadge access={accessOf.get(a.path)!} className="ig-albumaccess"
                                  onShare={onShare ? () => onShare(a.path) : undefined} />
@@ -313,7 +431,9 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
                 {row.items.map(({ file, w }) => (
                   <Tile key={file.path} file={file} width={w} grow={row.full}
                         src={api.prepThumbUrl(area, file.path, Math.round(w * dpr), file.modified)}
-                        onClick={() => onOpen(list, list.indexOf(file))} />
+                        picked={sel.has(file.path)}
+                        onPick={pickable.has(file.path) ? (e) => pick(file.path, e) : undefined}
+                        onClick={clickOr(file.path, () => onOpen(list, list.indexOf(file)))} />
                 ))}
               </div>
             ))}
@@ -322,7 +442,9 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
             <div className="ig-sounds">
               {sounds.map((file) => (
                 <SoundCard key={file.path} file={file} src={api.prepRawUrl(area, file.path)}
-                           onClick={() => onOpen(list, list.indexOf(file))} />
+                           picked={sel.has(file.path)}
+                           onPick={pickable.has(file.path) ? (e) => pick(file.path, e) : undefined}
+                           onClick={clickOr(file.path, () => onOpen(list, list.indexOf(file)))} />
               ))}
             </div>
           )}
@@ -349,8 +471,10 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
             <AccessBadge access={accessOf.get(at)!} className="ig-crumbaccess"
                          onShare={onShare ? () => onShare(at) : undefined} />
           )}
+          {selBar}
         </nav>
       )}
+      {!at && selBar && <div className="ig-crumbs ig-selonly">{selBar}</div>}
       {/* Inside an album its own pictures come first and its folders after;
           at the top, where the albums are what you came for, the other way
           round. */}
@@ -424,14 +548,61 @@ export const isAudio = (f: StagedFile) => f.kind === "audio" && PLAYABLE_AUDIO.t
 /** What the gallery shows: pictures, and the videos and sound it can play. */
 export const shown = (f: StagedFile) => f.kind === "image" || isVideo(f) || isAudio(f);
 
-function Tile({ file, src, width, grow, onClick }: {
-  file: StagedFile; src: string; width: number; grow: boolean; onClick: () => void;
+/** Where to move the picked things: the folders they may go to, narrowed
+ *  by typing; a click moves them there. Closes on a click elsewhere or Esc. */
+function MovePicker({ folders, onPick, onClose }: {
+  folders: string[]; onPick: (to: string) => void; onClose: () => void;
+}) {
+  const [filter, setFilter] = useState("");
+  const box = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const away = (e: MouseEvent) => { if (box.current && !box.current.contains(e.target as Node)) onClose(); };
+    window.addEventListener("mousedown", away);
+    return () => window.removeEventListener("mousedown", away);
+  }, [onClose]);
+  const f = filter.trim().toLowerCase();
+  const list = f ? folders.filter((p) => p.toLowerCase().includes(f)) : folders;
+  return (
+    <div ref={box} className="ig-picker">
+      <input autoFocus placeholder="Filter folders…" value={filter} onChange={(e) => setFilter(e.target.value)}
+             onKeyDown={(e) => {
+               if (e.key === "Escape") { e.stopPropagation(); onClose(); }
+               if (e.key === "Enter" && list.length === 1) onPick(list[0]);
+             }} />
+      <div className="ig-pickerlist">
+        {list.map((p) => {
+          const depth = p ? p.split("/").length - 1 : 0;
+          return (
+            <button key={p || "/"} onClick={() => onPick(p)} title={p || "The top of Pictures"}
+                    style={{ paddingLeft: 10 + (f ? 0 : depth * 14) }}>
+              <span className="ig-pickname">{p ? p.split("/").pop() : "Pictures (top)"}</span>
+              {f && p.includes("/") && <span className="ig-pickpath">{p.slice(0, p.lastIndexOf("/"))}</span>}
+            </button>
+          );
+        })}
+        {!list.length && <span className="ig-picknone">No folder matches.</span>}
+      </div>
+    </div>
+  );
+}
+
+/** The tick on a tile or card: shown on hover, and always once picked. */
+function Check({ on, onPick }: { on: boolean; onPick: (e: React.MouseEvent) => void }) {
+  return (
+    <span role="checkbox" aria-checked={on} title={on ? "Unselect" : "Select (Shift: a range)"}
+          className={"ig-check" + (on ? " on" : "")} onClick={onPick}>✓</span>
+  );
+}
+
+function Tile({ file, src, width, grow, onClick, picked, onPick }: {
+  file: StagedFile; src: string; width: number; grow: boolean; onClick: (e: React.MouseEvent) => void;
+  picked: boolean; onPick?: (e: React.MouseEvent) => void;
 }) {
   const [state, setState] = useState<"loading" | "ok" | "error">("loading");
   // Its place in the row is fixed before the thumbnail arrives: nothing
   // moves when it does.
   return (
-    <button className={"ig-tile " + state} onClick={onClick} title={file.name}
+    <button className={"ig-tile " + state + (picked ? " picked" : "")} onClick={onClick} title={file.name}
             style={{ flex: grow ? `${width} 1 0` : `0 0 ${Math.round(width)}px` }}>
       {state !== "error" ? (
         <img src={src} alt={file.name} loading="lazy" decoding="async" draggable={false}
@@ -440,6 +611,7 @@ function Tile({ file, src, width, grow, onClick }: {
         <span className="ig-broken">{file.name.split(".").pop()?.toUpperCase()}</span>
       )}
       {isVideo(file) && <span className="ig-play" aria-hidden>▶</span>}
+      {onPick && <Check on={picked} onPick={onPick} />}
       <span className="ig-caption">{file.name.replace(/\.[^.]+$/, "")}</span>
     </button>
   );
@@ -448,7 +620,10 @@ function Tile({ file, src, width, grow, onClick }: {
 /** A sound file in the gallery: its name, how long it plays (read from the
  *  file's header by the browser once the card comes into view — a range
  *  request, not the whole file) and when it was last changed. */
-function SoundCard({ file, src, onClick }: { file: StagedFile; src: string; onClick: () => void }) {
+function SoundCard({ file, src, onClick, picked, onPick }: {
+  file: StagedFile; src: string; onClick: (e: React.MouseEvent) => void;
+  picked: boolean; onPick?: (e: React.MouseEvent) => void;
+}) {
   const ref = useRef<HTMLButtonElement | null>(null);
   const [length, setLength] = useState<number | null>(null);
   useEffect(() => {
@@ -471,7 +646,8 @@ function SoundCard({ file, src, onClick }: { file: StagedFile; src: string; onCl
   }, [src]);
   const ext = file.name.split(".").pop()?.toUpperCase();
   return (
-    <button ref={ref} className="ig-sound" onClick={onClick} title={file.name}>
+    <button ref={ref} className={"ig-sound" + (picked ? " picked" : "")} onClick={onClick} title={file.name}>
+      {onPick && <Check on={picked} onPick={onPick} />}
       <span className="ig-soundicon" aria-hidden>♪</span>
       <span className="ig-soundtext">
         <span className="ig-soundname">{file.name.replace(/\.[^.]+$/, "")}</span>
