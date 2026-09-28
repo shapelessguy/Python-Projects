@@ -30,7 +30,7 @@ from api.services import folder_access, movie_prep, movies, remux_queue, tmdb
 router = APIRouter(prefix="/api/prep", tags=["prep"], dependencies=[Depends(require_media_area)])
 
 VERSION_NAMES = ["prep"]
-PANEL = "movies"  # same permission as the Movies panel it lives in
+PANEL = "media"  # same permission as the Movies panel it lives in
 
 
 def init() -> None:
@@ -543,7 +543,7 @@ async def get_access(path: str = Query(..., min_length=1), area: str = Query(IMA
         "path": path,
         "rule": await run_in_threadpool(folder_access.rule_here, area, path),
         "access": await run_in_threadpool(folder_access.access, user, area, path),
-        "users": folder_access.users(),
+        "users": folder_access.users(area),
     }
 
 

@@ -22,19 +22,22 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Button
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
@@ -71,30 +74,87 @@ import com.diary.net.Vault
 import com.diary.net.VaultException
 import com.diary.net.VaultFile
 import com.diary.net.versionPoll
+import java.io.File
+import java.io.InputStream
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.File
-import java.io.InputStream
 
-/** The Media panel: Movies, Music and Images are still to come; Documents
+/** The libraries the app has tabs for, by their key (net/Models.kt's
+ *  MediaSource), each with what it is for on the introduction. */
+private data class Library(val key: String, val label: String, val about: String)
+
+private val LIBRARIES = listOf(
+    Library("", "Movies", "Films, as covers — on the web page for now."),
+    Library(":music", "Music", "Songs by artist and album — on the web page for now."),
+    Library(":images", "Images", "Photos and videos by album."),
+    Library(":documents", "Docs", "Files and folders, shared or private, and encrypted folders."),
+)
+
+/** The tab before one is picked: the introduction. */
+private const val INTRO = "#intro"
+
+/** The Media panel: an introduction first, then a tab for each library this
+ *  user may see (permissions.media) -- none is opened for them, as not
+ *  everyone may see every one. Movies and Music are still to come; Documents
  *  is a file manager for its library -- shown here (ui/DocumentViewer.kt),
  *  changed as on the web page, and its encrypted folders (VAULT.md,
  *  net/Vault.kt) worked in once unlocked. */
 @Composable
 fun MediaScreen() {
-    var tab by rememberSaveable { mutableStateOf(3) }
+    var keys by remember { mutableStateOf<Set<String>?>(null) }
+    var error by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(Unit) {
+        runCatching { Api.mediaKeys() }
+            .onSuccess { keys = it; error = null }
+            .onFailure { error = Api.reason(it) }
+    }
+    val libraries = LIBRARIES.filter { keys?.contains(it.key) == true }
+    var tab by rememberSaveable { mutableStateOf(INTRO) }
+    if (keys != null && tab != INTRO && libraries.none { it.key == tab }) tab = INTRO
     Column(Modifier.fillMaxSize()) {
-        TabRow(selectedTabIndex = tab) {
-            listOf("Movies", "Music", "Images", "Docs").forEachIndexed { i, label ->
-                Tab(selected = tab == i, onClick = { tab = i }, text = { Text(label) })
+        if (libraries.isNotEmpty()) {
+            val tabs = listOf(INTRO to "Home") + libraries.map { it.key to it.label }
+            TabRow(selectedTabIndex = tabs.indexOfFirst { it.first == tab }.coerceAtLeast(0)) {
+                tabs.forEach { (key, label) ->
+                    Tab(selected = tab == key, onClick = { tab = key }, text = { Text(label) })
+                }
             }
         }
-        if (tab == 3) DocumentsTab() else if (tab == 2) ImagesTab() else {
-            Text("Coming soon — use the web page for now.", color = MaterialTheme.colorScheme.onSurfaceVariant,
+        when {
+            keys == null -> Text(error ?: "Loading…", color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(24.dp))
+            tab == INTRO -> MediaIntro(libraries) { tab = it }
+            tab == ":documents" -> DocumentsTab()
+            tab == ":images" -> ImagesTab()
+            else -> Text("Coming soon — use the web page for now.", color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(24.dp))
+        }
+    }
+}
+
+/** Where the Media panel opens: a card for each library this user may see. */
+@Composable
+private fun MediaIntro(libraries: List<Library>, onOpen: (String) -> Unit) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text("Media", style = MaterialTheme.typography.headlineSmall)
+        if (libraries.isEmpty()) {
+            Text("Nothing here is shared with you yet. Ask whoever runs this house for access.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            return@Column
+        }
+        Text("Pick where to go — here, or from the tabs above.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        libraries.forEach { lib ->
+            ElevatedCard(onClick = { onOpen(lib.key) }, modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(lib.label, style = MaterialTheme.typography.titleMedium)
+                    Text(lib.about, style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
         }
     }
 }

@@ -21,7 +21,7 @@ from api.services import folder_access, uploads
 
 router = APIRouter(prefix="/api/uploads", tags=["uploads"], dependencies=[Depends(require_media_area)])
 
-PANEL = "movies"  # same permission as the panel that drives it
+PANEL = "media"  # same permission as the panel that drives it
 
 # Sent on every reply. A tus client refuses to talk to a server that does not
 # announce the version it implements.

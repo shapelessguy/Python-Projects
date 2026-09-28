@@ -41,7 +41,7 @@ import os
 import threading
 from pathlib import Path
 
-from api.auth import USERS, visible_panels
+from api.auth import USERS, may_see_media, visible_panels
 from api.config import DOCUMENTS_DIR, IMAGE_DIR
 
 SIDE = ".cyanhouse.json"
@@ -296,12 +296,13 @@ def set_rule(user: str, area: str, folder: str, visibility: str | None, people: 
     return access(user, area, folder)
 
 
-def users() -> list[str]:
-    """Everyone who can open the Media panel — who a folder can be shared with."""
+def users(area: str | None = None) -> list[str]:
+    """Everyone who can open the Media panel — who a folder can be shared
+    with; with `area`, only those who may also see that library."""
     out = []
     for name in USERS:
         vis = visible_panels(name)
-        if vis is None or "movies" in vis:
+        if (vis is None or "media" in vis) and (area is None or may_see_media(name, area)):
             out.append(name)
     return sorted(out)
 

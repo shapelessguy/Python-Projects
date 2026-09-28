@@ -24,6 +24,15 @@ data class Versions(
 /** One entry of a Media folder's listing (GET /api/prep/files). In Documents
  *  a folder may be encrypted (`vault`, VAULT.md): what is under it has
  *  encrypted names, decrypted by net/Vault.kt. */
+/** /api/prep/areas, as far as the app needs it: the Media folders this user
+ *  may see (permissions.media), each by its key -- "" the films, ":music",
+ *  ":images", ":documents", a staging area by its name. */
+@Serializable
+data class MediaSource(val key: String)
+
+@Serializable
+data class MediaAreas(val sources: List<MediaSource> = emptyList())
+
 @Serializable
 data class DocEntry(
     val path: String,

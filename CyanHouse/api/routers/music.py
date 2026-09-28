@@ -8,14 +8,14 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from fastapi.responses import FileResponse, Response
 from starlette.concurrency import run_in_threadpool
 
-from api.auth import require_user, require_media_area
+from api.auth import require_library, require_media_area, require_user
 from api.routers.prep import may_change
 from api.services import music_library, music_prep
 from api.services.movie_prep import PrepError
 
 router = APIRouter(prefix="/api/music", tags=["music"], dependencies=[Depends(require_media_area)])
 
-PANEL = "movies"  # the Media panel it lives in
+PANEL = "media"  # the Media panel it lives in
 
 
 def init() -> None:
@@ -83,7 +83,7 @@ async def album_cover(rg: str = Query(...), _user: str = Depends(require_user)):
 
 
 @router.get("/library")
-async def music_library_listing(_user: str = Depends(require_user)):
+async def music_library_listing(_user: str = Depends(require_library(":music"))):
     """The music library as songs, albums and artists, from the files' tags."""
     try:
         return await run_in_threadpool(music_library.library)
@@ -93,7 +93,7 @@ async def music_library_listing(_user: str = Depends(require_user)):
 
 @router.get("/art")
 async def album_art(folder: str = Query(...), w: int | None = Query(None, ge=32, le=2000),
-                    _user: str = Depends(require_user)):
+                    _user: str = Depends(require_library(":music"))):
     """An album folder's cover.jpg — or, with `w`, a copy about that wide,
     for pages of covers (a cover.jpg can be a megabyte or more)."""
     from api.services import thumbs

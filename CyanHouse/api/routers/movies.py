@@ -15,12 +15,12 @@ from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from fastapi.responses import Response, StreamingResponse
 from starlette.concurrency import run_in_threadpool
 
-from api.auth import require_user, require_media_area
+from api.auth import require_library, require_media_area, require_user
 from api.services import movie_prep, movie_subs, movies, plex
 
 router = APIRouter(prefix="/api/movies", tags=["movies"], dependencies=[Depends(require_media_area)])
 
-PANEL = "movies"  # gates the whole router behind permissions.visibility -- see api/auth.py
+PANEL = "media"  # gates the whole router behind permissions.visibility -- see api/auth.py
 
 
 def init() -> None:
@@ -32,7 +32,7 @@ def _wrap(exc: movies.MovieError) -> HTTPException:
 
 
 @router.get("/list")
-async def list_movies(refresh: bool = False, _user: str = Depends(require_user)):
+async def list_movies(refresh: bool = False, _user: str = Depends(require_library(""))):
     try:
         return await run_in_threadpool(_list_with_posters, refresh)
     except movies.MovieError as e:

@@ -13,14 +13,14 @@ Each user is `{"token": str, "permissions": dict}`:
   * `permissions.visibility`, an optional list of panel ids (see each router
     module's own `PANEL` constant) a user is restricted to. Omitted entirely
     (the common case), a user sees/can call every panel -- an allowlist that
-    only narrows things down when explicitly set.
-  * `permissions.media`, the Media panel's folders beyond the public ones.
-    Films, Music, Images and Documents (PUBLIC_MEDIA) are everyone's; every other
-    folder -- a staging area and its output, by the name it has in
-    secrets.json ("Downloads", "Audio", "TV Series", ...) -- only for users
-    it is listed for. "downloaders" gives the Torrents and Downloads tabs
-    (qBittorrent and pyLoad) together; "*" gives everything. Omitted, a user
-    has the public folders only.
+    only narrows things down when explicitly set. The Media panel is
+    "media" ("movies", its old name, still counts).
+  * `permissions.media`, the Media panel's folders this user may see, each
+    by name: the libraries "Movies", "Music", "Images" and "Documents"
+    (LIBRARIES), and any staging area and its output by the name it has in
+    secrets.json ("Downloads", "Audio", "TV Series", ...). "downloaders"
+    gives the Torrents and Downloads tabs (qBittorrent and pyLoad) together;
+    "*" gives everything. Omitted, a user has none of them.
   * other names, opt-in flags, off unless set true: `publish` (move things
     between the Media panel's folders). Albums and Documents folders (folder_access.py) and
     calendars (services/calendar.py) answer to their owners and whoever they
@@ -107,13 +107,18 @@ def basic_header(user: str) -> dict[str, str]:
     return {"Authorization": f"Basic {cred}"}
 
 
+# Panel ids that were renamed, old -> new: an old name in secrets.json keeps
+# working.
+RENAMED_PANELS = {"movies": "media"}
+
+
 def visible_panels(user: str) -> set[str] | None:
     """`None` means unrestricted (every panel) -- a user with no `visibility`
     entry in their permissions, which is every user unless explicitly
     configured otherwise. Otherwise, the explicit allowed set."""
     perms = (USERS.get(user) or {}).get("permissions") or {}
     vis = perms.get("visibility")
-    return set(vis) if vis is not None else None
+    return {RENAMED_PANELS.get(p, p) for p in vis} if vis is not None else None
 
 
 def has_permission(user: str, name: str) -> bool:
@@ -140,7 +145,8 @@ def granted(user: str) -> dict[str, bool]:
 # ── the Media panel's folders ──────────────────────────────────────────────
 # Area keys as the panel and movie_prep use them: "" the films, ":music",
 # ":images", ":documents"; a staging area by its name, its output as "<name>:library".
-PUBLIC_MEDIA = {"", ":music", ":images", ":documents"}
+# The libraries are granted by these names (a staging area by its key).
+LIBRARIES = {"": "Movies", ":music": "Music", ":images": "Images", ":documents": "Documents"}
 DOWNLOADERS = "downloaders"
 
 
@@ -153,10 +159,8 @@ def may_see_media(user: str, area: str) -> bool:
     """Whether `area` (a folder of the Media panel, either half of a staging
     pair) is one this user may see."""
     name = (area or "").removesuffix(":library")
-    if name in PUBLIC_MEDIA:
-        return True
     grants = _media_grants(user)
-    return "*" in grants or name in grants
+    return "*" in grants or LIBRARIES.get(name, name) in grants
 
 
 def may_use_downloaders(user: str) -> bool:
@@ -173,13 +177,24 @@ def require_media_area(request: Request, user: str = Depends(require_user)) -> s
     upload's metadata) check with may_see_media themselves."""
     q = request.query_params
     named = [q.get("area"), q.get("to_area")]
-    movie_id = unquote(q.get("id") or "")
-    if movie_id.startswith("@"):
-        named.append(movie_id[1:].partition("/")[0])
+    if "id" in q:
+        # A film id: `@<area>/...` outside the film library, bare inside it.
+        movie_id = unquote(q.get("id") or "")
+        named.append(movie_id[1:].partition("/")[0] if movie_id.startswith("@") else "")
     for area in named:
         if area is not None and not may_see_media(user, area):
             raise HTTPException(status.HTTP_403_FORBIDDEN, "not permitted to see that folder")
     return user
+
+
+def require_library(area: str):
+    """Dependency factory for an endpoint that serves one library as a whole
+    (the film list, the music library) and so names no area of its own."""
+    def _dep(user: str = Depends(require_user)) -> str:
+        if not may_see_media(user, area):
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "not permitted to see that folder")
+        return user
+    return _dep
 
 
 def require_downloaders(user: str = Depends(require_user)) -> str:

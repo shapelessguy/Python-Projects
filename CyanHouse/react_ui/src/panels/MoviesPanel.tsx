@@ -55,6 +55,8 @@ const EXTERNAL = [
  *  (styles.css, .mv-sources): the film library (key ""), and the music,
  *  image and document libraries. A staging area's icon comes from secrets.json. */
 const TAB_ICONS: Record<string, string> = { "": "🎬", ":music": "🎵", ":images": "🖼️", ":documents": "📄" };
+/** The Media panel's `tab` before one is picked: its introduction. */
+const INTRO = "#intro";
 /** The libraries, which come before the staging areas. */
 const LIBRARIES = new Set(["", ":music", ":images", ":documents"]);
 /** The libraries whose folders each carry their own sharing — who may see,
@@ -76,6 +78,60 @@ function treeFiles(area: string, files: StagedFile[]): StagedFile[] {
 
 /** A tab's face: its icon, if it has one, and its name — which goes when
  *  the row is narrow, leaving the icon (and the name as a tooltip). */
+/** What each library is for, on the introduction. */
+const ABOUT: Record<string, string> = {
+  "": "Films, as covers. Open one to play it, pick its audio and subtitles.",
+  ":music": "Songs by artist and album, playing in a bar that stays while you browse.",
+  ":images": "Photos and videos by album. Share an album, or keep it to yourself.",
+  ":documents": "Files and folders, shared or private, and folders encrypted with a password.",
+};
+
+/** Where the Media panel opens: what it holds for this user, one card per
+ *  tab they may see (permissions.media), each opening it. */
+function MediaIntro({ groups, downloaders, loaded, onOpen, onExternal }: {
+  groups: { key: string; label: string; icon?: string; todo?: MovieSource; done?: MovieSource }[];
+  downloaders: boolean;
+  loaded: boolean;
+  onOpen: (key: string) => void;
+  onExternal: (key: External) => void;
+}) {
+  const cards = [
+    ...groups.map((g) => ({
+      key: g.key, icon: TAB_ICONS[g.key] ?? g.icon ?? "📁", label: g.label,
+      about: ABOUT[g.key] ?? (g.todo && g.done ? "Files waiting to be prepared, and where they go when done."
+        : g.todo ? "Files waiting to be prepared." : "A library folder."),
+      open: () => onOpen(g.key),
+    })),
+    ...(downloaders ? EXTERNAL.map((x) => ({
+      key: x.key, icon: x.icon, label: x.label, about: `${x.title}, for what is being downloaded.`,
+      open: () => onExternal(x.key),
+    })) : []),
+  ];
+  return (
+    <section className="mv-intro">
+      <h2>Media</h2>
+      {!loaded ? (
+        <p className="muted">Loading…</p>
+      ) : cards.length ? (
+        <>
+          <p className="muted">Pick where to go — here, or from the tabs above.</p>
+          <div className="mv-introcards">
+            {cards.map((c) => (
+              <button key={c.key} className="mv-introcard" onClick={c.open}>
+                <span className="mv-introicon" aria-hidden>{c.icon}</span>
+                <span className="mv-introname">{c.label}</span>
+                <span className="mv-introabout">{c.about}</span>
+              </button>
+            ))}
+          </div>
+        </>
+      ) : (
+        <p className="muted">Nothing here is shared with you yet. Ask whoever runs this house for access.</p>
+      )}
+    </section>
+  );
+}
+
 function TabFace({ icon, label }: { icon?: string; label: string }) {
   if (!icon) return <>{label}</>;
   return (
@@ -182,7 +238,9 @@ export function MoviesPanel() {
   // Which tab is open: "" for the film library, or the name of a staging
   // area — which shows its inbox and its output together, or just the one
   // it has (the series library is an area with only an output).
-  const [tab, setTab] = useState("");
+  // No tab until one is picked: the panel opens on an introduction (INTRO)
+  // rather than on the films, which not everyone may see.
+  const [tab, setTab] = useState(INTRO);
   // Which other program's UI is shown in place of everything under the tab
   // row, if any. It sits on top of the library rather than replacing it:
   // whatever is open or playing underneath is still there when you come back.
@@ -279,6 +337,12 @@ export function MoviesPanel() {
     return out;
   }, [sources]);
 
+  // A tab that is no longer there (the folders changed, or who may see
+  // them) goes back to the introduction.
+  useEffect(() => {
+    if (tab !== INTRO && sources.length && !groups.some((g) => g.key === tab)) setTab(INTRO);
+  }, [groups]);
+
   // The film library as covers, or as its folder tree ("list", the
   // cookie's old name for it).
   const [view, setViewState] = useState<"grid" | "list">(() =>
@@ -372,9 +436,10 @@ export function MoviesPanel() {
   // while the film library's tab is open: the other tabs have nothing to do
   // with it, and must not wait on (or show the errors of) its drive.
   useEffect(() => {
-    if (tab !== "") return;
+    // Only for someone who may see the film library (permissions.media).
+    if (tab !== "" || !sources.some((x) => x.key === "")) return;
     api.movies().then((m) => { setMovies(m); setListError(""); }).catch((e) => setListError(String(e)));
-  }, [prepVersion, tab]);
+  }, [prepVersion, tab, sources]);
 
   // Which folders exist is configuration, and configuration changes: it is
   // re-read on the same counter the listings use, so correcting a path in
@@ -1661,6 +1726,10 @@ export function MoviesPanel() {
         </div>
       </div>
       <div className="mv-body" hidden={!!external}>
+      {tab === INTRO ? (
+        <MediaIntro groups={groups} downloaders={downloaders} loaded={sources.length > 0}
+                    onOpen={switchTab} onExternal={setExternal} />
+      ) : (<>
       <section className="mv-library">
         <div className="mv-search">
           <input
@@ -2142,6 +2211,7 @@ export function MoviesPanel() {
         )}
       </aside>
       )}
+      </>)}
       </div>
       {tab === "" && selected && (
         <FilmDialog onClose={closeFilm}>

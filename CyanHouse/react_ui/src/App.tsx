@@ -10,7 +10,7 @@ import { useVisibility } from "./api";
 import { currentUsername, logout } from "./auth";
 import { readCookie, writeCookie } from "./cookies";
 
-type PanelId = "controls" | "environment" | "personal" | "food" | "calendar" | "movies";
+type PanelId = "controls" | "environment" | "personal" | "food" | "calendar" | "media";
 
 // The first four icons end in an invisible U+FE0F: they are "text by
 // default" emoji, which desktop Linux otherwise draws as small monochrome
@@ -21,16 +21,16 @@ const PANELS: { id: PanelId; icon: string; label: string; render: () => JSX.Elem
   { id: "personal", icon: "🗂️", label: "Personal", render: () => <PersonalPanel /> },
   { id: "food", icon: "🍽️", label: "Food", render: () => <FoodPanel /> },
   { id: "calendar", icon: "📅", label: "Calendar", render: () => <CalendarPanel /> },
-  // Still keyed "movies": that id is the permission name in secrets.json's
-  // visibility lists and the backend's require_panel, so renaming the label
-  // alone keeps every existing account's access as it was.
-  { id: "movies", icon: "🍿", label: "Media", render: () => <MoviesPanel /> },
+  // "media" is also its permission name in secrets.json's visibility lists
+  // and the backend's require_panel ("movies" before, still accepted there).
+  { id: "media", icon: "🍿", label: "Media", render: () => <MoviesPanel /> },
 ];
 
 const LAST_SECTION_COOKIE = "last_section";
 
 function loadLastPanel(): PanelId {
-  const v = readCookie(LAST_SECTION_COOKIE);
+  const saved = readCookie(LAST_SECTION_COOKIE);
+  const v = saved === "movies" ? "media" : saved;   // the Media panel's old id
   return PANELS.some((p) => p.id === v) ? (v as PanelId) : "controls";
 }
 
@@ -70,7 +70,7 @@ export default function App() {
   // Both of these own their own scrolling: the environment charts and the
   // media library are each taller than the viewport, and only that column --
   // not the page -- should get a scrollbar.
-  const fixedHeight = active?.id === "environment" || active?.id === "movies";
+  const fixedHeight = active?.id === "environment" || active?.id === "media";
 
   useLayoutEffect(() => {
     const nav = navRef.current;

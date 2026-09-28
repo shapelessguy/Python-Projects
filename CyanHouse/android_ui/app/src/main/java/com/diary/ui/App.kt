@@ -73,7 +73,7 @@ private enum class Section(val label: String, val icon: ImageVector, val panelId
     Food("Food", Icons.Default.Restaurant, "food"),
     Calendar("Calendar", Icons.Default.CalendarMonth, "calendar"),
     // The web's Media panel (its folders are behind the same permission).
-    Media("Media", Icons.Default.VideoLibrary, "movies"),
+    Media("Media", Icons.Default.VideoLibrary, "media"),
 }
 
 @Composable

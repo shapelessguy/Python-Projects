@@ -206,6 +206,10 @@ object Api {
     const val DOCS = ":documents"
     const val IMAGES = ":images"
 
+    /** The keys of the Media folders this user may see. */
+    suspend fun mediaKeys(): Set<String> =
+        client.get(u("/api/prep/areas")).body<MediaAreas>().sources.map { it.key }.toSet()
+
     suspend fun documents(area: String = DOCS): List<DocEntry> =
         client.get(u("/api/prep/files")) { parameter("area", area) }.body<DocListing>().files
 

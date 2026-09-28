@@ -1,6 +1,6 @@
 """pyLoad-ng's Web UI, reverse-proxied under /api/pyload/ (api/services/webproxy.py).
 
-Framed by the Media panel's Downloads tab, behind the same login and "movies"
+Framed by the Media panel's Downloads tab, behind the same login and "media"
 visibility as the panel. pyLoad runs in docker-compose.yml's `pyload`
 service, published on the loopback only, and is configured (webui.prefix in
 docker/pyload/config/settings/pyload.cfg) to serve its pages under this same
@@ -15,6 +15,6 @@ from api.auth import require_downloaders
 
 router = APIRouter(prefix="/api/pyload", tags=["pyload"], include_in_schema=False, dependencies=[Depends(require_downloaders)])
 
-PANEL = "movies"  # the Media panel it lives in
+PANEL = "media"  # the Media panel it lives in
 
 webproxy.mount(router, PYLOAD_URL, strip_prefix=False)

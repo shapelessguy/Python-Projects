@@ -190,6 +190,8 @@ def me(user: str = Depends(require_user)):
     the hard way from a 403 the first time it fetches its own data. null =
     unrestricted (every panel); otherwise the explicit allowed list."""
     vis = visible_panels(user)
+    if vis is not None and "media" in vis:
+        vis = vis | {"movies"}   # the Media panel's old id, for apps built before the rename
     return {"username": user,
             "visible_panels": sorted(vis) if vis is not None else None,
             "permissions": granted(user)}
