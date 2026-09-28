@@ -9,6 +9,7 @@ import { CoverBook } from "./CoverBook";
 import { MusicLibrary, MusicView } from "./MusicLibrary";
 import { ImageGallery, ImageViewer, shown as shownInGallery } from "./ImageGallery";
 import { ShareDialog } from "./ShareDialog";
+import { CreateVaultDialog, VaultDrop, VaultView } from "./VaultView";
 import { MusicPlayerBar } from "./MusicPlayerBar";
 import { MusicIdentify } from "./MusicPrep";
 import { ConflictDialog, Clash } from "./ConflictDialog";
@@ -59,6 +60,19 @@ const LIBRARIES = new Set(["", ":music", ":images", ":documents"]);
 /** The libraries whose folders each carry their own sharing — who may see,
  *  add, manage (api/services/folder_access.py). */
 const SHARED = new Set([":images", ":documents"]);
+
+/** A listing as the tree shows it. In Documents an encrypted folder is one
+ *  entry (kind "vault") that opens in the right-hand panel: what is inside
+ *  has encrypted names, which mean nothing in a tree, and its sharing is
+ *  not offered -- it stays private. */
+function treeFiles(area: string, files: StagedFile[]): StagedFile[] {
+  if (area !== ":documents") return files;
+  const vaults = files.filter((f) => f.vault).map((f) => f.path + "/");
+  if (!vaults.length) return files;
+  return files
+    .filter((f) => !vaults.some((v) => f.path.startsWith(v)))
+    .map((f) => (f.vault ? { ...f, kind: "vault" as const, access: f.access && { ...f.access, can_share: false } } : f));
+}
 
 /** A tab's face: its icon, if it has one, and its name — which goes when
  *  the row is narrow, leaving the icon (and the name as a tooltip). */
@@ -289,6 +303,10 @@ export function MoviesPanel() {
   const [galleryFolder, setGalleryFolder] = useState("");
   // The folder whose sharing is being edited (ShareDialog), if any.
   const [sharing, setSharing] = useState<{ area: string; path: string } | null>(null);
+  // Where a new encrypted folder is being made (CreateVaultDialog), if one is.
+  const [newVaultIn, setNewVaultIn] = useState<string | null>(null);
+  // Files dropped on an encrypted folder's row, on their way into it.
+  const [vaultDrop, setVaultDrop] = useState<VaultDrop | null>(null);
   const [viewing, setViewing] = useState<{ area: string; list: StagedFile[]; index: number } | null>(null);
   // The Music tab's player: the song loaded, a fresh object each time it
   // should start playing, and the album or list it came from.
@@ -1762,7 +1780,17 @@ export function MoviesPanel() {
                     area={pane.key}
                     files={reviewOnly && pane.kind === "inbox" && pane.type === "music"
                       ? reviewFiles(pane.key, listings[pane.key] ?? [])
-                      : listings[pane.key] ?? []}
+                      : treeFiles(pane.key, listings[pane.key] ?? [])}
+                    onNewVault={pane.key === ":documents" ? setNewVaultIn : undefined}
+                    onDropOnVault={pane.key === ":documents" ? (vf, dt) => {
+                      // Read now: the drop's contents go when this returns.
+                      const entries = entriesFrom(dt);
+                      walkEntries(entries, dt).then((files) => {
+                        if (!files.length) return;
+                        pickFile(vf, ":documents");
+                        setVaultDrop({ path: vf.path, files });
+                      }).catch((e) => failed(e));
+                    } : undefined}
                     loading={!(pane.key in listings) && !paneErrors[pane.key]}
                     marks={pane.type === "music" ? musicAuto[pane.key]?.review : undefined}
                     query={query}
@@ -1972,7 +2000,16 @@ export function MoviesPanel() {
           if (files.length) uploadSub(files);
         }}
       >
-        {viewFile ? (
+        {viewFile?.kind === "vault" ? (
+          <VaultView
+            path={viewFile.path}
+            files={listings[":documents"] ?? []}
+            upload={(picked, folder) => uploads.add(picked, ":documents", folder)}
+            onChanged={refreshListing}
+            incoming={vaultDrop?.path === viewFile.path ? vaultDrop.files : undefined}
+            onIncomingTaken={() => setVaultDrop(null)}
+          />
+        ) : viewFile ? (
           <>
             <FileView area={source} file={viewFile} play={playFile} />
             {viewFile.kind === "audio" && isMusicInbox(source) && (
@@ -2119,6 +2156,19 @@ export function MoviesPanel() {
           </div>
         </FilmDialog>
       )}
+      {newVaultIn !== null && (
+        <CreateVaultDialog
+          parent={newVaultIn}
+          onClose={() => setNewVaultIn(null)}
+          onCreated={(path) => {
+            setNewVaultIn(null);
+            refreshListing();
+            // Straight into it: it is open already, and empty.
+            pickFile({ path, folder: newVaultIn, name: path.split("/").pop() ?? path, size: 0, modified: 0,
+                       kind: "vault", readable: false }, ":documents");
+          }}
+        />
+      )}
       {sharing !== null && (
         <ShareDialog area={sharing.area} path={sharing.path} onClose={() => setSharing(null)}
                      onSaved={() => { if (paneKeys !== null) loadPanes(paneKeys.split("|")).catch(() => {}); }} />
@@ -2132,7 +2182,7 @@ export function MoviesPanel() {
           onClose={() => setViewing(null)}
           // Only where the folder says this user manages it (the server
           // checks again): the Images and Documents folders carry that.
-          mayDelete={(f) => (listings[viewing.area] ?? [])
+          mayDelete={(f) => f.access?.level === "manage" || (listings[viewing.area] ?? [])
             .some((x) => x.kind === "folder" && x.path === f.folder && x.access?.level === "manage")}
           onDelete={async (f) => {
             try {

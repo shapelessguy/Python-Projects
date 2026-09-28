@@ -1,3 +1,4 @@
+import type { VaultFile } from "./vault";
 import { useEffect, useState } from "react";
 import { onAuthFailed } from "./auth";
 
@@ -116,6 +117,16 @@ async function j<T>(r: Response): Promise<T> {
   }
   if (!r.ok) throw new Error(`${r.status} ${r.statusText} — ${await r.text()}`);
   return r.json() as Promise<T>;
+}
+
+/** A response's body as bytes, failing the way `j` does. */
+async function bytesOf(r: Response): Promise<Uint8Array<ArrayBuffer>> {
+  if (r.status === 401) {
+    onAuthFailed();
+    throw new Error("401 — not signed in");
+  }
+  if (!r.ok) throw new Error(`${r.status} ${r.statusText} — ${await r.text()}`);
+  return new Uint8Array(await r.arrayBuffer());
 }
 
 const JSON_HEADERS = { "content-type": "application/json" };
@@ -434,7 +445,12 @@ export interface StagedFile {
   name: string;
   size: number;
   modified: number;
-  kind: "folder" | "video" | "image" | "audio" | "subtitle" | "text" | "binary";
+  /** "vault": an encrypted folder of Documents (VAULT.md), shown as one
+   *  entry in the tree -- the panel makes it one out of a folder whose
+   *  listing says `vault`. */
+  kind: "folder" | "video" | "image" | "audio" | "subtitle" | "text" | "binary" | "vault";
+  /** A folder of Documents that is encrypted (api/services/folder_access.py). */
+  vault?: boolean;
   readable: boolean;
   /** Folders only: how many entries are directly inside. */
   children?: number;
@@ -727,6 +743,21 @@ export const api = {
     f("/api/music/auto?" + new URLSearchParams({ area })).then(j<MusicAuto>),
   musicCoverUrl: (releaseGroupId: string) =>
     "/api/music/cover?" + new URLSearchParams({ rg: releaseGroupId }),
+
+  // ── encrypted folders of Documents (VAULT.md, ./vault.ts)
+  prepVault: (path: string) =>
+    f("/api/prep/vault?" + new URLSearchParams({ path })).then(j<VaultFile>),
+  prepMakeVault: (parent: string, name: string, file: VaultFile) =>
+    f("/api/prep/vault?" + new URLSearchParams({ path: parent, name }), {
+      method: "POST", headers: JSON_HEADERS, body: JSON.stringify(file),
+    }).then(j<{ new_path: string; name: string }>),
+  prepSetVault: (path: string, file: VaultFile) =>
+    f("/api/prep/vault?" + new URLSearchParams({ path }), {
+      method: "PUT", headers: JSON_HEADERS, body: JSON.stringify(file),
+    }).then(j<unknown>),
+  /** A file's bytes as stored -- in a vault, still encrypted. */
+  prepBytes: (area: string, path: string) =>
+    f("/api/prep/raw?" + new URLSearchParams({ area, path, download: "true" })).then(bytesOf),
 
   /** Create an empty folder inside `path` ("" being the area's root). */
   prepMkdir: (area: string, path: string, name: string) =>

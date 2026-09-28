@@ -7,6 +7,7 @@ import { marked } from "marked";
 import { readCookie, writeCookie } from "../cookies";
 import { ACCESS_RANK, AccessLevel, api, FolderAccess, PrepPlan, RemuxJob, StagedFile, TmdbCandidate } from "../api";
 import { ACCESS_ICON, AccessBadge } from "./ShareDialog";
+import { isVideo } from "./ImageGallery";
 
 /** The right-hand panel for anything in a staging folder that isn't a film.
  *
@@ -25,8 +26,12 @@ export function FileView({ area, file, play, onEnded }: {
 }) {
   const [text, setText] = useState<{ text: string; encoding: string } | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  // A video the browser plays by itself (the Documents library's; a staging
+  // folder's go to the film player instead).
+  const video = isVideo(file);
   useEffect(() => {
-    if (play && play.path === file.path) audioRef.current?.play().catch(() => {});
+    if (play && play.path === file.path) (audioRef.current ?? videoRef.current)?.play().catch(() => {});
   }, [play]);
   const [info, setInfo] = useState<Record<string, any> | null>(null);
   const [error, setError] = useState("");
@@ -35,7 +40,7 @@ export function FileView({ area, file, play, onEnded }: {
     setText(null); setInfo(null); setError("");
     if (file.readable) {
       api.prepText(area, file.path).then(setText).catch((e) => setError(String(e)));
-    } else if (file.kind !== "image") {
+    } else if (file.kind !== "image" && !isVideo(file)) {
       api.prepInfo(area, file.path).then(setInfo).catch((e) => setError(String(e)));
     }
   }, [area, file.path]);
@@ -45,6 +50,7 @@ export function FileView({ area, file, play, onEnded }: {
       <h2 title={file.path}>{file.name}</h2>
       <p className="muted small">
         {file.folder || "(root)"} · {fmtSize(file.size)} · {file.kind}
+        {file.modified ? ` · modified ${new Date(file.modified * 1000).toLocaleString()}` : ""}
         {text ? ` · ${text.encoding}` : ""}
       </p>
       {error && <p className="error small">{error}</p>}
@@ -65,6 +71,11 @@ export function FileView({ area, file, play, onEnded }: {
         <img className="mv-fileimg" src={api.prepRawUrl(area, file.path)} alt={file.name} />
       )}
 
+      {video && (
+        <video key={file.path} ref={videoRef} className="mv-filevideo" src={api.prepRawUrl(area, file.path)}
+               controls playsInline preload="metadata" onEnded={onEnded} />
+      )}
+
       {/* A click only opens it; a double-click on the row plays it. */}
       {file.kind === "audio" && (
         <audio ref={audioRef} className="mv-fileaudio" src={api.prepRawUrl(area, file.path)} controls
@@ -80,7 +91,6 @@ export function FileView({ area, file, play, onEnded }: {
           <dl>
             <dt>type</dt><dd>{String(info.suffix || "—")} ({String(info.kind)})</dd>
             <dt>size</dt><dd>{fmtSize(Number(info.size))}</dd>
-            <dt>modified</dt><dd>{new Date(Number(info.modified) * 1000).toLocaleString()}</dd>
             {info.duration ? (<><dt>duration</dt><dd>{fmtDuration(Number(info.duration))}</dd></>) : null}
           </dl>
           {Array.isArray(info.streams) && info.streams.length > 0 && (
@@ -97,7 +107,7 @@ export function FileView({ area, file, play, onEnded }: {
           )}
         </div>
       )}
-      {!file.readable && file.kind !== "image" && !info && !error && (
+      {!file.readable && file.kind !== "image" && !video && !info && !error && (
         <p className="muted small">Reading…</p>
       )}
     </div>
@@ -398,7 +408,7 @@ function fmtDuration(seconds: number): string {
 
 // 🎞 and 🖼 carry an invisible U+FE0F, for the reason given in App.tsx.
 export const KIND_ICON: Record<string, string> = {
-  video: "🎞️", image: "🖼️", audio: "🎵", subtitle: "💬", text: "📄", binary: "▪",
+  video: "🎞️", image: "🖼️", audio: "🎵", subtitle: "💬", text: "📄", binary: "▪", vault: "🔐",
 };
 
 // ── the folder tree ──────────────────────────────────────────────────────
@@ -507,8 +517,16 @@ export interface TreeAction {
 
 export function FileTree({
   area, files, query, activePath, activeMovieId, canEdit, onPick, marks, onPlay, actions,
-  picked, onPicked, destinations, acceptsFrom, pickOnMove = true, loading = false, onShare, rootLevel,
+  picked, onPicked, destinations, acceptsFrom, pickOnMove = true, loading = false, onShare, rootLevel, onNewVault,
+  onDropOnVault,
 }: {
+  /** Start a new encrypted folder inside this one ("" the top) -- Documents
+   *  only (panels/VaultView.tsx). */
+  onNewVault?: (parent: string) => void;
+  /** Files from the desktop dropped on an encrypted folder's row: they go
+   *  into it, encrypted, never next to it. Called while the drop is still
+   *  being handled -- its contents are gone once it returns. */
+  onDropOnVault?: (vault: StagedFile, dt: DataTransfer) => void;
   area: string;
   files: StagedFile[];
   /** The listing has not arrived yet: say so, rather than "Nothing here". */
@@ -701,6 +719,9 @@ export function FileTree({
   const allows = (f: StagedFile | null, need: AccessLevel) => {
     if (!canEdit) return false;
     const folder = f === null ? "" : f.kind === "folder" ? f.path : f.folder;
+    // A loose file at the top carries its own access when it is this
+    // user's (they put it there).
+    if (f && f.kind !== "folder" && !f.folder && f.access) return ACCESS_RANK[f.access.level] >= ACCESS_RANK[need];
     const a = accessOf.get(folder);
     if (a) return ACCESS_RANK[a.level] >= ACCESS_RANK[need];
     if (!folder && rootLevel) return ACCESS_RANK[rootLevel] >= ACCESS_RANK[need];
@@ -932,6 +953,16 @@ export function FileTree({
           }}
           onDragEnd={() => { currentDrag = null; }}
           onDragOver={(e) => {
+            // An encrypted folder takes files from the desktop (into it, see
+            // onDropOnVault) and nothing else: an unencrypted file moved in
+            // would sit there readable, and one landing beside it is a surprise.
+            if (f.kind === "vault") {
+              if (!onDropOnVault || !e.dataTransfer.types.includes("Files") || e.dataTransfer.types.includes(DRAG_TYPE)) return;
+              e.preventDefault();
+              e.stopPropagation();
+              setDropOn(f.path);
+              return;
+            }
             if (!accept(e, dropFolder(f))) return;
             e.preventDefault();
             e.stopPropagation();
@@ -939,7 +970,16 @@ export function FileTree({
             setDropOn(f.path);
           }}
           onDragLeave={() => setDropOn((cur) => (cur === f.path ? null : cur))}
-          onDrop={(e) => drop(e, dropFolder(f))}
+          onDrop={(e) => {
+            if (f.kind !== "vault") { drop(e, dropFolder(f)); return; }
+            e.preventDefault();
+            e.stopPropagation();
+            setDropOn(null);
+            currentDrag = null;
+            if (onDropOnVault && e.dataTransfer.types.includes("Files") && !e.dataTransfer.types.includes(DRAG_TYPE)) {
+              onDropOnVault(f, e.dataTransfer);
+            }
+          }}
           onClick={(e) => {
             // Ctrl/Cmd adds one, Shift takes everything between — the
             // gesture every file manager uses, so it needs no explaining.
@@ -1083,6 +1123,11 @@ export function FileTree({
           >
             New folder
           </button>
+          {onNewVault && (
+            <button disabled={!allows(null, "add")} onClick={() => { onNewVault(""); setMenu(null); }}>
+              New encrypted folder…
+            </button>
+          )}
         </div>
       )}
 
@@ -1124,6 +1169,12 @@ export function FileTree({
                     onClick={() => startCreate(file.path)}
                   >
                     New folder
+                  </button>
+                )}
+                {!many && file.kind === "folder" && onNewVault && (
+                  <button disabled={!mayAdd} title={mayAdd ? "" : locked}
+                          onClick={() => { onNewVault(file.path); setMenu(null); }}>
+                    New encrypted folder…
                   </button>
                 )}
                 {!many && file.access?.can_share && onShare && (

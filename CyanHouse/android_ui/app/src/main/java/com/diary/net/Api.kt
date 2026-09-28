@@ -202,6 +202,20 @@ object Api {
     suspend fun deleteDish(id: Int): FoodData =
         client.delete(u("/api/food/dishes/$id")).body()
 
+    // ── Documents (the Media panel's; api/routers/prep.py) ────────────────
+    suspend fun documents(): List<DocEntry> =
+        client.get(u("/api/prep/files")) { parameter("area", ":documents") }.body<DocListing>().files
+
+    /** An encrypted folder's vault file, to unlock it with (net/Vault.kt). */
+    suspend fun vaultFile(path: String): VaultFile =
+        client.get(u("/api/prep/vault")) { parameter("path", path) }.body()
+
+    /** A file's bytes as stored -- in an encrypted folder, still encrypted. */
+    suspend fun documentBytes(path: String): ByteArray =
+        client.get(u("/api/prep/raw")) {
+            parameter("area", ":documents"); parameter("path", path); parameter("download", "true")
+        }.body()
+
     suspend fun patchIngredient(name: String, patch: IngredientPatch): FoodData =
         client.patch(u("/api/food/ingredients/${name.encodeURLPathPart()}")) {
             contentType(ContentType.Application.Json)

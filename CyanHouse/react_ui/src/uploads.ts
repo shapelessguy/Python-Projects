@@ -25,6 +25,9 @@ export interface PickedFile {
    *  dropped folder, just the filename for a loose one. This is what makes a
    *  dropped release folder land as that folder. */
   relPath: string;
+  /** What to call it in the upload list, when `relPath` is not for people:
+   *  a file of an encrypted folder goes up under its encrypted name. */
+  shownPath?: string;
 }
 
 export interface UploadJob {
@@ -99,7 +102,7 @@ let batchCounter = 0;
 /** What to call a drop. A folder drop shares a first path segment and is
  *  named after it; anything else is named after the file, or counted. */
 function batchLabel(picked: PickedFile[]): string {
-  const roots = new Set(picked.map((p) => p.relPath.split("/")[0]));
+  const roots = new Set(picked.map((p) => (p.shownPath ?? p.relPath).split("/")[0]));
   if (roots.size === 1) return [...roots][0];
   return `${picked.length} files`;
 }
@@ -166,6 +169,9 @@ export function useUploads(onFinished: () => void) {
         folder,
         relativePath: picked.relPath,
         filename: picked.file.name,
+        // The file's own modified time (ms), so it lands with that date
+        // rather than the upload's. Browsers don't tell pages the creation date.
+        lastModified: String(picked.file.lastModified || ""),
       },
       // A refusal is final: a 409 (the name is taken in that folder) or any
       // other 4xx will not change by asking again — only a timeout, a
@@ -212,8 +218,8 @@ export function useUploads(onFinished: () => void) {
       queue.current.push(id);
       fresh.push({
         id, area, folder, batch, batchLabel: label,
-        name: item.file.name,
-        relPath: item.relPath,
+        name: (item.shownPath ?? item.file.name).split("/").pop() ?? item.file.name,
+        relPath: item.shownPath ?? item.relPath,
         size: item.file.size,
         sent: 0,
         status: "queued",

@@ -12,8 +12,11 @@ coroutines = "1.9.0"
 securityCrypto = "1.0.0"
 mpAndroidChart = "v3.1.0"
 coil = "2.7.0"
+bouncycastle = "1.79"
 
 [libraries]
+# Argon2id for encrypted folders (net/Vault.kt); AES-GCM comes with Android.
+bouncycastle-prov = { group = "org.bouncycastle", name = "bcprov-jdk18on", version.ref = "bouncycastle" }
 androidx-security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "securityCrypto" }
 mpandroidchart = { group = "com.github.PhilJay", name = "MPAndroidChart", version.ref = "mpAndroidChart" }
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }

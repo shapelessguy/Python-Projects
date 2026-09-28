@@ -206,6 +206,7 @@ async def list_files(area: str = Query(...), user: str = Depends(require_user)):
 async def read_text(area: str = Query(...), path: str = Query(...),
                     user: str = Depends(require_user)):
     _shared(user, area, path, "see")
+    _not_encrypted(area, path)
     try:
         return await run_in_threadpool(movie_prep.read_text, area, path)
     except movie_prep.PrepError as e:
@@ -216,6 +217,7 @@ async def read_text(area: str = Query(...), path: str = Query(...),
 async def file_info(area: str = Query(...), path: str = Query(...),
                     user: str = Depends(require_user)):
     _shared(user, area, path, "see")
+    _not_encrypted(area, path)
     try:
         return await run_in_threadpool(movie_prep.describe, area, path)
     except movie_prep.PrepError as e:
@@ -225,11 +227,11 @@ async def file_info(area: str = Query(...), path: str = Query(...),
 # What a document may be opened as in the browser. Anything else — HTML,
 # SVG, whatever someone uploaded — comes down as a file to save, never as a
 # page of this site: a page could act as whoever opens it.
-INLINE_DOCUMENTS = {".pdf", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".txt",
-                    ".mp3", ".m4a", ".ogg", ".wav", ".mp4", ".webm"}
-# Videos a browser plays by itself, as the Images viewer shows them. Any
-# other (.avi, .mpg, ...) has to be converted to MP4 to show there.
+# Videos a browser plays by itself, as the Images viewer and the Documents
+# panel show them. Any other (.avi, .mpg, ...) has to be converted to MP4.
 BROWSER_VIDEO = {".mp4", ".m4v", ".webm", ".mov"}
+INLINE_DOCUMENTS = {".pdf", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".txt",
+                    ".mp3", ".m4a", ".ogg", ".wav", ".flac", ".opus", ".aac"} | BROWSER_VIDEO
 
 
 @router.get("/raw")
@@ -247,10 +249,14 @@ async def raw_file(area: str = Query(...), path: str = Query(...),
     except movie_prep.PrepError as e:
         raise _wrap(e)
     if area == DOCUMENTS:
-        inline = not download and resolved.suffix.lower() in INLINE_DOCUMENTS
+        # In an encrypted folder: the bytes as stored, for the browser or the
+        # app to decrypt -- never anything shown as it is.
+        encrypted = folder_access.vault_of(area, path) is not None
+        inline = not download and not encrypted and resolved.suffix.lower() in INLINE_DOCUMENTS
         return FileResponse(
             resolved, filename=resolved.name, content_disposition_type="inline" if inline else "attachment",
-            media_type="text/plain; charset=utf-8" if resolved.suffix.lower() == ".txt" else None,
+            media_type="application/octet-stream" if encrypted
+            else "text/plain; charset=utf-8" if resolved.suffix.lower() == ".txt" else None,
             headers={"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"})
     kind = movie_prep.file_kind(resolved)
     if not (kind in ("image", "audio") or (kind == "video" and resolved.suffix.lower() in BROWSER_VIDEO)):
@@ -263,6 +269,7 @@ async def thumb(area: str = Query(...), path: str = Query(...), w: int = Query(4
                 user: str = Depends(require_user)):
     """A small JPEG of a picture, for galleries (api/services/thumbs.py)."""
     _shared(user, area, path, "see")
+    _not_encrypted(area, path)
     from api.services import thumbs
     try:
         out = await run_in_threadpool(thumbs.thumbnail, area, path, w)
@@ -315,10 +322,37 @@ def _shared(user: str, area: str, path: str, need: str) -> None:
     its own rule, a file by its folder's. Other folders are not judged here."""
     if not folder_access.shared(area):
         return
+    if any(part in folder_access.PROTECTED for part in path.split("/")):
+        raise HTTPException(403, "that file is the server's own")
     try:
         folder_access.require(user, area, path, need)
     except folder_access.AccessError as e:
         raise HTTPException(e.status_code, str(e))
+
+
+def _not_protected(area: str, name: str) -> None:
+    """A new name (a rename, a folder, an upload) that is not one of the
+    server's own files."""
+    if folder_access.shared(area) and any(p in folder_access.PROTECTED for p in name.split("/")):
+        raise HTTPException(403, "that name is the server's own")
+
+
+def _not_encrypted(area: str, path: str) -> None:
+    """What the server would have to read to answer: nothing in an
+    encrypted folder is readable to it (VAULT.md)."""
+    if folder_access.vault_of(area, path) is not None:
+        raise HTTPException(403, "that is in an encrypted folder: open it in the browser or the app")
+
+
+def _same_vault(area: str, path: str, to_area: str, to: str) -> None:
+    """Nothing crosses into or out of an encrypted folder (or between two):
+    encrypted and plain files would mix. A whole vault may move -- it takes
+    everything in it along -- as long as it does not land in another."""
+    src = folder_access.vault_of(area, path)
+    if src == path:
+        src = None
+    if src != folder_access.vault_of(to_area, to):
+        raise HTTPException(403, "things go into or out of an encrypted folder only by uploading or downloading them")
 
 
 def may_change(user: str, area: str) -> None:
@@ -362,10 +396,14 @@ async def rename_entry(
     """Rename one file or folder where it sits."""
     may_change(user, area)
     _shared(user, area, path, "manage")
+    _not_protected(area, name)
     try:
-        return await run_in_threadpool(movie_prep.rename_entry, area, path, name)
+        done = await run_in_threadpool(movie_prep.rename_entry, area, path, name)
     except movie_prep.PrepError as e:
         raise _wrap(e)
+    if folder_access.shared(area):
+        await run_in_threadpool(folder_access.renamed_file, area, path, done["new_path"])
+    return done
 
 
 @router.post("/mkdir")
@@ -379,6 +417,7 @@ async def make_folder(
     the maker's (folder_access.claim)."""
     may_change(user, area)
     _shared(user, area, path, "add")
+    _not_protected(area, name)
     try:
         made = await run_in_threadpool(movie_prep.make_folder, area, path, name)
         if folder_access.shared(area):
@@ -402,10 +441,18 @@ async def move_entry(
     may_move(user, area, to_area)
     _shared(user, area, path, "manage")
     _shared(user, to_area, to, "add")
+    _same_vault(area, path, to_area, to)
     try:
-        return await run_in_threadpool(movie_prep.move_entry, area, path, to_area, to)
+        done = await run_in_threadpool(movie_prep.move_entry, area, path, to_area, to)
     except movie_prep.PrepError as e:
         raise _wrap(e)
+    # A loose file at the top of a library belongs to whoever put it there:
+    # moved out, it follows its new folder; moved in, it is the mover's.
+    if folder_access.shared(area):
+        await run_in_threadpool(folder_access.forget_file, area, path)
+    if folder_access.shared(to_area) and not to:
+        await run_in_threadpool(folder_access.claim_file, to_area, done["new_path"], user)
+    return done
 
 
 @router.post("/resolve")
@@ -423,6 +470,7 @@ async def resolve_conflict(
     may_move(user, area, to_area)
     _shared(user, area, path, "manage")
     _shared(user, to_area, dest.rpartition("/")[0], "manage" if action == "replace" else "add")
+    _same_vault(area, path, to_area, dest.rpartition("/")[0])
     try:
         return await run_in_threadpool(
             movie_prep.resolve_conflict, area, path, to_area, dest, action, upto)
@@ -441,9 +489,12 @@ async def delete_entry(
     may_change(user, area)
     _shared(user, area, path, "manage")
     try:
-        return await run_in_threadpool(movie_prep.delete_entry, area, path)
+        done = await run_in_threadpool(movie_prep.delete_entry, area, path)
     except movie_prep.PrepError as e:
         raise _wrap(e)
+    if folder_access.shared(area):
+        await run_in_threadpool(folder_access.forget_file, area, path)
+    return done
 
 
 @router.post("/move")
@@ -504,3 +555,53 @@ async def put_access(
         raise HTTPException(e.status_code, str(e))
     movie_prep._bump()
     return out
+
+
+# ── encrypted folders (Documents; VAULT.md) ────────────────────────────────
+@router.post("/vault")
+async def make_vault(
+    path: str = Query("", description="the folder to create it in; '' is the root"),
+    name: str = Query(..., min_length=1, max_length=255),
+    body: dict = Body(...),
+    user: str = Depends(require_user),
+):
+    """A new encrypted folder, `name` in `path`, with its vault file (made
+    in the browser: it holds nothing the server can decrypt). It is its
+    maker's, private for good."""
+    area = DOCUMENTS
+    may_change(user, area)
+    _shared(user, area, path, "add")
+    if folder_access.vault_of(area, path) is not None:
+        raise HTTPException(400, "an encrypted folder cannot go inside another")
+    try:
+        folder_access._check_vault_file(body)
+        made = await run_in_threadpool(movie_prep.make_folder, area, path, name)
+        return {**made, "access": await run_in_threadpool(folder_access.make_vault, user, area, made["new_path"], body)}
+    except movie_prep.PrepError as e:
+        raise _wrap(e)
+    except folder_access.AccessError as e:
+        raise HTTPException(e.status_code, str(e))
+
+
+@router.get("/vault")
+async def get_vault(path: str = Query(..., min_length=1), user: str = Depends(require_user)):
+    """An encrypted folder's vault file, for the browser or the app to unlock."""
+    _shared(user, DOCUMENTS, path, "see")
+    if folder_access.vault_of(DOCUMENTS, path) != path:
+        raise HTTPException(404, "that is not an encrypted folder")
+    try:
+        return await run_in_threadpool(folder_access.read_vault, DOCUMENTS, path)
+    except folder_access.AccessError as e:
+        raise HTTPException(e.status_code, str(e))
+
+
+@router.put("/vault")
+async def put_vault(path: str = Query(..., min_length=1), body: dict = Body(...),
+                    user: str = Depends(require_user)):
+    """A new vault file for an encrypted folder: its password changed."""
+    _shared(user, DOCUMENTS, path, "manage")
+    try:
+        await run_in_threadpool(folder_access.replace_vault, user, DOCUMENTS, path, body)
+    except folder_access.AccessError as e:
+        raise HTTPException(e.status_code, str(e))
+    return {}

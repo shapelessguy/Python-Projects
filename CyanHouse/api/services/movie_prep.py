@@ -1412,9 +1412,9 @@ def browse(area_name: str) -> list[dict]:
                         entry["width"], entry["height"] = row[2], row[3]
                 else:
                     unknown_picture = True
-            # The Images library's videos are played by its own viewer, from
-            # the file (prep.py's raw), not by the film player.
-            if kind == "video" and area_name != ":images":
+            # The Images and Documents libraries play their videos from the
+            # file (prep.py's raw), not through the film player.
+            if kind == "video" and area_name not in (":images", ":documents"):
                 try:
                     entry["movie_id"] = movies._encode_id(path, area_name)
                 except (ValueError, KeyError):

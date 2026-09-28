@@ -9,13 +9,14 @@ Contract picked up by ``api/main.py`` auto-discovery: ``router`` and
 ``init()``. No ``versions()``: a finished upload bumps the prep counter
 instead, which is what the Movies panel already watches.
 """
+import time
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from starlette.concurrency import run_in_threadpool
 
 from api.auth import require_user, require_media_area
-from api.routers.prep import _shared, may_change
+from api.routers.prep import _not_protected, _shared, may_change
 from api.services import folder_access, uploads
 
 router = APIRouter(prefix="/api/uploads", tags=["uploads"], dependencies=[Depends(require_media_area)])
@@ -78,12 +79,20 @@ async def create(request: Request, user: str = Depends(require_user)) -> Respons
     may_change(user, area)
     name = meta.get("relativePath") or meta.get("filename") or ""
     folder = meta.get("folder", "")
+    # The file's modified time on the uploader's machine, in ms. Kept only
+    # when it is a plausible date: not before 1980, not in the future.
+    try:
+        modified = float(meta.get("lastModified") or 0) / 1000
+    except ValueError:
+        modified = 0
+    modified = modified if 315532800 <= modified <= time.time() + 86400 else None
     # A folder dropped into the Images or Documents library becomes one of its own,
     # the uploader's (folder_access.claim) — only when it is new, so dropping
     # into an existing one of the same name does not take it over.
     album = None
     if folder_access.shared(area):
         _shared(user, area, folder, "add")
+        _not_protected(area, name)
         if "/" in name.strip("/"):
             top = name.strip("/").split("/")[0]
             album = f"{folder}/{top}" if folder else top
@@ -91,9 +100,12 @@ async def create(request: Request, user: str = Depends(require_user)) -> Respons
                 album = None
     try:
         state = await run_in_threadpool(
-            uploads.create, area, folder, name, length)
+            uploads.create, area, folder, name, length, modified)
         if album:
             await run_in_threadpool(folder_access.claim, area, album, user)
+        elif folder_access.shared(area) and not folder and "/" not in state["rel_path"]:
+            # A file loose at the top of the library: the uploader's.
+            await run_in_threadpool(folder_access.claim_file, area, state["rel_path"], user)
     except uploads.UploadError as e:
         raise _wrap(e)
     except Exception as e:                      # a bad area, a vanished mount

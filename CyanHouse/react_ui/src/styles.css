@@ -2189,3 +2189,56 @@ select.mv-preplang:invalid, select.mv-preplang[data-empty="true"] { color: var(-
 .ig-albumsub.error { color: var(--bad, #e06060); white-space: normal; }
 .ig-emptyalbum { position: absolute; inset: 0; font-size: 2rem; letter-spacing: 0; }
 .ig-folderhead { margin-top: 22px; }
+
+/* ── encrypted folders (panels/VaultView.tsx) ─────────────── */
+.vault-form { display: flex; flex-direction: column; gap: 10px; }
+.vault-form label { display: flex; flex-direction: column; gap: 3px; font-size: 0.8rem; color: var(--muted); }
+.vault-form > button { align-self: flex-start; }
+.vault-form label.check-row { flex-direction: row; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--text); cursor: pointer; }
+.vault-box { padding: 10px 12px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; }
+/* Fills the right-hand column, so a drop anywhere on it lands in the vault:
+   the list scrolls, the preview stays pinned below it. The padding keeps
+   the drop outline off the contents. */
+.mv-player > .vault-view {
+  flex: 1 1 auto; min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 8px;
+  padding: 8px 10px; margin: -8px -10px; border-radius: 8px;
+}
+.vault-view.dropping { outline: 2px dashed var(--accent); outline-offset: -2px; }
+.vault-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.vault-crumbs button.linkish { color: var(--muted); }
+.vault-preview {
+  flex: 0 0 auto; max-height: 60%; min-height: 0; display: flex; flex-direction: column; gap: 6px;
+  padding: 8px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; overflow: hidden;
+}
+.vault-preview > .vault-head b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vault-preview img, .vault-preview video { max-width: 100%; max-height: 45vh; min-height: 0; object-fit: contain; align-self: center; }
+.vault-preview audio { width: 100%; }
+.vault-preview iframe { width: 100%; height: 45vh; border: none; background: #fff; border-radius: 4px; }
+.vault-preview .mv-filetext { flex: 1 1 auto; min-height: 0; overflow: auto; margin: 0; }
+.vault-code {
+  font-family: ui-monospace, monospace; font-size: 1.05rem; letter-spacing: 0.05em;
+  padding: 10px 12px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px;
+  user-select: all; overflow-wrap: anywhere;
+}
+.vault-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.vault-list {
+  list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 2px;
+  flex: 1 1 auto; min-height: 60px; overflow-y: auto;
+}
+.vault-list li { display: flex; align-items: center; gap: 8px; padding: 3px 4px; border-bottom: 1px solid var(--line); }
+.vault-list li.active { background: var(--panel-2); }
+.vault-list li > button.linkish { color: var(--text); flex: 1 1 auto; text-align: left; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vault-acts { display: flex; gap: 2px; }
+button.linkish { background: none; border: none; padding: 0; color: var(--accent); cursor: pointer; font: inherit; }
+button.linkish:focus { outline: none; }
+button.linkish:focus-visible { outline: 1px solid var(--muted); outline-offset: 2px; border-radius: 3px; }
+button.linkish:disabled { color: var(--muted); cursor: default; }
+label.button-like {
+  display: inline-flex; align-items: center; padding: 5px 12px; border-radius: 6px; cursor: pointer;
+  background: var(--accent); color: #fff; font-size: 0.85rem; line-height: 1.4;
+}
+/* Vault passwords: text fields drawn as dots, so the browser doesn't offer
+   to save them (VaultView.tsx, SecretInput). */
+.vault-secret { -webkit-text-security: disc; }
+/* A video in the right-hand panel (Documents): the panel's width, its shape. */
+.mv-filevideo { display: block; width: 100%; max-height: 70vh; margin-top: 8px; border-radius: 6px; background: #000; }

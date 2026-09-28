@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- What the FileProvider may hand out: only the files opened from
+     Documents, written under cache/open/ (ui/MediaScreen.kt). -->
+<paths>
+    <cache-path name="open" path="open/" />
+</paths>

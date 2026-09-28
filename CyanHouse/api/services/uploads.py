@@ -142,7 +142,7 @@ def decode_metadata(header: str) -> dict[str, str]:
 
 
 # ── the four operations ──────────────────────────────────────────────────
-def create(area: str, folder: str, rel_path: str, length: int) -> dict:
+def create(area: str, folder: str, rel_path: str, length: int, modified: float | None = None) -> dict:
     """Reserve an upload. Everything that can be refused is refused here,
     before a single byte crosses the wire — the worst possible moment to
     discover the name is taken is after 40 GB of it."""
@@ -182,6 +182,9 @@ def create(area: str, folder: str, rel_path: str, length: int) -> dict:
         "part": str(part),
         "length": length,
         "created": time.time(),
+        # The file's own modified time, as the uploader's machine has it:
+        # the finished file gets it, not the time of the upload.
+        "modified": modified,
     }
     _write_state(upload_id, state)
     return state
@@ -247,6 +250,11 @@ def _finish(state: dict) -> None:
         target = alt
         state["target"] = str(alt)
     os.replace(part, target)
+    if state.get("modified"):
+        try:
+            os.utime(target, (state["modified"], state["modified"]))
+        except OSError:
+            pass   # the upload's own date is not worth failing it over
     state["done"] = True
     state["finished"] = time.time()
     _write_state(state["id"], state)

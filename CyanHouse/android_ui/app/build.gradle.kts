@@ -81,5 +81,6 @@ dependencies {
     implementation(libs.androidx.security.crypto)
     implementation(libs.mpandroidchart)
     implementation(libs.coil.compose)
+    implementation(libs.bouncycastle.prov)
     debugImplementation(libs.androidx.ui.tooling)
 }

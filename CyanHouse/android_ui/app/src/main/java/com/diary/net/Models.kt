@@ -17,7 +17,26 @@ data class Versions(
     val food: Int = 0,
     val forecast: Int = 0,
     val calendar: Int = 0,
+    /** The Media panel's folders (Documents among them) changed. */
+    val prep: Int = 0,
 )
+
+/** One entry of a Media folder's listing (GET /api/prep/files). In Documents
+ *  a folder may be encrypted (`vault`, VAULT.md): what is under it has
+ *  encrypted names, decrypted by net/Vault.kt. */
+@Serializable
+data class DocEntry(
+    val path: String,
+    val folder: String = "",
+    val name: String,
+    val size: Long = 0,
+    val modified: Long = 0,
+    val kind: String = "",
+    val vault: Boolean = false,
+)
+
+@Serializable
+data class DocListing(val files: List<DocEntry> = emptyList())
 
 /** GET /api/me -- one-shot, not polled (permissions are static for the life
  *  of a session, only changing via a backend restart). null visible_panels

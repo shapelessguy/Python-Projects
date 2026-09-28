@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Mouse
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.HorizontalDivider
@@ -71,6 +72,8 @@ private enum class Section(val label: String, val icon: ImageVector, val panelId
     Personal("Personal", Icons.Default.MenuBook, "personal"),
     Food("Food", Icons.Default.Restaurant, "food"),
     Calendar("Calendar", Icons.Default.CalendarMonth, "calendar"),
+    // The web's Media panel (its folders are behind the same permission).
+    Media("Media", Icons.Default.VideoLibrary, "movies"),
 }
 
 @Composable
@@ -224,6 +227,7 @@ fun App() {
                         Section.Food -> FoodScreen()
                         Section.Calendar -> CalendarScreen()
                         Section.Mouse -> MouseScreen()
+                        Section.Media -> MediaScreen()
                     }
                 }
             }
