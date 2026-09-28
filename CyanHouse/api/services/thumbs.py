@@ -29,9 +29,9 @@ _working = threading.BoundedSemaphore(3)
 
 def thumbnail(area_name: str, rel: str, width: int) -> Path:
     """A JPEG of a picture in a browsable folder, at least `width` pixels
-    wide (or as it is, when it is smaller)."""
+    wide (or as it is, when it is smaller). A video's is its first frame."""
     path = movie_prep.resolve_in_area(area_name, rel)
-    if movie_prep.file_kind(path) != "image" or not path.is_file():
+    if movie_prep.file_kind(path) not in ("image", "video") or not path.is_file():
         raise PrepError("not a picture", 400)
     return scaled(path, width)
 

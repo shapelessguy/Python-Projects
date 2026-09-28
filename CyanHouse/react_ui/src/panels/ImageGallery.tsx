@@ -127,7 +127,7 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
     const kids = new Map<string, Set<string>>();
     const own: StagedFile[] = [];
     for (const f of files) {
-      if (f.kind !== "image" || !inside(f.folder)) continue;
+      if (!shown(f) || !inside(f.folder)) continue;
       if (f.folder === at) { own.push(f); continue; }
       const rest = (at ? f.folder.slice(at.length + 1) : f.folder).split("/");
       const path = at ? `${at}/${rest[0]}` : rest[0];
@@ -170,7 +170,7 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
     if (!q) return direct.length ? [[at, direct] as [string, StagedFile[]]] : [];
     const by = new Map<string, StagedFile[]>();
     for (const f of files) {
-      if (f.kind !== "image" || !inside(f.folder)) continue;
+      if (!shown(f) || !inside(f.folder)) continue;
       if (!f.path.toLowerCase().includes(q)) continue;
       const l = by.get(f.folder) ?? [];
       l.push(f);
@@ -389,6 +389,13 @@ function AlbumCover({ src }: { src: string }) {
   );
 }
 
+/** Videos a browser plays by itself (prep.py's BROWSER_VIDEO). Others
+ *  (.avi, .mpg, ...) stay out of the gallery until converted to MP4. */
+const PLAYABLE = /\.(mp4|m4v|webm|mov)$/i;
+export const isVideo = (f: StagedFile) => f.kind === "video" && PLAYABLE.test(f.name);
+/** What the gallery shows: pictures, and the videos it can play. */
+export const shown = (f: StagedFile) => f.kind === "image" || isVideo(f);
+
 function Tile({ file, src, width, grow, onClick }: {
   file: StagedFile; src: string; width: number; grow: boolean; onClick: () => void;
 }) {
@@ -404,14 +411,16 @@ function Tile({ file, src, width, grow, onClick }: {
       ) : (
         <span className="ig-broken">{file.name.split(".").pop()?.toUpperCase()}</span>
       )}
+      {isVideo(file) && <span className="ig-play" aria-hidden>▶</span>}
       <span className="ig-caption">{file.name.replace(/\.[^.]+$/, "")}</span>
     </button>
   );
 }
 
-/** A picture full screen, over everything. ← → (or the side arrows, or a
- *  swipe) step through `list`; Esc, the ✕ or a click beside the picture
- *  closes it. The neighbours are loaded ahead, so stepping is instant.
+/** A picture full screen, over everything — or a video, playing, with the
+ *  browser's own controls. ← → (or the side arrows, or a swipe) step
+ *  through `list`; Esc, the ✕ or a click beside the picture closes it. The
+ *  neighbouring pictures are loaded ahead, so stepping is instant.
  *  Right-click on the picture offers Delete to whoever may manage its
  *  folder (`mayDelete`); it deletes for good, so it asks a second click. */
 export function ImageViewer({ area, list, index, onIndex, onClose, mayDelete, onDelete }: {
@@ -452,11 +461,18 @@ export function ImageViewer({ area, list, index, onIndex, onClose, mayDelete, on
   useEffect(() => {
     for (const d of [-1, 1]) {
       const n = list[index + d];
-      if (n) new Image().src = api.prepRawUrl(area, n.path);
+      if (n && !isVideo(n)) new Image().src = api.prepRawUrl(area, n.path);
     }
   }, [area, list, index]);
 
   if (!file) return null;
+  const openMenu = (e: React.MouseEvent) => {
+    // Without the right to delete, the browser's own menu stays.
+    if (!onDelete || !mayDelete?.(file)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setMenu({ x: e.clientX, y: e.clientY, armed: false });
+  };
   return (
     <div className="iv-overlay" onClick={() => (menu ? setMenu(null) : onClose())}
          onTouchStart={(e) => setTouch(e.touches[0].clientX)}
@@ -476,16 +492,15 @@ export function ImageViewer({ area, list, index, onIndex, onClose, mayDelete, on
         <button className="iv-btn" onClick={onClose} title="Close (Esc)">✕</button>
       </div>
       {!loaded && <span className="mv-ring iv-spin" aria-hidden />}
-      <img key={file.path} className={"iv-img" + (loaded ? " in" : "")} src={api.prepRawUrl(area, file.path)}
-           alt={file.name} onLoad={() => setLoaded(true)} draggable={false}
-           onClick={(e) => { e.stopPropagation(); setMenu(null); }}
-           onContextMenu={(e) => {
-             // Without the right to delete, the browser's own menu stays.
-             if (!onDelete || !mayDelete?.(file)) return;
-             e.preventDefault();
-             e.stopPropagation();
-             setMenu({ x: e.clientX, y: e.clientY, armed: false });
-           }} />
+      {isVideo(file) ? (
+        <video key={file.path} className={"iv-img" + (loaded ? " in" : "")} src={api.prepRawUrl(area, file.path)}
+               controls autoPlay playsInline onLoadedData={() => setLoaded(true)}
+               onClick={(e) => { e.stopPropagation(); setMenu(null); }} onContextMenu={openMenu} />
+      ) : (
+        <img key={file.path} className={"iv-img" + (loaded ? " in" : "")} src={api.prepRawUrl(area, file.path)}
+             alt={file.name} onLoad={() => setLoaded(true)} draggable={false}
+             onClick={(e) => { e.stopPropagation(); setMenu(null); }} onContextMenu={openMenu} />
+      )}
       {menu && (
         <div className="mv-menu iv-menu" style={{ left: menu.x, top: menu.y }}
              onClick={(e) => e.stopPropagation()} onContextMenu={(e) => e.preventDefault()}>

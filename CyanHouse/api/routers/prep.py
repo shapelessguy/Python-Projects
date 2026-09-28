@@ -227,14 +227,18 @@ async def file_info(area: str = Query(...), path: str = Query(...),
 # page of this site: a page could act as whoever opens it.
 INLINE_DOCUMENTS = {".pdf", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".txt",
                     ".mp3", ".m4a", ".ogg", ".wav", ".mp4", ".webm"}
+# Videos a browser plays by itself, as the Images viewer shows them. Any
+# other (.avi, .mpg, ...) has to be converted to MP4 to show there.
+BROWSER_VIDEO = {".mp4", ".m4v", ".webm", ".mov"}
 
 
 @router.get("/raw")
 async def raw_file(area: str = Query(...), path: str = Query(...),
                    download: bool = Query(False),
                    user: str = Depends(require_user)):
-    """The bytes, for things a browser can render itself: images, and audio
-    (which seeks through Range requests — FileResponse answers those). In
+    """The bytes, for things a browser can render itself: images, audio and
+    the videos it plays natively (BROWSER_VIDEO) — both seek through Range
+    requests, which FileResponse answers. In
     Documents, any file: opened in the browser when it is a kind that is
     safe to (INLINE_DOCUMENTS), otherwise, or with `download`, saved."""
     _shared(user, area, path, "see")
@@ -248,8 +252,9 @@ async def raw_file(area: str = Query(...), path: str = Query(...),
             resolved, filename=resolved.name, content_disposition_type="inline" if inline else "attachment",
             media_type="text/plain; charset=utf-8" if resolved.suffix.lower() == ".txt" else None,
             headers={"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"})
-    if movie_prep.file_kind(resolved) not in ("image", "audio"):
-        raise HTTPException(415, "only images and audio are served raw")
+    kind = movie_prep.file_kind(resolved)
+    if not (kind in ("image", "audio") or (kind == "video" and resolved.suffix.lower() in BROWSER_VIDEO)):
+        raise HTTPException(415, "only images, audio and browser-playable videos are served raw")
     return FileResponse(resolved, headers={"Cache-Control": "no-store"})
 
 

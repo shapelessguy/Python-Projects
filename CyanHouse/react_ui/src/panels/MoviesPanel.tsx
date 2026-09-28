@@ -7,7 +7,7 @@ import { readCookie, writeCookie } from "../cookies";
 import { currentUsername } from "../auth";
 import { CoverBook } from "./CoverBook";
 import { MusicLibrary, MusicView } from "./MusicLibrary";
-import { ImageGallery, ImageViewer } from "./ImageGallery";
+import { ImageGallery, ImageViewer, shown as shownInGallery } from "./ImageGallery";
 import { ShareDialog } from "./ShareDialog";
 import { MusicPlayerBar } from "./MusicPlayerBar";
 import { MusicIdentify } from "./MusicPrep";
@@ -845,10 +845,10 @@ export function MoviesPanel() {
   });
 
   const pickFile = (f: StagedFile, area: string) => {
-    // The Images tab shows pictures full screen, stepping through the
-    // folder the picture is in.
-    if (area === ":images" && f.kind === "image") {
-      const list = (listings[area] ?? []).filter((x) => x.kind === "image" && x.folder === f.folder)
+    // The Images tab shows pictures (and its playable videos) full screen,
+    // stepping through the folder the picture is in.
+    if (area === ":images" && shownInGallery(f)) {
+      const list = (listings[area] ?? []).filter((x) => shownInGallery(x) && x.folder === f.folder)
         .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
       setViewing({ area, list, index: Math.max(0, list.findIndex((x) => x.path === f.path)) });
       return;

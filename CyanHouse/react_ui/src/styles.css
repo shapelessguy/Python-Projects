@@ -2061,6 +2061,12 @@ select.mv-preplang:invalid, select.mv-preplang[data-empty="true"] { color: var(-
   transition: opacity 0.18s ease, transform 0.18s ease;
 }
 .ig-tile:hover .ig-caption, .ig-tile:focus-visible .ig-caption { opacity: 1; transform: none; }
+.ig-play {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 40px; height: 40px; border-radius: 50%; pointer-events: none;
+  display: flex; align-items: center; justify-content: center; padding-left: 3px;
+  background: rgba(0, 0, 0, 0.55); color: #fff; font-size: 1rem;
+}
 .ig-broken {
   display: flex; align-items: center; justify-content: center; height: 120px;
   color: var(--muted); font-size: 0.8rem; letter-spacing: 0.1em;
