@@ -16,10 +16,12 @@ watched every few seconds and the counter bumps when their contents change,
 so the SPA's existing once-a-second /api/version poll is enough to keep the
 list honest without re-probing anything.
 """
+import gzip
+import json
 from urllib.parse import unquote
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query
-from fastapi.responses import FileResponse
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
+from fastapi.responses import FileResponse, Response
 from starlette.concurrency import run_in_threadpool
 
 from api.auth import has_permission, may_see_media, require_media_area, require_permission, require_user
@@ -188,7 +190,7 @@ async def preview(
 
 
 @router.get("/files")
-async def list_files(area: str = Query(...), user: str = Depends(require_user)):
+async def list_files(request: Request, area: str = Query(...), user: str = Depends(require_user)):
     """Everything in the staging folder, not just the films — the subtitles,
     the release notes and the junk all have to be visible to be judged. In
     Images and Documents libraries, only the folders this user may see, each
@@ -197,7 +199,15 @@ async def list_files(area: str = Query(...), user: str = Depends(require_user)):
         files = await run_in_threadpool(movie_prep.browse, area)
         if folder_access.shared(area):
             files = await run_in_threadpool(folder_access.filter_listing, user, area, files)
-        return {"area": area, "files": files}
+        # A library of twenty thousand pictures is megabytes of JSON, about a
+        # tenth of that compressed — sent over the internet as often as not.
+        body = await run_in_threadpool(
+            lambda: json.dumps({"area": area, "files": files}, ensure_ascii=False).encode())
+        headers = {"Vary": "Accept-Encoding"}
+        if len(body) > 4096 and "gzip" in request.headers.get("accept-encoding", ""):
+            body = await run_in_threadpool(gzip.compress, body, 5)
+            headers["Content-Encoding"] = "gzip"
+        return Response(body, media_type="application/json", headers=headers)
     except movie_prep.PrepError as e:
         raise _wrap(e)
 

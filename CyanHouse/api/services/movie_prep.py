@@ -1073,8 +1073,31 @@ def version() -> int:
         return _version
 
 
-def _bump() -> None:
-    """Announce a change this process made itself.
+# browse() answers, kept until something under their folder changes: a
+# library of twenty thousand pictures takes over a second to walk, and the
+# panel reads it again on every tab switch and every change anywhere.
+# Each entry: (the area's root, the listing). `_browse_gen` moves on every
+# forgetting, so a walk that a change overtook is not kept.
+_browse_cache: dict[str, tuple[Path, list[dict]]] = {}
+_browse_gen = 0
+_browse_lock = threading.Lock()
+
+
+def _forget_browse(changed: Path | None = None) -> None:
+    """Drop the kept listings that `changed` may be in (a folder inside
+    one of them, or one holding it) — or every one, when it is not known
+    where the change was."""
+    global _browse_gen
+    with _browse_lock:
+        _browse_gen += 1
+        for name, (root, _) in list(_browse_cache.items()):
+            if changed is None or changed == root or changed in root.parents or root in changed.parents:
+                del _browse_cache[name]
+
+
+def _bump(changed: Path | None = None) -> None:
+    """Announce a change this process made itself (somewhere under
+    `changed`, when the caller knows where; anywhere, otherwise).
 
     The watcher only fingerprints the staging inboxes — walking the whole
     film and series libraries every five seconds over a network mount would
@@ -1082,6 +1105,7 @@ def _bump() -> None:
     something calls this instead, so the panel refreshes immediately without
     anything being polled."""
     global _version
+    _forget_browse(changed)
     with _watch_lock:
         _version += 1
 
@@ -1127,6 +1151,7 @@ def _watch() -> None:
                     _signatures[name] = sig
                     changed = True
         if changed:
+            _forget_browse()
             with _watch_lock:
                 _version += 1
         time.sleep(WATCH_SECONDS)
@@ -1146,16 +1171,16 @@ def _follow_libraries() -> None:
     covered by that one."""
     from api.services import fs_watch, movies
 
-    def changed() -> None:
+    def changed(root: Path) -> None:
         movies.forget_listing()
-        _bump()
+        _bump(root)
 
     roots: list[Path] = []
     for p in sorted({Path(x["path"]) for x in sources() if x.get("path")}, key=lambda p: len(p.parts)):
         if not any(p == r or r in p.parents for r in roots):
             roots.append(p)
     for r in roots:
-        fs_watch.follow(r, changed)
+        fs_watch.follow(r, lambda r=r: changed(r))
 
 
 def scan_area(name: str) -> list[dict]:
@@ -1322,7 +1347,7 @@ def file_kind(path: Path) -> str:
 # subtree is walked and handed over flat, and the panel rebuilds the tree
 # from the paths. The cap is only there so that pointing an area at
 # something enormous by mistake cannot hang the browser.
-BROWSE_MAX_ENTRIES = 20000
+BROWSE_MAX_ENTRIES = 200000
 
 
 # UNIQUE_NAMES: listing a folder on the library drive (ntfs3) while files
@@ -1332,6 +1357,23 @@ BROWSE_MAX_ENTRIES = 20000
 
 
 def browse(area_name: str) -> list[dict]:
+    """Everything in a browsable folder — the files *and* the folders —
+    walked once and then kept (_browse_cache) until something under it
+    changes. The entries are shared: callers copy before changing one."""
+    root, _ = area(area_name)
+    with _browse_lock:
+        kept = _browse_cache.get(area_name)
+        if kept and kept[0] == Path(root):
+            return kept[1]
+        gen = _browse_gen
+    out = _browse(area_name)
+    with _browse_lock:
+        if _browse_gen == gen:
+            _browse_cache[area_name] = (Path(root), out)
+    return out
+
+
+def _browse(area_name: str) -> list[dict]:
     """Everything in a browsable folder — the files *and* the folders.
 
     Folders are listed in their own right, not merely implied by the files

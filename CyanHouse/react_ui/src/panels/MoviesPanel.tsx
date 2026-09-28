@@ -371,7 +371,9 @@ export function MoviesPanel() {
       api.prepFiles(k)
         .then((r) => ({ k, files: r.files, error: "" }))
         .catch((e) => ({ k, files: [] as StagedFile[], error: String(e).replace(/^Error:\s*/, "") }))));
-    setListings(Object.fromEntries(results.map((r) => [r.k, r.files])));
+    // Merged, not replaced: a tab visited before keeps its last listing, so
+    // going back to it shows that at once while this one is on its way.
+    setListings((prev) => ({ ...prev, ...Object.fromEntries(results.map((r) => [r.k, r.files])) }));
     setPaneErrors(Object.fromEntries(results.filter((r) => r.error).map((r) => [r.k, r.error])));
     return Object.fromEntries(results.map((r) => [r.k, r.files])) as Record<string, StagedFile[]>;
   }, []);
@@ -521,7 +523,7 @@ export function MoviesPanel() {
     const g = groups.find((x) => x.key === next);
     setSource(g?.todo?.key ?? g?.done?.key ?? next);
     setSelected(null); setInfo(null); setViewFile(null);
-    setListings({}); setPaneErrors({}); setPlans({});
+    setPaneErrors({}); setPlans({});
     // `space` is left as it is until the new tab's answer arrives: most tabs
     // share a disk, and blanking it made the readout blink on every switch.
     setPrepNote(""); setQuery(""); setTreeNote(null); setReviewOnly(false);
