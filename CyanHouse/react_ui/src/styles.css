@@ -2090,6 +2090,9 @@ select.mv-preplang:invalid, select.mv-preplang[data-empty="true"] { color: var(-
   transition: opacity 0.25s ease, transform 0.25s ease;
 }
 .iv-img.in { opacity: 1; transform: none; }
+/* Small ones (old phone clips are 176×144) are scaled up to at least half
+   the width; object-fit keeps the shape when the height caps it. */
+.iv-img { min-width: 50vw; }
 .iv-spin { position: absolute; width: 28px; height: 28px; flex: none; border-width: 3px; }
 .iv-top {
   position: absolute; top: 0; left: 0; right: 0;
