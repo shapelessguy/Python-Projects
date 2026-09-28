@@ -15,6 +15,7 @@ import com.diary.net.Api
 import com.diary.net.Auth
 import com.diary.net.CalendarEvent
 import com.diary.net.Me
+import com.diary.net.Route
 import com.diary.net.MonthEvents
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -95,6 +96,9 @@ class CalendarAlarmService : Service() {
         super.onCreate()
         Auth.init(applicationContext)
         Prefs.init(applicationContext)
+        // Which way to the server (LAN or internet), decided now and on every
+        // change of network, for every request the app makes.
+        Route.start(applicationContext)
         AlarmNotifications.ensureChannels(this)
         startForeground(AlarmNotifications.NOTIF_ID_SERVICE, AlarmNotifications.serviceNotification(this))
         ringOverlay = RingOverlay(this)

@@ -15,6 +15,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import com.diary.alarm.CalendarAlarmService
+import com.diary.net.Route
 import com.diary.net.Auth
 import com.diary.ui.App
 import com.diary.ui.theme.AppTheme
@@ -98,5 +99,8 @@ class MainActivity : ComponentActivity() {
             }
         }
         CalendarAlarmService.ensureStarted(this)
+        // The service starts watching the network; this covers it not
+        // running (a no-op when it already is).
+        Route.start(applicationContext)
     }
 }

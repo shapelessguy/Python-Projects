@@ -4,6 +4,7 @@ import android.content.Context
 import coil.ImageLoader
 import coil.disk.DiskCache
 import coil.memory.MemoryCache
+import coil.request.ImageRequest
 import java.io.File
 
 /** The Media panel's pictures. Nothing looked at is kept on disk -- only
@@ -29,6 +30,13 @@ object MediaImages {
                 .diskCache { DiskCache.Builder().directory(File(app.filesDir, "thumbs")).maxSizeBytes(THUMBS_MAX).build() }
                 .build()
         }.also { thumbLoader = it }
+    }
+
+    /** A thumbnail by its address, kept under the address less the server's
+     *  name: the same entry whether it came over the LAN or the internet. */
+    fun thumb(context: Context, url: String): ImageRequest {
+        val key = Route.relative(url)
+        return ImageRequest.Builder(context).data(url).diskCacheKey(key).memoryCacheKey(key).build()
     }
 
     /** Everything else -- the viewer's pictures: in memory while the app

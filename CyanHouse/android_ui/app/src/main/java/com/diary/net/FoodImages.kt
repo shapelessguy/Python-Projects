@@ -2,7 +2,6 @@ package com.diary.net
 
 import android.content.Context
 import coil.ImageLoader
-import com.diary.Config
 import okhttp3.OkHttpClient
 
 /**
@@ -22,9 +21,10 @@ object FoodImages {
 
     private fun build(appContext: Context): ImageLoader {
         val http = OkHttpClient.Builder()
+            .dns(LanDns)
             .addInterceptor { chain ->
                 val req = chain.request()
-                val toBackend = req.url.toString().startsWith(Config.BASE_URL)
+                val toBackend = Route.isServer(req.url.toString())
                 val header = Auth.basicHeader()
                 if (toBackend && header != null) {
                     chain.proceed(req.newBuilder().header("Authorization", header).build())

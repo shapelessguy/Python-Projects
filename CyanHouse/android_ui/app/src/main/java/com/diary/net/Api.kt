@@ -42,7 +42,7 @@ object Api {
     private val client = HttpClient(OkHttp) {
         // Longer than a held request (api/longpoll.py waits up to 25 s before
         // answering when nothing changed); OkHttp's own default is 10 s.
-        engine { config { readTimeout(40, TimeUnit.SECONDS) } }
+        engine { config { readTimeout(40, TimeUnit.SECONDS); dns(LanDns) } }
         expectSuccess = true
         install(ContentNegotiation) { json(json) }
         defaultRequest {

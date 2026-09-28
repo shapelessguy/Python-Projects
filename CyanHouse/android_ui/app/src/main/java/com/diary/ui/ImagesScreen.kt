@@ -517,7 +517,7 @@ private fun AlbumCard(
             .background(MaterialTheme.colorScheme.surfaceVariant), contentAlignment = Alignment.Center) {
             val cover = a.cover
             if (cover != null) AsyncImage(
-                model = Api.thumbUrl(cover.path, coverPx, cover.modified), imageLoader = MediaImages.thumbs(context),
+                model = MediaImages.thumb(context, Api.thumbUrl(cover.path, coverPx, cover.modified)), imageLoader = MediaImages.thumbs(context),
                 contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
             else Text("📁", fontSize = 32.sp)
             access?.let {
@@ -557,7 +557,7 @@ private fun Tile(f: DocEntry, modifier: Modifier, px: Int, onClick: () -> Unit) 
     Box(modifier.clip(RoundedCornerShape(4.dp)).background(MaterialTheme.colorScheme.surfaceVariant)
         .combinedClickableCompat(onClick), contentAlignment = Alignment.Center) {
         if (!failed) AsyncImage(
-            model = Api.thumbUrl(f.path, px, f.modified), imageLoader = MediaImages.thumbs(context),
+            model = MediaImages.thumb(context, Api.thumbUrl(f.path, px, f.modified)), imageLoader = MediaImages.thumbs(context),
             contentDescription = f.name, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize(),
             onError = { failed = true })
         else Text(extOf(f.name).uppercase(), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)

@@ -31,12 +31,13 @@ object Media {
     /** OkHttp that carries the credential -- to this app's server only. */
     val http: OkHttpClient by lazy {
         OkHttpClient.Builder()
+            .dns(LanDns)
             .readTimeout(60, TimeUnit.SECONDS)
             .writeTimeout(120, TimeUnit.SECONDS)
             .addInterceptor { chain ->
                 val req = chain.request()
                 val header = Auth.basicHeader()
-                if (req.url.toString().startsWith(Config.BASE_URL) && header != null) {
+                if (Route.isServer(req.url.toString()) && header != null) {
                     chain.proceed(req.newBuilder().header("Authorization", header).build())
                 } else chain.proceed(req)
             }

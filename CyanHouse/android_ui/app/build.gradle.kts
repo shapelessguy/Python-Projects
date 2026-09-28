@@ -19,13 +19,11 @@ val publicHost: String = (secrets["PUBLIC_HOST"] as? String ?: "").trim()
 // 10.0.2.2 alias talks to uvicorn directly since there's no reverse proxy in dev.
 val apiBaseUrl: String =
     if (publicHost.isNotEmpty()) "https://$publicHost" else "http://10.0.2.2:$apiPort"
-// CyanManager's own address, connected to directly for the Mouse section's
-// WebSocket (not proxied through the backend above) -- same host as
-// CONTROLS_FN_HOST, just the mouse server's port instead of the fn service's.
-val controlsFnHost: String = (secrets["CONTROLS_FN_HOST"] as? String ?: "").trim()
-val mouseWsPort: String = (secrets["MOUSE_WS_PORT"] as? String ?: "10001").trim()
-val mouseWsHost: String =
-    if (controlsFnHost.isNotEmpty()) "$controlsFnHost:$mouseWsPort" else "10.0.2.2:$mouseWsPort"
+// The same site at home (docker/nginx.conf.template's LAN_HOST): a DuckDNS name
+// set to the server's LAN address. The app goes this way whenever it can
+// reach it (net/Route.kt); empty means always the public way.
+val lanHost: String = (secrets["LAN_HOST"] as? String ?: "").trim()
+val lanBaseUrl: String = if (lanHost.isNotEmpty()) "https://$lanHost" else ""
 
 android {
     namespace = "com.diary"
@@ -38,7 +36,7 @@ android {
         versionCode = 1
         versionName = "1.0"
         buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
-        buildConfigField("String", "MOUSE_WS_HOST", "\"$mouseWsHost\"")
+        buildConfigField("String", "LAN_BASE_URL", "\"$lanBaseUrl\"")
     }
 
     buildTypes {

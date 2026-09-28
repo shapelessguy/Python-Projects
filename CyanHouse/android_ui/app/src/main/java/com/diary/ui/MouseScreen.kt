@@ -63,7 +63,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diary.net.MouseSocket
-import com.diary.net.isOnWifi
+import com.diary.net.Route
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
@@ -91,9 +91,18 @@ private fun MouseContent() {
     DisposableEffect(Unit) { onDispose { MouseSocket.disconnect() } }
     LaunchedEffect(Unit) {
         while (true) {
-            if (!connected) MouseSocket.connect(isOnWifi(context))
+            if (!connected) MouseSocket.connect()
             delay(2000)
         }
+    }
+    // The way to the server changed (the LAN came or went): the socket goes
+    // again by the new one.
+    val onLan by Route.onLan.collectAsState()
+    var firstRoute by remember { mutableStateOf(true) }
+    LaunchedEffect(onLan) {
+        if (firstRoute) { firstRoute = false; return@LaunchedEffect }
+        MouseSocket.disconnect()
+        MouseSocket.connect()
     }
 
     var mode by rememberSaveable { mutableStateOf(MouseMode.MOUSE) }

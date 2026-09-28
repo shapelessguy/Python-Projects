@@ -13,12 +13,10 @@ import java.net.Socket
 import java.util.concurrent.TimeUnit
 import javax.net.SocketFactory
 
-/** The Mouse section's connection to CyanManager's mouse/keyboard WebSocket.
- *  On Wi-Fi it goes straight to the PC (Config.MOUSE_WS_URL, from secrets.json's
- *  CONTROLS_FN_HOST in build.gradle.kts) -- the quickest path while next to it.
- *  When that isn't possible -- off Wi-Fi, or the PC doesn't answer (another
- *  network) -- it goes through CyanHouse instead (Config.MOUSE_WS_RELAY_URL),
- *  which checks the user and relays every message on to the PC. */
+/** The Mouse section's connection to CyanManager's mouse/keyboard WebSocket,
+ *  always through CyanHouse (Config.MOUSE_WS_URL), which checks the user and
+ *  relays every message on to the PC -- over the LAN at home, the internet
+ *  elsewhere, as every request goes (net/Route.kt). */
 object MouseSocket {
     // Disables Nagle's algorithm on the socket -- OkHttp doesn't do this itself,
     // and Nagle + delayed-ACK is a well-known source of tens-of-ms-per-message
@@ -37,17 +35,9 @@ object MouseSocket {
     }
 
     private val client = OkHttpClient.Builder()
+        .dns(LanDns)
         .socketFactory(noDelaySocketFactory)
         .pingInterval(15, TimeUnit.SECONDS)
-        .build()
-
-    // The direct attempt gives up quickly -- the PC's address not there (someone
-    // else's Wi-Fi), or there but not answering -- so falling back to CyanHouse
-    // doesn't mean staring at a spinner first. The read timeout only covers the
-    // handshake: OkHttp clears it once the socket is open.
-    private val directClient = client.newBuilder()
-        .connectTimeout(2, TimeUnit.SECONDS)
-        .readTimeout(2, TimeUnit.SECONDS)
         .build()
 
     private var socket: WebSocket? = null
@@ -63,25 +53,16 @@ object MouseSocket {
     private val _lastError = MutableStateFlow<String?>(null)
     val lastError: StateFlow<String?> = _lastError
 
-    /** Whether the screen still wants a socket: a direct attempt failing after
-     *  disconnect() must not open the CyanHouse one. */
-    private var wanted = false
-
-    fun connect(onWifi: Boolean) {
+    fun connect() {
         if (socket != null || connecting) return
-        wanted = true
-        open(direct = onWifi)
-    }
-
-    private fun open(direct: Boolean) {
         connecting = true
         try {
-            // Same credential as every API call, to either end: CyanHouse
-            // checks it and passes it on; CyanManager checks it (its api_auth.py).
-            val request = Request.Builder().url(if (direct) Config.MOUSE_WS_URL else Config.MOUSE_WS_RELAY_URL)
+            // Same credential as every API call: CyanHouse checks it and
+            // passes it on; CyanManager checks it too (its api_auth.py).
+            val request = Request.Builder().url(Config.MOUSE_WS_URL)
                 .apply { Auth.basicHeader()?.let { header("Authorization", it) } }
                 .build()
-            socket = (if (direct) directClient else client).newWebSocket(request, object : WebSocketListener() {
+            socket = client.newWebSocket(request, object : WebSocketListener() {
                 override fun onOpen(webSocket: WebSocket, response: Response) {
                     _connected.value = true
                     _lastError.value = null
@@ -96,12 +77,8 @@ object MouseSocket {
                 override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
                     if (socket !== webSocket) return
                     socket = null
-                    val wasOpen = _connected.value
                     _connected.value = false
-                    // The PC didn't answer directly (unreachable, silent, or
-                    // refused): try through CyanHouse.
-                    if (direct && !wasOpen && wanted) open(direct = false)
-                    else _lastError.value = t.message ?: t::class.simpleName
+                    _lastError.value = t.message ?: t::class.simpleName
                 }
             })
         } catch (e: Exception) {
@@ -112,7 +89,6 @@ object MouseSocket {
     }
 
     fun disconnect() {
-        wanted = false
         socket?.close(1000, null)
         socket = null
         _connected.value = false
