@@ -1081,6 +1081,11 @@ def version() -> int:
 _browse_cache: dict[str, tuple[Path, list[dict]]] = {}
 _browse_gen = 0
 _browse_lock = threading.Lock()
+# One walk per area at a time: a change reaches every open browser at once,
+# and each asking for the listing must not start a walk of its own — twenty
+# of them side by side kept the drive busy for half a minute, and the moves
+# that caused them waited behind.
+_walking: dict[str, threading.Lock] = {}
 
 
 def _forget_browse(changed: Path | None = None) -> None:
@@ -1362,15 +1367,19 @@ def browse(area_name: str) -> list[dict]:
     changes. The entries are shared: callers copy before changing one."""
     root, _ = area(area_name)
     with _browse_lock:
-        kept = _browse_cache.get(area_name)
-        if kept and kept[0] == Path(root):
-            return kept[1]
-        gen = _browse_gen
-    out = _browse(area_name)
-    with _browse_lock:
-        if _browse_gen == gen:
-            _browse_cache[area_name] = (Path(root), out)
-    return out
+        walking = _walking.setdefault(area_name, threading.Lock())
+    with walking:
+        # Whoever waited here most likely finds the walk they waited for.
+        with _browse_lock:
+            kept = _browse_cache.get(area_name)
+            if kept and kept[0] == Path(root):
+                return kept[1]
+            gen = _browse_gen
+        out = _browse(area_name)
+        with _browse_lock:
+            if _browse_gen == gen:
+                _browse_cache[area_name] = (Path(root), out)
+        return out
 
 
 def _browse(area_name: str) -> list[dict]:

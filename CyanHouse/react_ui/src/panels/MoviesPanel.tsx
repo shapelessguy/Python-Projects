@@ -154,6 +154,23 @@ function gb(bytes: number): string {
   return `${(bytes / 1e9).toFixed(1)} GB`;
 }
 
+/** `value`, once it has stopped changing for `quiet` ms — or every `most`
+ *  ms while it keeps on changing, so a steady trickle is not held back
+ *  for ever. */
+function useSettled<T>(value: T, quiet = 1200, most = 5000): T {
+  const [settled, setSettled] = useState(value);
+  const since = useRef<number | null>(null);
+  useEffect(() => {
+    if (value === settled) { since.current = null; return; }
+    const now = Date.now();
+    if (since.current === null) since.current = now;
+    const t = window.setTimeout(() => { since.current = null; setSettled(value); },
+      Math.max(0, Math.min(quiet, since.current + most - now)));
+    return () => window.clearTimeout(t);
+  }, [value, settled, quiet, most]);
+  return settled;
+}
+
 export function MoviesPanel() {
   // One id per mounted panel: the backend keys its live transcodes on it, so
   // a seek can kill the stream it seeked away from instead of leaving two
@@ -216,6 +233,10 @@ export function MoviesPanel() {
   const [space, setSpace] = useState<
     { name: string; mount: string; path: string; total: number; free: number } | null>(null);
   const versions = useVersionPoll();
+  // What the lists here follow: the server's change counter, settled. Every
+  // file of a move of fifty moves it; reading the listings again fifty times
+  // (in every open browser) made the move itself wait.
+  const prepVersion = useSettled(versions.prep);
   const { permissions, loaded: permissionsLoaded } = useVisibility();
   // qBittorrent and pyLoad, one permission for both (api/auth.py). Without
   // it their tabs are not there, and one remembered from before is closed.
@@ -353,7 +374,7 @@ export function MoviesPanel() {
   useEffect(() => {
     if (tab !== "") return;
     api.movies().then((m) => { setMovies(m); setListError(""); }).catch((e) => setListError(String(e)));
-  }, [versions.prep, tab]);
+  }, [prepVersion, tab]);
 
   // Which folders exist is configuration, and configuration changes: it is
   // re-read on the same counter the listings use, so correcting a path in
@@ -362,7 +383,7 @@ export function MoviesPanel() {
     api.prepAreas()
       .then((r) => { setSources(r.sources); setLanguages(r.languages); })
       .catch(() => {});
-  }, [versions.prep]);
+  }, [prepVersion]);
 
   /** Re-read every visible pane. Both at once because a move between them
    *  changes both, and a half-updated pair shows a file in two places. */
@@ -407,7 +428,7 @@ export function MoviesPanel() {
       })
       .catch(() => {});
     return () => { alive = false; };
-  }, [paneKeys, inbox?.key, versions.prep, loadPanes]);
+  }, [paneKeys, inbox?.key, prepVersion, loadPanes]);
 
   // Kept next to the search box because "can I still put a 40 GB remux
   // here?" is a question you ask in front of the folder. Refetched on the
@@ -423,7 +444,7 @@ export function MoviesPanel() {
           && cur.free === r.free && cur.total === r.total ? cur : r))
       .catch(() => alive && setSpace(null));
     return () => { alive = false; };
-  }, [paneKeys, versions.prep]);
+  }, [paneKeys, prepVersion]);
 
   // Asked for whenever the folders change — queueing, starting and finishing
   // a remux all bump that counter, so a remux queued from another browser
@@ -470,7 +491,7 @@ export function MoviesPanel() {
   const loadJobs = useCallback(() => {
     api.prepJobs().then((r) => setJobs(r.jobs)).catch(() => {});
   }, []);
-  useEffect(loadJobs, [versions.prep, loadJobs]);
+  useEffect(loadJobs, [prepVersion, loadJobs]);
   useEffect(() => {
     if (!busyQueue) return;
     const t = window.setInterval(loadJobs, 1000);
@@ -648,7 +669,7 @@ export function MoviesPanel() {
     load();
     const t = window.setInterval(load, 3000);
     return () => { alive = false; window.clearInterval(t); };
-  }, [inbox?.key, inbox?.type, versions.prep]);
+  }, [inbox?.key, inbox?.type, prepVersion]);
 
   /** An inbox's listing narrowed to the songs left for review, and the
    *  folders on the way to them. */
@@ -1712,7 +1733,7 @@ export function MoviesPanel() {
             view={musicView}
             query={query}
             activePath={nowSong?.path ?? null}
-            version={versions.prep}
+            version={prepVersion}
             onOpen={openSong}
             coverSize={coverSize}
             active={!external && tab === ":music"}
