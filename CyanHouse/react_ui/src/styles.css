@@ -2066,6 +2066,7 @@ select.mv-preplang:invalid, select.mv-preplang[data-empty="true"] { color: var(-
   width: 40px; height: 40px; border-radius: 50%; pointer-events: none;
   display: flex; align-items: center; justify-content: center; padding-left: 3px;
   background: rgba(0, 0, 0, 0.55); color: #fff; font-size: 1rem;
+  opacity: 0.5;
 }
 .ig-broken {
   display: flex; align-items: center; justify-content: center; height: 120px;
@@ -2336,3 +2337,10 @@ label.button-like {
 .mv-introname { font-weight: 600; font-size: 1rem; }
 .mv-introabout { color: var(--muted); font-size: 0.8rem; line-height: 1.35; }
 @media (max-width: 640px) { .mv-intro { padding: 18px 16px 24px; } }
+/* A paused video its owner may give a thumbnail: the frame on screen. */
+.iv-poster {
+  position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); z-index: 2;
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 8px; border-radius: 10px; background: rgba(0, 0, 0, 0.6);
+}
+.iv-posternote { color: #fff; font-size: 0.8rem; }

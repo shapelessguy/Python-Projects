@@ -440,6 +440,8 @@ export interface StagingArea {
  *  a download can be three levels deep or loose in the root, and assuming a
  *  shape is how a browser ends up hiding things. */
 export interface StagedFile {
+  /** A video's picked thumbnail (its id), when its owner chose a frame. */
+  poster?: string;
   path: string;
   folder: string;
   name: string;
@@ -709,8 +711,14 @@ export const api = {
     "/api/prep/raw?" + new URLSearchParams({ area, path, ...(download ? { download: "true" } : {}) }),
   /** A picture scaled down to about `width` pixels, for galleries. `version`
    *  (the file's time) makes a changed picture a new URL. */
-  prepThumbUrl: (area: string, path: string, width: number, version: number) =>
+  prepThumbUrl: (area: string, path: string, width: number, version: number | string) =>
     "/api/prep/thumb?" + new URLSearchParams({ area, path, w: String(width), v: String(version) }),
+  /** Make `jpeg` the thumbnail of a video (its owner only); null goes back
+   *  to the video's first frame. */
+  prepSetPoster: (area: string, path: string, jpeg: Blob | null) =>
+    f("/api/prep/poster?" + new URLSearchParams({ area, path }),
+      { method: "PUT", body: jpeg ?? "", headers: { "Content-Type": "image/jpeg" } })
+      .then(j<{ poster: string | null }>),
   prepIdentify: (title: string, year: string) =>
     f("/api/prep/identify?" + new URLSearchParams({ title, year }))
       .then(j<{ confident: boolean; match: TmdbCandidate | null; candidates: TmdbCandidate[] }>),

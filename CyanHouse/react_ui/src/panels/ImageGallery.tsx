@@ -389,7 +389,7 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
                                  onShare={onShare ? () => onShare(a.path) : undefined} />
                   )}
                   {a.cover
-                    ? <AlbumCover src={api.prepThumbUrl(area, a.cover.path, Math.round(size * 1.5 * dpr), a.cover.modified)} />
+                    ? <AlbumCover src={api.prepThumbUrl(area, a.cover.path, Math.round(size * 1.5 * dpr), thumbVersion(a.cover))} />
                     : <span className="ig-broken ig-emptyalbum">📁</span>}
                 </span>
                 <span className="ig-albumname">{a.name}</span>
@@ -430,7 +430,7 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
               <div key={r} className="ig-row" style={{ height: Math.round(row.h) }}>
                 {row.items.map(({ file, w }) => (
                   <Tile key={file.path} file={file} width={w} grow={row.full}
-                        src={api.prepThumbUrl(area, file.path, Math.round(w * dpr), file.modified)}
+                        src={api.prepThumbUrl(area, file.path, Math.round(w * dpr), thumbVersion(file))}
                         picked={sel.has(file.path)}
                         onPick={pickable.has(file.path) ? (e) => pick(file.path, e) : undefined}
                         onClick={clickOr(file.path, () => onOpen(list, list.indexOf(file)))} />
@@ -544,6 +544,8 @@ const PLAYABLE = /\.(mp4|m4v|webm|mov)$/i;
 export const isVideo = (f: StagedFile) => f.kind === "video" && PLAYABLE.test(f.name);
 /** Sound a browser plays by itself (the server serves any audio raw). */
 const PLAYABLE_AUDIO = /\.(mp3|m4a|aac|ogg|oga|opus|wav|flac)$/i;
+/** What a thumbnail's URL changes with: the file, and a video's picked frame. */
+const thumbVersion = (f: StagedFile) => (f.poster ? `${f.modified}-${f.poster}` : f.modified);
 export const isAudio = (f: StagedFile) => f.kind === "audio" && PLAYABLE_AUDIO.test(f.name);
 /** What the gallery shows: pictures, and the videos and sound it can play. */
 export const shown = (f: StagedFile) => f.kind === "image" || isVideo(f) || isAudio(f);
@@ -673,7 +675,7 @@ function fmtLength(sec: number): string {
  *  neighbouring pictures are loaded ahead, so stepping is instant.
  *  Right-click on the picture offers Delete to whoever may manage its
  *  folder (`mayDelete`); it deletes for good, so it asks a second click. */
-export function ImageViewer({ area, list, index, onIndex, onClose, mayDelete, onDelete }: {
+export function ImageViewer({ area, list, index, onIndex, onClose, mayDelete, onDelete, mayOwn, onPoster }: {
   area: string;
   list: StagedFile[];
   index: number;
@@ -681,6 +683,10 @@ export function ImageViewer({ area, list, index, onIndex, onClose, mayDelete, on
   onClose: () => void;
   mayDelete?: (file: StagedFile) => boolean;
   onDelete?: (file: StagedFile) => Promise<void>;
+  /** Whether this user owns the file: only an owner picks a video's
+   *  thumbnail; `onPoster` hands the picked frame (a JPEG) on. */
+  mayOwn?: (file: StagedFile) => boolean;
+  onPoster?: (file: StagedFile, jpeg: Blob) => Promise<void>;
 }) {
   const file = list[index];
   const [loaded, setLoaded] = useState(false);
@@ -693,7 +699,35 @@ export function ImageViewer({ area, list, index, onIndex, onClose, mayDelete, on
     if (i >= 0 && i < list.length) onIndex(i);
   };
 
-  useEffect(() => { setLoaded(false); setMenu(null); }, [file?.path]);
+  // A paused video, and the frame on screen sent as its thumbnail.
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [paused, setPaused] = useState(false);
+  const [posterNote, setPosterNote] = useState("");
+  useEffect(() => { setLoaded(false); setMenu(null); setPaused(false); setPosterNote(""); }, [file?.path]);
+  const usePoster = async () => {
+    const v = videoRef.current;
+    if (!v || !onPoster || !v.videoWidth) return;
+    // The frame exactly as shown, no wider than 1920 (thumbnails are at most
+    // 960), and under the 1 MB the site takes in one request (nginx).
+    const scale = Math.min(1, 1920 / v.videoWidth);
+    const c = document.createElement("canvas");
+    c.width = Math.round(v.videoWidth * scale);
+    c.height = Math.round(v.videoHeight * scale);
+    c.getContext("2d")!.drawImage(v, 0, 0, c.width, c.height);
+    let jpeg: Blob | null = null;
+    for (const quality of [0.9, 0.8, 0.65, 0.5]) {
+      jpeg = await new Promise<Blob | null>((ok) => c.toBlob(ok, "image/jpeg", quality));
+      if (!jpeg || jpeg.size < 950_000) break;
+    }
+    if (!jpeg) { setPosterNote("Could not grab the frame"); return; }
+    setPosterNote("Saving…");
+    try {
+      await onPoster(file, jpeg);
+      setPosterNote("Thumbnail set ✓");
+    } catch (e) {
+      setPosterNote(String(e).replace(/^Error:\s*/, ""));
+    }
+  };
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
       if (e.key === "Escape") { if (menu) setMenu(null); else onClose(); }
@@ -750,13 +784,21 @@ export function ImageViewer({ area, list, index, onIndex, onClose, mayDelete, on
                  onLoadedData={() => setLoaded(true)} onError={() => setLoaded(true)} />
         </div>
       ) : isVideo(file) ? (
-        <video key={file.path} className={"iv-img" + (loaded ? " in" : "")} src={api.prepRawUrl(area, file.path)}
+        <video key={file.path} ref={videoRef} className={"iv-img" + (loaded ? " in" : "")} src={api.prepRawUrl(area, file.path)}
                controls autoPlay playsInline onLoadedData={() => setLoaded(true)}
+               onPause={() => setPaused(true)} onPlay={() => { setPaused(false); setPosterNote(""); }}
                onClick={(e) => { e.stopPropagation(); setMenu(null); }} onContextMenu={openMenu} />
       ) : (
         <img key={file.path} className={"iv-img" + (loaded ? " in" : "")} src={api.prepRawUrl(area, file.path)}
              alt={file.name} onLoad={() => setLoaded(true)} draggable={false}
              onClick={(e) => { e.stopPropagation(); setMenu(null); }} onContextMenu={openMenu} />
+      )}
+      {isVideo(file) && paused && onPoster && mayOwn?.(file) && (
+        <div className="iv-poster" onClick={(e) => e.stopPropagation()}>
+          <button onClick={usePoster} disabled={posterNote === "Saving…"}
+                  title="Use the frame on screen as this video's thumbnail">🖼 Use as thumbnail</button>
+          {posterNote && <span className="iv-posternote">{posterNote}</span>}
+        </div>
       )}
       {menu && (
         <div className="mv-menu iv-menu" style={{ left: menu.x, top: menu.y }}

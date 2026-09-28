@@ -31,8 +31,15 @@ def thumbnail(area_name: str, rel: str, width: int) -> Path:
     """A JPEG of a picture in a browsable folder, at least `width` pixels
     wide (or as it is, when it is smaller). A video's is its first frame."""
     path = movie_prep.resolve_in_area(area_name, rel)
-    if movie_prep.file_kind(path) not in ("image", "video") or not path.is_file():
+    kind = movie_prep.file_kind(path)
+    if kind not in ("image", "video") or not path.is_file():
         raise PrepError("not a picture", 400)
+    if kind == "video":
+        # The frame its owner picked for it (folder_access.video_poster).
+        from api.services import folder_access
+        pid = folder_access.video_poster(area_name, rel) if folder_access.shared(area_name) else None
+        if pid and folder_access.poster_path(pid).is_file():
+            return scaled(folder_access.poster_path(pid), width)
     return scaled(path, width)
 
 

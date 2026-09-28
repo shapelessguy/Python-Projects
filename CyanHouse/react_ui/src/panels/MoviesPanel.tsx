@@ -2290,6 +2290,14 @@ export function MoviesPanel() {
             say(`Deleted ${f.name}`);
             refreshListing();
           }}
+          // A file is its folder owner's, or, loose at the top, its uploader's.
+          mayOwn={(f) => f.folder
+            ? (listings[viewing.area] ?? []).some((x) => x.kind === "folder" && x.path === f.folder && !!x.access?.can_share)
+            : f.access?.owner === currentUsername()}
+          onPoster={async (f, jpeg) => {
+            await api.prepSetPoster(viewing.area, f.path, jpeg);
+            refreshListing();
+          }}
         />
       )}
       {conflicts && (

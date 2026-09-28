@@ -290,6 +290,31 @@ async def thumb(area: str = Query(...), path: str = Query(...), w: int = Query(4
     return FileResponse(out, media_type="image/jpeg", headers={"Cache-Control": "private, max-age=86400"})
 
 
+@router.put("/poster")
+async def set_poster(request: Request, area: str = Query(...), path: str = Query(...),
+                     user: str = Depends(require_user)):
+    """Make the JPEG in the body the thumbnail of a video in Images or
+    Documents -- the frame the page shows when it is paused; an empty body
+    goes back to the video's first frame. Only its owner may."""
+    _shared_area(area)
+    _not_encrypted(area, path)
+    try:
+        resolved = movie_prep.resolve_in_area(area, path)
+    except movie_prep.PrepError as e:
+        raise _wrap(e)
+    if movie_prep.file_kind(resolved) != "video":
+        raise HTTPException(400, "only a video has a picked thumbnail")
+    if not await run_in_threadpool(folder_access.owns_file, user, area, path):
+        raise HTTPException(403, "only the video's owner can change its thumbnail")
+    body = await request.body()
+    try:
+        pid = await run_in_threadpool(folder_access.set_video_poster, area, path, body or None)
+    except folder_access.AccessError as e:
+        raise HTTPException(e.status_code, str(e))
+    movie_prep._bump()
+    return {"poster": pid}
+
+
 @router.get("/space")
 async def disk_space(area: str = Query(...), _user: str = Depends(require_user)):
     """The disk this folder lives on: what it is called, and how full."""
@@ -413,6 +438,7 @@ async def rename_entry(
         raise _wrap(e)
     if folder_access.shared(area):
         await run_in_threadpool(folder_access.renamed_file, area, path, done["new_path"])
+        await run_in_threadpool(folder_access.moved_poster, area, path, area, done["new_path"])
     return done
 
 
@@ -460,6 +486,7 @@ async def move_entry(
     # moved out, it follows its new folder; moved in, it is the mover's.
     if folder_access.shared(area):
         await run_in_threadpool(folder_access.forget_file, area, path)
+        await run_in_threadpool(folder_access.moved_poster, area, path, to_area, done["new_path"])
     if folder_access.shared(to_area) and not to:
         await run_in_threadpool(folder_access.claim_file, to_area, done["new_path"], user)
     return done
@@ -504,6 +531,7 @@ async def delete_entry(
         raise _wrap(e)
     if folder_access.shared(area):
         await run_in_threadpool(folder_access.forget_file, area, path)
+        await run_in_threadpool(folder_access.moved_poster, area, path, None, None)
     return done
 
 

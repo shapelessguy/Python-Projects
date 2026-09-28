@@ -38,11 +38,12 @@ folder is part of it.
 """
 import json
 import os
+import secrets
 import threading
 from pathlib import Path
 
 from api.auth import USERS, may_see_media, visible_panels
-from api.config import DOCUMENTS_DIR, IMAGE_DIR
+from api.config import API_DATA_DIR, DOCUMENTS_DIR, IMAGE_DIR
 
 SIDE = ".cyanhouse.json"
 VAULT = ".cyanhouse-vault.json"
@@ -156,21 +157,27 @@ def top_file_owner(area: str, rel: str) -> str | None:
 _files_lock = threading.Lock()
 
 
-def _change_top_files(area: str, change) -> None:
-    """Edit the top folder's record of loose files, `change(files)` in place."""
+def _change_record(area: str, folder: str, key: str, change) -> None:
+    """Edit one per-file record of a folder's rule file (`files`, `frames`),
+    `change(record)` in place; the file goes when nothing is left in it."""
     with _files_lock:
-        rule = rule_here(area, "")
-        files = dict(rule.get("files") or {})
-        change(files)
-        if files:
-            rule["files"] = files
+        rule = rule_here(area, folder)
+        record = dict(rule.get(key) or {})
+        change(record)
+        if record:
+            rule[key] = record
         else:
-            rule.pop("files", None)
-        side = _dir(area, "") / SIDE
+            rule.pop(key, None)
+        side = _dir(area, folder) / SIDE
         if rule:
             side.write_text(json.dumps(rule, indent=2), encoding="utf-8")
         elif side.exists():
             side.unlink()
+
+
+def _change_top_files(area: str, change) -> None:
+    """Edit the top folder's record of loose files, `change(files)` in place."""
+    _change_record(area, "", "files", change)
 
 
 def claim_file(area: str, rel: str, user: str) -> None:
@@ -196,6 +203,72 @@ def renamed_file(area: str, old: str, new: str) -> None:
         if "/" not in new:
             files[new] = owner
     _change_top_files(area, change)
+
+
+def owns_file(user: str, area: str, rel: str) -> bool:
+    """Whether `user` owns the file `rel`: they own its folder (or one above
+    it) -- being given "manage" on it is not owning it -- or, loose at the
+    top, they put it there."""
+    folder = os.path.dirname(rel)
+    if not folder:
+        return top_file_owner(area, rel) == user
+    return access(user, area, folder)["can_share"]
+
+
+# ── a video's thumbnail: a frame of it its owner picked ───────────────────
+# The page grabs the frame shown when the video is paused and sends it as a
+# JPEG; it is kept in POSTER_DIR under a random id, and the video's folder
+# records which: {"posters": {"name.mp4": "<id>"}} in its rule file, so it
+# travels with the folder, and a video moved or renamed on its own takes it
+# along (moved_poster). Without one, the thumbnail is the video's first frame.
+POSTER_DIR = API_DATA_DIR / "posters"
+POSTER_MAX_BYTES = 8 * 1024 * 1024
+
+
+def video_poster(area: str, rel: str) -> str | None:
+    """The id of the frame picked for the video `rel`, if one was."""
+    folder, name = os.path.split(rel)
+    pid = ((_rule(area, folder) or {}).get("posters") or {}).get(name)
+    return pid if isinstance(pid, str) and pid.isalnum() else None
+
+
+def poster_path(pid: str) -> Path:
+    return POSTER_DIR / f"{pid}.jpg"
+
+
+def set_video_poster(area: str, rel: str, jpeg: bytes | None) -> str | None:
+    """Make `jpeg` the thumbnail of the video `rel` (None: back to its first
+    frame). Its new id."""
+    folder, name = os.path.split(rel)
+    old = video_poster(area, rel)
+    pid = None
+    if jpeg is not None:
+        if len(jpeg) > POSTER_MAX_BYTES or not jpeg.startswith(b"\xff\xd8\xff"):
+            raise AccessError("that is not a JPEG picture", 400)
+        pid = secrets.token_hex(12)
+        POSTER_DIR.mkdir(parents=True, exist_ok=True)
+        poster_path(pid).write_bytes(jpeg)
+        _change_record(area, folder, "posters", lambda r: r.__setitem__(name, pid))
+    elif old is not None:
+        _change_record(area, folder, "posters", lambda r: r.pop(name, None))
+    if old is not None:
+        poster_path(old).unlink(missing_ok=True)
+    return pid
+
+
+def moved_poster(area: str, old: str, to_area: str | None, new: str | None) -> None:
+    """A video moved or renamed keeps its picked frame; deleted (no `new`),
+    the frame goes with it."""
+    pid = video_poster(area, old)
+    if pid is None:
+        return
+    folder, name = os.path.split(old)
+    _change_record(area, folder, "posters", lambda r: r.pop(name, None))
+    if to_area is not None and new and shared(to_area):
+        nfolder, nname = os.path.split(new)
+        _change_record(to_area, nfolder, "posters", lambda r: r.__setitem__(nname, pid))
+    else:
+        poster_path(pid).unlink(missing_ok=True)
 
 
 def can(user: str, area: str, path: str, need: str, *, cache: dict | None = None) -> bool:
@@ -240,6 +313,10 @@ def filter_listing(user: str, area: str, files: list[dict]) -> list[dict]:
         if not is_folder and not folder and top_file_owner(area, f["path"]) == user:
             # A loose file at the top that this user put there: theirs.
             f = {**f, "access": {**a, "level": "manage", "owner": user}}
+        if f.get("kind") == "video":
+            pid = video_poster(area, f["path"])
+            if pid is not None:
+                f = {**f, "poster": pid}
         if is_folder:
             f = {**f, "access": a}
             if area == VAULT_AREA and (_dir(area, f["path"]) / VAULT).is_file():
