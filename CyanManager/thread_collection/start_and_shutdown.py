@@ -102,6 +102,6 @@ def entrypoint(thread_manager):
                     print("Shutdown aborted")
                     break
             funct_interaction = now
-        wake_up_hhd()
+        # wake_up_hhd()
         wait(signal, 2000)
     print(f"{thread_manager.name} thread down..")
