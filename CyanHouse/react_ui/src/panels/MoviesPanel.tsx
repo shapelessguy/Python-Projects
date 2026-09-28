@@ -1644,7 +1644,7 @@ export function MoviesPanel() {
         <div className="mv-search">
           <input
             placeholder={tab
-              ? `Search ${Object.values(listings).reduce((n, l) => n + l.length, 0) || ""} files…`
+              ? `Search ${panes.reduce((n, p) => n + (listings[p.key]?.length ?? 0), 0) || ""} files…`
               : `Search ${movies.length || ""} movies…`}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
