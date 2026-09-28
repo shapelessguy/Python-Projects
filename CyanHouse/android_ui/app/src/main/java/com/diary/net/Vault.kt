@@ -41,6 +41,51 @@ class Vault private constructor(private val mk: ByteArray) {
 
         internal fun fromKey(mk: ByteArray) = Vault(mk.copyOf())
 
+        private val DEFAULT_KDF = VaultKdf("argon2id", 65536, 3, 1)
+        private const val CROCKFORD = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
+
+        /** A new vault: its file, the vault itself, and its recovery code
+         *  (shown once). Two Argon2id runs: call it off the main thread. */
+        fun create(password: String): Triple<VaultFile, Vault, String> {
+            val mk = randomBytes(32)
+            val code = recoveryCodeFrom(randomBytes(20))
+            val file = VaultFile(1, DEFAULT_KDF,
+                wrap(Normalizer.normalize(password, Normalizer.Form.NFC), mk, DEFAULT_KDF),
+                wrap(normaliseRecoveryCode(code), mk, DEFAULT_KDF))
+            return Triple(file, Vault(mk), code)
+        }
+
+        /** 20 random bytes as 32 Crockford base32 characters, in four groups. */
+        fun recoveryCodeFrom(bytes: ByteArray): String {
+            var bits = 0; var value = 0; val out = StringBuilder()
+            for (b in bytes) {
+                value = (value shl 8) or (b.toInt() and 0xff); bits += 8
+                while (bits >= 5) { out.append(CROCKFORD[(value ushr (bits - 5)) and 31]); bits -= 5 }
+                value = value and ((1 shl bits) - 1)
+            }
+            return out.chunked(8).joinToString("-")
+        }
+
+        private fun wrap(secret: String, mk: ByteArray, kdf: VaultKdf): VaultWrap {
+            val salt = randomBytes(16); val nonce = randomBytes(12)
+            val key = seal(kek(secret, salt, kdf), nonce, mk, WRAP_AAD)
+            return VaultWrap(b64std(salt), b64std(nonce), b64std(key))
+        }
+
+        private fun b64std(bytes: ByteArray): String = Base64.getEncoder().encodeToString(bytes)
+
+        /** A file's size before encryption: its stored size less the header
+         *  and a tag per chunk. */
+        fun plainSize(stored: Long): Long {
+            val body = maxOf(0L, stored - HEADER)
+            return maxOf(0L, body - 16 * maxOf(1L, (body + CHUNK + 15) / (CHUNK + 16)))
+        }
+
+        /** What `plain` bytes come to, encrypted. */
+        fun storedSize(plain: Long): Long = HEADER + plain + 16 * maxOf(1L, (plain + CHUNK - 1) / CHUNK)
+
+        const val HEADER_SIZE = HEADER
+
         /** Unlock with the password, or ([recovery]) the recovery code. A
          *  wrong one throws [VaultException]. Slow on purpose (Argon2id):
          *  call it off the main thread. */
@@ -101,6 +146,10 @@ class Vault private constructor(private val mk: ByteArray) {
             }
     }
 
+    /** The vault file with a new password (the recovery code stays). */
+    fun withPassword(file: VaultFile, password: String): VaultFile =
+        file.copy(password = wrap(Normalizer.normalize(password, Normalizer.Form.NFC), mk, file.kdf))
+
     // ── names ──
     fun encryptName(name: String, nonce: ByteArray = randomBytes(12)): String {
         val plain = Normalizer.normalize(name, Normalizer.Form.NFC).toByteArray(Charsets.UTF_8)
@@ -146,5 +195,64 @@ class Vault private constructor(private val mk: ByteArray) {
             at = end
             i++
         }
+    }
+
+    /** A file read a chunk at a time -- for the player, which seeks: chunk
+     *  `i` of a file whose stored bytes begin with `header`. */
+    inner class Reader(private val header: ByteArray) {
+        private val fk: ByteArray
+
+        init {
+            if (header.size != HEADER || !header.copyOfRange(0, 4).contentEquals(MAGIC)) {
+                throw VaultException("not an encrypted file")
+            }
+            fk = open(mk, header.copyOfRange(4, 16), header.copyOfRange(16, HEADER), MAGIC)
+        }
+
+        fun chunk(i: Int, last: Boolean, stored: ByteArray): ByteArray = open(fk, chunkNonce(i, last), stored, header)
+    }
+
+    /** `plain` (of `size` bytes) as stored in the vault, encrypted as it is
+     *  read: [storedSize] bytes, never the whole file in memory. */
+    fun encrypting(plain: java.io.InputStream, size: Long): java.io.InputStream = object : java.io.InputStream() {
+        private val fk = randomBytes(32)
+        private val fnonce = randomBytes(12)
+        private val header = MAGIC + fnonce + seal(mk, fnonce, fk, MAGIC)
+        private val count = maxOf(1L, (size + CHUNK - 1) / CHUNK)
+        private var i = 0L
+        private var buf: ByteArray = header
+        private var at = 0
+
+        private fun refill(): Boolean {
+            if (i >= count) return false
+            val n = if (i == count - 1) (size - i * CHUNK).toInt() else CHUNK
+            val chunk = ByteArray(n)
+            var got = 0
+            while (got < n) {
+                val r = plain.read(chunk, got, n - got)
+                if (r < 0) throw java.io.IOException("the file got shorter while it was being read")
+                got += r
+            }
+            buf = seal(fk, chunkNonce(i.toInt(), i == count - 1), chunk, header)
+            at = 0
+            i++
+            return true
+        }
+
+        override fun read(): Int {
+            val one = ByteArray(1)
+            return if (read(one, 0, 1) < 0) -1 else one[0].toInt() and 0xff
+        }
+
+        override fun read(b: ByteArray, off: Int, len: Int): Int {
+            if (len == 0) return 0
+            while (at >= buf.size) if (!refill()) return -1
+            val n = minOf(len, buf.size - at)
+            System.arraycopy(buf, at, b, off, n)
+            at += n
+            return n
+        }
+
+        override fun close() = plain.close()
     }
 }

@@ -202,19 +202,97 @@ object Api {
     suspend fun deleteDish(id: Int): FoodData =
         client.delete(u("/api/food/dishes/$id")).body()
 
-    // ── Documents (the Media panel's; api/routers/prep.py) ────────────────
-    suspend fun documents(): List<DocEntry> =
-        client.get(u("/api/prep/files")) { parameter("area", ":documents") }.body<DocListing>().files
+    // ── Documents and Images (the Media panel's; api/routers/prep.py) ────
+    const val DOCS = ":documents"
+    const val IMAGES = ":images"
+
+    suspend fun documents(area: String = DOCS): List<DocEntry> =
+        client.get(u("/api/prep/files")) { parameter("area", area) }.body<DocListing>().files
 
     /** An encrypted folder's vault file, to unlock it with (net/Vault.kt). */
     suspend fun vaultFile(path: String): VaultFile =
         client.get(u("/api/prep/vault")) { parameter("path", path) }.body()
 
     /** A file's bytes as stored -- in an encrypted folder, still encrypted. */
-    suspend fun documentBytes(path: String): ByteArray =
+    suspend fun documentBytes(path: String, area: String = DOCS): ByteArray =
         client.get(u("/api/prep/raw")) {
-            parameter("area", ":documents"); parameter("path", path); parameter("download", "true")
+            parameter("area", area); parameter("path", path); parameter("download", "true")
         }.body()
+
+    /** Where a Documents file's bytes are, for the viewer's streaming
+     *  (net/Media.kt adds the credential). */
+    fun documentUrl(path: String, area: String = DOCS): String =
+        u("/api/prep/raw?area=${enc(area)}&download=true&path=${enc(path)}")
+
+    /** A picture (or a video's first frame) scaled to about `width` pixels
+     *  by the server; `version` (its time) makes a changed one a new URL. */
+    fun thumbUrl(path: String, width: Int, version: Long, area: String = IMAGES): String =
+        u("/api/prep/thumb?area=${enc(area)}&w=$width&v=$version&path=${enc(path)}")
+
+    private fun enc(s: String) = java.net.URLEncoder.encode(s, "UTF-8").replace("+", "%20")
+
+    suspend fun documentMkdir(parent: String, name: String, area: String = DOCS): MadePath =
+        client.post(u("/api/prep/mkdir")) {
+            parameter("area", area); parameter("path", parent); parameter("name", name)
+        }.body()
+
+    suspend fun documentRename(path: String, name: String, area: String = DOCS) {
+        client.post(u("/api/prep/rename")) {
+            parameter("area", area); parameter("path", path); parameter("name", name)
+        }
+    }
+
+    /** Move a file or folder into the folder `to` ("" the top). */
+    suspend fun documentMove(path: String, to: String, area: String = DOCS): MoveResult =
+        client.post(u("/api/prep/movepath")) {
+            parameter("area", area); parameter("path", path)
+            parameter("to_area", area); parameter("to", to)
+        }.body()
+
+    suspend fun documentDelete(path: String, area: String = DOCS) {
+        client.post(u("/api/prep/delete")) { parameter("area", area); parameter("path", path) }
+    }
+
+    suspend fun documentAccess(path: String, area: String = DOCS): AccessInfo =
+        client.get(u("/api/prep/access")) { parameter("area", area); parameter("path", path) }.body()
+
+    /** `visibility` null: as the folder above. */
+    suspend fun setDocumentAccess(path: String, visibility: String?, people: Map<String, String>, area: String = DOCS) {
+        client.put(u("/api/prep/access")) {
+            parameter("area", area); parameter("path", path)
+            contentType(ContentType.Application.Json)
+            setBody(buildJsonObject {
+                put("visibility", visibility?.let { JsonPrimitive(it) } ?: JsonNull)
+                put("people", JsonObject(people.mapValues { JsonPrimitive(it.value) }))
+            })
+        }
+    }
+
+    /** A new encrypted folder `name` in `parent`, with its vault file. */
+    suspend fun makeVault(parent: String, name: String, file: VaultFile): MadePath =
+        client.post(u("/api/prep/vault")) {
+            parameter("path", parent); parameter("name", name)
+            contentType(ContentType.Application.Json)
+            setBody(file)
+        }.body()
+
+    /** An encrypted folder's vault file replaced: its password changed. */
+    suspend fun setVaultFile(path: String, file: VaultFile) {
+        client.put(u("/api/prep/vault")) {
+            parameter("path", path)
+            contentType(ContentType.Application.Json)
+            setBody(file)
+        }
+    }
+
+    /** What the server said was wrong, out of a failed call's exception. */
+    fun reason(e: Throwable): String {
+        val text = e.message ?: return e::class.simpleName ?: "failed"
+        Regex("\"detail\"\\s*:\\s*\"((?:[^\"\\\\]|\\\\.)*)\"").find(text)?.let {
+            return runCatching { json.decodeFromString<String>("\"${it.groupValues[1]}\"") }.getOrDefault(it.groupValues[1])
+        }
+        return text
+    }
 
     suspend fun patchIngredient(name: String, patch: IngredientPatch): FoodData =
         client.patch(u("/api/food/ingredients/${name.encodeURLPathPart()}")) {

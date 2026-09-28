@@ -17,6 +17,12 @@ object Prefs {
         get() = sp?.getInt("foodZoomPct", 50) ?: 50
         set(v) { sp?.edit()?.putInt("foodZoomPct", v)?.apply() }
 
+    /** Images gallery: row height and folder-card width, in dp (the web
+     *  page's size slider). */
+    var imagesTileDp: Int
+        get() = sp?.getInt("imagesTileDp", 120) ?: 120
+        set(v) { sp?.edit()?.putInt("imagesTileDp", v)?.apply() }
+
     /** Last-open Controls mode (ALL / GROW / AUDIO / PC / VOICES). */
     var controlsMode: String
         get() = sp?.getString("controlsMode", "ALL") ?: "ALL"

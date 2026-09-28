@@ -33,10 +33,45 @@ data class DocEntry(
     val modified: Long = 0,
     val kind: String = "",
     val vault: Boolean = false,
+    /** A folder's (or a loose top file's) access for this user: folder_access.py. */
+    val access: FolderAccess? = null,
+    /** A folder's: how many things are under it. */
+    val children: Int? = null,
+    /** A picture's, when the server knows them: the gallery lays out by them. */
+    val width: Int? = null,
+    val height: Int? = null,
 )
 
 @Serializable
 data class DocListing(val files: List<DocEntry> = emptyList())
+
+/** What this user may do in a folder of Documents, and who it is shown to. */
+@Serializable
+data class FolderAccess(
+    val mode: String = "public",     // public | shared | private
+    val owner: String? = null,
+    val level: String = "none",      // none | see | add | manage
+    val from: String? = null,
+    val can_share: Boolean = false,
+)
+
+/** A folder's own sharing rule, as its owner set it. */
+@Serializable
+data class AccessRule(
+    val owner: String? = null,
+    val visibility: String? = null,
+    val people: Map<String, String>? = null,
+)
+
+@Serializable
+data class AccessInfo(val path: String, val rule: AccessRule, val access: FolderAccess, val users: List<String>)
+
+@Serializable
+data class MadePath(val new_path: String = "", val name: String = "")
+
+@Serializable
+data class MoveResult(val new_path: String = "", val merged: Boolean = false,
+                      val conflicts: List<kotlinx.serialization.json.JsonElement> = emptyList())
 
 /** GET /api/me -- one-shot, not polled (permissions are static for the life
  *  of a session, only changing via a backend restart). null visible_panels
