@@ -416,15 +416,12 @@ export function MoviesPanel() {
   const [note, setNote] = useState("");
   // Whether `note` is a complaint or a confirmation — the same line carries
   // both, and a rejected upload should not read like a success.
-  const [noteBad, setNoteBad] = useState(false);
   const [subBusy, setSubBusy] = useState(false);
-  const [dragging, setDragging] = useState(false);
   const [delays, setDelays] = useState<Delays>({});
   // What is in the boxes while they're being typed in. Kept apart from
   // `delays` so a half-typed "-" or "12" never restarts the transcode --
   // nothing leaves here until blur or Enter.
   const [draft, setDraft] = useState<Record<string, string>>({});
-  const fileRef = useRef<HTMLInputElement | null>(null);
 
   // Defaults for the *next* start, editable before anything is playing.
   const [audio, setAudio] = useState(0);
@@ -522,7 +519,11 @@ export function MoviesPanel() {
   const saveNow = (plan: PrepPlan): Promise<void> => {
     const id = plan.movie_id!;
     return api.prepSavePlan(plan.area!, plan)
-      .then(() => undefined)
+      // The conflicts are the server's verdict on this plan; the ones it was
+      // loaded with are stale once a language has been picked. Taken only if
+      // no newer edit has replaced the plan meanwhile.
+      .then((r) => setPlans((all) => (all[id] === plan
+        ? { ...all, [id]: { ...plan, conflicts: r.conflicts } } : all)))
       .catch((e) => setPrepNote(`Could not save: ${String(e).replace(/^Error:\s*/, "")}`))
       .finally(() => {
         // Another edit may have been scheduled while this one was in the
@@ -1218,40 +1219,6 @@ export function MoviesPanel() {
     else v.pause();
   };
 
-  /** Upload subtitles, then select the first one added — you picked the
-   *  file because you want to watch with it.
-   *
-   *  Dropping a whole folder of subtitles in is normal, and so is a .nfo or
-   *  a screenshot coming along with them. The server takes what it can read
-   *  and names the rest, so this reports both rather than treating one bad
-   *  file as a failed upload. */
-  const uploadSub = async (files: File[]) => {
-    if (!selected || !files.length) return;
-    setSubBusy(true);
-    setNote(""); setNoteBad(false);
-    try {
-      const r = await api.uploadMovieSubtitle(selected.id, files);
-      setInfo(r.info);
-      if (r.accepted.length) {
-        const added = r.info.subtitles[r.info.subtitles.length - 1];
-        if (added) {
-          if (playing) play({ sub: added.id });
-          else setSub(added.id);
-        }
-      }
-      const took = r.accepted.length
-        ? `Added ${r.accepted.map((a) => a.name).join(", ")}.` : "";
-      const left = r.rejected.map((x) => `${x.name}: ${x.reason}`).join(" · ");
-      setNote([took, left && `Skipped — ${left}`].filter(Boolean).join(" "));
-      setNoteBad(!r.accepted.length);
-    } catch (e) {
-      setNote(String(e).replace(/^Error:\s*/, ""));
-      setNoteBad(true);
-    } finally {
-      setSubBusy(false);
-    }
-  };
-
   const deleteSub = async () => {
     const track = sub === null ? null : info?.subtitles[sub];
     if (!selected || !track || track.source !== "uploaded" || !track.upload_id) return;
@@ -1593,7 +1560,7 @@ export function MoviesPanel() {
       </div>
 
       {streamError && <p className="error small">{streamError}</p>}
-      {note && <p className={(noteBad ? "error" : "muted") + " small mv-note"}>{note}</p>}
+      {note && <p className="muted small mv-note">{note}</p>}
     </>
   );
 
@@ -2076,22 +2043,7 @@ export function MoviesPanel() {
           opens pictures full screen. */}
       {tab !== ":music" && tab !== ":images" && tab !== "" && (
       <aside
-        className={"mv-player" + (dragging ? " dropping" : "")}
-        // Only real files from outside the page. An entry being dragged
-        // around the tree carries its own type and is none of this zone's
-        // business.
-        onDragOver={(e) => {
-          if (!selected || !e.dataTransfer.types.includes("Files")) return;
-          e.preventDefault();
-          setDragging(true);
-        }}
-        onDragLeave={() => setDragging(false)}
-        onDrop={(e) => {
-          e.preventDefault();
-          setDragging(false);
-          const files = Array.from(e.dataTransfer.files ?? []);
-          if (files.length) uploadSub(files);
-        }}
+        className="mv-player"
       >
         {viewFile?.kind === "vault" ? (
           <VaultView
@@ -2170,27 +2122,9 @@ export function MoviesPanel() {
             onLanguage={plan ? setLanguage : undefined}
             planGen={plan ? planGen : undefined}
             onGen={plan ? setGen : undefined}
-            onUpload={() => fileRef.current?.click()}
             onDeleteSub={deleteSub}
             canDelete={canDelete}
             busy={subBusy}
-          />
-          <input
-            ref={fileRef}
-            type="file"
-            // `multiple` is not a convenience here: a VobSub is a .idx and
-            // a .sub that are one subtitle, and the server rejects either
-            // half on its own.
-            multiple
-            accept=".srt,.ass,.ssa,.vtt,.sup,.idx,.sub"
-            hidden
-            onChange={(e) => {
-              const files = Array.from(e.target.files ?? []);
-              // Reset first, or picking the same file twice in a row fires
-              // no change event the second time.
-              e.target.value = "";
-              uploadSub(files);
-            }}
           />
         </div>
         {prepNote && <p className="muted small mv-note">{prepNote}</p>}
@@ -2363,7 +2297,7 @@ function TrackTable({
   audioTracks, subTracks, activeAudio, activeSub, onAudio, onSub,
   delays, draft, setDraft, commit, disabled,
   languages, planLang, onLanguage, planGen, onGen,
-  onUpload, onDeleteSub, canDelete, busy,
+  onDeleteSub, canDelete, busy,
 }: {
   audioTracks: MovieTrack[];
   subTracks: MovieTrack[];
@@ -2383,7 +2317,6 @@ function TrackTable({
   /** Audio: whether a subtitle is generated from it as the remux's first stage. */
   planGen?: (key: string) => boolean;
   onGen?: (key: string, on: boolean) => void;
-  onUpload: () => void;
   onDeleteSub: () => void;
   canDelete: boolean;
   busy: boolean;
@@ -2480,8 +2413,6 @@ function TrackTable({
           <td colSpan={cols}>
             Subtitles
             <span className="mv-subtools">
-              <button className="ghost" title="Upload subtitles — .srt .ass .ssa .vtt .sup, or a VobSub .idx together with its .sub. You can also drop files anywhere on this panel."
-                      disabled={disabled || busy} onClick={onUpload}>＋</button>
               <button className="ghost" title={canDelete ? "Delete this uploaded subtitle" : "Only uploaded subtitles can be deleted"}
                       disabled={!canDelete || busy} onClick={onDeleteSub}>🗑</button>
             </span>

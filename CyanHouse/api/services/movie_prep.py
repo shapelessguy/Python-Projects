@@ -360,9 +360,16 @@ def guess_title(name: str) -> tuple[str, str]:
     stem = _RELEASE_NOISE.split(stem)[0]
     # Scene names use dots and underscores as spaces; real titles use spaces.
     title = re.sub(r"[._]+", " ", stem)
-    title = re.sub(r"\s*[-–]\s*$", "", title)
-    title = re.sub(r"\s+", " ", title).strip(" -_")
-    return title, year
+    title = re.sub(r"\s+", " ", title).strip()
+    # Cutting at the year leaves what stood before it: "Matrix (1999)" gives
+    # "Matrix (", "Matrix [1999]" gives "Matrix [", "Film - 2001" gives
+    # "Film -". Whatever trails the last word goes — except a "!" a title
+    # really ends with, or a ")" that closes a "(" of its own.
+    while title and not title[-1].isalnum():
+        if title[-1] in "!'" or (title[-1] == ")" and title.count("(") >= title.count(")")):
+            break
+        title = title[:-1].rstrip()
+    return title.lstrip(" -_.,"), year
 
 
 def target_name(title: str, year: str) -> str:
@@ -447,6 +454,7 @@ def analyse(candidate: Candidate) -> dict:
             "flags": flags, "delay_ms": 0, "default": False,
         })
 
+    tracks = _one_per_language(tracks)
     return {
         "folder": str(candidate.folder),
         "video": str(candidate.video),
@@ -466,6 +474,27 @@ def analyse(candidate: Candidate) -> dict:
 # unknown one ("Error: 'po8' is not a valid ISO 639-2 language code"), which
 # is a poor way to find out — better to refuse before spending the mux.
 VALID_CODES = {c for codes in movies.LANGUAGES.values() for c in codes if len(c) == 3} | {"und"}
+
+
+def _one_per_language(tracks: list[dict]) -> list[dict]:
+    """The tracks with at most one audio and one subtitle per language — the
+    rule the track table enforces on every pick, applied to what the scan
+    found too. A release with a German subtitle inside and three German .srt
+    beside it would otherwise open with four claims on 'ger'. A language a
+    person chose wins over a guessed one; otherwise the first track (embedded
+    before folder before uploaded) keeps it, and the rest go blank — dropped,
+    as the table shows it."""
+    holder: dict[tuple[str, str], str] = {}
+    for t in sorted((t for t in tracks if t["type"] in ("audio", "subtitle")
+                     and t.get("keep") and t.get("language")),
+                    key=lambda t: bool(t.get("language_guessed"))):
+        holder.setdefault((t["type"], t["language"]), t["key"])
+    return [
+        {**t, "language": "", "keep": False}
+        if t["type"] in ("audio", "subtitle") and t.get("keep") and t.get("language")
+        and holder[(t["type"], t["language"])] != t["key"] else t
+        for t in tracks
+    ]
 
 
 def _conflicts(tracks: list[dict]) -> list[str]:
@@ -1239,6 +1268,7 @@ def scan_area(name: str) -> list[dict]:
             # they are added on every call, like the saved decisions.
             plan = {**plan, "tracks": plan["tracks"] + _uploaded_tracks(plan)}
             plan = prep_configs.overlay(plan, prep_configs.get(fp))
+            plan["tracks"] = _one_per_language(plan["tracks"])
             plan["conflicts"] = _conflicts(plan["tracks"])
         out.append(plan)
     return out
@@ -1313,7 +1343,9 @@ def save_plan(area_name: str, plan: dict) -> dict:
     _, video = _checked_paths(plan, inbox)
     fp = movies.fingerprint(video)
     prep_configs.save(fp, plan, where=str(video))
-    return {"fingerprint": fp}
+    # What still blocks the remux, as of this plan: the list the page drew
+    # at load time says nothing about the picks made since.
+    return {"fingerprint": fp, "conflicts": _conflicts(plan.get("tracks") or [])}
 
 
 # ── browsing a staging folder ────────────────────────────────────────────

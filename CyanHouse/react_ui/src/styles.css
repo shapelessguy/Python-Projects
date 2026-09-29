@@ -1529,7 +1529,6 @@ select.mv-preplang:invalid, select.mv-preplang[data-empty="true"] { color: var(-
 .mv-tracktable .mv-delay { width: 78px; }
 .mv-tracktable select.mv-preplang { width: 138px; }
 /* dropping subtitle files anywhere on the player column */
-.mv-player.dropping { outline: 2px dashed var(--accent); outline-offset: -4px; }
 /* the commit button belongs at the end of the row, and reads as the action */
 /* margin-top:auto inside the column's flex box: the commit drops to the
  * bottom when the window is tall enough and simply follows the content when

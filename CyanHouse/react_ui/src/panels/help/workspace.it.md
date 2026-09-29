@@ -15,7 +15,7 @@ Scegli il video nell'inbox. A destra compare il player con tutto quello che serv
 2. Per ogni traccia **audio** e **sottotitoli** scegli la lingua. **— drop —** la esclude. Una traccia per lingua: se scegli una lingua già usata, viene tolta dall'altra traccia.
 3. **Delay (ms)**: se una traccia è fuori sincrono, riproducila e regola finché combacia — il valore che senti funzionare è quello che viene scritto nel file.
 4. **SRT**: spuntalo su una traccia audio per generare i sottotitoli da quell'audio (speech-to-text sul PC) prima del remux.
-5. Mancano i sottotitoli? Caricali con **＋** o trascinali sul player.
+5. Mancano i sottotitoli? Trascina i file nella cartella del film nell'inbox.
 
 Tutto viene salvato mentre lavori — puoi chiudere la pagina e tornare dopo.
 

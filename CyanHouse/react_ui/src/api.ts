@@ -660,21 +660,6 @@ export const api = {
   movieKeyframe: (id: string, t: number) =>
     f("/api/movies/keyframe?" + new URLSearchParams({ id, t: t.toFixed(3) }))
       .then(j<{ t: number }>).then((r) => r.t),
-  /** Attach subtitle files to a film. Stored server-side under the film's
-   *  fingerprint, never written into the movie folder. Replies with the
-   *  refreshed MovieInfo. No content-type header on purpose: the browser has
-   *  to set it itself so the multipart boundary matches the body.
-   *
-   *  Takes a list because VobSub is two files -- a `.idx` and its `.sub` --
-   *  that are one subtitle and have to arrive together. */
-  uploadMovieSubtitle: (id: string, files: File[]) => {
-    const body = new FormData();
-    for (const file of files) body.append("files", file);
-    return f("/api/movies/subtitles?" + new URLSearchParams({ id }), {
-      method: "POST",
-      body,
-    }).then(j<SubtitleUpload>);
-  },
   deleteMovieSubtitle: (id: string, sub: string) =>
     f("/api/movies/subtitles?" + new URLSearchParams({ id, sub }), {
       method: "DELETE",
@@ -821,7 +806,7 @@ export const api = {
   prepSavePlan: (area: string, plan: PrepPlan) =>
     f("/api/prep/plan?" + new URLSearchParams({ area }), {
       method: "PUT", headers: JSON_HEADERS, body: JSON.stringify(plan),
-    }).then(j<{ fingerprint: string }>),
+    }).then(j<{ fingerprint: string; conflicts: string[] }>),
 
   // Every diary mutation replies with the full month snapshot for `month`.
   columns: () => f("/api/personal/columns").then(j<Column[]>),

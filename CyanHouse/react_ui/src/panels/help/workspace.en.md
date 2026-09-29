@@ -15,7 +15,7 @@ Pick the video in the inbox. The right side becomes the player plus everything t
 2. For every **audio** and **subtitle** track, choose its language. **— drop —** leaves the track out. One track per language: picking a language already used moves it off the other track.
 3. **Delay (ms)**: if a track is out of sync, play it and adjust until it matches — the number you hear working is the one written into the file.
 4. **SRT**: tick it on an audio track to have subtitles generated from that audio (speech-to-text on the PC) before the remux.
-5. Missing subtitles? Upload them with **＋** or drop them on the player.
+5. Missing subtitles? Drop the files into the film's folder in the inbox.
 
 Everything is saved as you go — you can close the page and come back.
 
