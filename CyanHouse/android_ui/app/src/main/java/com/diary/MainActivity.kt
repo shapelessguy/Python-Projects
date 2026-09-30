@@ -15,6 +15,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import com.diary.alarm.CalendarAlarmService
+import com.diary.net.DiagLog
 import com.diary.net.Route
 import com.diary.net.Auth
 import com.diary.ui.App
@@ -27,7 +28,19 @@ class MainActivity : ComponentActivity() {
     private val requestNotificationPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
 
+    override fun onStart() {
+        super.onStart()
+        DiagLog.log("app", "foreground")
+    }
+
+    override fun onStop() {
+        DiagLog.log("app", "background")
+        super.onStop()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
+        DiagLog.init(applicationContext)
+        DiagLog.log("app", "activity created")
         super.onCreate(savedInstanceState)
         Auth.init(applicationContext)
         Prefs.init(applicationContext)

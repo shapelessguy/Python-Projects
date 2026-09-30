@@ -20,7 +20,7 @@ object FoodImages {
         }
 
     private fun build(appContext: Context): ImageLoader {
-        val http = OkHttpClient.Builder()
+        val http = NetLog.watch("food", OkHttpClient.Builder())
             .dns(LanDns)
             .addInterceptor { chain ->
                 val req = chain.request()

@@ -42,7 +42,14 @@ object Api {
     private val client = HttpClient(OkHttp) {
         // Longer than a held request (api/longpoll.py waits up to 25 s before
         // answering when nothing changed); OkHttp's own default is 10 s.
-        engine { config { readTimeout(40, TimeUnit.SECONDS); dns(LanDns) } }
+        engine {
+            config {
+                readTimeout(40, TimeUnit.SECONDS); dns(LanDns)
+                // Watched by DiagLog: OkHttp's own queue and pool, made here so they can be looked at.
+                val (queue, pool, listener) = NetLog.parts("api")
+                dispatcher(queue); connectionPool(pool); eventListenerFactory(listener)
+            }
+        }
         expectSuccess = true
         install(ContentNegotiation) { json(json) }
         defaultRequest {

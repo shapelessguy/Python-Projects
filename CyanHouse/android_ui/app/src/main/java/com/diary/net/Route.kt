@@ -56,7 +56,7 @@ object Route {
     // The probe gives up quickly: the LAN name on someone else's Wi-Fi points
     // at an address that is not there, and every request waits meanwhile on
     // the internet way, which works from anywhere.
-    private val probeClient = OkHttpClient.Builder()
+    private val probeClient = NetLog.watch("probe", OkHttpClient.Builder())
         .dns(LanDns)
         .connectTimeout(2, TimeUnit.SECONDS)
         .readTimeout(2, TimeUnit.SECONDS)
@@ -74,9 +74,25 @@ object Route {
         started = true
         val cm = context.applicationContext.getSystemService(ConnectivityManager::class.java)
         cm?.registerDefaultNetworkCallback(object : ConnectivityManager.NetworkCallback() {
-            override fun onAvailable(network: Network) = recheck(context)
-            override fun onLost(network: Network) = recheck(context)
+            override fun onAvailable(network: Network) {
+                DiagLog.log("network", "available $network")
+                recheck(context)
+            }
+            override fun onLost(network: Network) {
+                DiagLog.log("network", "lost $network")
+                recheck(context)
+            }
+            override fun onLinkPropertiesChanged(network: Network, lp: android.net.LinkProperties) =
+                DiagLog.log("network", "link $network ${lp.interfaceName} ${lp.linkAddresses.joinToString()} dns=${lp.dnsServers.joinToString()}")
+            override fun onBlockedStatusChanged(network: Network, blocked: Boolean) =
+                DiagLog.log("network", "blocked=$blocked $network")
             override fun onCapabilitiesChanged(network: Network, caps: NetworkCapabilities) {
+                val state = "wifi=${caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)} " +
+                    "cell=${caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)} " +
+                    "vpn=${caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN)} " +
+                    "validated=${caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)} " +
+                    "notSuspended=${caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_SUSPENDED)}"
+                if (state != lastCaps) { lastCaps = state; DiagLog.log("network", "caps $network $state") }
                 // Fires often (signal strength and the like): only a change of
                 // Wi-Fi-or-not is worth a new look.
                 if (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) != lastWifi) recheck(context)
@@ -86,9 +102,11 @@ object Route {
     }
 
     @Volatile private var lastWifi: Boolean? = null
+    @Volatile private var lastCaps: String? = null
 
     /** Decide again: the latest call wins, one before it is dropped. */
     fun recheck(context: Context) {
+        DiagLog.log("route", "recheck")
         probing?.cancel()
         probing = scope.launch {
             // Networks come and go in bursts (Wi-Fi joining, mobile data
@@ -97,13 +115,20 @@ object Route {
             LanDns.forget()
             val wifi = isOnWifi(context)
             lastWifi = wifi
-            val lan = wifi && LAN_URL.isNotEmpty() && reachable()
+            val t = System.currentTimeMillis()
+            val probe = if (wifi && LAN_URL.isNotEmpty()) reachable() else null
+            val lan = probe?.first == true
+            val said = probe?.let { "${if (it.first) "reached" else "FAILED"} in ${System.currentTimeMillis() - t}ms ${it.second}" } ?: "skipped"
+            DiagLog.log("route", "wifi=$wifi probe=$said -> ${if (lan) "LAN" else "internet"}${if (lan != _onLan.value) " (CHANGED)" else ""}")
             if (lan != _onLan.value) Log.i(TAG, if (lan) "LAN: $LAN_URL" else "internet: $PUBLIC_URL")
             _onLan.value = lan
         }
     }
 
-    private fun reachable(): Boolean = runCatching {
-        probeClient.newCall(Request.Builder().url("$LAN_URL/api/version").build()).execute().use { true }
-    }.getOrDefault(false)
+    /** Whether the LAN name answers, and what it said (or why not). */
+    private fun reachable(): Pair<Boolean, String> = try {
+        probeClient.newCall(Request.Builder().url("$LAN_URL/api/version").build()).execute().use { true to "HTTP ${it.code}" }
+    } catch (e: Exception) {
+        false to "${e.javaClass.simpleName}: ${e.message}"
+    }
 }

@@ -15,6 +15,7 @@ import com.diary.net.Api
 import com.diary.net.Auth
 import com.diary.net.CalendarEvent
 import com.diary.net.Me
+import com.diary.net.DiagLog
 import com.diary.net.Route
 import com.diary.net.MonthEvents
 import kotlinx.coroutines.CoroutineScope
@@ -98,6 +99,8 @@ class CalendarAlarmService : Service() {
         Prefs.init(applicationContext)
         // Which way to the server (LAN or internet), decided now and on every
         // change of network, for every request the app makes.
+        DiagLog.init(applicationContext)
+        DiagLog.log("app", "service start")
         Route.start(applicationContext)
         AlarmNotifications.ensureChannels(this)
         startForeground(AlarmNotifications.NOTIF_ID_SERVICE, AlarmNotifications.serviceNotification(this))
@@ -121,6 +124,7 @@ class CalendarAlarmService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
+        DiagLog.log("app", "service destroyed")
         job.cancel()
         stopRinging()
         ringOverlay.hide()

@@ -30,7 +30,7 @@ import java.util.concurrent.TimeUnit
 object Media {
     /** OkHttp that carries the credential -- to this app's server only. */
     val http: OkHttpClient by lazy {
-        OkHttpClient.Builder()
+        NetLog.watch("media", OkHttpClient.Builder())
             .dns(LanDns)
             .readTimeout(60, TimeUnit.SECONDS)
             .writeTimeout(120, TimeUnit.SECONDS)

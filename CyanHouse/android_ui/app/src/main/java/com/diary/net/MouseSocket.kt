@@ -34,7 +34,7 @@ object MouseSocket {
             tuned(Socket(address, port, localAddress, localPort))
     }
 
-    private val client = OkHttpClient.Builder()
+    private val client = NetLog.watch("mouse", OkHttpClient.Builder())
         .dns(LanDns)
         .socketFactory(noDelaySocketFactory)
         .pingInterval(15, TimeUnit.SECONDS)
@@ -64,17 +64,20 @@ object MouseSocket {
                 .build()
             socket = client.newWebSocket(request, object : WebSocketListener() {
                 override fun onOpen(webSocket: WebSocket, response: Response) {
+                    DiagLog.log("mouse", "open ${request.url.host}")
                     _connected.value = true
                     _lastError.value = null
                 }
 
                 override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
+                    DiagLog.log("mouse", "closed $code $reason")
                     if (socket !== webSocket) return
                     socket = null
                     _connected.value = false
                 }
 
                 override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
+                    DiagLog.log("mouse", "failed ${t.javaClass.simpleName}: ${t.message} (${response?.code})")
                     if (socket !== webSocket) return
                     socket = null
                     _connected.value = false
@@ -89,6 +92,7 @@ object MouseSocket {
     }
 
     fun disconnect() {
+        DiagLog.log("mouse", "disconnect (socket ${if (socket != null) "open" else "none"})")
         socket?.close(1000, null)
         socket = null
         _connected.value = false

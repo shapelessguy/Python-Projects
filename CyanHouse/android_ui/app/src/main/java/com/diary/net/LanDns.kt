@@ -25,13 +25,14 @@ object LanDns : Dns {
     @Volatile private var cached: List<InetAddress>? = null
 
     // Plain lookups for dns.google itself.
-    private val doh = OkHttpClient.Builder().callTimeout(4, TimeUnit.SECONDS).build()
+    private val doh = NetLog.watch("doh", OkHttpClient.Builder()).callTimeout(4, TimeUnit.SECONDS).build()
 
     override fun lookup(hostname: String): List<InetAddress> = try {
         Dns.SYSTEM.lookup(hostname)
     } catch (e: UnknownHostException) {
         if (hostname != lanHost || lanHost.isEmpty()) throw e
-        cached ?: resolve(hostname).ifEmpty { throw e }.also { cached = it }
+        DiagLog.log("dns", "system lookup of $hostname failed (${e.message}); asking dns.google")
+        cached ?: resolve(hostname).ifEmpty { throw e }.also { cached = it; DiagLog.log("dns", "$hostname = $it") }
     }
 
     /** Forget the address asked for: the network changed. */
