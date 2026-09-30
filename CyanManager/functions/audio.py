@@ -233,6 +233,10 @@ def switch_to_audio_device(signal, device_name, icon):
     after = device.FriendlyName
     signal.info["audio_device"] = after
     signal.info["volume"] = device.EndpointVolume.GetMasterVolumeLevelScalar()
+    # FriendlyName is "<name> (<device>)" and the parameter may be either part
+    if not device_name or device_name.lower() not in after.lower():
+        print(f"Switch to '{device_name}' failed, still on {after}")
+        return
     print(f"Switch to {after}")
     notify(signal, title="Default Audio Device", message=f"{after}", icon=icon)
 

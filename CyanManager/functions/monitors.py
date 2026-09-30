@@ -1,9 +1,11 @@
 import os
+import ctypes
+import ctypes.wintypes
 import subprocess
 import json
 import time
 from functions.application import get_uwp_apps, get_corrispondences, find_windows
-from utils import Monitor_, MULTIMONITOR_EXE_PATH, TEMP_MONITOR_CONF_PATH, wait
+from utils import Monitor_, MULTIMONITOR_EXE_PATH, TEMP_MONITOR_CONF_PATH, wait, notify
 from collections import defaultdict
 from operator import attrgetter
 from screeninfo import get_monitors
@@ -145,6 +147,151 @@ def turn_on_monitors(signal, verbose=False):
     time.sleep(0.1)
     turn_on_mousepad(signal, verbose)
     subprocess.run([MULTIMONITOR_EXE_PATH, "/TurnOn"] + monitor_names)
+
+
+class DEVMODEW(ctypes.Structure):
+    _fields_ = [
+        ("dmDeviceName", ctypes.c_wchar * 32),
+        ("dmSpecVersion", ctypes.wintypes.WORD),
+        ("dmDriverVersion", ctypes.wintypes.WORD),
+        ("dmSize", ctypes.wintypes.WORD),
+        ("dmDriverExtra", ctypes.wintypes.WORD),
+        ("dmFields", ctypes.wintypes.DWORD),
+        ("dmPositionX", ctypes.wintypes.LONG),
+        ("dmPositionY", ctypes.wintypes.LONG),
+        ("dmDisplayOrientation", ctypes.wintypes.DWORD),
+        ("dmDisplayFixedOutput", ctypes.wintypes.DWORD),
+        ("dmColor", ctypes.c_short),
+        ("dmDuplex", ctypes.c_short),
+        ("dmYResolution", ctypes.c_short),
+        ("dmTTOption", ctypes.c_short),
+        ("dmCollate", ctypes.c_short),
+        ("dmFormName", ctypes.c_wchar * 32),
+        ("dmLogPixels", ctypes.wintypes.WORD),
+        ("dmBitsPerPel", ctypes.wintypes.DWORD),
+        ("dmPelsWidth", ctypes.wintypes.DWORD),
+        ("dmPelsHeight", ctypes.wintypes.DWORD),
+        ("dmDisplayFlags", ctypes.wintypes.DWORD),
+        ("dmDisplayFrequency", ctypes.wintypes.DWORD),
+        ("dmICMMethod", ctypes.wintypes.DWORD),
+        ("dmICMIntent", ctypes.wintypes.DWORD),
+        ("dmMediaType", ctypes.wintypes.DWORD),
+        ("dmDitherType", ctypes.wintypes.DWORD),
+        ("dmReserved1", ctypes.wintypes.DWORD),
+        ("dmReserved2", ctypes.wintypes.DWORD),
+        ("dmPanningWidth", ctypes.wintypes.DWORD),
+        ("dmPanningHeight", ctypes.wintypes.DWORD),
+    ]
+
+
+ENUM_CURRENT_SETTINGS = -1
+
+
+class LUID(ctypes.Structure):
+    _fields_ = [("LowPart", ctypes.wintypes.DWORD), ("HighPart", ctypes.wintypes.LONG)]
+
+
+class DISPLAYCONFIG_PATH_INFO(ctypes.Structure):
+    # Only copied back and forth: source info (20 bytes), target info (48 bytes), flags
+    _fields_ = [("data", ctypes.c_byte * 68), ("flags", ctypes.c_uint32)]
+
+
+class DISPLAYCONFIG_SOURCE_MODE(ctypes.Structure):
+    _fields_ = [
+        ("width", ctypes.c_uint32),
+        ("height", ctypes.c_uint32),
+        ("pixelFormat", ctypes.c_uint32),
+        ("x", ctypes.wintypes.LONG),
+        ("y", ctypes.wintypes.LONG),
+    ]
+
+
+class DISPLAYCONFIG_MODE_UNION(ctypes.Union):
+    _fields_ = [("sourceMode", DISPLAYCONFIG_SOURCE_MODE), ("raw", ctypes.c_byte * 48)]
+
+
+class DISPLAYCONFIG_MODE_INFO(ctypes.Structure):
+    _fields_ = [
+        ("infoType", ctypes.c_uint32),
+        ("id", ctypes.c_uint32),
+        ("adapterId", LUID),
+        ("mode", DISPLAYCONFIG_MODE_UNION),
+    ]
+
+
+QDC_ONLY_ACTIVE_PATHS = 0x2
+DISPLAYCONFIG_MODE_INFO_TYPE_SOURCE = 1
+SDC_APPLY = 0x80
+SDC_USE_SUPPLIED_DISPLAY_CONFIG = 0x20
+SDC_SAVE_TO_DATABASE = 0x200
+SDC_ALLOW_CHANGES = 0x400
+
+
+def apply_primary(primary_name):
+    # MultiMonitorTool /SetPrimary and ChangeDisplaySettingsEx silently fail here, so do what the display settings do:
+    # the primary is the display at (0, 0), so every display shifts by the new primary's position
+    user32 = ctypes.windll.user32
+    dm = DEVMODEW()
+    dm.dmSize = ctypes.sizeof(DEVMODEW)
+    if not user32.EnumDisplaySettingsW(primary_name, ENUM_CURRENT_SETTINGS, ctypes.byref(dm)):
+        print(f"Cannot read settings of {primary_name}")
+        return False
+    offset_x, offset_y = dm.dmPositionX, dm.dmPositionY
+
+    num_paths, num_modes = ctypes.c_uint32(), ctypes.c_uint32()
+    result = user32.GetDisplayConfigBufferSizes(QDC_ONLY_ACTIVE_PATHS, ctypes.byref(num_paths), ctypes.byref(num_modes))
+    if result != 0:
+        print(f"Cannot read display config size: error {result}")
+        return False
+    paths = (DISPLAYCONFIG_PATH_INFO * num_paths.value)()
+    modes = (DISPLAYCONFIG_MODE_INFO * num_modes.value)()
+    result = user32.QueryDisplayConfig(QDC_ONLY_ACTIVE_PATHS, ctypes.byref(num_paths), paths, ctypes.byref(num_modes), modes, None)
+    if result != 0:
+        print(f"Cannot read display config: error {result}")
+        return False
+
+    for mode in modes[:num_modes.value]:
+        if mode.infoType == DISPLAYCONFIG_MODE_INFO_TYPE_SOURCE:
+            mode.mode.sourceMode.x -= offset_x
+            mode.mode.sourceMode.y -= offset_y
+    flags = SDC_APPLY | SDC_USE_SUPPLIED_DISPLAY_CONFIG | SDC_SAVE_TO_DATABASE | SDC_ALLOW_CHANGES
+    result = user32.SetDisplayConfig(num_paths.value, paths, num_modes.value, modes, flags)
+    if result != 0:
+        print(f"Cannot apply display config: error {result}")
+        return False
+    return True
+
+
+def set_primary_screen(signal, screen_spec, icon=None):
+    # screen_spec may be the display name (\\.\DISPLAY1), the monitor id (HECB350) or its short id (HECB350(2))
+    if not screen_spec:
+        print("No screen configured")
+        return
+    screens = get_screens(signal)
+    matches = [s for s in screens if screen_spec in (s.name, s._id, s.device_name)]
+    if not matches:
+        print(f"Screen '{screen_spec}' not found among: {[(s.name, s._id) for s in screens]}")
+        return
+    target = matches[0]
+    if target.is_primary:
+        print(f"Screen '{screen_spec}' is already primary")
+        return
+    apply_primary(target.name)
+    if not any(s.is_primary for s in get_screens(signal) if s.name == target.name):
+        print(f"Setting '{screen_spec}' as primary failed")
+        return
+    print(f"Primary screen set to {screen_spec}")
+    notify(signal, title="Primary Screen", message=f"{screen_spec}", icon=icon)
+
+
+def switch_to_screen_1(signal, verbose=False):
+    from thread_collection.devices import switch_to_screen_1_
+    switch_to_screen_1_()
+
+
+def switch_to_screen_2(signal, verbose=False):
+    from thread_collection.devices import switch_to_screen_2_
+    switch_to_screen_2_()
 
 
 def point_in_rect(px, py, rx, ry, width, height):

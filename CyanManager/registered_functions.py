@@ -73,6 +73,8 @@ class RegisteredFunctions:
     WIN_SNAPSHOT=HandleFunction(get_win_snapshot)
     TURN_ON_MONITORS=HandleFunction(turn_on_monitors, description="Turn on all monitors")
     SHUTDOWN_MONITORS=HandleFunction(shutdown_monitors, description="Turn off all monitors")
+    PRIMARY_SCREEN_1=HandleFunction(switch_to_screen_1, description="Make screen 1 the primary display")
+    PRIMARY_SCREEN_2=HandleFunction(switch_to_screen_2, description="Make screen 2 the primary display")
     GET_MOUSE_POS=HandleFunction(get_mouse_position)
     GET_APPS_STATUS=HandleFunction(get_apps_status)
     GET_WIN_POSITIONS=HandleFunction(get_win_pos)

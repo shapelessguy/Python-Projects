@@ -5,7 +5,7 @@ from openrgb import OpenRGBClient
 from openrgb.utils import RGBColor, DeviceType
 
 
-NAME = "PC_CONNECTED_DEVICES"
+NAME = "PC - connected devices"
 PARAMETERS = {}
 OPENRGB_PORT = 6743
 

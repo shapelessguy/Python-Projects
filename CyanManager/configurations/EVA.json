@@ -423,7 +423,9 @@
             "enabled": true,
             "parameters": {
                 "Speakers": "SPDIF-Out",
-                "Headphones": "Soundcore Life Q30"
+                "Headphones": "Soundcore Life Q30",
+                "Screen 1": "DEL41EE",
+                "Screen 2": "HECB350"
             }
         },
         "Hotkeys": {
@@ -434,7 +436,7 @@
             "enabled": true,
             "parameters": {}
         },
-        "PC_CONNECTED_DEVICES": {
+        "PC - connected devices": {
             "enabled": true,
             "parameters": {}
         },
@@ -442,7 +444,7 @@
             "enabled": true,
             "parameters": {
                 "Lights from": "08:00",
-                "Lights to": "18:46"
+                "Lights to": "15:46"
             }
         },
         "STT service": {

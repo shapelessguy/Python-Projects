@@ -3,6 +3,8 @@ import threading
 from openrgb.utils import DeviceType
 from thread_collection.pc_connected_devices import set_device_color
 from thread_collection.roomserver import NAME as ROOMSERVER_NAME, request_roomserver
+from thread_collection.devices import NAME as DEVICES_NAME
+from functions.monitors import set_primary_screen
 
 
 ON_COLOR = (0, 180, 255)
@@ -28,6 +30,14 @@ def set_strips(signal, command):
         print(f"Strips {command} failed: {ex.__class__.__name__} - {ex}")
 
 
+def set_screen_1_primary(signal):
+    try:
+        params = [x for x in signal.get_threads() if x.name == DEVICES_NAME][0].parameters
+        set_primary_screen(signal, params.get("Screen 1", ""))
+    except Exception as ex:
+        print(f"Primary screen failed: {ex.__class__.__name__} - {ex}")
+
+
 def run_all(targets):
     # Blocking on purpose (the caller is a Windows message that must not return before the lights are done),
     # but bounded so a dead RoomServer can not hold the shutdown.
@@ -41,7 +51,7 @@ def run_all(targets):
 
 def lights_off(signal):
     print("Session ending: lights off")
-    run_all([lambda: set_pc_lights(OFF_COLOR), lambda: set_strips(signal, "off")])
+    run_all([lambda: set_pc_lights(OFF_COLOR), lambda: set_strips(signal, "off"), lambda: set_screen_1_primary(signal)])
 
 
 def lights_on(signal):
