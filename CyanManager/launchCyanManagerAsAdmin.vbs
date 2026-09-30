@@ -48,6 +48,11 @@ If exitCode <> 0 Then
     MsgBox "Error installing dependencies!"
 End If
 
+' --no-deps above keeps startup fast; this installs only what an upgrade
+' newly needs and is missing (pip check), usually nothing.
+ensureDepsPath = scriptDir & "\ensure_deps.py"
+installShell.Run "cmd /c " & pythonPath & " """ & ensureDepsPath & """", 0, True
+
 cmd = "/c " & pythonPath & " -u """ & scriptPath & """ startup > """ & logFile & """ 2>&1"
 objShell.ShellExecute "cmd.exe", cmd, "", "runas", 0
 
