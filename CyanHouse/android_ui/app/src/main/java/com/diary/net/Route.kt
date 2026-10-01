@@ -72,6 +72,7 @@ object Route {
     fun start(context: Context) {
         if (started) return
         started = true
+        LanDns.init(context.applicationContext)
         val cm = context.applicationContext.getSystemService(ConnectivityManager::class.java)
         cm?.registerDefaultNetworkCallback(object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) {
