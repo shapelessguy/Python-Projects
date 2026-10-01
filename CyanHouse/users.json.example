@@ -1,0 +1,17 @@
+{
+  "alice": {
+    "token": "replace-with-a-long-random-token",
+    "permissions": {
+      "publish": false,
+      "media": [
+        "Movies",
+        "Music",
+        "Images",
+        "Documents",
+        "Downloads",
+        "Audio",
+        "downloaders"
+      ]
+    }
+  }
+}

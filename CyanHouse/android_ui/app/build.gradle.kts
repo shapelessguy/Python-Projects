@@ -7,14 +7,14 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
-// Port + host come from the project-root secrets.json (shared with the backend).
+// Port + host come from the project-root config.json (shared with the backend).
 @Suppress("UNCHECKED_CAST")
-val secrets: Map<String, Any?> = run {
-    val f = rootProject.file("../secrets.json")
+val config: Map<String, Any?> = run {
+    val f = rootProject.file("../config.json")
     if (f.exists()) JsonSlurper().parse(f) as Map<String, Any?> else emptyMap()
 }
-val apiPort: String = (secrets["API_PORT"] as? String ?: "8000").trim()
-val publicHost: String = (secrets["PUBLIC_HOST"] as? String ?: "").trim()
+val apiPort: String = (config["API_PORT"] as? String ?: "8000").trim()
+val publicHost: String = (config["PUBLIC_HOST"] as? String ?: "").trim()
 // Public host goes through nginx over HTTPS (port 443, implicit); the emulator's
 // 10.0.2.2 alias talks to uvicorn directly since there's no reverse proxy in dev.
 val apiBaseUrl: String =
@@ -22,7 +22,7 @@ val apiBaseUrl: String =
 // The same site at home (docker/nginx.conf.template's LAN_HOST): a DuckDNS name
 // set to the server's LAN address. The app goes this way whenever it can
 // reach it (net/Route.kt); empty means always the public way.
-val lanHost: String = (secrets["LAN_HOST"] as? String ?: "").trim()
+val lanHost: String = (config["LAN_HOST"] as? String ?: "").trim()
 val lanBaseUrl: String = if (lanHost.isNotEmpty()) "https://$lanHost" else ""
 
 android {

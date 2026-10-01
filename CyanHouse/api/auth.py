@@ -5,20 +5,20 @@ precedence; Android sends the Basic header (it has no cookie).
 
 Users come from, in order:
   1. env var  DIARY_USERS='{"alice":{"token":"tok1","permissions":{}}}'
-  2. the "users" key of top-level secrets.json (git-ignored) -- see
-     secrets.json.example
+  2. the top-level users.json (git-ignored) -- see users.json.example
   3. dev fallback  {"dev": {"token": "dev", "permissions": {}}}  (logs a warning)
 
 Each user is `{"token": str, "permissions": dict}`:
   * `permissions.visibility`, an optional list of panel ids (see each router
     module's own `PANEL` constant) a user is restricted to. Omitted entirely
     (the common case), a user sees/can call every panel -- an allowlist that
-    only narrows things down when explicitly set. The Media panel is
-    "media" ("movies", its old name, still counts).
+    only narrows things down when explicitly set. The Media panel is not
+    listed here: it is visible exactly when `permissions.media` gives at
+    least one of its folders (below).
   * `permissions.media`, the Media panel's folders this user may see, each
     by name: the libraries "Movies", "Music", "Images" and "Documents"
     (LIBRARIES), and any staging area and its output by the name it has in
-    secrets.json ("Downloads", "Audio", "TV Series", ...). "downloaders"
+    config.json ("Downloads", "Audio", "TV Series", ...). "downloaders"
     gives the Torrents and Downloads tabs (qBittorrent and pyLoad) together;
     "*" gives everything. Omitted, a user has none of them.
   * other names, opt-in flags, off unless set true: `publish` (move things
@@ -35,7 +35,7 @@ from urllib.parse import unquote
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.requests import HTTPConnection
 
-from api.config import SECRET_USERS
+from api.config import STAGING, USERS_FILE
 
 
 def _load_users() -> dict[str, dict]:
@@ -43,10 +43,10 @@ def _load_users() -> dict[str, dict]:
     if raw:
         return {str(k): dict(v) for k, v in json.loads(raw).items()}
 
-    if SECRET_USERS:
-        return {str(k): dict(v) for k, v in SECRET_USERS.items()}
+    if USERS_FILE:
+        return {str(k): dict(v) for k, v in USERS_FILE.items()}
 
-    print("WARNING: no DIARY_USERS / secrets.json users -- using dev/dev credentials")
+    print("WARNING: no DIARY_USERS / users.json -- using dev/dev credentials")
     return {"dev": {"token": "dev", "permissions": {}}}
 
 
@@ -107,18 +107,19 @@ def basic_header(user: str) -> dict[str, str]:
     return {"Authorization": f"Basic {cred}"}
 
 
-# Panel ids that were renamed, old -> new: an old name in secrets.json keeps
-# working.
-RENAMED_PANELS = {"movies": "media"}
-
-
 def visible_panels(user: str) -> set[str] | None:
     """`None` means unrestricted (every panel) -- a user with no `visibility`
-    entry in their permissions, which is every user unless explicitly
-    configured otherwise. Otherwise, the explicit allowed set."""
+    entry in their permissions. Otherwise, the explicit allowed set, plus the
+    Media panel when they may see any of its folders: "media" (or "movies",
+    its old name) in the list itself counts for nothing."""
     perms = (USERS.get(user) or {}).get("permissions") or {}
     vis = perms.get("visibility")
-    return {RENAMED_PANELS.get(p, p) for p in vis} if vis is not None else None
+    if vis is None:
+        return None
+    panels = {p for p in vis if p not in ("media", "movies")}
+    if _has_media(user):
+        panels.add("media")
+    return panels
 
 
 def has_permission(user: str, name: str) -> bool:
@@ -153,6 +154,13 @@ DOWNLOADERS = "downloaders"
 def _media_grants(user: str) -> set[str]:
     perms = (USERS.get(user) or {}).get("permissions") or {}
     return {str(x) for x in (perms.get("media") or [])}
+
+
+def _has_media(user: str) -> bool:
+    """Whether `permissions.media` names at least one folder there is: a
+    library, a staging area, the downloaders, or "*"."""
+    known = {"*", DOWNLOADERS, *LIBRARIES.values(), *STAGING}
+    return bool(_media_grants(user) & known)
 
 
 def may_see_media(user: str, area: str) -> bool:

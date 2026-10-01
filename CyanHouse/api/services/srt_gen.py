@@ -78,7 +78,7 @@ def forget(fingerprint: str) -> None:
 
 def _url(path: str) -> str:
     if not CONTROLS_FN_URL:
-        raise PrepError("no speech-to-text service configured (CONTROLS_FN_HOST in secrets.json)")
+        raise PrepError("no speech-to-text service configured (CONTROLS_FN_HOST in config.json)")
     return CONTROLS_FN_URL + path
 
 

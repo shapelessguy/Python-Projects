@@ -82,7 +82,7 @@ def areas() -> dict[str, dict]:
     the real library; the test area points somewhere else entirely, which is
     the whole reason this is configuration and not a constant."""
     out: dict[str, dict] = {}
-    # In the order secrets.json lists them, which is the tabs' order. Music
+    # In the order config.json lists them, which is the tabs' order. Music
     # pairs are browsed, moved and uploaded into exactly like film ones; only
     # what "processing" means differs (music_prep.py).
     configured = [(n, c, "music" if (c or {}).get("type") == "music" else "film")
@@ -92,7 +92,7 @@ def areas() -> dict[str, dict]:
         # An area may have no inbox at all — just somewhere finished work is
         # kept. That has to stay *empty*, not become a path: Path("") is ".",
         # which is this process's working directory, i.e. the project folder
-        # with secrets.json in it. Treating it as an inbox made that folder
+        # with config.json in it. Treating it as an inbox made that folder
         # browsable, readable and deletable from the panel.
         raw_inbox = str(cfg.get("inbox") or "").strip()
         inbox = Path(raw_inbox).expanduser() if raw_inbox else None
@@ -231,7 +231,7 @@ def sources() -> list[dict]:
 
 
 # The libraries that are not films, by source key. The leading colon keeps
-# the keys apart from staging-area names, which come from secrets.json.
+# the keys apart from staging-area names, which come from config.json.
 MEDIA_LIBRARIES: dict[str, tuple[str, Path | None]] = {
     ":music": ("Music", MUSIC_DIR),
     ":images": ("Images", IMAGE_DIR),
@@ -1169,7 +1169,7 @@ def _watch() -> None:
     while True:
         changed = False
         # The set of folders itself, not only what is in them: a path
-        # corrected in secrets.json, or a mount that has come back, should
+        # corrected in config.json, or a mount that has come back, should
         # reach the panel without anyone reloading the page.
         shape = json.dumps(sources(), sort_keys=True)
         with _watch_lock:

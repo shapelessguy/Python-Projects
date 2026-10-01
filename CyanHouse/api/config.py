@@ -1,9 +1,10 @@
 """Paths and settings for the API. Importing this also puts the project root on
 sys.path so the top-level packages (`api`, `forecast`, `utilities`, `variables`)
-resolve no matter where uvicorn is launched from, and loads secrets.json so
-every setting (previously split across .env and api/users.json) lives in
-exactly one place. Nothing here depends on what the project folder or its
-parent are named."""
+resolve no matter where uvicorn is launched from, and loads the three
+git-ignored files at the top level: config.json (ports, hosts, folders, the
+staging areas), secrets.json (API keys and tokens) and users.json (who may
+sign in, and what they see). Nothing here depends on what the project folder
+or its parent are named."""
 import json
 import os
 import sys
@@ -16,8 +17,8 @@ if str(PROJECT_DIR) not in sys.path:
 
 # Which keys this loader put into the environment last time it ran. An env
 # var it planted itself is not "the environment" -- it is a stale copy of
-# this very file, and treating it as an override is what makes editing
-# secrets.json appear to do nothing: `python -m api` runs uvicorn with
+# these very files, and treating it as an override is what makes editing
+# config.json appear to do nothing: `python -m api` runs uvicorn with
 # reload=True, the parent process loads this module (for API_PORT), and every
 # reloaded child inherits the parent's environment. With a plain setdefault
 # the child then keeps whatever the file said when the *service* started,
@@ -25,25 +26,26 @@ if str(PROJECT_DIR) not in sys.path:
 _PLANTED = "CYANHOUSE_SECRET_ENV"
 
 
-def _load_secrets(path: Path) -> dict:
-    """Every top-level scalar becomes an environment variable -- see
-    secrets.json.example. A real environment variable still wins, same as the
+def _load_settings(*paths: Path) -> dict:
+    """Every top-level scalar of each file becomes an environment variable --
+    see config.json.example and secrets.json.example. One pass over all of
+    them, since the record of what was planted is one variable. A real environment variable still wins, same as the
     old .env loader; one this loader planted on an earlier start does not,
     because that is just an older copy of the file being read now.
 
     Objects and lists are skipped: an env var is a string, and `str()` of a
     dict is not something anything can read back. They stay in the returned
-    data for whoever wants them -- "users" for api/auth.py, "staging"
-    for the movie prep workflow -- which is also why the skip is by *type*
+    data for whoever wants them -- "staging" for the movie prep workflow -- which is also why the skip is by *type*
     rather than a list of known key names that has to be edited every time
     another structured setting is added."""
-    if not path.exists():
-        return {}
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except Exception as e:
-        print(f"WARNING: couldn't parse {path}: {e}")
-        return {}
+    data = {}
+    for path in paths:
+        if not path.exists():
+            continue
+        try:
+            data.update(json.loads(path.read_text(encoding="utf-8")))
+        except Exception as e:
+            print(f"WARNING: couldn't parse {path}: {e}")
     planted = {k for k in os.environ.get(_PLANTED, "").split(",") if k}
     fresh = []
     for key, value in data.items():
@@ -57,10 +59,23 @@ def _load_secrets(path: Path) -> dict:
     return data
 
 
-_SECRETS = _load_secrets(PROJECT_DIR / "secrets.json")
-# api/auth.py's own DIARY_USERS-env-var override still takes precedence over
-# this -- see its _load_users().
-SECRET_USERS: dict = _SECRETS.get("users", {})
+_SETTINGS = _load_settings(PROJECT_DIR / "config.json", PROJECT_DIR / "secrets.json")
+
+
+def _load_json(path: Path) -> dict:
+    if not path.exists():
+        return {}
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception as e:
+        print(f"WARNING: couldn't parse {path}: {e}")
+        return {}
+
+
+# users.json: {"<name>": {"token": ..., "permissions": {...}}}. api/auth.py's
+# own DIARY_USERS-env-var override still takes precedence over this -- see
+# its _load_users().
+USERS_FILE: dict = _load_json(PROJECT_DIR / "users.json")
 
 # Root for all generated/runtime data: api's sqlite DBs + food images, the
 # forecast cache (forecast/update.py), and the historical weather CSVs
@@ -127,11 +142,11 @@ DOCUMENTS_DIR = Path(os.environ["DOCUMENTS_DIR"]).expanduser() if os.environ.get
 # The older layout — separate "movie_staging" and "music_staging" — is
 # still read when there is no "staging".
 def _staging() -> dict[str, dict]:
-    raw = _SECRETS.get("staging")
+    raw = _SETTINGS.get("staging")
     if isinstance(raw, dict):
         return {str(n): dict(c or {}) for n, c in raw.items()}
-    films = _SECRETS.get("movie_staging") or {}
-    music = _SECRETS.get("music_staging") or {}
+    films = _SETTINGS.get("movie_staging") or {}
+    music = _SETTINGS.get("music_staging") or {}
     out = {str(n): {**(c or {}), "type": "film"} for n, c in films.items()}
     out.update({str(n): {**(c or {}), "type": "music"} for n, c in music.items() if n not in out})
     return out
@@ -147,7 +162,7 @@ MUSIC_STAGING: dict = {n: c for n, c in STAGING.items() if c.get("type") == "mus
 # Folders are named as the panel names them ("Movies", "Music", "Images",
 # or a staging entry's name, meaning either half of it); "*" is anywhere.
 # A folder with no rule may move anywhere (see movie_prep.may_move_between).
-LIBRARY_MOVES: dict = _SECRETS.get("library_moves", {})
+LIBRARY_MOVES: dict = _SETTINGS.get("library_moves", {})
 # MusicBrainz asks every client to say who it is, with a way to reach them.
 MUSICBRAINZ_CONTACT = os.environ.get("MUSICBRAINZ_CONTACT", "").strip()
 MOVIES_CACHE_DIR = Path(os.environ.get("MOVIES_CACHE_DIR", API_DATA_DIR / "movies_cache"))
@@ -191,6 +206,7 @@ TMDB_API_KEY = os.environ.get("TMDB_API_KEY", "").strip()
 HOST = os.environ.get("API_HOST", "127.0.0.1").strip()
 API_PORT = int(os.environ.get("API_PORT", "8000"))
 WEB_PORT = int(os.environ.get("WEB_PORT", "5173"))
+# The site's name from outside.
 PUBLIC_HOST = os.environ.get("PUBLIC_HOST", "").strip()
 # The name the site goes by at home: a DuckDNS name set to this machine's LAN
 # address, served by nginx with its own certificate (DEPLOY.md).

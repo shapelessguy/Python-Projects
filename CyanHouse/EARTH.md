@@ -15,7 +15,7 @@ What lives in CYAN and who reads it:
 | Consumer | How it sees the drive |
 |---|---|
 | Plex (`plexmediaserver.service`) | `/mnt/earth/CYAN/Video/*`, `/mnt/earth/CYAN/Music` |
-| CyanHouse API (Movies/Music/Images panels) | `MOVIES_DIR=/mnt/earth/CYAN/Video/Movies`, etc. in `secrets.json` |
+| CyanHouse API (Movies/Music/Images panels) | `MOVIES_DIR=/mnt/earth/CYAN/Video/Movies`, etc. in `config.json` |
 | qBittorrent container | bind `/mnt/earth` → `/mnt/earth` (`rslave`) |
 | pyLoad container | bind `/mnt/earth` → `/mnt/earth` (`rslave`) |
 

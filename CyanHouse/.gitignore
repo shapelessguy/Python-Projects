@@ -1,4 +1,6 @@
 secrets.json
+config.json
+users.json
 docker/nginx.conf
 docker/nginx-bootstrap.conf
 __pycache__/

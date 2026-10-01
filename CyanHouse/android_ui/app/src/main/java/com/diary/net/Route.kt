@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit
  *  (LAN_HOST, a DuckDNS name set to its LAN address -- the same site and a
  *  valid certificate, see docker/nginx.conf.template) when the phone can
  *  reach it there, otherwise over the internet (PUBLIC_HOST). Both come from
- *  secrets.json via build.gradle.kts.
+ *  config.json via build.gradle.kts.
  *
  *  Decided by the background service (alarm/CalendarAlarmService) when it
  *  starts and on every change of network: off Wi-Fi it is the internet at

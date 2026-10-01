@@ -28,7 +28,7 @@ ffmpeg -hide_banner -encoders | grep nvenc    # GPU encoder available?
 `h264_nvenc` is used automatically when the GPU actually accepts it (probed
 once at startup with a one-frame clip — an ffmpeg build listing the encoder
 proves nothing if the driver or the card is too old), otherwise it falls back
-to `libx264` on the CPU. Force one with `MOVIES_ENCODER` in `secrets.json`.
+to `libx264` on the CPU. Force one with `MOVIES_ENCODER` in `config.json`.
 Note HEVC *decoding* is separate: a pre-Maxwell-gen2 card (e.g. the Quadro
 M2000M) decodes x265 rips on the CPU no matter what, which is the real cost
 on a 1080p HEVC file.
@@ -83,23 +83,30 @@ targeting this machine's LAN IP (`hostname -I` to confirm it). Verify
 externally with `canyouseeme.org` (or similar) — testing from inside the same
 network can give a false positive via NAT hairpinning.
 
-## 8. Check the `secrets.json` file (top level)
+## 8. Check the `config.json`, `secrets.json` and `users.json` files (top level)
 
-Gitignored — doesn't come with `git pull`, and holds *everything* config-ish
-that used to be split across `.env` and `api/users.json`: ports, hosts, API
-keys, and the `users` map. Create it from `secrets.json.example`:
+All three are gitignored — they don't come with `git pull` — and each is
+created from its `.example`:
+
+- `config.json`: ports, hosts, folders, the Media panel's staging areas.
+- `secrets.json`: the API keys and tokens.
+- `users.json`: who may sign in, and what each of them sees.
 
 ```bash
 cd ~/Documents/sharedCode/CyanHouse
+cp config.json.example config.json
 cp secrets.json.example secrets.json
-nano secrets.json
+cp users.json.example users.json
+nano config.json
 ```
 
-Fill in for *this* machine specifically: `PUBLIC_HOST`,
-`CONTROLS_FN_HOST`/`CONTROLS_FN_PORT`,
-`DATA_DIR` (blank unless you want data elsewhere), `SERPER_API_KEY`,
-`OPENROUTER_KEY`/`LLM_FOOD_MODEL`, `MOVIES_DIR` (the film library — defaults
-to `/mnt/earth/CYAN/Video/Movies`, see step 11).
+Fill in `config.json` for *this* machine specifically: `PUBLIC_HOST` (the
+name from outside), `LAN_HOST` (the DuckDNS name set to this machine's LAN
+address), `CONTROLS_FN_HOST`/`CONTROLS_FN_PORT`,
+`DATA_DIR` (blank unless you want data elsewhere), `LLM_FOOD_MODEL`,
+`MOVIES_DIR` (the film library — defaults to `/mnt/earth/CYAN/Video/Movies`,
+see step 11). In `secrets.json`: `SERPER_API_KEY`, `OPENROUTER_KEY`,
+`TMDB_API_KEY`, `PLEX_TOKEN`, `DUCKDNS_TOKEN`.
 
 Optional movie knobs, all with working defaults: `MOVIES_ENCODER`
 (`auto`), `MOVIES_MAX_STREAMS` (`2` concurrent transcodes),
@@ -107,7 +114,7 @@ Optional movie knobs, all with working defaults: `MOVIES_ENCODER`
 also how long a paused film survives), `MOVIES_SCAN_TTL` (`600` s between
 library rescans).
 
-And real user credentials under `"users"` — without at least one entry, the
+And real user credentials in `users.json` — without at least one entry, the
 app falls back to `dev`/`dev` (logs a warning), not something you want exposed
 once this is live behind nginx:
 
@@ -117,17 +124,15 @@ python3 -c "import secrets; print(secrets.token_hex(16))"   # generate a token
 
 ```json
 {
-  "...": "... (ports/hosts/keys above) ...",
-  "users": {
-    "claudio": { "token": "the-token-you-just-generated", "permissions": {} }
-  }
+  "claudio": { "token": "the-token-you-just-generated", "permissions": {} }
 }
 ```
 
 Each user's `permissions` dict optionally takes a `visibility` list (panel
-ids: `controls`, `environment`, `personal`, `food`, `calendar`, `movies` — the latter is the Media panel) restricting
+ids: `controls`, `environment`, `personal`, `food`, `calendar`) restricting
 which panels/APIs that user can reach — omit it entirely for "sees everything"
-(the default).
+(the default). The Media panel is not in that list: with a `visibility` list,
+it shows exactly when the `media` list gives at least one of its folders.
 
 ## 9. Backend as a service
 
@@ -174,13 +179,13 @@ without killing it).
 Same reverse-proxy setup as the Windows `nginx/` folder (`/ui`, `/api`),
 containerized instead of installing an nginx binary on the box.
 Runs with `network_mode: host`, so it reaches the FastAPI backend
-(`python -m api`, port `API_PORT` from secrets.json) on this same machine at
+(`python -m api`, port `API_PORT` from config.json) on this same machine at
 `127.0.0.1:<API_PORT>` — the backend binds loopback only, so nginx is the only
 way in and every client reaches it over TLS on 443
 unchanged, and binds 80/443 directly on the host.
 
 Prerequisites: Docker + Docker Compose installed, DNS (your `PUBLIC_HOST`
-from `secrets.json`, step 8) pointing at this machine's public IP, and ports
+from `config.json`, step 8) pointing at this machine's public IP, and ports
 80/443 forwarded to it (step 7, above).
 
 ### Render the nginx config
@@ -189,8 +194,8 @@ from `secrets.json`, step 8) pointing at this machine's public IP, and ports
 gitignored files — the tracked source is `docker/nginx.conf.template` /
 `docker/nginx-bootstrap.conf.template`, with `${PUBLIC_HOST}`, `${API_PORT}`,
 `${CONTROLS_FN_HOST}` and `${CONTROLS_FN_PORT}` placeholders filled in from
-`secrets.json` so the domain/ports live in exactly one place. Render (or
-re-render, after editing `secrets.json` or either `.template`) with:
+`config.json` so the domain/ports live in exactly one place. Render (or
+re-render, after editing `config.json` or either `.template`) with:
 
 ```bash
 python3 scripts/render_nginx_conf.py
@@ -212,7 +217,7 @@ docker run --rm -d --name nginx-bootstrap --network host \
   nginx:stable-alpine
 
 # 2. Issue the certificate (writes to /etc/letsencrypt on the host).
-PUBLIC_HOST=$(python3 -c "import json; print(json.load(open('secrets.json'))['PUBLIC_HOST'])")
+PUBLIC_HOST=$(python3 -c "import json; print(json.load(open('config.json'))['PUBLIC_HOST'])")
 docker run --rm \
   -v /etc/letsencrypt:/etc/letsencrypt \
   -v "$(pwd)/docker/certbot/www:/var/www/certbot" \
@@ -231,7 +236,7 @@ docker compose up -d
 
 Starts the real `nginx` (full config, HTTPS + `/ui`/`/api`) and
 `certbot` (renews automatically every ~12h, no-ops until the cert is close to
-expiry). After editing `secrets.json` or either `.template` file, re-render
+expiry). After editing `config.json` or either `.template` file, re-render
 (above) and redeploy with a full recreate rather than a restart, so any
 changed bind mounts or volumes actually take effect:
 

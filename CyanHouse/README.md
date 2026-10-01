@@ -43,13 +43,13 @@ top-level packages resolve. Its name is irrelevant:
 
 ```bash
 pip install -r requirements.txt
-python -m api                        # binds API_PORT from secrets.json (default 10001)
+python -m api                        # binds API_PORT from config.json (default 10001)
 ```
 
 `python -m api` is the way to run it — it reads `API_PORT` / `HOST` from
-`secrets.json`. The bare `uvicorn api.main:app` form works too but ignores
-`secrets.json` and defaults to port 18000, so pass `--port 10001` (matching
-`secrets.json`) or the web UI's `/api` proxy won't find it.
+`config.json`. The bare `uvicorn api.main:app` form works too but ignores
+`config.json` and defaults to port 18000, so pass `--port 10001` (matching
+`config.json`) or the web UI's `/api` proxy won't find it.
 
 Frontend:
 
@@ -73,7 +73,7 @@ Every `/api/*` route requires a **username + token** (HTTP Basic, or a
 `diary_auth` cookie holding `base64("user:token")`). Define users via either:
 
 - env var `DIARY_USERS='{"alice":{"token":"tok1","permissions":{}}}'`, or
-- `cp secrets.json.example secrets.json` and edit its `"users"` key (git-ignored)
+- `cp users.json.example users.json` and edit it (git-ignored)
 
 The React UI has a sign-in screen and keeps the credential in the `diary_auth`
 cookie; the Android app keeps it in EncryptedSharedPreferences. `/` (the SPA) and

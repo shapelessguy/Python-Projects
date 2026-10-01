@@ -95,7 +95,7 @@ def main():
     ap.add_argument("--remove", action="store_true", help="delete the folder this script made")
     args = ap.parse_args()
     if IMAGE_DIR is None:
-        sys.exit("IMAGE_DIR is not configured in secrets.json")
+        sys.exit("IMAGE_DIR is not configured in config.json")
     target = IMAGE_DIR / args.target
     if args.remove:
         remove(target)

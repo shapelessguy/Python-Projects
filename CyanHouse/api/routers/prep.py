@@ -52,7 +52,7 @@ def _wrap(exc) -> HTTPException:
 
 @router.get("/areas")
 async def list_areas(user: str = Depends(require_user)):
-    """The staging folders from secrets.json, each flagged ready or not so
+    """The staging folders from config.json, each flagged ready or not so
     the UI can say *why* an area is empty rather than just showing nothing.
     Only the ones this user may see (api/auth.py): the tabs follow from it."""
     areas = await run_in_threadpool(movie_prep.areas)

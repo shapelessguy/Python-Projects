@@ -31,8 +31,8 @@ DWD_HOURS = 72
 _PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
-def _load_secrets(path: str) -> None:
-    """Minimal secrets.json reader, duplicated from api/config.py so this
+def _load_config(path: str) -> None:
+    """Minimal config.json reader, duplicated from api/config.py so this
     module reads DATA_DIR too without importing `api` (see module
     docstring)."""
     if not os.path.exists(path):
@@ -43,12 +43,10 @@ def _load_secrets(path: str) -> None:
         except Exception:
             return
     for key, value in data.items():
-        if key == "users":
-            continue
         os.environ.setdefault(key, str(value))
 
 
-_load_secrets(os.path.join(_PROJECT_DIR, "secrets.json"))
+_load_config(os.path.join(_PROJECT_DIR, "config.json"))
 _data_dir = os.environ.get("DATA_DIR", "").strip()
 DATASETS_DIR = os.path.join(_data_dir or _PROJECT_DIR, "forecast", "datasets")
 

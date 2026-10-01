@@ -2,7 +2,7 @@
 
 The Room actuator (top/lights/strip/tv/audio -> ESP32 boards over HTTP) runs
 in-process — see api/services/room.py, ported from old_roomserver. The fn
-service is still a separate process on the LAN (CONTROLS_FN_HOST in secrets.json),
+service is still a separate process on the LAN (CONTROLS_FN_HOST in config.json),
 reached the same way CyanControls always did, just proxied here so the
 panels stay same-origin and behind the dashboard login. Each call carries the
 caller's own credential: the fn service signs people in with the CyanHouse
@@ -52,7 +52,7 @@ def _forward(method: str, base: str, path: str, payload: dict | None, user: str)
     if not base:
         raise HTTPException(
             status_code=503,
-            detail="controls proxy not configured — set CONTROLS_FN_HOST in secrets.json",
+            detail="controls proxy not configured — set CONTROLS_FN_HOST in config.json",
         )
     url = f"{base}{path}"
     headers = basic_header(user)
@@ -151,7 +151,7 @@ async def mouse(websocket: WebSocket, user: str = Depends(require_user)):
     never answers, it just closes."""
     if not MOUSE_WS_URL:
         await websocket.send_denial_response(PlainTextResponse(
-            "mouse server not configured — set CONTROLS_FN_HOST in secrets.json", status_code=503))
+            "mouse server not configured — set CONTROLS_FN_HOST in config.json", status_code=503))
         return
     try:
         pc = await websockets.connect(MOUSE_WS_URL, additional_headers=basic_header(user),
