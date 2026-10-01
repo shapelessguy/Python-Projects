@@ -6,13 +6,22 @@ import traceback
 import sys
 import ctypes
 import pkgutil
+
+# PyQt5 bundles an old Microsoft C++ runtime (msvcp140 14.26). Whichever copy
+# loads first serves the whole process, and torch (the STT service) fails on
+# the old one with WinError 1114: load Windows' own before PyQt5 does.
+for _dll in ("vcruntime140.dll", "vcruntime140_1.dll", "msvcp140.dll"):
+    try:
+        ctypes.WinDLL(os.path.join(os.environ.get("SystemRoot", r"C:\Windows"), "System32", _dll))
+    except OSError:
+        pass
+
 import services
 import api_auth
 import service_deps
 from gui.manage_ui import UI
-from dotenv import dotenv_values
 from registered_functions import register_functions, RegisteredFunctions
-from utils import Tee, notify, Application, Thread, ENV_PATH, CONFIGURATIONS_PATH, EXE_MAP_PATH
+from utils import Tee, notify, Application, Thread, ENV_PATH, CONFIGURATIONS_PATH, EXE_MAP_PATH, PROFILE_PATH
 
 
 class ThreadManager():
@@ -117,26 +126,34 @@ class Signal:
     def set_profile(self, profile_name):
         if profile_name in self.get_all_profiles():
             self.profile = profile_name
-        with open(ENV_PATH, "r", encoding="utf8") as file:
-            lines = file.readlines()
-        new_lines = []
-        for l in lines:
-            if l.startswith("PROFILE="):
-                new_lines.append(f"PROFILE={self.profile}\n")
-            else:
-                new_lines.append(l)
-        with open(ENV_PATH, "w", encoding="utf8") as file:
-            file.writelines(new_lines)
+        with open(PROFILE_PATH, "w", encoding="utf8") as file:
+            file.write(self.profile + "\n")
         self.load_preferences()
         self.restart_thread_managers()
-    
+
+    def read_profile(self):
+        """The profile chosen on this PC (profile.txt), "default" the first time.
+        It used to be PROFILE= in .env: moved from there once."""
+        if os.path.exists(PROFILE_PATH):
+            with open(PROFILE_PATH, "r", encoding="utf8") as file:
+                return file.read().strip() or "default"
+        profile = "default"
+        if os.path.exists(ENV_PATH):
+            with open(ENV_PATH, "r", encoding="utf8") as file:
+                lines = file.readlines()
+            kept = [l for l in lines if not l.startswith("PROFILE=")]
+            for l in lines:
+                if l.startswith("PROFILE="):
+                    profile = l.split("=", 1)[1].strip() or profile
+            if len(kept) != len(lines):
+                with open(ENV_PATH, "w", encoding="utf8") as file:
+                    file.writelines(kept)
+        with open(PROFILE_PATH, "w", encoding="utf8") as file:
+            file.write(profile + "\n")
+        return profile
+
     def load_preferences(self):
-        env_vars = dotenv_values(ENV_PATH)
-        if "PROFILE" not in env_vars:
-            with open(ENV_PATH, "a", encoding="utf8") as file:
-                file.write("PROFILE=default\n")
-            env_vars = dotenv_values(ENV_PATH)
-        self.profile = env_vars["PROFILE"]
+        self.profile = self.read_profile()
         if self.profile not in self.get_all_profiles():
             raise Exception(f"PROFILE {self.profile} not found!")
         profile_path = os.path.join(CONFIGURATIONS_PATH, self.profile + ".json")

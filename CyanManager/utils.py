@@ -30,6 +30,7 @@ CODEBASE_PATH = os.path.join(DOCUMENTS_PATH, "codebase")
 ICONS_FOLDER_PATH = os.path.join(os.path.dirname(__file__), 'icons')
 CONFIGURATIONS_PATH = os.path.join(os.path.dirname(__file__), 'configurations')
 EXE_MAP_PATH = os.path.join(os.path.dirname(__file__), 'exe_map.json')
+PROFILE_PATH = os.path.join(os.path.dirname(__file__), 'profile.txt')
 ENV_PATH = os.path.join(os.path.dirname(__file__), '.env')
 ERR_FLAG = "CyanManagerError"
 

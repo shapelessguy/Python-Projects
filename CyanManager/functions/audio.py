@@ -7,6 +7,7 @@ import io
 import os
 import random
 import threading
+import warnings
 from utils import SV_EXE_PATH, TIMER_EXE, notify
 from pycaw.pycaw import AudioUtilities
 from utils import AUDIO_PATH, VOICES_PATH
@@ -222,6 +223,42 @@ def volume_down(signal, verbose=False):
     if verbose:
         print("Current volume:", new_vol)
     un_mute_volume(volume, new_vol)
+
+
+def get_audio_devices(signal, verbose=False):
+    """The audio devices Windows has now (not the ones it only remembers).
+    "name" or "device" is what the Devices service's Speakers/Headphones take."""
+    pythoncom.CoInitialize()
+    with warnings.catch_warnings():  # pycaw warns about properties some drivers lack
+        warnings.simplefilter("ignore")
+        devices = AudioUtilities.GetAllDevices()
+        default_ids = {AudioUtilities.GetSpeakers().id}
+        try:
+            default_ids.add(AudioUtilities.GetMicrophone().GetId())
+        except Exception:  # no input device
+            pass
+
+    found = []
+    for d in devices:
+        state = getattr(d.state, "name", str(d.state))
+        if state == "NotPresent" or not d.FriendlyName:
+            continue
+        # FriendlyName is "<name> (<device>)"; ids start {0.0.0...} for outputs, {0.0.1...} for inputs
+        name, _, device = d.FriendlyName.partition(" (")
+        found.append({
+            "name": name,
+            "device": device[:-1] if device.endswith(")") else device,
+            "direction": "input" if d.id.startswith("{0.0.1.") else "output",
+            "state": state,
+            "default": d.id in default_ids,
+        })
+    found.sort(key=lambda x: (x["direction"] != "output", x["state"] != "Active", x["name"].lower()))
+
+    if verbose:
+        for x in found:
+            print(f"- {x['direction']}: {x['name']} | device: {x['device']} | {x['state']}"
+                  f"{' | default' if x['default'] else ''}")
+    return found
 
 
 def switch_to_audio_device(signal, device_name, icon):

@@ -2,3 +2,4 @@
 logs/*
 .env
 exe_map.json
+profile.txt

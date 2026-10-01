@@ -167,7 +167,7 @@ class TerminalWindow(QWidget):
     def __init__(self, parent=None, title="Terminal"):
         super().__init__(parent)
         self.setWindowTitle(title)
-        self.setGeometry(200, 200, 600, 400)
+        self.setGeometry(200, 200, 900, 700)
 
         icon = QIcon()
         icon.addPixmap(QPixmap(os.path.join(ICONS_FOLDER_PATH, "cyan_system_manager.ico")), QIcon.Normal, QIcon.Off)

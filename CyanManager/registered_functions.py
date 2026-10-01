@@ -64,6 +64,7 @@ class RegisteredFunctions:
                                                            required=["volume_level"])
     VOLUME_UP=HandleFunction(volume_up, verbose_always_off=True)
     VOLUME_DOWN=HandleFunction(volume_down, verbose_always_off=True)
+    GET_AUDIO_DEVICES=HandleFunction(get_audio_devices)
     PREV=HandleFunction(prev_multimedia, description="Go to previous track on Spotify or other media")
     NEXT=HandleFunction(next_multimedia, description="Go to next track on Spotify or other media")
     FIND_WINDOWS=HandleFunction(find_windows)
