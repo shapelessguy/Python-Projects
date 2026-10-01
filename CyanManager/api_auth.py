@@ -1,6 +1,6 @@
-"""Who may call the API server (port 10000) and the mouse server (10001).
+"""Who may call the API server (port 10000: HTTP routes and the mouse WebSocket at /ws).
 
-Both run things on this PC -- typing text, pressing keys, typing the keyring
+It runs things on this PC -- typing text, pressing keys, typing the keyring
 password -- so a caller signs in with its CyanHouse credentials, the same
 `Authorization: Basic base64(user:token)` the Android app sends to CyanHouse,
 and CyanHouse forwards its caller's.
@@ -12,7 +12,7 @@ CyanManager signs in as its own:
     INSTANCE_ID=cyanpc
     INSTANCE_TOKEN=<cyanpc's token in CyanHouse's secrets.json>
 
-It signs in with them to call CyanHouse (roomserver.py), and at startup
+It signs in with them to call CyanHouse (services/cyanhouse), and at startup
 (load_users(), from main_logic.py) to fetch everyone else from
 `GET /api/controls/users`: each user's name, the SHA-256 of their token (so
 this PC never holds anyone's token but its own) and whether they have the

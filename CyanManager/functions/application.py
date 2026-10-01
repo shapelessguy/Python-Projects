@@ -8,6 +8,7 @@ import uuid
 import json
 import psutil
 import win32process
+import pywintypes
 import pywinctl as pwc
 import traceback
 from ctypes import wintypes
@@ -127,7 +128,10 @@ def start_app(signal, app, app_name_map=None):
         print(f"Starting process -> {[app.path] + app.arguments.split()}")
         if app.proc_type == "exe" and app.path.startswith("app:"):
             app_name = "app:".join(app.path.split("app:")[1:])
-            app_id = app_name_map[app_name]
+            app_id = app_name_map.get(app_name)
+            if app_id is None:
+                print(f"Cannot start {app.name}: no Start menu entry named {app_name!r} (not installed?)")
+                return False
             subprocess.Popen([
                 "powershell", "-Command",
                 f'Start-Process "shell:AppsFolder\\{app_id}"'
@@ -149,6 +153,13 @@ def start_app(signal, app, app_name_map=None):
                 cmd = ["python", app.path, app.arguments]
                 subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         elif app.proc_type in ["exe", "chrome"]:
+            if not os.path.exists(app.path):
+                drive = os.path.splitdrive(app.path)[0]
+                if drive and not os.path.exists(drive + "\\"):
+                    print(f"Cannot start {app.name}: drive {drive} is not available (locked or disconnected?)")
+                else:
+                    print(f"Cannot start {app.name}: {app.path} not found")
+                return False
             if app.runas:
                 ctypes.windll.shell32.ShellExecuteW(
                     None,
@@ -214,7 +225,7 @@ def kill_application(signal, verbose=False, application=None):
 
 
 def get_threads_status(signal, verbose=False):
-    status = {name: thread.is_alive() for name, thread in signal.threads.items()}
+    status = {name: bool(tm.is_alive()) for name, tm in signal.thread_managers.items()}
     if verbose:
         for n, s in status.items():
             print(f"Thread {n}: {'ACTIVE' if s else 'DOWN'}")
@@ -235,30 +246,48 @@ def match_app_win(app, win):
     return match
 
 
+def _has_size(win):
+    try:
+        return win.width > 0 and win.height > 0
+    except Exception:  # pywintypes.error: the window closed after getAllWindows()
+        return False
+
+
+def _proc_name(win):
+    try:
+        return win.proc.name()
+    except psutil.Error:  # its process ended meanwhile
+        return ""
+
+
 def find_windows(signal, verbose=False, discover=False):
-    windows = pwc.getAllWindows()
-    for win in windows:
-        _, pid = win32process.GetWindowThreadProcessId(win.getHandle())
-        win.proc = psutil.Process(pid)
+    windows = []
+    for win in pwc.getAllWindows():
+        try:
+            _, pid = win32process.GetWindowThreadProcessId(win.getHandle())
+            win.proc = psutil.Process(pid)
+        except (ValueError, psutil.Error, pywintypes.error):  # closed meanwhile, or no process behind it
+            continue
+        windows.append(win)
 
     found = []
     if discover:
         for win in windows:
-            if win.width > 0 and win.height > 0:
+            if _has_size(win):
                 found.append(win)
     else:
         for a in signal.get_applications():
             match = None
             if len(a.window_kw):
                 for win in windows:
-                    if win.width > 0 and win.height > 0:
+                    if _has_size(win):
                         match = match_app_win(a, win)
                         if match:
                             break
             if not match:
                 for win in windows:
-                    if win.width > 0 and win.height > 0:
-                        if win.proc.name() == a.proc_name:
+                    if _has_size(win):
+                        if _proc_name(win) == a.proc_name:
                             exclude = False
                             for kw in a.excluded_kw:
                                 if kw in win.title:
@@ -276,18 +305,18 @@ def find_windows(signal, verbose=False, discover=False):
 
 
 def select_exe(win, app):
-    return win.proc.name() == app.proc_name
+    return _proc_name(win) == app.proc_name
 
 
 def select_python(win, app):
-    if win.proc.name() != "python.exe":
+    if _proc_name(win) != "python.exe":
         return False
     match = match_app_win(app, win)
     return match is not None
 
 
 def select_chrome(win, app):
-    if win.proc.name() != "chrome.exe":
+    if _proc_name(win) != "chrome.exe":
         return False
     match = match_app_win(app, win)
     return match is not None

@@ -5,10 +5,10 @@ import datetime
 import traceback
 import sys
 import ctypes
-import importlib
 import pkgutil
-import thread_collection
-from thread_collection import api_auth
+import services
+import api_auth
+import service_deps
 from gui.manage_ui import UI
 from dotenv import dotenv_values
 from registered_functions import register_functions, RegisteredFunctions
@@ -16,10 +16,11 @@ from utils import Tee, notify, Application, Thread, ENV_PATH, CONFIGURATIONS_PAT
 
 
 class ThreadManager():
-    def __init__(self, signal, name, target, parameters, args):
+    def __init__(self, signal, name, target, parameters, args, module=None):
         self.signal = signal
         self.name = name
-        self.target = target
+        self.module = module  # its folder in services/
+        self.target = target  # None: its requirements are not installed (service_deps.py)
         self.parameters = parameters
         self.args = args
         self.to_kill = False
@@ -42,7 +43,12 @@ class ThreadManager():
             print(f"Requested param {name} but not available: {available_params}")
         return self.get_params().get(name, None)
     
+    def installed(self):
+        return self.target is not None
+
     def start(self):
+        if not self.installed():
+            return
         print(f"Starting thread: {self.name}")
         self.to_kill = False
         self.thread = threading.Thread(target=self.target, args=(self, *self.args))
@@ -77,6 +83,11 @@ class Signal:
         self.info["audio_device"] = ""
         self.info["volume"] = 0
 
+        # The launcher redirects to a log file, cp1252 by default: a window
+        # title with other characters would make Tee drop the whole line.
+        for stream in (sys.stdout, sys.stderr):
+            if hasattr(stream, "reconfigure"):
+                stream.reconfigure(encoding="utf-8", errors="replace")
         sys.stdout = Tee(self.log_queue, sys.stdout)
         sys.stderr = Tee(self.log_queue, sys.stderr)
         self.load_exe_table()
@@ -159,8 +170,8 @@ class Signal:
     def set_reg_functions(self, reg_functions):
         self.reg_functions = reg_functions
     
-    def register_thread(self, name, target, parameters, args: tuple=()):
-        self.thread_managers[name] = ThreadManager(self, name, target, parameters, args)
+    def register_thread(self, name, target, parameters, args: tuple=(), module=None):
+        self.thread_managers[name] = ThreadManager(self, name, target, parameters, args, module)
     
     def start_thread_managers(self):
         threads = {t.name: t for t in self.get_threads()}
@@ -196,16 +207,14 @@ class Signal:
 
 
 def register_threads(signal):
-    for _, module_name, _ in pkgutil.iter_modules(thread_collection.__path__):
-        if module_name.startswith('_'):
+    # Each service is services/<name>/service.py, next to its own
+    # requirements.txt and tools/ (see services/__init__.py).
+    for _, module_name, is_pkg in pkgutil.iter_modules(services.__path__):
+        if module_name.startswith('_') or not is_pkg:
             continue
 
         try:
-            module = importlib.import_module(f"thread_collection.{module_name}")
-            if hasattr(module, 'entrypoint'):
-                signal.register_thread(name=module.NAME, target=module.entrypoint, parameters=module.PARAMETERS)
-            else:
-                print(f"Module {module_name} has no 'entrypoint' function")
+            service_deps.load(signal, module_name)
         except Exception as exc:
             print(f"Failed to load/run {module_name}: {exc.__class__.__name__} - {exc}")
 

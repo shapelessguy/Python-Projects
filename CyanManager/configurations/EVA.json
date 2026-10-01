@@ -19,25 +19,6 @@
             "runas": false,
             "startup": true
         },
-        "ChatGPT": {
-            "window_kw": [],
-            "excluded_kw": [],
-            "window_props": {
-                "monitor_id": "HKC2413(2)",
-                "x": -7,
-                "y": 593,
-                "width": 976,
-                "height": 446,
-                "win_state": "normal",
-                "order": false
-            },
-            "proc_name": "ChatGPT.exe",
-            "proc_type": "exe",
-            "path": "app:ChatGPT",
-            "arguments": "",
-            "runas": false,
-            "startup": false
-        },
         "Claude": {
             "window_kw": [],
             "excluded_kw": [],
@@ -99,48 +80,6 @@
             "runas": false,
             "startup": false
         },
-        "Gemini": {
-            "window_kw": [
-                "Gemini"
-            ],
-            "excluded_kw": [],
-            "window_props": {
-                "monitor_id": "HKC2413(2)",
-                "x": 0,
-                "y": 0,
-                "width": 500,
-                "height": 500,
-                "win_state": "normal",
-                "order": false
-            },
-            "proc_name": "",
-            "proc_type": "chrome",
-            "path": "C:/Program Files/Google/Chrome/Application/chrome_proxy.exe",
-            "arguments": "--profile-directory=Default --app-id=gdfaincndogidkdcdkhapmbffkckdkhn",
-            "runas": false,
-            "startup": false
-        },
-        "Grok": {
-            "window_kw": [
-                "Grok"
-            ],
-            "excluded_kw": [],
-            "window_props": {
-                "monitor_id": "HKC2413(2)",
-                "x": 954,
-                "y": 601,
-                "width": 966,
-                "height": 439,
-                "win_state": "normal",
-                "order": true
-            },
-            "proc_name": "",
-            "proc_type": "chrome",
-            "path": "C:/Program Files/Google/Chrome/Application/chrome_proxy.exe",
-            "arguments": "--profile-directory=Default --app-id=ggjocahimgaohmigbfhghnlfcnjemagj",
-            "runas": false,
-            "startup": false
-        },
         "LLM client": {
             "window_kw": [],
             "excluded_kw": [],
@@ -158,7 +97,7 @@
             "path": "C:/Users/shape/Documents/codebase/sharedCode/CyanManager/tools/cyanSync/llm_client.py",
             "arguments": "default_llm_client",
             "runas": false,
-            "startup": true
+            "startup": false
         },
         "MSI Afterburner": {
             "window_kw": [
@@ -181,27 +120,6 @@
             "arguments": "",
             "runas": true,
             "startup": true
-        },
-        "Mattermost": {
-            "window_kw": [
-                "Mattermost Desktop App"
-            ],
-            "excluded_kw": [],
-            "window_props": {
-                "monitor_id": "HKC2413(2)",
-                "x": 982,
-                "y": 523,
-                "width": 938,
-                "height": 510,
-                "win_state": "normal",
-                "order": false
-            },
-            "proc_name": "Mattermost.exe",
-            "proc_type": "exe",
-            "path": "app:Mattermost",
-            "arguments": "",
-            "runas": false,
-            "startup": false
         },
         "Mozilla Firefox": {
             "window_kw": [
@@ -240,7 +158,7 @@
             },
             "proc_name": "NetMeterEvo.exe",
             "proc_type": "exe",
-            "path": "E:/Software/Network/NetMeterEvo.exe",
+            "path": "//192.168.178.192/EARTH/Software/Network/NetMeterEvo.exe",
             "arguments": "",
             "runas": false,
             "startup": true
@@ -419,6 +337,10 @@
             "enabled": true,
             "parameters": {}
         },
+        "CyanHouse": {
+            "enabled": true,
+            "parameters": {}
+        },
         "Devices": {
             "enabled": true,
             "parameters": {
@@ -432,27 +354,14 @@
             "enabled": true,
             "parameters": {}
         },
-        "Mouse Server": {
-            "enabled": true,
-            "parameters": {}
-        },
         "PC - connected devices": {
             "enabled": true,
             "parameters": {}
-        },
-        "Roomserver": {
-            "enabled": true,
-            "parameters": {
-                "Lights from": "08:00",
-                "Lights to": "15:46"
-            }
         },
         "STT service": {
             "enabled": false,
             "parameters": {
                 "Whisper Model": "large",
-                "URL": "https://openrouter.ai/api/v1/chat/completions",
-                "Token": "OPENROUTER_KEY",
                 "Model": "gemini-3.5-flash-lite"
             }
         },

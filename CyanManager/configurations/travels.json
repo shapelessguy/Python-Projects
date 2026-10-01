@@ -13,6 +13,10 @@
             "enabled": true,
             "parameters": {}
         },
+        "CyanHouse": {
+            "enabled": false,
+            "parameters": {}
+        },
         "Devices": {
             "enabled": true,
             "parameters": {
@@ -28,13 +32,6 @@
             "enabled": false,
             "parameters": {}
         },
-        "Roomserver": {
-            "enabled": false,
-            "parameters": {
-                "Lights from": "09:00",
-                "Lights to": "20:00"
-            }
-        },
         "Start&Shutdown": {
             "enabled": true,
             "parameters": {
@@ -44,10 +41,6 @@
                 "Shutdown to": "08:00",
                 "Shutdown": false
             }
-        },
-        "XM4-1000": {
-            "enabled": false,
-            "parameters": {}
         }
     }
 }

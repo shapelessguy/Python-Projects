@@ -285,12 +285,12 @@ def set_primary_screen(signal, screen_spec, icon=None):
 
 
 def switch_to_screen_1(signal, verbose=False):
-    from thread_collection.devices import switch_to_screen_1_
+    from services.devices.service import switch_to_screen_1_
     switch_to_screen_1_()
 
 
 def switch_to_screen_2(signal, verbose=False):
-    from thread_collection.devices import switch_to_screen_2_
+    from services.devices.service import switch_to_screen_2_
     switch_to_screen_2_()
 
 

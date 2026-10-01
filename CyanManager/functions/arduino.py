@@ -1,31 +1,31 @@
-from thread_collection.roomserver import send_to_roomserver
+from services.cyanhouse.service import send_to_cyanhouse
 from utils import notify
 
 
 def send_light_config(signal, verbose, value, notify_):
-    send_to_roomserver(signal, verbose, "lights", value)
+    send_to_cyanhouse(signal, verbose, "lights", value)
     if notify_:
         notify(signal, title="Room Server", message=f"Lights {value}", icon="server.png")
 
 # ---------------------------------------------------------
 
 def send_audio(signal, verbose, value, notify_):
-    send_to_roomserver(signal, verbose, "audio", value)
+    send_to_cyanhouse(signal, verbose, "audio", value)
     if notify_:
         notify(signal, title="Room Server", message=f"Audio System {value}", icon="audio_system.png")
 
 def send_strips(signal, verbose, value, notify_):
-    send_to_roomserver(signal, verbose, "strips", value)
+    send_to_cyanhouse(signal, verbose, "strips", value)
     if notify_:
         notify(signal, title="Room Server", message=f"Strip lights {value}", icon="lights.png")
 
 def send_top(signal, verbose, value, notify_):
-    send_to_roomserver(signal, verbose, "top", value)
+    send_to_cyanhouse(signal, verbose, "top", value)
     if notify_:
         notify(signal, title="Room Server", message=f"Top light {value}", icon="lights.png")
 
 def send_tv(signal, verbose, value, notify_):
-    send_to_roomserver(signal, verbose, "tv", value)
+    send_to_cyanhouse(signal, verbose, "tv", value)
     if notify_:
         notify(signal, title="Room Server", message=f"TV {value}", icon="tv.png")
 

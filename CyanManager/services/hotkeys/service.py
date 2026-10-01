@@ -1,3 +1,4 @@
+import os
 import json
 import winreg
 import threading
@@ -6,12 +7,15 @@ from functions.monitors import *
 from functions.generic import *
 from functions.application import *
 from functions.arduino import *
-from utils import find_process_by_exe, KEYBOARD_HOTKEYS_EXE
+from utils import find_process_by_exe
 
 
 NAME = "Hotkeys"
 PARAMETERS = {}
 reg_path = "CyanHotkey"
+
+KEYBOARD_HOTKEYS_EXE = os.path.join(os.path.dirname(__file__), "tools", "KeyboardHotkeys", "KeyboardHotkeys",
+                                    "bin", "Release", "net10.0-windows", "KeyboardHotkeys.exe")
 
 
 def hotkeys_setup(signal):

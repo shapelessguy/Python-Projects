@@ -242,10 +242,10 @@ def switch_to_audio_device(signal, device_name, icon):
 
 
 def switch_to_headphones(signal, verbose=False):
-    from thread_collection.devices import switch_to_headphones_
+    from services.devices.service import switch_to_headphones_
     switch_to_headphones_()
 
 
 def switch_to_speakers(signal, verbose=False):
-    from thread_collection.devices import switch_to_speakers_
+    from services.devices.service import switch_to_speakers_
     switch_to_speakers_()

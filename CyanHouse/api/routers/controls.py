@@ -6,7 +6,7 @@ service is still a separate process on the LAN (CONTROLS_FN_HOST in secrets.json
 reached the same way CyanControls always did, just proxied here so the
 panels stay same-origin and behind the dashboard login. Each call carries the
 caller's own credential: the fn service signs people in with the CyanHouse
-users too (CyanManager/thread_collection/api_auth.py).
+users too (CyanManager/api_auth.py).
 
     POST /api/controls/room/{topic}  ->  api.services.room.send(topic, command)
     POST /api/controls/fn/{name}     ->  {CONTROLS_FN_URL}/functions/{name}/run   body: optional

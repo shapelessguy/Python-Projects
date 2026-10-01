@@ -1,0 +1,12 @@
+openai-whisper
+piper-tts
+
+# torch built for CUDA, from PyTorch's own index: the wheel that fits this Python
+--extra-index-url https://download.pytorch.org/whl/cu121
+--extra-index-url https://download.pytorch.org/whl/cu126
+torch==2.5.1+cu121; python_version == "3.10"
+torchvision==0.20.1+cu121; python_version == "3.10"
+torchaudio==2.5.1+cu121; python_version == "3.10"
+torch==2.9.1+cu126; python_version == "3.13"
+torchvision==0.24.1+cu126; python_version == "3.13"
+torchaudio==2.9.1+cu126; python_version == "3.13"

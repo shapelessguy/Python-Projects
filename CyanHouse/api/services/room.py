@@ -68,8 +68,8 @@ ESP32_HOSTS: dict[str, str] = {
 # "audio") already match their topic names, so no entry is needed for those.
 _ESP32_ROUTE = {"strips": "strip"}
 
-# Lights auto-schedule. Only CyanManager's RoomServer thread has time-picker
-# fields for "from"/"to" (see its PARAMETERS) — the CyanHouse GUI's/APK's
+# Lights auto-schedule. No client sends "from"/"to" for now (CyanManager's
+# fields were dropped; the React UI is to get its own) — the CyanHouse GUI's/APK's
 # "UV AUTO" button is a plain toggle with no time inputs of its own. So the
 # window and whether it's currently active are tracked separately: a bare
 # "auto" (no set_auto_time) just re-enables whatever window was last saved,

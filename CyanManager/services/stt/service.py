@@ -67,10 +67,9 @@ def _get_history(signal) -> list[dict]:
 
 def askLLM(thread_manager, text: str) -> tuple[str, str | None, dict | None]:
     try:
-        url = thread_manager.get_param("URL")
-        token_name = thread_manager.get_param("Token")
         env_vars = dotenv_values(ENV_PATH)
-        token = env_vars.get(token_name, "")
+        url = env_vars.get("LLM_URL", "")  # e.g. https://openrouter.ai/api/v1/chat/completions
+        token = env_vars.get("LLM_TOKEN", "")
         model = thread_manager.get_param("Model")
 
         signal = thread_manager.signal
@@ -180,8 +179,6 @@ def transcribe(thread_manager, audio_int16: np.ndarray) -> str | None:
 NAME = "STT service"
 PARAMETERS = {
     "Whisper Model": Parameter("", QComboBox, ["small", "medium", "large"]),
-    "URL": Parameter("", QLineEdit),
-    "Token": Parameter("", QLineEdit),
     "Model": Parameter("", QLineEdit),
 }
 

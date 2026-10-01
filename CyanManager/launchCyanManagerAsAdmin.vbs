@@ -19,7 +19,6 @@ curMinute = Right("0" & Minute(dt), 2)
 logFile = logDir & "\CyanManager_" & curYear & "-" & curMonth & "-" & curDay & "_" & curHour & "-" & curMinute & ".log"
 scriptPath = scriptDir & "\main_logic.py"
 installDepPath = scriptDir & "\install_dependencies.bat"
-requirementsPath = scriptDir & "\requirements.txt"
 pythonPath = "C:\Users\shape\AppData\Local\Programs\Python\Python310\python.exe"
 
 Dim tempDataPath
@@ -41,17 +40,14 @@ cmdLine = """" & targetExe & """ """ & app_id & """ """ & tempDataPath & """"
 WshShell.Run cmdLine, 0, False
 Set WshShell = Nothing
 
-pipCmd = pythonPath & " -m pip install --upgrade --user --quiet --no-deps -r " & requirementsPath
-exitCode = installShell.Run("cmd /c " & pipCmd, 0, True)
+' Upgrades requirements.txt (services' own are installed from the GUI), then
+' installs only what an upgrade newly needs and is missing (pip check).
+ensureDepsPath = scriptDir & "\ensure_deps.py"
+exitCode = installShell.Run("cmd /c " & pythonPath & " """ & ensureDepsPath & """", 0, True)
 
 If exitCode <> 0 Then
-    MsgBox "Error installing dependencies!"
+    MsgBox "Error installing dependencies! See logs\dependencies.log"
 End If
-
-' --no-deps above keeps startup fast; this installs only what an upgrade
-' newly needs and is missing (pip check), usually nothing.
-ensureDepsPath = scriptDir & "\ensure_deps.py"
-installShell.Run "cmd /c " & pythonPath & " """ & ensureDepsPath & """", 0, True
 
 cmd = "/c " & pythonPath & " -u """ & scriptPath & """ startup > """ & logFile & """ 2>&1"
 objShell.ShellExecute "cmd.exe", cmd, "", "runas", 0

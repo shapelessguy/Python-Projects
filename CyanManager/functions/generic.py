@@ -3,7 +3,7 @@ import threading
 import keyring
 import ctypes
 from functions.audio import play_audio
-from thread_collection.pc_connected_devices import set_mousepad_color, set_motherboard_color
+from services.pc_devices.service import set_mousepad_color, set_motherboard_color
 
 
 def get_snapshot(signal, verbose=False):

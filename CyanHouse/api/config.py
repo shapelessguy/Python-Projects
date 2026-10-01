@@ -215,10 +215,9 @@ if LAN_HOST:
 CONTROLS_FN_HOST = os.environ.get("CONTROLS_FN_HOST", "").strip()  # e.g. LAN IP
 CONTROLS_FN_PORT = os.environ.get("CONTROLS_FN_PORT", "").strip()
 CONTROLS_FN_URL = f"http://{CONTROLS_FN_HOST}:{CONTROLS_FN_PORT}" if CONTROLS_FN_HOST else ""
-# CyanManager's mouse/keyboard WebSocket, on the same PC: the Android app's
-# Mouse section reaches it through /api/controls/mouse.
-MOUSE_WS_PORT = os.environ.get("MOUSE_WS_PORT", "").strip() or "10001"
-MOUSE_WS_URL = f"ws://{CONTROLS_FN_HOST}:{MOUSE_WS_PORT}/ws" if CONTROLS_FN_HOST else ""
+# CyanManager's mouse/keyboard WebSocket, served by the fn service itself: the
+# Android app's Mouse section reaches it through /api/controls/mouse.
+MOUSE_WS_URL = f"ws://{CONTROLS_FN_HOST}:{CONTROLS_FN_PORT}/ws" if CONTROLS_FN_HOST else ""
 
 # ── qBittorrent ────────────────────────────────────────────────────────────
 # Its Web UI, served to the Media panel through /api/qbt/ (api/routers/qbt.py)

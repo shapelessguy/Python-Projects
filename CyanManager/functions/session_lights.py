@@ -1,9 +1,9 @@
 import time
 import threading
 from openrgb.utils import DeviceType
-from thread_collection.pc_connected_devices import set_device_color
-from thread_collection.roomserver import NAME as ROOMSERVER_NAME, request_roomserver
-from thread_collection.devices import NAME as DEVICES_NAME
+from services.pc_devices.service import set_device_color
+from services.cyanhouse.service import request_cyanhouse
+from services.devices.service import NAME as DEVICES_NAME
 from functions.monitors import set_primary_screen
 
 
@@ -24,8 +24,7 @@ def set_pc_lights(color):
 
 def set_strips(signal, command):
     try:
-        params = [x for x in signal.get_threads() if x.name == ROOMSERVER_NAME][0].parameters
-        request_roomserver(params, "strips", command, timeout=STRIPS_TIMEOUT)
+        request_cyanhouse("strips", command, timeout=STRIPS_TIMEOUT)
     except Exception as ex:
         print(f"Strips {command} failed: {ex.__class__.__name__} - {ex}")
 
