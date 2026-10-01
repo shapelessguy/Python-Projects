@@ -13,7 +13,7 @@ import aiohttp
 
 port = 12312
 client = sys.argv[1]
-server_hostname = sys.argv[2] if len(sys.argv) > 2 else "cyanroomserver.duckdns.org"
+server_hostname = sys.argv[2] if len(sys.argv) > 2 else "cyanhouse.duckdns.org"
 target = "llm_provider"
 
 app = FastAPI()

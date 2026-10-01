@@ -15,7 +15,7 @@ from pathlib import Path
 from datetime import datetime
 
 
-HOSTNAME = socket.gethostbyname('cyanroomserver.duckdns.org')
+HOSTNAME = socket.gethostbyname('cyanhouse.duckdns.org')
 SYNC_MD_FILE = ".syncmd.json"
 TEMP_EXT = ".synctmp"
 DEVICE_ID = ""

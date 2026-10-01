@@ -8,7 +8,7 @@ and CyanHouse forwards its caller's.
 .env holds only this instance's own CyanHouse user -- each device running
 CyanManager signs in as its own:
 
-    CYANHOUSE_URL=https://cyanshape.duckdns.org   (LAN_HOST: CyanHouse on the same LAN)
+    CYANHOUSE_URL=https://cyanhouselan.duckdns.org   (LAN_HOST: CyanHouse on the same LAN)
     INSTANCE_ID=cyanpc
     INSTANCE_TOKEN=<cyanpc's token in CyanHouse's secrets.json>
 
