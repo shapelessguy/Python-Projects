@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { api, MovieInfo, MovieItem, MovieTrack, MovieSource, MusicAuto, MusicSong, PrepPlan, RemuxJob, StagedFile } from "../api";
+import { api, MOVIES_KEY, MovieInfo, MovieItem, MovieTrack, MovieSource, MusicAuto, MusicSong, PrepPlan, RemuxJob, StagedFile } from "../api";
 import { FileView, FileTree, MoviesHome, PrepIdentity, PrepCommit, DRAG_TYPE, draggedArea, fmtSize, selectionRoots } from "./StagingView";
 import { useVersionPoll, useVisibility } from "../api";
 import { entriesFrom, walkEntries, useUploads } from "../uploads";
@@ -52,13 +52,13 @@ const EXTERNAL = [
 ] as const;
 
 /** The tabs that keep only their icon when the tab row runs out of room
- *  (styles.css, .mv-sources): the film library (key ""), and the music,
+ *  (styles.css, .mv-sources): the film library (MOVIES_KEY), and the music,
  *  image and document libraries. A staging area's icon comes from secrets.json. */
-const TAB_ICONS: Record<string, string> = { "": "🎬", ":music": "🎵", ":images": "🖼️", ":documents": "📄" };
+const TAB_ICONS: Record<string, string> = { [MOVIES_KEY]: "🎬", ":music": "🎵", ":images": "🖼️", ":documents": "📄" };
 /** The Media panel's `tab` before one is picked: its introduction. */
 const INTRO = "#intro";
 /** The libraries, which come before the staging areas. */
-const LIBRARIES = new Set(["", ":music", ":images", ":documents"]);
+const LIBRARIES = new Set([MOVIES_KEY, ":music", ":images", ":documents"]);
 /** The libraries whose folders each carry their own sharing — who may see,
  *  add, manage (api/services/folder_access.py). */
 const SHARED = new Set([":images", ":documents"]);
@@ -80,7 +80,7 @@ function treeFiles(area: string, files: StagedFile[]): StagedFile[] {
  *  the row is narrow, leaving the icon (and the name as a tooltip). */
 /** What each library is for, on the introduction. */
 const ABOUT: Record<string, string> = {
-  "": "Films, as covers. Open one to play it, pick its audio and subtitles.",
+  [MOVIES_KEY]: "Films, as covers. Open one to play it, pick its audio and subtitles.",
   ":music": "Songs by artist and album, playing in a bar that stays while you browse.",
   ":images": "Photos and videos by album. Share an album, or keep it to yourself.",
   ":documents": "Files and folders, shared or private, and folders encrypted with a password.",
@@ -190,7 +190,7 @@ const HEIGHT_LABEL: Record<number, string> = {
  *  re-encoding it — the one thing the Original rung doesn't do. Picking one
  *  excludes the other, so whichever the user just chose wins and the panel
  *  says what it moved. */
-const SUBS_NEED_TRANSCODE = "Subtitles are burned in, so Original switched to 360p.";
+const SUBS_NEED_TRANSCODE = (h: number) => `Subtitles are burned in, so Original switched to ${HEIGHT_LABEL[h] ?? h + "p"}.`;
 const ORIGINAL_NEEDS_NO_SUBS = "Original sends the file untouched, so subtitles went off.";
 
 function fmt(seconds: number): string {
@@ -235,7 +235,7 @@ export function MoviesPanel() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const stageRef = useRef<HTMLDivElement | null>(null);
 
-  // Which tab is open: "" for the film library, or the name of a staging
+  // Which tab is open: MOVIES_KEY for the film library, or the name of a staging
   // area — which shows its inbox and its output together, or just the one
   // it has (the series library is an area with only an output).
   // No tab until one is picked: the panel opens on an introduction (INTRO)
@@ -351,12 +351,11 @@ export function MoviesPanel() {
   /** The folders the open tab shows, top to bottom. For the film library
    *  only in its Folders view — its covers are films, not a tree. */
   const panes = useMemo(() => {
-    if (tab === "") return sources.filter((x) => x.key === "" && view === "list");
+    if (tab === MOVIES_KEY) return sources.filter((x) => x.key === MOVIES_KEY && view === "list");
     const g = groups.find((x) => x.key === tab);
     return [g?.todo, g?.done].filter(Boolean) as MovieSource[];
   }, [groups, tab, sources, view]);
-  // null when there are none: the film library's key is "", so an empty
-  // string is one pane, not none.
+  // null when there are none.
   const paneKeys = panes.length ? panes.map((x) => x.key).join("|") : null;
   const inbox = panes.find((x) => x.kind === "inbox");
 
@@ -434,7 +433,7 @@ export function MoviesPanel() {
   // with it, and must not wait on (or show the errors of) its drive.
   useEffect(() => {
     // Only for someone who may see the film library (permissions.media).
-    if (tab !== "" || !sources.some((x) => x.key === "")) return;
+    if (tab !== MOVIES_KEY || !sources.some((x) => x.key === MOVIES_KEY)) return;
     api.movies().then((m) => { setMovies(m); setListError(""); }).catch((e) => setListError(String(e)));
   }, [prepVersion, tab, sources]);
 
@@ -984,8 +983,8 @@ export function MoviesPanel() {
     }
   };
 
-  /** `area` is the folder the film was picked from — "" for the library. */
-  const pick = (movie: MovieItem, area = "") => {
+  /** `area` is the folder the film was picked from — the library unless said. */
+  const pick = (movie: MovieItem, area = MOVIES_KEY) => {
     // An inbox is where subtitles get checked against the audio before a
     // remux; everywhere else the film is finished and opened to be watched.
     const checking = sources.find((x) => x.key === area)?.kind === "inbox";
@@ -1062,8 +1061,11 @@ export function MoviesPanel() {
           s = null;
           moved = ORIGINAL_NEEDS_NO_SUBS;
         } else {
-          h = 360;
-          moved = SUBS_NEED_TRANSCODE;
+          // In the film library the film is being watched: the best
+          // transcoded picture. Elsewhere the smallest, quickest to restart.
+          const rungs = meta.heights.filter((x) => x > 0);
+          h = tab === MOVIES_KEY && rungs.length ? Math.max(...rungs) : 360;
+          moved = SUBS_NEED_TRANSCODE(h);
         }
       }
       setNote(moved);
@@ -1119,7 +1121,7 @@ export function MoviesPanel() {
       setDead(false);
       setPlaying({ movie, offset: t, audio: a, sub: s, height: h, src: `/api/movies/stream?${params}` });
     },
-    [selected, info, position, audio, sub, height, delays],
+    [selected, info, position, audio, sub, height, delays, tab],
   );
 
   // Changing `src` doesn't restart playback on its own once the element has
@@ -1367,15 +1369,15 @@ export function MoviesPanel() {
   const helpContext = useMemo(() => {
     const g = groups.find((x) => x.key === tab);
     const lib = sources.find((x) => x.kind === "library");
-    const main = tab === "" ? lib : g ? tabTarget(g) : undefined;
+    const main = tab === MOVIES_KEY ? lib : g ? tabTarget(g) : undefined;
     return {
-      template: tab === "" ? "movies" : tab === ":documents" ? "documents"
+      template: tab === MOVIES_KEY ? "movies" : tab === ":documents" ? "documents"
         : g?.todo ? (g.todo.type === "music" ? "music-workspace" : "workspace") : "output",
       description: main?.description,
       vars: {
-        name: tab === "" ? (lib?.label ?? "Movies") : (g?.label ?? tab),
+        name: tab === MOVIES_KEY ? (lib?.label ?? "Movies") : (g?.label ?? tab),
         inbox: g?.todo?.path ?? "",
-        output: tab === "" ? (lib?.path ?? "") : (g?.done?.path ?? ""),
+        output: tab === MOVIES_KEY ? (lib?.path ?? "") : (g?.done?.path ?? ""),
         user: currentUsername() ?? "",
       },
       flags: { publish: publisher, edit: main ? canEditArea(main.key) : false },
@@ -1714,7 +1716,7 @@ export function MoviesPanel() {
           {(() => {
             const size = tab === ":images" && imagesView === "gallery"
               ? { min: THUMB_MIN, max: THUMB_MAX, step: 10, value: thumbSize, set: setThumbSize, title: "Picture size" }
-              : (tab === "" && view === "grid") || (tab === ":music" && musicView === "artists")
+              : (tab === MOVIES_KEY && view === "grid") || (tab === ":music" && musicView === "artists")
                 ? { min: COVER_MIN, max: COVER_MAX, step: 5, value: coverSize, set: setCoverSize, title: "Cover size" }
                 : null;
             return size && (
@@ -1733,7 +1735,7 @@ export function MoviesPanel() {
                   ["folders", "Folders", musicView, setMusicView]] as const)
               : tab === ":images"
                 ? ([["gallery", "Gallery", imagesView, setImagesView], ["folders", "Folders", imagesView, setImagesView]] as const)
-                : tab === ""
+                : tab === MOVIES_KEY
                   ? ([["grid", "Covers", view, setView], ["list", "Folders", view, setView]] as const)
                   : []
             ).map(([v, label, current, set]) => (
@@ -1760,7 +1762,7 @@ export function MoviesPanel() {
           </span>
         </div>
         {/* The film library's own error (api.movies): only on its tab. */}
-        {listError && tab === "" && <p className="error small">{listError}</p>}
+        {listError && tab === MOVIES_KEY && <p className="error small">{listError}</p>}
         {treeNote && (
           <p className={(treeNote.bad ? "error" : "muted") + " small mv-note"}>{treeNote.text}</p>
         )}
@@ -2041,7 +2043,7 @@ export function MoviesPanel() {
           film opens in a window in the middle (FilmDialog below) — nor has
           the Music tab, which plays in its own bar, nor the Images tab, which
           opens pictures full screen. */}
-      {tab !== ":music" && tab !== ":images" && tab !== "" && (
+      {tab !== ":music" && tab !== ":images" && tab !== MOVIES_KEY && (
       <aside
         className="mv-player"
       >
@@ -2147,7 +2149,7 @@ export function MoviesPanel() {
       )}
       </>)}
       </div>
-      {tab === "" && selected && (
+      {tab === MOVIES_KEY && selected && (
         <FilmDialog onClose={closeFilm}>
           {filmCore}
           {/* Only which picture, which audio, which subtitle — nothing here

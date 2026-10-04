@@ -292,6 +292,10 @@ export interface MovieInfo {
 
 /** One browsable folder: the real library, a staging inbox, or the folder an
  *  area's finished films land in. */
+/** The film library's key among the Media panel's folders, beside ":music",
+ *  ":images" and ":documents" (api/config.py MOVIES_KEY). */
+export const MOVIES_KEY = ":movies";
+
 export interface MovieSource {
   key: string;
   label: string;
@@ -300,7 +304,7 @@ export interface MovieSource {
   short: string;
   path: string;
   /** "library" is a library of its own, with no staging pair: the films
-   *  (key "", shown as covers or a list of films), music and images (browsed
+   *  (key MOVIES_KEY, shown as covers or a list of films), music and images (browsed
    *  as a tree, like every other folder — a staging inbox, an output, the
    *  series library). */
   kind: "library" | "inbox" | "output";

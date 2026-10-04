@@ -54,6 +54,7 @@ from api.config import (
     FFPROBE,
     MOVIES_DATA_DIR,
     MOVIES_DIR,
+    MOVIES_KEY,
     MUSIC_DIR,
     STAGING,
 )
@@ -148,7 +149,7 @@ def workspace_of(key: str) -> str | None:
 
 
 # The libraries by the names the move rules use (LIBRARY_MOVES).
-LIBRARY_NAMES = {"": "Movies", ":music": "Music", ":images": "Images", ":documents": "Documents"}
+LIBRARY_NAMES = {MOVIES_KEY: "Movies", ":music": "Music", ":images": "Images", ":documents": "Documents"}
 
 
 def folder_name(key: str) -> str:
@@ -193,7 +194,7 @@ def sources() -> list[dict]:
     are kept, with nothing staged into it); then it simply has no inbox
     entry, rather than a dead button that can never be ready."""
     out = [{
-        "key": "", "label": MOVIES_DIR.name or str(MOVIES_DIR),
+        "key": MOVIES_KEY, "label": MOVIES_DIR.name or str(MOVIES_DIR),
         "short": MOVIES_DIR.name or str(MOVIES_DIR),
         "path": str(MOVIES_DIR), "kind": "library", "role": "done",
         "group": "", "ready": drive_watch.usable(MOVIES_DIR),
@@ -248,7 +249,7 @@ def area(name: str) -> tuple[Path, Path]:
     # same listing, same viewer, same rename and move. It is not a staging
     # area, so it has no separate output: a file there is already where it
     # belongs.
-    if name == "":
+    if name == MOVIES_KEY:
         if not MOVIES_DIR.is_dir():
             raise PrepError(f"movie library not found: {MOVIES_DIR}", 503)
         return MOVIES_DIR, MOVIES_DIR
@@ -454,7 +455,7 @@ def analyse(candidate: Candidate) -> dict:
             "flags": flags, "delay_ms": 0, "default": False,
         })
 
-    tracks = _one_per_language(tracks)
+    tracks = _one_per_language(_drop_unlabelled(tracks))
     return {
         "folder": str(candidate.folder),
         "video": str(candidate.video),
@@ -497,19 +498,25 @@ def _one_per_language(tracks: list[dict]) -> list[dict]:
     ]
 
 
+def _drop_unlabelled(tracks: list[dict]) -> list[dict]:
+    """A track without a language this pipeline recognises is dropped, never
+    a reason to stop the remux. That is what the track table draws ("— drop
+    —") and states ("will be dropped"), but `keep` is a separate field: a tag
+    nobody listed ("nob") arrives kept with no language, and is saved that
+    way from the browser. Dropping it here keeps the two from disagreeing."""
+    return [{**t, "keep": False}
+            if t["type"] in ("audio", "subtitle") and t.get("keep")
+            and t.get("language") not in VALID_CODES
+            else t for t in tracks]
+
+
 def _conflicts(tracks: list[dict]) -> list[str]:
     """What a human has to decide before this can be muxed."""
+    # Tracks with no or an unknown language aren't here: _drop_unlabelled
+    # has already dropped them, which is what the track table shows.
     out = []
-    bad = sorted({t["language"] for t in tracks
-                  if t.get("keep") and t["type"] in ("audio", "subtitle")
-                  and t.get("language") and t["language"] not in VALID_CODES})
-    if bad:
-        out.append(f"not valid ISO 639-2 language codes: {', '.join(bad)}")
     for kind in ("audio", "subtitle"):
         kept = [t for t in tracks if t["type"] == kind and t["keep"]]
-        missing = [t for t in kept if not t["language"]]
-        if missing:
-            out.append(f"{len(missing)} {kind} track(s) have no language code")
         seen: dict[str, int] = {}
         for t in kept:
             if t["language"]:
@@ -885,6 +892,7 @@ def execute(plan: dict, dest_root: Path, dry_run: bool = False,
     # waiting there and remove the inbox — so a loose film clears only what
     # is its own: the video and the sidecars the plan named.
     loose = folder == inbox.resolve()
+    plan = {**plan, "tracks": _drop_unlabelled(plan["tracks"])}
     conflicts = _conflicts(plan["tracks"])
     if conflicts:
         raise PrepError("; ".join(conflicts))
@@ -1268,7 +1276,7 @@ def scan_area(name: str) -> list[dict]:
             # they are added on every call, like the saved decisions.
             plan = {**plan, "tracks": plan["tracks"] + _uploaded_tracks(plan)}
             plan = prep_configs.overlay(plan, prep_configs.get(fp))
-            plan["tracks"] = _one_per_language(plan["tracks"])
+            plan["tracks"] = _one_per_language(_drop_unlabelled(plan["tracks"]))
             plan["conflicts"] = _conflicts(plan["tracks"])
         out.append(plan)
     return out
@@ -1345,7 +1353,7 @@ def save_plan(area_name: str, plan: dict) -> dict:
     prep_configs.save(fp, plan, where=str(video))
     # What still blocks the remux, as of this plan: the list the page drew
     # at load time says nothing about the picks made since.
-    return {"fingerprint": fp, "conflicts": _conflicts(plan.get("tracks") or [])}
+    return {"fingerprint": fp, "conflicts": _conflicts(_drop_unlabelled(plan.get("tracks") or []))}
 
 
 # ── browsing a staging folder ────────────────────────────────────────────
@@ -1612,7 +1620,7 @@ def move_film(movie_id: str, to_key: str) -> dict:
     src_file = movies.resolve(movie_id)
     roots = movies.roots()
     if to_key not in roots:
-        known = ", ".join(repr(k or "library") for k in roots)
+        known = ", ".join(repr(k) for k in roots)
         raise PrepError(f"unknown destination {to_key!r} (have: {known})", 404)
 
     # An inbox holds dirty downloads waiting to be prepared; putting a

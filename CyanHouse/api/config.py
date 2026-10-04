@@ -123,6 +123,10 @@ CALENDAR_DB = Path(os.environ.get("CALENDAR_DB", API_DATA_DIR / "calendar.db"))
 # extracted subtitle tracks — so it lives under the normal data root and can
 # be deleted at any time.
 MOVIES_DIR = Path(os.environ.get("MOVIES_DIR", "/mnt/earth/CYAN/Video/Movies"))
+# The film library's key among the Media panel's folders, beside ":music",
+# ":images" and ":documents". A film in it still has an unprefixed id
+# (api/services/movies.py), so ids from before this key existed keep working.
+MOVIES_KEY = ":movies"
 # The music and picture libraries: each is one more tab in the Media panel,
 # browsed like the film library. Unset means no tab.
 MUSIC_DIR = Path(os.environ["MUSIC_DIR"]).expanduser() if os.environ.get("MUSIC_DIR", "").strip() else None

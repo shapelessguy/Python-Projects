@@ -35,7 +35,7 @@ from urllib.parse import unquote
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.requests import HTTPConnection
 
-from api.config import STAGING, USERS_FILE
+from api.config import MOVIES_KEY, STAGING, USERS_FILE
 
 
 def _load_users() -> dict[str, dict]:
@@ -144,10 +144,10 @@ def granted(user: str) -> dict[str, bool]:
 
 
 # ── the Media panel's folders ──────────────────────────────────────────────
-# Area keys as the panel and movie_prep use them: "" the films, ":music",
+# Area keys as the panel and movie_prep use them: ":movies" the films, ":music",
 # ":images", ":documents"; a staging area by its name, its output as "<name>:library".
 # The libraries are granted by these names (a staging area by its key).
-LIBRARIES = {"": "Movies", ":music": "Music", ":images": "Images", ":documents": "Documents"}
+LIBRARIES = {MOVIES_KEY: "Movies", ":music": "Music", ":images": "Images", ":documents": "Documents"}
 DOWNLOADERS = "downloaders"
 
 
@@ -188,7 +188,7 @@ def require_media_area(request: Request, user: str = Depends(require_user)) -> s
     if "id" in q:
         # A film id: `@<area>/...` outside the film library, bare inside it.
         movie_id = unquote(q.get("id") or "")
-        named.append(movie_id[1:].partition("/")[0] if movie_id.startswith("@") else "")
+        named.append(movie_id[1:].partition("/")[0] if movie_id.startswith("@") else MOVIES_KEY)
     for area in named:
         if area is not None and not may_see_media(user, area):
             raise HTTPException(status.HTTP_403_FORBIDDEN, "not permitted to see that folder")

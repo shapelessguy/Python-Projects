@@ -538,7 +538,7 @@ async def delete_entry(
 @router.post("/move")
 async def move_film(
     id: str = Query(...),
-    to: str = Query(..., description="destination source key: '' for the library"),
+    to: str = Query(..., description="destination source key, e.g. ':movies' for the library"),
     user: str = Depends(require_permission("publish")),
 ):
     """Move a film's folder to another configured folder.
@@ -546,7 +546,7 @@ async def move_film(
     Gated on its own permission: every other action here stays inside a
     staging folder, and this one can put a file into the real library."""
     raw = unquote(id)
-    from_key = raw[1:].partition("/")[0] if raw.startswith("@") else ""
+    from_key = movies.id_area(raw)
     may_move(user, from_key, to)
     try:
         return await run_in_threadpool(movie_prep.move_film, id, to)

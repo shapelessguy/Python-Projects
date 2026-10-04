@@ -87,7 +87,7 @@ import kotlinx.coroutines.withContext
 private data class Library(val key: String, val label: String, val about: String)
 
 private val LIBRARIES = listOf(
-    Library("", "Movies", "Films, as covers — on the web page for now."),
+    Library(":movies", "Movies", "Films, as covers — on the web page for now."),
     Library(":music", "Music", "Songs by artist and album — on the web page for now."),
     Library(":images", "Images", "Photos and videos by album."),
     Library(":documents", "Docs", "Files and folders, shared or private, and encrypted folders."),

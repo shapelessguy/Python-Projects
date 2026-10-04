@@ -25,7 +25,7 @@ data class Versions(
  *  a folder may be encrypted (`vault`, VAULT.md): what is under it has
  *  encrypted names, decrypted by net/Vault.kt. */
 /** /api/prep/areas, as far as the app needs it: the Media folders this user
- *  may see (permissions.media), each by its key -- "" the films, ":music",
+ *  may see (permissions.media), each by its key -- ":movies" the films, ":music",
  *  ":images", ":documents", a staging area by its name. */
 @Serializable
 data class MediaSource(val key: String)

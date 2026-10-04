@@ -62,6 +62,7 @@ from api.config import (
     MOVIES_CACHE_DIR,
     MOVIES_DIR,
     MOVIES_ENCODER,
+    MOVIES_KEY,
     MOVIES_IDLE_TIMEOUT,
     MOVIES_MAX_STREAMS,
     MOVIES_SCAN_TTL,
@@ -124,11 +125,11 @@ class MovieError(Exception):
 def roots() -> dict[str, Path]:
     """Every folder a movie id may point into.
 
-    The library is the unnamed root; each staging area adds its inbox, so a
+    The library is MOVIES_KEY; each staging area adds its inbox, so a
     film can be *played* while it is still being prepared — which is the
     point of the whole arrangement: you check the subtitle timing in the
     player and only then commit the remux."""
-    out = {"": MOVIES_DIR}
+    out = {MOVIES_KEY: MOVIES_DIR}
     for name, cfg in (MOVIE_STAGING or {}).items():
         if not name:
             continue
@@ -145,13 +146,20 @@ def roots() -> dict[str, Path]:
     return out
 
 
-def _encode_id(path: Path, root_name: str = "") -> str:
+def _encode_id(path: Path, root_name: str = MOVIES_KEY) -> str:
     """The id *is* the path relative to its root, percent-encoded so it
     survives a query string, prefixed with `@<area>/` when that root isn't
     the library. Keeping it readable (rather than hashing) means a stream URL
     stays valid across restarts and says what it points at."""
     rel = str(path.relative_to(roots()[root_name]))
-    return quote(f"@{root_name}/{rel}" if root_name else rel, safe="")
+    return quote(rel if root_name == MOVIES_KEY else f"@{root_name}/{rel}", safe="")
+
+
+def id_area(movie_id: str) -> str:
+    """The folder a film id points into: `@<area>/...`, or the library when
+    unprefixed. Takes the id as it arrives, before or after unquoting."""
+    raw = unquote(movie_id or "").strip()
+    return raw[1:].partition("/")[0] if raw.startswith("@") else MOVIES_KEY
 
 
 def resolve(movie_id: str) -> Path:
@@ -160,9 +168,9 @@ def resolve(movie_id: str) -> Path:
     rel = unquote(movie_id or "").strip()
     if not rel:
         raise MovieError("missing movie id")
-    root_name = ""
+    root_name = id_area(rel)
     if rel.startswith("@"):
-        root_name, _, rel = rel[1:].partition("/")
+        rel = rel[1:].partition("/")[2]
     available = roots()
     if root_name not in available:
         raise MovieError(f"unknown movie area {root_name!r}", 404)
@@ -287,6 +295,31 @@ def _sub_canvas(idx_path: Path) -> tuple[int | None, int | None]:
         streams = json.loads(raw).get("streams", [])
         if streams:
             return streams[0].get("width"), streams[0].get("height")
+    except Exception:
+        pass
+    return None, None
+
+
+def _pgs_canvas(path: Path, stream: int) -> tuple[int | None, int | None]:
+    """The canvas an embedded PGS track was authored against.
+
+    ffprobe only knows a PGS track's size once it has decoded one, so for a
+    track inside a film it reports none — and without it the overlay places
+    1080p-canvas subtitles on a cropped 1920x800 picture at their literal
+    y ≈ 950, below the bottom edge, where nothing of them shows. The size is
+    in the stream's first segment, a presentation composition (type 0x16):
+    after the 3-byte segment header, width and height as big-endian shorts."""
+    try:
+        raw = _run([FFPROBE, "-v", "error", "-select_streams", f"s:{stream}",
+                    "-read_intervals", "%+#1", "-show_packets", "-show_data",
+                    "-print_format", "json", str(path)], _PROBE_TIMEOUT)
+        dump = json.loads(raw)["packets"][0]["data"]
+        # A hex dump, "00000000: 1600 1307 8004 ...  ascii" per 16 bytes; the
+        # first line holds all seven bytes needed.
+        first = next(line for line in dump.splitlines() if ":" in line)
+        data = bytes.fromhex("".join(first.split(":", 1)[1].split()[:8]))
+        if len(data) >= 7 and data[0] == 0x16:
+            return int.from_bytes(data[3:5], "big"), int.from_bytes(data[5:7], "big")
     except Exception:
         pass
     return None, None
@@ -629,6 +662,9 @@ def info(movie_id: str) -> dict:
             n = len(subs)
             codec = s.get("codec_name", "?")
             image = codec in IMAGE_SUB_CODECS
+            width, height = s.get("width"), s.get("height")
+            if codec == "hdmv_pgs_subtitle" and not (width and height):
+                width, height = _pgs_canvas(path, n)
             subs.append(
                 {
                     "id": n,
@@ -641,8 +677,8 @@ def info(movie_id: str) -> dict:
                     # letterbox cropped away keeps subtitles positioned for
                     # the uncropped frame. build_command has to reconcile the
                     # two or the subtitles fall off the bottom of the picture.
-                    "width": s.get("width"),
-                    "height": s.get("height"),
+                    "width": width,
+                    "height": height,
                     "source": "embedded",
                     "language": _lang(tags),
                     "label": _sub_label(
@@ -832,7 +868,9 @@ def _text_sub_file(path: Path, sub: dict) -> Path:
     tag = hashlib.sha1(f"{path}|{st.st_mtime_ns}".encode()).hexdigest()[:16]
     key = f"e{sub['stream']}" if sub["external"] is None else "x" + hashlib.sha1(
         sub["external"].encode()).hexdigest()[:10]
-    out = _cache_dir() / f"{tag}_{key}.ass"
+    # "_n": the format of this cache's files, bumped when extraction changes
+    # so files written by an older, broken version are made again.
+    out = _cache_dir() / f"{tag}_{key}_n.ass"
     if out.exists() and out.stat().st_size > 0:
         return out
 
@@ -860,6 +898,13 @@ def _extract_text_sub(path: Path, sub: dict, out: Path) -> Path:
                "-sub_charenc_mode", "auto", "-i", sub["external"],
                "-map", "0:s:0", "-c:s", "ass", str(tmp)]
     _run(cmd, _SUB_EXTRACT_TIMEOUT)
+    # MKV muxers often end an ASS track's header (CodecPrivate) with a NUL,
+    # and ffmpeg copies it into the file just before [Events]. libass reads
+    # the header as a C string, stops there and never sees a single line of
+    # dialogue: the subtitle "plays" and nothing is drawn.
+    data = tmp.read_bytes()
+    if b"\0" in data:
+        tmp.write_bytes(data.replace(b"\0", b""))
     os.replace(tmp, out)
     return out
 
