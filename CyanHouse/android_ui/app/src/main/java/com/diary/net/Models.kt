@@ -416,3 +416,85 @@ fun JsonElement?.asBool(): Boolean = when (this) {
     is JsonPrimitive -> booleanOrNull ?: (content == "true" || content == "1")
     else -> false
 }
+
+// ── films (api/routers/movies.py) ───────────────────────────────────────
+@Serializable
+data class MovieItem(
+    /** Already percent-encoded by the server: its path in the library. */
+    val id: String,
+    val title: String,
+    val file: String = "",
+    val size: Long = 0,
+    /** The version of the cover Plex has for it, or null when it has none. */
+    val poster: String? = null,
+)
+
+@Serializable
+data class MovieTrack(val id: Int, val key: String = "", val label: String = "", val default: Boolean = false)
+
+@Serializable
+data class MovieVideo(val codec: String = "", val width: Int = 0, val height: Int = 0, val hdr: Boolean = false)
+
+@Serializable
+data class MovieRemux(val ok: Boolean = false)
+
+@Serializable
+data class MovieInfo(
+    val id: String,
+    val title: String = "",
+    /** Seconds, from ffprobe: the stream itself has no length (see ui/MoviesScreen.kt). */
+    val duration: Double = 0.0,
+    val size: Long = 0,
+    val video: MovieVideo = MovieVideo(),
+    val audio: List<MovieTrack> = emptyList(),
+    val subtitles: List<MovieTrack> = emptyList(),
+    /** The picture sizes on offer; 0 is "Original", the file's own video untouched. */
+    val heights: List<Int> = emptyList(),
+    val remux: MovieRemux = MovieRemux(),
+    val encoder: String = "",
+)
+
+@Serializable
+data class KeyframeAt(val t: Double)
+
+// ── the music library, from the files' tags (api/services/music_library.py) ──
+@Serializable
+data class MusicSong(
+    val path: String,
+    val folder: String = "",
+    val title: String = "",
+    val artist: String = "",
+    val album_artist: String = "",
+    val album: String = "",
+    val track: Int = 0,
+    val disc: Int = 1,
+    val year: String = "",
+    val seconds: Double = 0.0,
+    val size: Long = 0,
+)
+
+@Serializable
+data class MusicAlbum(
+    /** The album's folder, relative to the library: its id. */
+    val folder: String,
+    val title: String = "",
+    val artist: String = "",
+    val year: String = "",
+    val cover: Boolean = false,
+)
+
+@Serializable
+data class MusicArtist(
+    val name: String,
+    val albums: Int = 0,
+    val tracks: Int = 0,
+    /** An album folder whose cover stands for the artist, or "". */
+    val cover: String = "",
+)
+
+@Serializable
+data class MusicLibrary(
+    val songs: List<MusicSong> = emptyList(),
+    val albums: List<MusicAlbum> = emptyList(),
+    val artists: List<MusicArtist> = emptyList(),
+)

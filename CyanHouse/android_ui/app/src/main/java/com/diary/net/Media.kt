@@ -44,6 +44,20 @@ object Media {
             .build()
     }
 
+    /** The same, for a film's stream (ui/MoviesScreen.kt): its first bytes
+     *  can be a while coming -- ffmpeg starting, a subtitle being extracted. */
+    val streaming: OkHttpClient by lazy { http.newBuilder().readTimeout(5, TimeUnit.MINUTES).build() }
+
+    /** Tell the server a film's stream is no longer watched, so its
+     *  transcode ends now rather than when it is found idle. Not waited for. */
+    fun stopStream(sid: String) {
+        http.newCall(Request.Builder().url(Api.movieStopUrl(sid)).post(ByteArray(0).toRequestBody()).build())
+            .enqueue(object : okhttp3.Callback {
+                override fun onFailure(call: okhttp3.Call, e: IOException) {}
+                override fun onResponse(call: okhttp3.Call, response: okhttp3.Response) = response.close()
+            })
+    }
+
     /** A Documents file's stored bytes from `from` on. The caller closes it. */
     fun openAt(path: String, from: Long = 0, area: String = Api.DOCS): InputStream {
         val req = Request.Builder().url(Api.documentUrl(path, area))

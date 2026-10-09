@@ -97,6 +97,7 @@ fun App() {
     var visibilityLoaded by remember { mutableStateOf(false) }
     LaunchedEffect(credential) {
         visibilityLoaded = false
+        closeFilm()
         me = fetchMe()
         visibilityLoaded = true
     }
@@ -237,5 +238,8 @@ fun App() {
     // Rendered as a Dialog (its own Android window), so its place in this
     // tree doesn't affect stacking -- it shows up over whichever section is
     // open, no matter which section that is.
+    // A film opened in the Media panel: over everything, drawer and top bar too.
+    FilmOverlay()
+
     AlarmOverlay(alarmViewModel)
 }

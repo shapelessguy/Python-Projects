@@ -23,6 +23,22 @@ object Prefs {
         get() = sp?.getInt("imagesTileDp", 120) ?: 120
         set(v) { sp?.edit()?.putInt("imagesTileDp", v)?.apply() }
 
+    /** The Media panel's last-open tab, by its library's key (":movies" the films);
+     *  "-" before one was ever opened. */
+    var mediaTab: String
+        get() = sp?.getString("mediaTab", "-") ?: "-"
+        set(v) { sp?.edit()?.putString("mediaTab", v)?.apply() }
+
+    /** Films and artists: the width of a cover, in dp (the web page's size slider). */
+    var coverDp: Int
+        get() = sp?.getInt("coverDp", 110) ?: 110
+        set(v) { sp?.edit()?.putInt("coverDp", v)?.apply() }
+
+    /** The Music tab's view: "artists" or "songs". */
+    var musicView: String
+        get() = sp?.getString("musicView", "artists") ?: "artists"
+        set(v) { sp?.edit()?.putString("musicView", v)?.apply() }
+
     /** Last-open Controls mode (ALL / GROW / AUDIO / PC / VOICES). */
     var controlsMode: String
         get() = sp?.getString("controlsMode", "ALL") ?: "ALL"

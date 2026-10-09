@@ -242,6 +242,38 @@ object Api {
 
     private fun enc(s: String) = java.net.URLEncoder.encode(s, "UTF-8").replace("+", "%20")
 
+    // ── films (api/routers/movies.py) ────────────────────────────────────
+    suspend fun movies(): List<MovieItem> = client.get(u("/api/movies/list")).body()
+
+    suspend fun movieInfo(id: String): MovieInfo = client.get(u("/api/movies/info")) { parameter("id", id) }.body()
+
+    /** Where an Original stream asked to start at `t` really starts: the
+     *  keyframe before it. */
+    suspend fun movieKeyframe(id: String, t: Double): Double =
+        client.get(u("/api/movies/keyframe")) { parameter("id", id); parameter("t", "%.3f".format(java.util.Locale.US, t)) }
+            .body<KeyframeAt>().t
+
+    /** A film's cover, as Plex has it, about `width` pixels wide; `version`
+     *  (MovieItem.poster) makes a new cover a new URL. */
+    fun moviePosterUrl(id: String, width: Int, version: String): String =
+        u("/api/movies/poster?id=${enc(id)}&w=$width&v=${enc(version)}")
+
+    /** The film from `t` seconds on, as the stream `sid`: `height` 0 is the
+     *  file's own video, `sub` null no subtitles (they are burned in). */
+    fun movieStreamUrl(id: String, sid: String, t: Double, height: Int, audio: Int?, sub: Int?): String =
+        u("/api/movies/stream?id=${enc(id)}&sid=$sid&t=${"%.3f".format(java.util.Locale.US, t)}&h=$height" +
+            (audio?.let { "&a=$it" } ?: "") + (sub?.let { "&s=$it" } ?: ""))
+
+    fun movieStopUrl(sid: String): String = u("/api/movies/stop?sid=$sid")
+
+    // ── music (api/routers/music.py) ─────────────────────────────────────
+    const val MUSIC = ":music"
+
+    suspend fun musicLibrary(): MusicLibrary = client.get(u("/api/music/library")).body()
+
+    /** An album folder's cover, about `width` pixels wide. */
+    fun musicArtUrl(folder: String, width: Int): String = u("/api/music/art?folder=${enc(folder)}&w=$width")
+
     suspend fun documentMkdir(parent: String, name: String, area: String = DOCS): MadePath =
         client.post(u("/api/prep/mkdir")) {
             parameter("area", area); parameter("path", parent); parameter("name", name)

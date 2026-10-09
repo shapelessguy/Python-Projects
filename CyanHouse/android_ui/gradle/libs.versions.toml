@@ -23,6 +23,8 @@ bouncycastle-prov = { group = "org.bouncycastle", name = "bcprov-jdk18on", versi
 media3-exoplayer = { group = "androidx.media3", name = "media3-exoplayer", version.ref = "media3" }
 media3-ui = { group = "androidx.media3", name = "media3-ui", version.ref = "media3" }
 media3-datasource-okhttp = { group = "androidx.media3", name = "media3-datasource-okhttp", version.ref = "media3" }
+# The Music tab's player, which goes on with the app out of sight (music/MusicService.kt).
+media3-session = { group = "androidx.media3", name = "media3-session", version.ref = "media3" }
 androidx-security-crypto ={ group = "androidx.security", name = "security-crypto", version.ref = "securityCrypto" }
 mpandroidchart = { group = "com.github.PhilJay", name = "MPAndroidChart", version.ref = "mpAndroidChart" }
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
