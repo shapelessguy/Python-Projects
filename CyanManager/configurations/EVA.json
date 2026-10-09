@@ -370,7 +370,7 @@
             "parameters": {
                 "Mouse Jiggle": false,
                 "Inactivity to Shutdown": "01:00",
-                "Shutdown from": "00:00",
+                "Shutdown from": "02:00",
                 "Shutdown to": "08:00",
                 "Shutdown": true
             }
