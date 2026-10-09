@@ -97,7 +97,7 @@ def entrypoint(thread_manager):
             for _ in range(59):
                 wait(signal, 1000)
                 pt = signal.reg_functions.GET_MOUSE_POS.run()
-                if pt.x != pt_at_shutdown.x or pt.y != pt_at_shutdown.y:
+                if pt.x != pt_at_shutdown.x or pt.y != pt_at_shutdown.y or signal.last_interaction > now:
                     subprocess.run(["shutdown", "/a"])
                     print("Shutdown aborted")
                     break

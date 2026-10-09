@@ -3,6 +3,7 @@ import os
 import tempfile
 import threading
 import uuid
+from datetime import datetime
 import numpy as np
 import base64
 import uvicorn
@@ -76,6 +77,11 @@ def entrypoint(thread_manager):
         controls = not request.url.path.startswith("/transcribe_movie/")
         if not api_auth.allowed(remote(request), request.headers.get("authorization"), controls):
             return JSONResponse({"error": "unauthorized"}, status_code=401)
+        # Someone is using the PC: Start&Shutdown counts inactivity from here.
+        # Not /info, which CyanHouse asks every second for as long as a
+        # Controls panel is open anywhere.
+        if request.url.path != "/info":
+            signal.last_interaction = datetime.now()
         return await call_next(request)
 
     @app.get("/info")
@@ -238,6 +244,7 @@ def entrypoint(thread_manager):
         try:
             while True:
                 raw = await websocket.receive_text()
+                signal.last_interaction = datetime.now()
                 try:
                     msg = json.loads(raw)
                 except ValueError:
