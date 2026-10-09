@@ -36,8 +36,10 @@ services:
   # the loopback only — the Media panel's Torrents tab reaches it through
   # the API (api/routers/qbt.py, QBT_URL), behind the CyanHouse login.
   # Host networking, because its settings bind the peer traffic to the VPN
-  # interface (Connection\Interface=nordlynx): if the VPN is down it does not
-  # fall back to the open line, and that needs the host's interfaces.
+  # interface (Session\Interface=nordlynx): if the VPN is down it does not
+  # fall back to the open line, and that needs the host's interfaces. The
+  # binding is forced at every start (docker/qbittorrent-overrides), and the
+  # API's proxy won't let the web UI change it.
   # The drive keeps its host path, so the save paths in its settings and in
   # each torrent (/mnt/earth/CYAN/downloads when done) mean the same inside.
   # The bind is the mount point, not CYAN: it exists before the drive is
@@ -54,8 +56,10 @@ services:
       - TZ=Europe/Berlin
       - WEBUI_PORT=8081
       - TORRENTING_PORT=25804
+      - VPN_INTERFACE=nordlynx
     volumes:
       - ./docker/qbittorrent/config:/config
+      - ./docker/qbittorrent-overrides/svc-qbittorrent-run:/etc/s6-overlay/s6-rc.d/svc-qbittorrent/run:ro
       # Torrents still downloading, on the internal disk (ext4): pieces
       # arrive in any order, and the drive's NTFS driver fills a file with
       # zeros up to wherever a piece is written — the first piece near the

@@ -5,6 +5,8 @@ what puts it behind the CyanHouse login (the router's PANEL) and makes it
 same-origin with the SPA — both qBittorrent and pyLoad refuse to be framed
 from anywhere else. See api/routers/qbt.py and api/routers/pyload.py.
 """
+from typing import Callable
+
 import httpx
 from fastapi import APIRouter, Request
 from fastapi.responses import PlainTextResponse, RedirectResponse, Response, StreamingResponse
@@ -31,7 +33,8 @@ _DROP_IN = _HOP | {"host", "origin", "referer", "authorization"}
 _OWN_PARENT = b"<script>window.parent = window;</script>"
 
 
-def mount(router: APIRouter, upstream: str, *, strip_prefix: bool, own_parent: bool = False) -> None:
+def mount(router: APIRouter, upstream: str, *, strip_prefix: bool, own_parent: bool = False,
+          rewrite: Callable[[str, str, bytes], bytes] | None = None) -> None:
     """Add the proxy routes to `router` (whose prefix is the public path).
 
     strip_prefix: the upstream serves from its own root (qBittorrent), so the
@@ -39,7 +42,9 @@ def mount(router: APIRouter, upstream: str, *, strip_prefix: bool, own_parent: b
     configured to live under the same prefix itself (pyLoad's webui.prefix)
     and paths go through unchanged.
     own_parent: the app's main page (its root) gets _OWN_PARENT first thing
-    in its <head>. Everything else still passes through untouched."""
+    in its <head>. Everything else still passes through untouched.
+    rewrite: called with (method, path, body) of each request on the way in;
+    what it returns is sent instead. A ValueError refuses the request (400)."""
     prefix = router.prefix
     upstream = upstream.rstrip("/")
     client = httpx.AsyncClient(base_url=upstream, timeout=httpx.Timeout(30.0, read=300.0))
@@ -54,12 +59,17 @@ def mount(router: APIRouter, upstream: str, *, strip_prefix: bool, own_parent: b
     async def _proxy(path: str, request: Request):
         headers = {k: v for k, v in request.headers.items() if k.lower() not in _DROP_IN}
         target = "/" + path if strip_prefix else f"{prefix}/{path}"
+        # Buffered, not streamed: qBittorrent's HTTP server doesn't take a
+        # chunked request body, and without a length a stream would be
+        # sent as one. The bodies are forms and .torrent files — small.
+        body = await request.body()
+        if rewrite:
+            try:
+                body = rewrite(request.method, path, body)
+            except ValueError as e:
+                return PlainTextResponse(str(e), status_code=400)
         req = client.build_request(
-            request.method, target, params=request.query_params, headers=headers,
-            # Buffered, not streamed: qBittorrent's HTTP server doesn't take a
-            # chunked request body, and without a length a stream would be
-            # sent as one. The bodies are forms and .torrent files — small.
-            content=await request.body())
+            request.method, target, params=request.query_params, headers=headers, content=body)
         try:
             resp = await client.send(req, stream=True)
         except httpx.HTTPError as e:
