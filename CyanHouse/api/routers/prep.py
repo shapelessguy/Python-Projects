@@ -18,14 +18,15 @@ list honest without re-probing anything.
 """
 import gzip
 import json
-from urllib.parse import unquote
+from pathlib import Path
+from urllib.parse import quote, unquote
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
-from fastapi.responses import FileResponse, Response
+from fastapi import APIRouter, Body, Depends, Form, HTTPException, Query, Request
+from fastapi.responses import FileResponse, Response, StreamingResponse
 from starlette.concurrency import run_in_threadpool
 
 from api.auth import has_permission, may_see_media, require_media_area, require_permission, require_user
-from api.services import folder_access, movie_prep, movies, remux_queue, tmdb
+from api.services import folder_access, movie_prep, movies, remux_queue, tmdb, zip_download
 
 router = APIRouter(prefix="/api/prep", tags=["prep"], dependencies=[Depends(require_media_area)])
 
@@ -127,6 +128,24 @@ async def remux_all(area: str = Query(...), user: str = Depends(require_user)):
         raise _wrap(e)
 
 
+@router.post("/convert_mp3", status_code=202)
+async def convert_mp3(
+    area: str = Query(...),
+    paths: list[str] = Body(..., embed=True),
+    user: str = Depends(require_user),
+):
+    """Queue the FLAC files among `paths` for conversion to MP3: each MP3
+    replaces its FLAC. Anyone who may add files where they are may ask."""
+    may_change(user, area)
+    for path in paths:
+        _shared(user, area, path, "add")
+        _not_encrypted(area, path)
+    try:
+        return await run_in_threadpool(remux_queue.enqueue_convert, area, paths, user)
+    except movie_prep.PrepError as e:
+        raise _wrap(e)
+
+
 @router.get("/jobs")
 async def remux_jobs(user: str = Depends(require_user)):
     """The queue: what is running, what is waiting, and what has finished —
@@ -143,8 +162,11 @@ async def remove_job(job_id: str, user: str = Depends(require_user)):
     """Drop a queued remux, stop a running one, or clear a finished one.
     Whoever may queue in that area may take out of it."""
     try:
-        where = remux_queue.job_area(job_id)
-        may_move(user, where, movie_prep.output_of(where))
+        where, kind = remux_queue.job_area(job_id), remux_queue.job_kind(job_id)
+        if kind == "convert":
+            may_change(user, where)
+        else:
+            may_move(user, where, movie_prep.output_of(where))
         return await run_in_threadpool(remux_queue.remove, job_id)
     except movie_prep.PrepError as e:
         raise _wrap(e)
@@ -272,6 +294,57 @@ async def raw_file(area: str = Query(...), path: str = Query(...),
     if not (kind in ("image", "audio") or (kind == "video" and resolved.suffix.lower() in BROWSER_VIDEO)):
         raise HTTPException(415, "only images, audio and browser-playable videos are served raw")
     return FileResponse(resolved, headers={"Cache-Control": "no-store"})
+
+
+@router.post("/download")
+async def download(area: str = Form(...), paths: str = Form(...),
+                   user: str = Depends(require_user)):
+    """The picked files and folders, saved: one file as it is, anything
+    more as one ZIP (zip_download), each folder in it with what it holds.
+
+    A form post rather than a fetch, so the browser's own download takes
+    it — with its progress, and without holding the whole thing in the
+    page — and so a long selection does not have to fit in a URL. `paths`
+    is a JSON list."""
+    _may_see(user, area)
+    try:
+        picked = [p.strip("/") for p in json.loads(paths) if isinstance(p, str) and p.strip("/")]
+    except ValueError:
+        raise HTTPException(400, "paths: a JSON list")
+    if not picked:
+        raise HTTPException(400, "nothing picked")
+    roots = []
+    for rel in dict.fromkeys(picked):
+        _shared(user, area, rel, "see")
+        _not_encrypted(area, rel)
+        try:
+            path = await run_in_threadpool(movie_prep.resolve_entry, area, rel)
+        except movie_prep.PrepError as e:
+            raise _wrap(e)
+        roots.append((path, path.name))
+    if len(roots) == 1 and roots[0][0].is_file():
+        return FileResponse(roots[0][0], filename=roots[0][1], content_disposition_type="attachment",
+                            headers={"Cache-Control": "no-store"})
+
+    root, _ = movie_prep.area(area)
+    root = root.resolve()
+
+    def allowed(f) -> bool:
+        if not folder_access.shared(area):
+            return True
+        rel = f.relative_to(root).as_posix()
+        return (not any(p in folder_access.PROTECTED for p in rel.split("/"))
+                and folder_access.can(user, area, rel, "see"))
+
+    files = await run_in_threadpool(zip_download.entries, roots, allowed)
+    if not files:
+        raise HTTPException(404, "nothing in that to download")
+    # Named after the one folder picked, or the folder the picks are in.
+    name = roots[0][1] if len(roots) == 1 else (Path(picked[0]).parent.name or movie_prep.folder_name(area))
+    return StreamingResponse(
+        zip_download.stream(files), media_type="application/zip",
+        headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(name + '.zip')}",
+                 "Cache-Control": "no-store"})
 
 
 @router.get("/thumb")

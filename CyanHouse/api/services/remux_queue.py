@@ -17,6 +17,11 @@ host's speech-to-text service), then the mux. If a generation fails the job
 fails with it: a remux asked to carry a subtitle does not quietly go ahead
 without one.
 
+The same queue, and the same worker, also turn FLAC files into MP3s
+("convert" jobs, api/services/audio_convert.py): one job per selection,
+one step per file — another long disk-bound task that belongs to the
+server rather than to the browser that asked.
+
 The queue is kept on disk as it changes. This process reloads itself when
 its code changes, which cuts off a running mux; on startup the leftover
 muxer is stopped, its half-written file removed, and the job goes back to
@@ -31,7 +36,7 @@ import uuid
 from pathlib import Path
 
 from api.config import MOVIES_DATA_DIR
-from api.services import movie_prep, prep_configs, srt_gen
+from api.services import audio_convert, movie_prep, prep_configs, srt_gen
 from api.services.movie_prep import PrepError
 
 # Finished jobs kept for display, newest first, until cleared.
@@ -160,6 +165,73 @@ def _enqueue(area_name: str, fp: str, user: str) -> dict:
     return snapshot
 
 
+def enqueue_convert(area_name: str, paths: list[str], user: str) -> dict:
+    """Queue the FLAC files among `paths` (relative to the area) for
+    conversion to MP3, as one job. Folders in `paths` are ignored: picking a
+    folder in the tree picks every file under it too. Files that already
+    have their MP3, or are already waiting in another conversion, are left
+    out and said so."""
+    files, skipped = [], []
+    with _cond:
+        busy = {(j["area"], f) for j in _jobs
+                if j.get("kind") == "convert" and j["state"] in ACTIVE for f in j["files"]}
+    for rel in dict.fromkeys(p.strip("/") for p in paths):
+        if not audio_convert.is_flac(rel):
+            continue
+        src = movie_prep.resolve_entry(area_name, rel)
+        name = Path(rel).name
+        if not src.is_file():
+            skipped.append({"folder": name, "reason": "not a file"})
+        elif audio_convert.target_of(src).exists():
+            skipped.append({"folder": name, "reason": "its MP3 is already there"})
+        elif (area_name, rel) in busy:
+            skipped.append({"folder": name, "reason": "already queued"})
+        else:
+            files.append(rel)
+    if not files:
+        return {"queued": [], "skipped": skipped}
+    parents = {str(Path(f).parent) for f in files}
+    folder = Path(parents.pop()).name if len(parents) == 1 else f"{len(parents) + 1} folders"
+    with _cond:
+        job = {
+            "id": uuid.uuid4().hex[:10],
+            "kind": "convert",
+            "area": area_name,
+            "fingerprint": "",
+            "movie_id": "",
+            "target": Path(files[0]).name if len(files) == 1 else f"{len(files)} FLAC files",
+            "folder": folder or "/",
+            "files": files,
+            # The ones finished, so a job restarted half way does not stop
+            # at the MP3s it made itself.
+            "converted": [],
+            "problems": [],
+            "by": user,
+            "created": time.time(),
+            "started": None,
+            "finished": None,
+            "state": "queued",
+            "phase": "",
+            "step": 0,
+            "steps": len(files),
+            "step_label": "",
+            "detail": "",
+            "percent": None,
+            "error": "",
+            "output": "",
+            "temp": "",
+            "pid": None,
+            "attempts": 0,
+            "cancel": False,
+        }
+        _jobs.append(job)
+        _persist()
+        _cond.notify_all()
+        snapshot = _public(job)
+    movie_prep._bump()
+    return {"queued": [snapshot], "skipped": skipped}
+
+
 def enqueue_all(area_name: str, user: str) -> dict:
     """Queue every film in an inbox that can be remuxed, and say why each
     of the others cannot. Films already queued are left where they are."""
@@ -195,7 +267,7 @@ def remove(job_id: str) -> dict:
         if not j:
             raise PrepError("no such remux", 404)
         if j["state"] == "running":
-            if j.get("phase") not in ("", "generating", "muxing"):
+            if j.get("phase") not in ("", "generating", "muxing", "converting"):
                 raise PrepError("it is finishing up — too late to stop it", 409)
             j["cancel"] = True
             pid = j.get("pid")
@@ -230,6 +302,15 @@ def job_area(job_id: str) -> str:
         return j["area"]
 
 
+def job_kind(job_id: str) -> str:
+    """"remux" or "convert"."""
+    with _cond:
+        j = _find(job_id)
+        if not j:
+            raise PrepError("no such remux", 404)
+        return j.get("kind") or "remux"
+
+
 # ── the worker ───────────────────────────────────────────────────────────
 def _update(job: dict, **fields) -> None:
     with _cond:
@@ -247,7 +328,7 @@ def _worker() -> None:
                        percent=0, error="", attempts=job.get("attempts", 0) + 1)
             _persist()
         movie_prep._bump()
-        _run(job)
+        (_convert if job.get("kind") == "convert" else _run)(job)
         _trim()
 
 
@@ -310,6 +391,61 @@ def _run(job: dict) -> None:
         else:
             _update(job, state="failed", phase="", detail="", finished=time.time(), pid=None,
                     error=str(e)[:500])
+    finally:
+        movie_prep._bump()
+
+
+def _convert(job: dict) -> None:
+    """Each FLAC of the job in turn. One that fails does not hold up the
+    rest; the job fails at the end, naming them."""
+    def report(**fields):
+        if "percent" in fields:
+            # The bar is the whole job's: this file's share of it.
+            fields["percent"] = int(((job["step"] - 1) + fields["percent"] / 100) / job["steps"] * 100)
+        _update(job, **fields)
+        if fields.get("pid") and job.get("cancel"):
+            try:
+                os.kill(fields["pid"], signal.SIGTERM)
+            except OSError:
+                pass
+
+    cancelled = lambda: bool(job.get("cancel"))
+    problems = list(job.get("problems") or [])
+    try:
+        for i, rel in enumerate(job["files"], 1):
+            if cancelled():
+                raise _Stopped()
+            if rel in job.get("converted", []):
+                continue
+            _update(job, phase="converting", step=i, step_label=Path(rel).name,
+                    percent=int((i - 1) / job["steps"] * 100))
+            try:
+                src = movie_prep.resolve_entry(job["area"], rel, must_exist=False)
+                if not src.exists() and audio_convert.target_of(src).exists():
+                    # Finished just before a restart, without it being noted.
+                    _update(job, converted=job.get("converted", []) + [rel])
+                    continue
+                _update(job, temp=str(audio_convert.temp_of(src)))
+                dest = audio_convert.convert(src, report, cancelled)
+                _update(job, converted=job.get("converted", []) + [rel], temp="")
+                movie_prep._bump(dest.parent)
+            except InterruptedError:
+                raise _Stopped()
+            except Exception as e:
+                problems.append(f"{Path(rel).name}: {e}"[:200])
+                _update(job, problems=problems, temp="")
+        if problems:
+            done = len(job.get("converted", []))
+            raise RuntimeError(f"{done} of {job['steps']} converted. " + "; ".join(problems))
+        _update(job, state="done", phase="done", percent=100, finished=time.time(),
+                pid=None, detail="", step_label="")
+    except Exception as e:  # a job fails; the worker never does
+        if job.get("cancel") or isinstance(e, _Stopped):
+            _update(job, state="cancelled", phase="", detail="", finished=time.time(),
+                    pid=None, temp="", error="stopped")
+        else:
+            _update(job, state="failed", phase="", detail="", finished=time.time(), pid=None,
+                    temp="", error=str(e)[:500])
     finally:
         movie_prep._bump()
 

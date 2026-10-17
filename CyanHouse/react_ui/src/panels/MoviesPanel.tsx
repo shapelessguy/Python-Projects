@@ -705,6 +705,20 @@ export function MoviesPanel() {
     } catch (e) { failed(e); }
   };
 
+  /** Queue the picked FLAC files for conversion to MP3, in the background. */
+  const convertMp3 = async (area: string, paths: string[]) => {
+    setTreeNote(null);
+    try {
+      const r = await api.prepConvertMp3(area, paths);
+      loadJobs();
+      const n = r.queued[0]?.steps ?? 0;
+      const left = r.skipped.map((x) => `${x.folder} (${x.reason})`);
+      say((n ? `Converting ${n} file${n === 1 ? "" : "s"} to MP3 in the background` : "Nothing to convert") +
+          (left.length ? `. Left out: ${left.join("; ")}` : ""), n === 0);
+      if (n) setPicked(new Set());
+    } catch (e) { failed(e); }
+  };
+
   const isMusicInbox = (key: string) =>
     sources.some((x) => x.key === key && x.kind === "inbox" && x.type === "music");
   const songsIn = (area: string, list = listings[area] ?? []) =>
@@ -753,6 +767,7 @@ export function MoviesPanel() {
   const phaseText = (j: RemuxJob) =>
     ((j.steps ?? 0) > 1 && j.step ? `${j.step}/${j.steps} · ` : "") + (
       j.phase === "generating" ? `${j.step_label} subtitles${j.detail ? `: ${j.detail}` : ""}`
+        : j.kind === "convert" ? `To MP3: ${j.step_label || j.target}`
         : j.phase === "verifying" ? `Checking ${j.target}`
         : j.phase === "tidying" ? `Moving ${j.target}`
         : `Remuxing ${j.target}`);
@@ -1637,7 +1652,7 @@ export function MoviesPanel() {
           )}
           <button
             className={"mv-queuebtn" + (queueOpen ? " open" : "") + (failedCount ? " failed" : "")}
-            title="Remux queue"
+            title="Background jobs: remuxes and conversions"
             onClick={(e) => { e.stopPropagation(); setQueueOpen((o) => !o); }}
           >
             <span aria-hidden>☰</span>
@@ -1647,7 +1662,7 @@ export function MoviesPanel() {
           {queueOpen && (
             <div className="mv-queuemenu" onClick={(e) => e.stopPropagation()}>
               <div className="mv-queuehead">
-                <span>Remux queue</span>
+                <span>Background jobs</span>
                 {jobs.some((j) => j.state !== "queued" && j.state !== "running") && (
                   <button className="ghost" onClick={() => api.prepClearJobs().then((r) => setJobs(r.jobs)).catch(() => {})}>
                     clear finished
@@ -1678,7 +1693,7 @@ export function MoviesPanel() {
                     </span>
                     <button
                       className="ghost mv-qx"
-                      disabled={(j.state === "running" && !["generating", "muxing", ""].includes(j.phase))
+                      disabled={(j.state === "running" && !["generating", "muxing", "converting", ""].includes(j.phase))
                                 || ((j.state === "running" || j.state === "queued") && !canEditArea(j.area))}
                       title={j.state === "running" ? "Stop — the source is left as it was"
                         : j.state === "queued" ? "Take it out of the queue" : "Clear"}
@@ -1922,6 +1937,28 @@ export function MoviesPanel() {
               {bulkBusy || "MOVE"}
             </button>
             <button
+              disabled={!!bulkBusy}
+              title={selectionRoots(picked).length === 1 && !listings[pickedArea]?.find((f) => f.path === selectionRoots(picked)[0] && f.kind === "folder")
+                ? "Save it to this computer" : "Save them to this computer, as one ZIP"}
+              onClick={() => api.prepDownload(pickedArea, selectionRoots(picked), (m) => say(m, true))}
+            >
+              DOWNLOAD
+            </button>
+            {(() => {
+              const flacs = [...picked].filter((p) => p.toLowerCase().endsWith(".flac"));
+              return (
+                <button
+                  disabled={!flacs.length || !!bulkBusy}
+                  title={flacs.length
+                    ? `Convert ${flacs.length} FLAC file${flacs.length === 1 ? "" : "s"} to MP3 — runs in the background; each FLAC is replaced by its MP3`
+                    : "Select FLAC files to convert them to MP3"}
+                  onClick={() => convertMp3(pickedArea, flacs)}
+                >
+                  → MP3{flacs.length ? ` (${flacs.length})` : ""}
+                </button>
+              );
+            })()}
+            <button
               className={"mv-bulkdel" + (armedDelete ? " armed" : "")}
               disabled={!!bulkBusy}
               title="Deletes them — there is no undo"
@@ -2137,7 +2174,7 @@ export function MoviesPanel() {
             area={source}
             plan={plan}
             allowed={canEditArea(source)}
-            job={jobs.find((j) => (j.state === "queued" || j.state === "running")
+            job={jobs.find((j) => !j.kind && (j.state === "queued" || j.state === "running")
                                    && (j.fingerprint === plan.fingerprint || j.movie_id === plan.movie_id)) ?? null}
             onChanged={loadJobs}
           />

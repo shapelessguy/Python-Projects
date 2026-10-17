@@ -521,6 +521,9 @@ export interface PrepTrack {
  *  keeps the queue on disk — and every browser only draws it. */
 export interface RemuxJob {
   id: string;
+  /** Absent on remuxes; "convert" for a FLAC-to-MP3 job, whose `target`
+   *  names the files and whose steps are one per file. */
+  kind?: "convert";
   /** The inbox it came from; also the tab it belongs to. */
   area: string;
   fingerprint: string;
@@ -534,7 +537,7 @@ export interface RemuxJob {
   started: number | null;
   finished: number | null;
   state: "queued" | "running" | "done" | "failed" | "cancelled";
-  phase: "" | "generating" | "muxing" | "verifying" | "tidying" | "done";
+  phase: "" | "generating" | "muxing" | "verifying" | "tidying" | "converting" | "done";
   /** 1-based; one step per subtitle to generate, then the mux. */
   step?: number;
   steps?: number;
@@ -799,6 +802,46 @@ export const api = {
   prepRemuxAll: (area: string) =>
     f("/api/prep/remux_all?" + new URLSearchParams({ area }), { method: "POST" })
       .then(j<{ queued: RemuxJob[]; skipped: { folder: string; reason: string }[] }>),
+  /** Queue the FLAC files among `paths` for conversion to MP3, each MP3
+   *  replacing its FLAC — one job in the same queue as the remuxes. */
+  prepConvertMp3: (area: string, paths: string[]) =>
+    f("/api/prep/convert_mp3?" + new URLSearchParams({ area }), {
+      method: "POST", headers: JSON_HEADERS, body: JSON.stringify({ paths }),
+    }).then(j<{ queued: RemuxJob[]; skipped: { folder: string; reason: string }[] }>),
+  /** Save the picked files and folders: one file as it is, more as one
+   *  ZIP. A form post, so the browser's own download takes it — the page
+   *  stays where it is and holds none of it. */
+  prepDownload: (area: string, paths: string[], onError: (message: string) => void) => {
+    // Into a hidden frame, so a refusal does not replace the page: a
+    // download never loads anything there, so a load is the error's body.
+    const frame = document.createElement("iframe");
+    frame.name = "dl-" + Math.random().toString(36).slice(2);
+    frame.hidden = true;
+    frame.onload = () => {
+      let text = "";
+      try { text = frame.contentDocument?.body?.innerText ?? ""; } catch { /* not ours */ }
+      let message = text;
+      try { message = JSON.parse(text).detail ?? text; } catch { /* plain text */ }
+      onError(message ? `Download failed: ${message}` : "Download failed");
+      frame.remove();
+    };
+    document.body.appendChild(frame);
+    // A download leaves the frame empty for good; it is cleared after a while.
+    window.setTimeout(() => frame.remove(), 10 * 60 * 1000);
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = "/api/prep/download";
+    form.target = frame.name;
+    form.hidden = true;
+    for (const [name, value] of [["area", area], ["paths", JSON.stringify(paths)]]) {
+      const input = document.createElement("input");
+      input.type = "hidden"; input.name = name; input.value = value;
+      form.appendChild(input);
+    }
+    document.body.appendChild(form);
+    form.submit();
+    form.remove();
+  },
   /** The queue: running first, then waiting in order, then finished. */
   prepJobs: () => f("/api/prep/jobs").then(j<{ jobs: RemuxJob[] }>),
   /** Drop a queued remux, stop a running one, or clear a finished one. */
