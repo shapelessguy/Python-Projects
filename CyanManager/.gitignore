@@ -2,4 +2,5 @@
 logs/*
 .env
 exe_map.json
+services/clef_flash/tools/
 profile.txt

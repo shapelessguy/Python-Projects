@@ -2,14 +2,16 @@ import json
 import os
 import tempfile
 import threading
+import time
 import uuid
 from datetime import datetime
 import numpy as np
 import base64
 import uvicorn
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from starlette.concurrency import run_in_threadpool
+import requests
 from functions.audio import get_current_audio_info, list_voices, play_voice
 from functions.mouse_remote import (
     move_relative,
@@ -23,7 +25,11 @@ from functions.mouse_remote import (
 )
 from utils import wait
 from services.stt.service import transcribe, transcribe_movie, synthesize_speech, askLLM, NAME as STT_NAME
+from services.clef_flash.service import URL as CLEF_URL
+from services.docling_converter.service import convert as docling_convert, FORMATS as DOCLING_FORMATS, NAME as DOCLING_NAME
 import api_auth
+
+CLEF_TIMEOUT = 120  # seconds
 
 
 PORT = 10000
@@ -64,6 +70,7 @@ def entrypoint(thread_manager):
     signal = thread_manager.signal
     app = FastAPI()
     transcription_jobs = {}
+    docling_jobs = {}
 
     def get_funcs():
         return signal.reg_functions.get_functions()
@@ -74,7 +81,7 @@ def entrypoint(thread_manager):
     # Every route runs something on this PC: see api_auth.py.
     @app.middleware("http")
     async def require_user(request: Request, call_next):
-        controls = not request.url.path.startswith("/transcribe_movie/")
+        controls = not request.url.path.startswith(("/transcribe_movie/", "/clef/", "/docling/"))
         if not api_auth.allowed(remote(request), request.headers.get("authorization"), controls):
             return JSONResponse({"error": "unauthorized"}, status_code=401)
         # Someone is using the PC: Start&Shutdown counts inactivity from here.
@@ -195,6 +202,81 @@ def entrypoint(thread_manager):
         if not job:
             return JSONResponse({"status": "error", "error": "Unknown job_id"}, status_code=404)
         return job
+
+    @app.post("/docling/start")
+    async def start_docling(request: Request):
+        # The document is the raw body; ?ext=.pdf (or .docx, .pptx, .xlsx,
+        # .html, .png, ...) tells Docling what it is, ?format= what to return,
+        # ?images=embedded puts the pictures into Markdown/HTML as base64.
+        ext = request.query_params.get("ext", ".pdf")
+        fmt = request.query_params.get("format", "markdown")
+        images = request.query_params.get("images") == "embedded"
+        if fmt not in DOCLING_FORMATS:
+            return JSONResponse({"status": "error", "error": f"format must be one of {', '.join(DOCLING_FORMATS)}"},
+                                status_code=400)
+        try:
+            docling_thread = thread_manager.signal.thread_managers.get(DOCLING_NAME, None)
+            data = await request.body()
+
+            with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp:
+                tmp.write(data)
+                tmp_path = tmp.name
+
+            job_id = uuid.uuid4().hex
+            docling_jobs[job_id] = {"status": "queued", "format": fmt}
+
+            def run_job():
+                print(f"[{job_id}] Docling conversion queued")
+                try:
+                    result = docling_convert(docling_thread, tmp_path, fmt, images,
+                                             progress=docling_jobs[job_id])
+                    if result is None:
+                        docling_jobs[job_id] = {"status": "error", "error": "Docling is not loaded"}
+                        return
+                    docling_jobs[job_id] = {
+                        "status": "done",
+                        "format": fmt,
+                        "seconds": round(time.time() - docling_jobs[job_id]["started"], 1),
+                        **result,
+                    }
+                except Exception as e:
+                    docling_jobs[job_id] = {"status": "error", "error": str(e)}
+                finally:
+                    if os.path.exists(tmp_path):
+                        os.remove(tmp_path)
+                    print(f"[{job_id}] Docling conversion stopped")
+
+            threading.Thread(target=run_job, daemon=True).start()
+            return {"status": "ok", "job_id": job_id}
+        except Exception as e:
+            return JSONResponse({"status": "error", "error": str(e)}, status_code=500)
+
+    @app.get("/docling/status/{job_id}")
+    def docling_status(job_id: str):
+        job = docling_jobs.get(job_id)
+        if not job:
+            return JSONResponse({"status": "error", "error": "Unknown job_id"}, status_code=404)
+        return job
+
+    @app.api_route("/clef/{path:path}", methods=["GET", "POST"])
+    async def clef(path: str, request: Request):
+        # The Clef-flash service's llama-server, which listens on this PC only:
+        # /clef/v1/systemone here is its /v1/systemone. The caller's
+        # CyanHouse credentials stop here.
+        body = await request.body()
+        headers = {"Content-Type": request.headers["content-type"]} if "content-type" in request.headers else {}
+
+        def run():
+            return requests.request(request.method, f"{CLEF_URL}/{path}", params=request.url.query,
+                                    data=body, headers=headers, timeout=CLEF_TIMEOUT)
+
+        try:
+            reply = await run_in_threadpool(run)
+        except requests.ConnectionError:
+            return JSONResponse({"status": "error", "error": "Clef-flash is not running"}, status_code=503)
+        except requests.Timeout:
+            return JSONResponse({"status": "error", "error": "Clef-flash timed out"}, status_code=504)
+        return Response(reply.content, status_code=reply.status_code, media_type=reply.headers.get("content-type"))
 
     @app.get("/functions")
     def list_functions():

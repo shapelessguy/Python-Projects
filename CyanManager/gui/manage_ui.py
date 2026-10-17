@@ -11,7 +11,7 @@ from gui.tab_applications import set_apps_layout
 from gui.session_end import SessionEndFilter
 from PyQt5.QtCore import QObject, pyqtSignal, Qt, QSize
 from PyQt5.QtWidgets import QMainWindow, QApplication, QSystemTrayIcon, QMenu, QWidget, QTextEdit, QVBoxLayout, QPushButton, QGraphicsScene
-from PyQt5.QtGui import QIcon, QPixmap
+from PyQt5.QtGui import QIcon, QPixmap, QTextCursor
 from utils import ICONS_FOLDER_PATH, wait
 
 
@@ -304,7 +304,16 @@ class UI:
     def _push_to_terminal(self, line):
         if line == "":
             return
-        self.terminal_window.text_edit.insertPlainText(f"{line}\n")
+        # At the end whatever the text cursor is doing (a click in the window
+        # moves it), and followed only if the view was already at the bottom.
+        text_edit = self.terminal_window.text_edit
+        bar = text_edit.verticalScrollBar()
+        at_bottom = bar.value() >= bar.maximum() - 4
+        cursor = QTextCursor(text_edit.document())
+        cursor.movePosition(QTextCursor.End)
+        cursor.insertText(f"{line}\n")
+        if at_bottom:
+            bar.setValue(bar.maximum())
     
     def notif_timout(self, timeout, notification_id):
         time.sleep(timeout)

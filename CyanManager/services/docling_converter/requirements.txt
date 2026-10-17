@@ -1,0 +1,12 @@
+docling
+# 5.x calls torch.accelerator, which torch 2.5 (the 3.10 pin below) does not have
+transformers<5
+
+# torch built for CUDA, from PyTorch's own index: the wheel that fits this Python
+# (as in services/stt; without it pip would bring the CPU build)
+--extra-index-url https://download.pytorch.org/whl/cu121
+--extra-index-url https://download.pytorch.org/whl/cu126
+torch==2.5.1+cu121; python_version == "3.10"
+torchvision==0.20.1+cu121; python_version == "3.10"
+torch==2.9.1+cu126; python_version == "3.13"
+torchvision==0.24.1+cu126; python_version == "3.13"

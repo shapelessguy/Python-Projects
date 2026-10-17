@@ -3,6 +3,8 @@ import psutil
 import time
 import subprocess
 import json
+import re
+import threading
 from datetime import datetime
 
 
@@ -35,23 +37,44 @@ ENV_PATH = os.path.join(os.path.dirname(__file__), '.env')
 ERR_FLAG = "CyanManagerError"
 
 
+ANSI_ESCAPE = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")  # colours some libraries print (RapidOCR's logger)
+
+
 class Tee:
+    """Mirrors stdout or stderr to the log queue, one timestamped line at a time.
+
+    Python writes a line in several calls (print("a", "b") is four) and
+    services write from several threads at once, so each thread's pieces are
+    held until its line ends. A progress bar redrawing itself with carriage returns shows
+    only its last state.
+    """
     def __init__(self, log_queue, stream):
         self.log_queue = log_queue
         self.stream = stream
-        self.last_newline = True
+        self.pending = threading.local()
+        self.lock = threading.Lock()
 
     def write(self, msg):
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        if msg not in ["", " ", "\n"] and self.last_newline:
-            msg = f"[{timestamp}] {msg}"
-        try:
-            self.stream.write(msg)
-            self.stream.flush()
-            self.log_queue.put(msg)
-            self.last_newline = msg[-1] == "\n"
-        except Exception:
-            pass
+        *lines, self.pending.text = (getattr(self.pending, "text", "") + ANSI_ESCAPE.sub("", msg)).split("\n")
+        if lines:
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            with self.lock:
+                for line in lines:
+                    line = line.rsplit("\r", 1)[-1].rstrip()
+                    try:
+                        if not line:
+                            self.stream.write("\n")
+                            continue
+                        line = f"[{timestamp}] {line}"
+                        self.stream.write(f"{line}\n")
+                        self.log_queue.put(line)
+                    except Exception:
+                        pass
+                try:
+                    self.stream.flush()
+                except Exception:
+                    pass
+        return len(msg)
 
     def flush(self):
         self.stream.flush()

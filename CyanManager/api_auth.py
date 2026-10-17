@@ -21,7 +21,8 @@ user added or changed in CyanHouse counts here after CyanManager restarts.
 
 A user needs the Controls panel (`permissions.visibility` omitted, or listing
 "controls"), as in CyanHouse itself. Movie transcription (subtitles for the
-Media panel) only needs a valid user.
+Media panel), Clef-flash (/clef/...) and Docling (/docling/...) only need a
+valid user.
 
 Calls from this PC itself (127.0.0.1 / ::1, e.g. videoProcessing's transcribe
 client) need no credentials. With no users fetched every other caller is
