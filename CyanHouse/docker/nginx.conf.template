@@ -138,6 +138,33 @@ http {
             proxy_set_header X-Forwarded-Proto $scheme;
         }
 
+        # Bare /lansi (no trailing slash) -> /lansi/
+        location = /lansi {
+            return 301 /lansi/;
+        }
+
+        # Lansi, the language-learning chat (~/Documents/Lansi): its Vite
+        # server on the loopback, built with `base: "/lansi/"`, so the prefix
+        # is kept (no trailing slash on proxy_pass). It forwards
+        # /lansi/checker/ to its checker server itself, which asks for its
+        # own login; the Anki server behind that is never reachable from
+        # here. Host is left as 127.0.0.1:5173, the name Vite accepts
+        # requests by. The upgrade is Vite's live reload socket; the body
+        # size is that of the EPUB books (the checker takes up to 200 MB);
+        # the timeouts let a slow answer of the language models through.
+        location /lansi/ {
+            proxy_pass http://127.0.0.1:5173;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+            client_max_body_size 200m;
+            proxy_read_timeout 600s;
+            proxy_send_timeout 600s;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
         # FastAPI backend — routers are already prefixed /api/... , so this
         # keeps the prefix as-is (no trailing slash on proxy_pass).
         location /api/ {
