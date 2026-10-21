@@ -105,11 +105,15 @@ def resolve_all_guids(path_str):
 
 
 def get_uwp_apps(signal, verbose=False):
-    ps_command = "Get-StartApps | Select-Object Name,AppID | ConvertTo-Json"
+    # PowerShell writes in the console's OEM code page unless told otherwise: a
+    # name like "Grüße" then fails to decode and stdout comes back as None.
+    ps_command = "[Console]::OutputEncoding = [Text.Encoding]::UTF8; Get-StartApps | Select-Object Name,AppID | ConvertTo-Json"
     result = subprocess.run(
-        ["powershell", "-Command", ps_command],
+        ["powershell", "-NoProfile", "-Command", ps_command],
         capture_output=True,
-        text=True
+        encoding="utf-8",
+        errors="replace",
+        creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)
     )
     if result.returncode != 0:
         raise RuntimeError(f"PowerShell failed: {result.stderr}")
@@ -184,7 +188,11 @@ def start_app(signal, app, app_name_map=None):
 
 def startup_applications(signal, verbose=False, app_names=[]):
     started_apps = []
-    app_name_map = get_uwp_apps(signal, False)
+    try:
+        app_name_map = get_uwp_apps(signal, False)
+    except Exception as e:  # only "app:" entries need it: start the others anyway
+        print(f"Start menu apps not listed: {e.__class__.__name__} - {e}")
+        app_name_map = {}
     if not len(app_names):
         applications = [x for x in get_apps_status(signal, False) if x.process is None and x.window is None and x.startup]
     else:

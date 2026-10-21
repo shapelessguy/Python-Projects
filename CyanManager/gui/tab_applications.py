@@ -68,8 +68,10 @@ def _start_menu_ids():
     """Start menu entry name -> AppID, as Get-StartApps lists them (once per run)."""
     try:
         out = subprocess.run(
-            ["powershell", "-NoProfile", "-Command", "Get-StartApps | Select-Object Name,AppID | ConvertTo-Json"],
-            capture_output=True, text=True, timeout=15, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)).stdout
+            ["powershell", "-NoProfile", "-Command",
+             "[Console]::OutputEncoding = [Text.Encoding]::UTF8; Get-StartApps | Select-Object Name,AppID | ConvertTo-Json"],
+            capture_output=True, encoding="utf-8", errors="replace", timeout=15,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)).stdout
         return {x["Name"]: x["AppID"] for x in json.loads(out)}
     except Exception as e:
         print(f"Start menu apps not listed: {e.__class__.__name__} - {e}")
