@@ -90,23 +90,20 @@ def sync_events(outlook_events):
     session = _session()
     calendar_id = _get_or_create_calendar_id(session)
 
+    # CyanHouse deletes the events from today on that aren't in this list,
+    # inserts the ones it doesn't already have, and leaves the rest alone.
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    del_resp = session.delete(
-        f"{BASE_URL}/api/calendar/events",
+    events = [to_cyan_event(data, calendar_id) for data in outlook_events.values()]
+    resp = session.put(
+        f"{BASE_URL}/api/calendar/events/sync",
         params={"from_date": today, "calendar_id": calendar_id},
+        json=events,
         timeout=15,
     )
-    del_resp.raise_for_status()
-    print("Deleted from CyanHouse:", del_resp.json().get("deleted"))
-
-    events = [to_cyan_event(data, calendar_id) for data in outlook_events.values()]
-    if events:
-        ins_resp = session.post(f"{BASE_URL}/api/calendar/events/bulk", json=events, timeout=15)
-        if not ins_resp.ok:
-            print(f"Bulk insert failed ({ins_resp.status_code}): {ins_resp.text}")
-            for i, ev in enumerate(events):
-                print(f"  [{i}]", json.dumps(ev))
-        ins_resp.raise_for_status()
-        print("Inserted into CyanHouse:", len(events))
-    else:
-        print("No Outlook events to insert.")
+    if not resp.ok:
+        print(f"Sync failed ({resp.status_code}): {resp.text}")
+        for i, ev in enumerate(events):
+            print(f"  [{i}]", json.dumps(ev))
+    resp.raise_for_status()
+    result = resp.json()
+    print(f"CyanHouse: deleted {result['deleted']}, created {result['created']}, kept {result['kept']}")

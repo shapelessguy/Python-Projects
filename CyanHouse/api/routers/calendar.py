@@ -104,6 +104,20 @@ def create_events_bulk(body: list[EventIn], user: str = Depends(require_user)):
         raise HTTPException(status_code=e.status_code, detail=str(e))
 
 
+@router.put("/events/sync")
+def sync_events(
+    body: list[EventIn],
+    calendar_id: int = Query(...),
+    from_date: str = Query(..., pattern=_DATE_RE),
+    user: str = Depends(require_user),
+):
+    try:
+        with calendar.connect() as conn:
+            return calendar.sync_events(conn, user, calendar_id, from_date, body)
+    except calendar.CalendarError as e:
+        raise HTTPException(status_code=e.status_code, detail=str(e))
+
+
 @router.delete("/events")
 def delete_events_from(
     from_date: str = Query(..., pattern=_DATE_RE),

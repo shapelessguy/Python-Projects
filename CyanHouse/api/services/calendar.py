@@ -596,6 +596,65 @@ def create_events_bulk(conn: sqlite3.Connection, user: str, bodies: list[EventIn
     return [_row_to_event(by_id[i], user, level=levels.get(by_id[i]["calendar_id"])) for i in ids]
 
 
+def _event_key(start_date, end_date, all_day, start_time, end_time, title, description,
+               recur_freq, recur_interval, recur_until, alarm) -> tuple:
+    """What makes two events "the same" for sync_events -- everything a sync
+    sends, nothing that only changes once the event is in (ids, alarm
+    ack/snooze, exceptions)."""
+    all_day = bool(all_day)
+    return (
+        start_date, end_date, all_day,
+        None if all_day else start_time, None if all_day else end_time,
+        title, description or "", recur_freq, recur_interval or 1, recur_until, bool(alarm),
+    )
+
+
+def sync_events(
+    conn: sqlite3.Connection, user: str, calendar_id: int, from_date: str, bodies: list[EventIn],
+) -> dict:
+    """Makes one calendar's events starting on or after `from_date` match
+    `bodies`: an event already there identical to one of them is left
+    alone (so its alarm ack/snooze survives), one not among them is
+    deleted, and only the ones not already there are inserted. Duplicates
+    count -- two identical bodies keep or create two rows. All of it
+    happens or none does, like create_events_bulk."""
+    _check_calendar_access(conn, user, calendar_id)
+    for body in bodies:
+        if body.calendar_id != calendar_id:
+            raise CalendarError("every event must belong to the calendar being synced")
+        _validate_new_event(conn, user, body)
+
+    wanted: dict[tuple, list[EventIn]] = {}
+    for body in bodies:
+        key = _event_key(body.start_date, body.end_date, body.all_day, body.start_time, body.end_time,
+                         body.title, body.description, body.recur_freq, body.recur_interval,
+                         body.recur_until, body.alarm)
+        wanted.setdefault(key, []).append(body)
+
+    stale = []
+    rows = conn.execute(
+        "SELECT * FROM calendar_events WHERE calendar_id = ? AND start_date >= ? ORDER BY id",
+        (calendar_id, from_date),
+    ).fetchall()
+    for r in rows:
+        key = _event_key(r["start_date"], r["end_date"], r["all_day"], r["start_time"], r["end_time"],
+                         r["title"], r["description"], r["recur_freq"], r["recur_interval"],
+                         r["recur_until"], r["alarm"])
+        if wanted.get(key):
+            wanted[key].pop()
+        else:
+            stale.append(r["id"])
+
+    if stale:
+        conn.execute(f"DELETE FROM calendar_events WHERE id IN ({','.join('?' * len(stale))})", stale)
+    fresh = [body for left in wanted.values() for body in left]
+    for body in fresh:
+        _insert_event(conn, user, body)
+    if stale or fresh:
+        bump(conn, _VERSION_KEY)
+    return {"deleted": len(stale), "created": len(fresh), "kept": len(rows) - len(stale)}
+
+
 def _get_editable(conn: sqlite3.Connection, user: str, event_id: int, need: str = "edit") -> sqlite3.Row:
     """An event, if its calendar lets `user` do `need` ("edit" to change or
     delete it; "see" is enough for its alarm). An event on a calendar not
