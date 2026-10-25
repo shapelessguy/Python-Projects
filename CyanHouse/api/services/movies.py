@@ -590,17 +590,26 @@ _probe_cache: dict[str, dict] = {}
 _probe_lock = threading.Lock()
 
 
+def _stamp(path: Path) -> str:
+    try:
+        st = path.stat()
+    except OSError:
+        return "gone"
+    return f"{st.st_mtime_ns}:{st.st_size}"
+
+
 def forget(movie_id: str) -> None:
-    """Drop a film's cached probe. The probe key is (path, mtime, size), which
-    is exactly right for the file and exactly wrong for the subtitles attached
-    to it from outside — uploading one changes nothing about the film."""
+    """Drop a film's cached probe. The probe key is the file and the
+    subtitles beside it, which is exactly wrong for the subtitles attached to
+    it from outside — uploading one changes nothing on disk next to the film."""
     try:
         path = resolve(movie_id)
     except MovieError:
         return
-    st = path.stat()
+    prefix = f"{path}|"
     with _probe_lock:
-        _probe_cache.pop(f"{path}|{st.st_mtime_ns}|{st.st_size}", None)
+        for key in [k for k in _probe_cache if k.startswith(prefix)]:
+            del _probe_cache[key]
 
 
 def info(movie_id: str) -> dict:
@@ -610,7 +619,12 @@ def info(movie_id: str) -> dict:
     again on every film you click."""
     path = resolve(movie_id)
     st = path.stat()
-    key = f"{path}|{st.st_mtime_ns}|{st.st_size}"
+    # The subtitles beside the film are part of the answer, so they are part
+    # of the key: an .srt dropped into the folder later changes nothing
+    # about the video, and would otherwise not be seen until a restart.
+    sidecars = _folder_subs(path)
+    key = f"{path}|{st.st_mtime_ns}|{st.st_size}|" + "|".join(
+        f"{f['name']}:{_stamp(f['path'])}" for f in sidecars)
     with _probe_lock:
         hit = _probe_cache.get(key)
     if hit:
@@ -690,7 +704,7 @@ def info(movie_id: str) -> dict:
                 }
             )
 
-    for found in _folder_subs(path):
+    for found in sidecars:
         n = len(subs)
         width = height = None
         if found["kind"] == "image":

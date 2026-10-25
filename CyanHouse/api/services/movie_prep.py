@@ -285,6 +285,30 @@ class Candidate:
     subs: list[Path] = field(default_factory=list)
     junk: list[Path] = field(default_factory=list)
     extra_videos: list[Path] = field(default_factory=list)
+    # One of several films in the same folder (a collection): it is named
+    # after its own file, and remuxing it clears only its own files.
+    shared: bool = False
+
+
+# A video at least this fraction of the folder's biggest is a film of its
+# own, not a sample or a featurette — what tells a saga's four films apart
+# from one film with its trailer.
+FILM_SHARE = 0.3
+
+
+def _films(videos: list[Path]) -> list[Path]:
+    """The videos among `videos` that are films, biggest first."""
+    sized = sorted(((v.stat().st_size, v) for v in videos), key=lambda x: x[0], reverse=True)
+    if not sized:
+        return []
+    return [v for size, v in sized if size >= sized[0][0] * FILM_SHARE]
+
+
+def _owned_by(sub: Path, films: list[Path]) -> Path | None:
+    """The film a subtitle file is named after — the longest matching stem,
+    as movies._folder_subs decides it — or None."""
+    return max((v for v in films if sub.name.lower().startswith(v.stem.lower())),
+               key=lambda v: len(v.stem), default=None)
 
 
 def scan(root: Path) -> list[Candidate]:
@@ -323,6 +347,15 @@ def scan(root: Path) -> list[Candidate]:
                 junk.append(f)
         if not vids:
             continue
+        films = _films(vids)
+        if len(films) > 1:
+            # A collection: every film is prepared on its own, with the
+            # subtitles named after it. The junk and any samples stay until
+            # the last film leaves, which then clears the folder as usual.
+            for film in films:
+                out.append(Candidate(folder=entry, video=film, shared=True,
+                                     subs=[s for s in subs if _owned_by(s, films) == film]))
+            continue
         # The biggest file is the film; the rest are samples and extras.
         vids.sort(key=lambda p: p.stat().st_size, reverse=True)
         out.append(Candidate(folder=entry, video=vids[0], subs=subs,
@@ -356,8 +389,20 @@ def guess_title(name: str) -> tuple[str, str]:
     year = ""
     m = _YEAR.search(stem)
     if m:
-        year = m.group(1)
-        stem = stem[: m.start(1)]
+        # Usually the year follows the title; in a collection it often leads
+        # it ("(2011) L'alba del pianeta delle scimmie AC3 ..."), and cutting
+        # there would leave no title at all. A leading number followed by
+        # another year was the title's own ("2001 A Space Odyssey (1968)").
+        if not re.search(r"\w", stem[: m.start(1)]):
+            later = _YEAR.search(stem, m.end(1))
+            if later:
+                m = later
+            else:
+                year, stem = m.group(1), stem[m.end(1):].lstrip(" )]-_.,")
+                m = None
+        if m:
+            year = m.group(1)
+            stem = stem[: m.start(1)]
     stem = _RELEASE_NOISE.split(stem)[0]
     # Scene names use dots and underscores as spaces; real titles use spaces.
     title = re.sub(r"[._]+", " ", stem)
@@ -387,12 +432,12 @@ def analyse(candidate: Candidate) -> dict:
     Nothing here is destructive and nothing is final: the plan is what the UI
     edits and what `execute` later runs."""
     probe = _probe(candidate.video)
-    title, year = guess_title(candidate.video.name if candidate.folder == candidate.video.parent
-                              and candidate.video.parent.name in (candidate.video.parent.name,)
+    title, year = guess_title(candidate.video.name if candidate.shared
+                              or candidate.folder == candidate.video.parent
                               else candidate.folder.name)
     # A folder name is usually richer than the file inside it; fall back the
     # other way when the folder is just the staging root.
-    if len(candidate.folder.name) > len(candidate.video.stem):
+    if len(candidate.folder.name) > len(candidate.video.stem) and not candidate.shared:
         title, year = guess_title(candidate.folder.name)
 
     tracks: list[dict] = []
@@ -890,8 +935,13 @@ def execute(plan: dict, dest_root: Path, dry_run: bool = False,
     # A video lying loose in the inbox has the inbox itself as its "folder".
     # Clearing that folder afterwards would sweep up every other download
     # waiting there and remove the inbox — so a loose film clears only what
-    # is its own: the video and the sidecars the plan named.
-    loose = folder == inbox.resolve()
+    # is its own: the video and the sidecars the plan named. So does one of
+    # a collection's films, or the rest of the collection would go with it.
+    # Decided from the folder as it is now, never from the plan the browser
+    # sent: the last film of a collection clears the whole folder.
+    loose = folder == inbox.resolve() or len(_films(
+        [f for f in folder.rglob("*") if f.is_file() and f.suffix.lower() in VIDEO_EXT
+         and not any(part.startswith(".") for part in f.relative_to(folder).parts)])) > 1
     plan = {**plan, "tracks": _drop_unlabelled(plan["tracks"])}
     conflicts = _conflicts(plan["tracks"])
     if conflicts:
@@ -947,7 +997,7 @@ def execute(plan: dict, dest_root: Path, dry_run: bool = False,
     stamp = time.strftime("%Y-%m-%d_%H-%M-%S")
     moved = []
     if loose:
-        trash = folder / TRASH_DIR / stamp / video.stem
+        trash = inbox.resolve() / TRASH_DIR / stamp / video.stem
         own = [video] + [Path(t["external"]).resolve() for t in plan["tracks"]
                          if isinstance(t, dict) and t.get("external")]
         for leftover in own:
