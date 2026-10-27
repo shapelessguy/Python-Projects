@@ -11,6 +11,7 @@ nginx/
 dev_test_media/
 data/
 scripts/backup.log
+scripts/update_containers.log
 docker/pyload/
 docker/qbittorrent/
 docker/jackett/
