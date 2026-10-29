@@ -44,7 +44,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewModelScope
 import com.diary.Prefs
@@ -74,21 +77,21 @@ class ControlsViewModel : ViewModel() {
      *  finishes. */
     var dragging = false
 
-    init {
-        // Followed with a held request (api/longpoll.py): it comes back when
-        // the volume or device changes, not once a second.
-        viewModelScope.launch {
-            var since = ""
-            while (true) {
-                val answer = runCatching { Api.controlInfoHeld(since) }.getOrNull()
-                if (answer == null) {
-                    delay(3000)
-                    continue
-                }
-                since = answer.second
-                if (!dragging) info = answer.first
-                if (since.isEmpty()) delay(1000)
+    /** Followed with a held request (api/longpoll.py): it comes back when
+     *  the volume or device changes, not once a second. Run by
+     *  ControlsScreen only while it is on screen and the app in front, so a
+     *  hidden screen doesn't keep one of OkHttp's per-host slots taken. */
+    suspend fun follow() {
+        var since = ""
+        while (true) {
+            val answer = runCatching { Api.controlInfoHeld(since) }.getOrNull()
+            if (answer == null) {
+                delay(3000)
+                continue
             }
+            since = answer.second
+            if (!dragging) info = answer.first
+            if (since.isEmpty()) delay(1000)
         }
     }
 
@@ -127,6 +130,8 @@ class ControlsViewModel : ViewModel() {
 
 @Composable
 fun ControlsScreen(vm: ControlsViewModel = viewModel()) {
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    LaunchedEffect(vm) { lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) { vm.follow() } }
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
