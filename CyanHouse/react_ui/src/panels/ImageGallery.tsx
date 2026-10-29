@@ -365,7 +365,9 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
 
   const crumbs = at ? at.split("/") : [];
   // A new folder, here: offered where this user may add (image_access.py).
-  const canCreate = !q && !!onUpload && mayAdd(at);
+  // Not while the library is still being read: the card alone would look
+  // like an empty library, until the albums appear around it.
+  const canCreate = !q && !loading && !!onUpload && mayAdd(at);
   const showAlbums = !q && (albums.length > 0 || canCreate);
   const picturesFirst = !!at && !q;
   const albumsBlock = showAlbums && (
@@ -410,9 +412,9 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
   const pictures = (
     <>
       {!showAlbums && !sections.length && (
-        <p className="muted small ig-empty">
-          {loading ? "Reading the library…" : q ? "No pictures match." : "No pictures here yet."}
-        </p>
+        loading
+          ? <p className="muted small ig-empty ig-loading"><span className="mv-ring" aria-hidden />Reading the library…</p>
+          : <p className="muted small ig-empty">{q ? "No pictures match." : "No pictures here yet."}</p>
       )}
       {drawn.map(([folder, list, rows, sounds]) => (
         <section key={folder} className={"ig-section" + (dropOn === "s:" + folder ? " dropping" : "")}

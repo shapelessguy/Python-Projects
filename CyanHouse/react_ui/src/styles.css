@@ -1928,6 +1928,7 @@ select.mv-preplang:invalid, select.mv-preplang[data-empty="true"] { color: var(-
   padding: 6px 16px 20px;
 }
 .ig-empty { padding: 12px; }
+.ig-loading { display: flex; align-items: center; gap: 8px; }
 /* Where a drag of photos from the computer would land. */
 .ig-section { position: relative; }
 .ig-scroll.dropping { outline: 2px dashed var(--accent); outline-offset: -3px; }
