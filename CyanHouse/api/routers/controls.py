@@ -87,9 +87,19 @@ async def room_command(topic: str, body: dict[str, Any] | None = None):
 
 @router.post("/fn/{name}")
 async def fn(name: str, body: dict[str, Any] | None = None, user: str = Depends(require_user)):
-    return await run_in_threadpool(
+    global _info
+    reply = await run_in_threadpool(
         _forward, "POST", CONTROLS_FN_URL, f"/functions/{name}/run", body if body else None, user
     )
+    # The fn service nests the room's state after the call under "info";
+    # lifted to the top level, where the clients read volume/device, so the
+    # caller's bar moves on the reply rather than on the next /info round.
+    # It also refreshes the /info cache, so other followers see it now too.
+    info_after = reply.get("info") if isinstance(reply, dict) else None
+    if isinstance(info_after, dict):
+        _info = (time.monotonic(), info_after)
+        reply = {**reply, **info_after}
+    return reply
 
 
 @router.get("/voices")

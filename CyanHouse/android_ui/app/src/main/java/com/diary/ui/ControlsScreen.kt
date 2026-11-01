@@ -8,6 +8,8 @@ package com.diary.ui
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
@@ -34,6 +36,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,6 +56,8 @@ import androidx.lifecycle.viewModelScope
 import com.diary.Prefs
 import com.diary.net.Api
 import com.diary.net.ControlsInfo
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonObject
@@ -320,10 +325,39 @@ private fun VoiceCell(name: String, vm: ControlsViewModel, modifier: Modifier) {
     }
 }
 
+/** Holding the OS volume −/+ repeats its step: first after NUDGE_DELAY_MS,
+ *  then every NUDGE_REPEAT_MS. */
+private const val NUDGE_DELAY_MS = 1000L
+private const val NUDGE_REPEAT_MS = 250L
+
 @Composable
 private fun NudgeButton(text: String, onClick: () -> Unit) {
+    // One step on press, then repeated while held (NUDGE_DELAY_MS, then
+    // every NUDGE_REPEAT_MS). The
+    // interactions themselves, not a pressed state: a quick tap inside the
+    // scrolling screen delivers Press and Release back to back.
+    val interaction = remember { MutableInteractionSource() }
+    val step by rememberUpdatedState(onClick)
+    LaunchedEffect(interaction) {
+        var repeat: Job? = null
+        interaction.interactions.collect {
+            when (it) {
+                is PressInteraction.Press -> {
+                    repeat?.cancel()
+                    repeat = launch(start = CoroutineStart.UNDISPATCHED) {
+                        step()
+                        delay(NUDGE_DELAY_MS)
+                        while (true) { step(); delay(NUDGE_REPEAT_MS) }
+                    }
+                }
+                is PressInteraction.Release, is PressInteraction.Cancel -> repeat?.cancel()
+                else -> {}
+            }
+        }
+    }
     OutlinedButton(
-        onClick = onClick,
+        onClick = {},
+        interactionSource = interaction,
         modifier = Modifier.size(40.dp),
         contentPadding = PaddingValues(0.dp),
         shape = RoundedCornerShape(8.dp),

@@ -11,6 +11,10 @@ import {
 } from "../controls";
 
 const INFO_POLL_MS = 1000;
+/** Holding the OS volume −/+ repeats its step: first after NUDGE_DELAY_MS,
+ *  then every NUDGE_REPEAT_MS. */
+const NUDGE_DELAY_MS = 1000;
+const NUDGE_REPEAT_MS = 250;
 const MODE_KEY = "cc.mode";
 
 function loadMode(): ControlMode {
@@ -36,6 +40,12 @@ export function ControlsPanel() {
   const [info, setInfo] = useState<ControlsInfo>({});
   const [status, setStatus] = useState<string>("");
   const draggingVol = useRef(false);
+  const nudgeTimer = useRef<number>();
+  const stopNudge = () => {
+    window.clearTimeout(nudgeTimer.current);
+    window.clearInterval(nudgeTimer.current);
+  };
+  useEffect(() => stopNudge, []);
   const statusTimer = useRef<number | undefined>(undefined);
 
   const flash = (msg: string) => {
@@ -148,6 +158,28 @@ export function ControlsPanel() {
             // it picks the step and the new level comes back in its reply.
             const nudge = (command: "VOLUME_DOWN" | "VOLUME_UP") =>
               run({ ...it, command, slider: false });
+            // One step on press, then repeated while held (NUDGE_DELAY_MS, then
+            // every NUDGE_REPEAT_MS).
+            // A keyboard press (Enter/Space) arrives only as a click, detail 0.
+            const hold = (command: "VOLUME_DOWN" | "VOLUME_UP") => ({
+              onPointerDown: (e: React.PointerEvent<HTMLButtonElement>) => {
+                if (e.button !== 0) return;
+                e.currentTarget.setPointerCapture(e.pointerId);
+                stopNudge();
+                nudge(command);
+                nudgeTimer.current = window.setTimeout(() => {
+                  nudge(command);
+                  nudgeTimer.current = window.setInterval(() => nudge(command), NUDGE_REPEAT_MS);
+                }, NUDGE_DELAY_MS);
+              },
+              onPointerUp: stopNudge,
+              onPointerCancel: stopNudge,
+              onLostPointerCapture: stopNudge,
+              onClick: (e: React.MouseEvent) => {
+                if (e.detail === 0) nudge(command);
+              },
+              onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
+            });
             return (
               <div key={it.label} className="ctl-slider" style={style}>
                 <label>
@@ -157,7 +189,7 @@ export function ControlsPanel() {
                   <button
                     className="ctl-nudge"
                     aria-label="volume down"
-                    onClick={() => nudge("VOLUME_DOWN")}
+                    {...hold("VOLUME_DOWN")}
                   >
                     −
                   </button>
@@ -177,7 +209,7 @@ export function ControlsPanel() {
                   <button
                     className="ctl-nudge"
                     aria-label="volume up"
-                    onClick={() => nudge("VOLUME_UP")}
+                    {...hold("VOLUME_UP")}
                   >
                     +
                   </button>
