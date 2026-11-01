@@ -90,7 +90,11 @@ created from its `.example`:
 
 - `config.json`: ports, hosts, folders, the Media panel's staging areas.
 - `secrets.json`: the API keys and tokens.
-- `users.json`: who may sign in, and what each of them sees.
+- `users.json`: who may sign in, and what each of them sees. It may live
+  outside the project: set `USERS_FILE` in `config.json` to its path (e.g.
+  `~/Documents/users.json`); blank means the top-level `users.json`. Outside
+  the project, an edit to it needs `sudo systemctl restart cyanhouse-api`
+  (the auto-reload only watches the project folder).
 
 ```bash
 cd ~/Documents/sharedCode/CyanHouse

@@ -73,7 +73,8 @@ Every `/api/*` route requires a **username + token** (HTTP Basic, or a
 `diary_auth` cookie holding `base64("user:token")`). Define users via either:
 
 - env var `DIARY_USERS='{"alice":{"token":"tok1","permissions":{}}}'`, or
-- `cp users.json.example users.json` and edit it (git-ignored)
+- `cp users.json.example users.json` and edit it (git-ignored; `USERS_FILE` in
+  `config.json` can point at one kept elsewhere)
 
 The React UI has a sign-in screen and keeps the credential in the `diary_auth`
 cookie; the Android app keeps it in EncryptedSharedPreferences. `/` (the SPA) and

@@ -4,6 +4,7 @@
   "PUBLIC_HOST": "xxx.duckdns.org",
   "LAN_HOST": "xxx-lan.duckdns.org",
   "DATA_DIR": "",
+  "USERS_FILE": "",
   "CONTROLS_FN_HOST": "xxx.xxx.xxx.xxx",
   "CONTROLS_FN_PORT": "xxxx",
   "LLM_FOOD_MODEL": "openai/gpt-4o-mini",

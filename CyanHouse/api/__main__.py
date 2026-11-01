@@ -9,6 +9,9 @@ if __name__ == "__main__":
         host=HOST,
         port=API_PORT,
         reload=True,
+        # Only the project is watched: a users.json moved elsewhere by
+        # config.json's USERS_FILE takes a restart to pick up an edit, since
+        # watching its folder would watch everything under it as well.
         reload_includes=["*.py", "config.json", "secrets.json", "users.json"],
         # A restart (a reload, above) waits for the requests still open to
         # finish — and every open page keeps one open for up to 25 s on

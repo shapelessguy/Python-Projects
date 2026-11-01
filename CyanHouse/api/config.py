@@ -3,7 +3,8 @@ sys.path so the top-level packages (`api`, `forecast`, `utilities`, `variables`)
 resolve no matter where uvicorn is launched from, and loads the three
 git-ignored files at the top level: config.json (ports, hosts, folders, the
 staging areas), secrets.json (API keys and tokens) and users.json (who may
-sign in, and what they see). Nothing here depends on what the project folder
+sign in, and what they see -- top level unless config.json's USERS_FILE puts
+it elsewhere). Nothing here depends on what the project folder
 or its parent are named."""
 import json
 import os
@@ -72,10 +73,13 @@ def _load_json(path: Path) -> dict:
         return {}
 
 
-# users.json: {"<name>": {"token": ..., "permissions": {...}}}. api/auth.py's
-# own DIARY_USERS-env-var override still takes precedence over this -- see
-# its _load_users().
-USERS_FILE: dict = _load_json(PROJECT_DIR / "users.json")
+# users.json: {"<name>": {"token": ..., "permissions": {...}}}. Where it is
+# comes from config.json's USERS_FILE ("~" allowed); blank -> users.json at
+# the project's top level. api/auth.py's own DIARY_USERS-env-var override
+# still takes precedence over this -- see its _load_users().
+_users_file = os.environ.get("USERS_FILE", "").strip()
+USERS_PATH = Path(_users_file).expanduser() if _users_file else PROJECT_DIR / "users.json"
+USERS_DATA: dict = _load_json(USERS_PATH)
 
 # Root for all generated/runtime data: api's sqlite DBs + food images, the
 # forecast cache (forecast/update.py), and the historical weather CSVs
