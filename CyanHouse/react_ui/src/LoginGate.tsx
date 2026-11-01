@@ -20,18 +20,22 @@ export function LoginGate({ children }: { children: ReactNode }) {
 
 function LoginForm({ onDone }: { onDone: () => void }) {
   const [username, setUsername] = useState("");
-  const [token, setToken] = useState("");
+  const [secret, setSecret] = useState("");
+  const [usePassword, setUsePassword] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username || !token || busy) return;
+    if (!username || !secret || busy) return;
     setBusy(true);
     setError(null);
     try {
-      if (await login(username.trim(), token.trim())) onDone();
-      else setError("Wrong username or token.");
+      const status = await login(username.trim(),
+        usePassword ? { password: secret } : { token: secret.trim() });
+      if (status === 200) onDone();
+      else if (status === 429) setError("Too many wrong passwords — try again later, or use the token.");
+      else setError(usePassword ? "Wrong username or password." : "Wrong username or token.");
     } catch {
       setError("Could not reach the server.");
     } finally {
@@ -48,11 +52,16 @@ function LoginForm({ onDone }: { onDone: () => void }) {
           <input value={username} onChange={(e) => setUsername(e.target.value)} autoFocus />
         </label>
         <label>
-          Token
-          <input type="password" value={token} onChange={(e) => setToken(e.target.value)} />
+          {usePassword ? "Password" : "Token"}
+          <input type="password" value={secret} onChange={(e) => setSecret(e.target.value)}
+                 autoComplete={usePassword ? "current-password" : "off"} />
         </label>
         {error && <p className="error small">{error}</p>}
-        <button disabled={busy || !username || !token}>{busy ? "Checking…" : "Sign in"}</button>
+        <button disabled={busy || !username || !secret}>{busy ? "Checking…" : "Sign in"}</button>
+        <button type="button" className="linkish login-switch"
+                onClick={() => { setUsePassword(!usePassword); setSecret(""); setError(null); }}>
+          {usePassword ? "Use the token instead" : "Use a password instead"}
+        </button>
       </form>
     </div>
   );

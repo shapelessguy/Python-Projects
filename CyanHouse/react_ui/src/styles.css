@@ -87,11 +87,17 @@ h3 { font-size: 0.85rem; margin: 12px 0 6px; text-transform: uppercase; letter-s
   padding-right: 4px;
   white-space: nowrap;
 }
+.whoami-name { max-width: 9em; overflow: hidden; text-overflow: ellipsis; }
+.whoami-actions { display: flex; gap: 2px; }
 .whoami .icon-btn {
-  padding: 2px 6px;
-  font-size: 0.95rem;
-  line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 26px; padding: 0;
+  border-color: transparent;
+  color: var(--muted);
 }
+.whoami .icon-btn:hover { color: var(--text); background: var(--panel-2); border-color: transparent; }
+.whoami .icon-btn:focus { outline: none; }
+.whoami .icon-btn:focus-visible { outline: 1px solid var(--muted); outline-offset: 1px; }
 .content { padding: 16px; }
 .panel { display: flex; gap: 20px; align-items: flex-start; }
 /* ── environment ─────────────────────────────────────────── */
@@ -432,6 +438,7 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
 .login h1 { font-size: 1.2rem; margin: 0 0 4px; }
 .login label { display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem; color: var(--muted); }
 .login button { padding: 8px; }
+.login button.login-switch { padding: 0; font-size: 0.8rem; align-self: center; }
 /* ── food ────────────────────────────────────────────────── */
 .food { align-items: stretch; }
 .food-main { flex: 1 1 auto; min-width: 0; max-width: 1400px; margin: 0 auto; }
@@ -820,6 +827,11 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
   width: min(340px, 90vw);
 }
 .modal h4 { margin: 0 0 10px; font-size: 0.95rem; }
+.modal.password-form { display: flex; flex-direction: column; gap: 10px; }
+.password-form p { margin: 0; }
+.password-form label { display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem; color: var(--muted); }
+.password-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+.password-actions .linkish { margin-right: auto; font-size: 0.8rem; }
 .modal.dish-info { width: min(560px, 90vw); max-height: 80vh; display: flex; flex-direction: column; }
 /* ── alarm overlay ───────────────────────────────────────── */
 /* Above every other modal -- an alarm should never end up hidden behind

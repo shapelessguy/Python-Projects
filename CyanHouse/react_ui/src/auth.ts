@@ -1,4 +1,5 @@
-// Sign-in. The credential lives in the `diary_auth` cookie as
+// Sign-in, with the token or with a password the server exchanges for it.
+// The credential lives in the `diary_auth` cookie as
 // base64("username:token"), set by the server (POST /api/login) as HttpOnly,
 // so no script on the page can read it. What the page can read is
 // `diary_user`, the name alone, set beside it. The backend also accepts an
@@ -17,18 +18,22 @@ export function currentUsername(): string | null {
   return v ? decodeURIComponent(v) : null;
 }
 
-function postLogin(username: string, token: string): Promise<Response> {
+export type Secret = { token: string } | { password: string };
+
+function postLogin(username: string, secret: Secret): Promise<Response> {
   return fetch("/api/login", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ username, token }),
+    body: JSON.stringify({ username, ...secret }),
     cache: "no-store",
   });
 }
 
-/** Signs in; true when the server accepted the credential and set the cookie. */
-export async function login(username: string, token: string): Promise<boolean> {
-  return (await postLogin(username, token)).ok;
+/** Signs in with the token, or with a password the server swaps for the
+ *  token (the cookie holds the token either way). The response's status:
+ *  200 signed in, 401 wrong, 429 too many wrong passwords. */
+export async function login(username: string, secret: Secret): Promise<number> {
+  return (await postLogin(username, secret)).status;
 }
 
 /** A credential from before the cookie became HttpOnly is still readable
@@ -49,7 +54,7 @@ export async function upgradeLegacyCookie(): Promise<void> {
   const colon = cred.indexOf(":");
   const user = cred.slice(0, colon), token = cred.slice(colon + 1);
   try {
-    if ((await postLogin(user, token)).status === 401) onAuthFailed();
+    if ((await postLogin(user, { token })).status === 401) onAuthFailed();
   } catch { /* try again next time */ }
 }
 

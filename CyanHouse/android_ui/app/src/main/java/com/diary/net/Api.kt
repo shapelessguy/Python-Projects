@@ -88,6 +88,38 @@ object Api {
         }.status == HttpStatusCode.OK
     }.getOrDefault(false)
 
+    class TooManyAttempts : Exception("too many wrong passwords")
+
+    /** Swap a password for the user's token (POST /api/token): null when the
+     *  password is wrong, [TooManyAttempts] when the server stopped taking
+     *  guesses for now. The token is then signed in with like a typed one. */
+    suspend fun tokenFor(username: String, password: String): String? {
+        val r = client.post(u("/api/token")) {
+            expectSuccess = false
+            contentType(ContentType.Application.Json)
+            setBody(buildJsonObject { put("username", username); put("password", password) })
+        }
+        return when (r.status) {
+            HttpStatusCode.OK -> r.body<JsonObject>()["token"]?.let { (it as? JsonPrimitive)?.content }
+            HttpStatusCode.Unauthorized -> null
+            HttpStatusCode.TooManyRequests -> throw TooManyAttempts()
+            else -> error("HTTP ${r.status.value}")
+        }
+    }
+
+    /** Set or change the signed-in user's own password; the server 400s a
+     *  weak one. Returns whether they now have one. */
+    suspend fun setPassword(password: String): Boolean =
+        client.put(u("/api/password")) {
+            contentType(ContentType.Application.Json)
+            setBody(buildJsonObject { put("password", password) })
+        }.body<JsonObject>().hasPassword()
+
+    suspend fun removePassword(): Boolean =
+        client.delete(u("/api/password")).body<JsonObject>().hasPassword()
+
+    private fun JsonObject.hasPassword() = (this["has_password"] as? JsonPrimitive)?.content == "true"
+
     // ── environment ─────────────────────────────────────────────────────
     suspend fun envBootstrap(): EnvBootstrap = client.get(u("/api/environment/bootstrap")).body()
 

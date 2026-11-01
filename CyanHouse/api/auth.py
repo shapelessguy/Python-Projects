@@ -26,17 +26,27 @@ Each user is `{"token": str, "permissions": dict}`:
     between the Media panel's folders). Albums and Documents folders (folder_access.py) and
     calendars (services/calendar.py) answer to their owners and whoever they
     were shared with, never to a flag.
+
+A user may also give themselves a password, from the account menu of either
+app (PUT /api/password, signed in with the token). It lives hashed in
+api/data/passwords.json, never in users.json, and is only ever exchanged for
+the token (token_for_password, POST /api/token and /api/login), which the
+client then uses as always.
 """
 import base64
 import json
 import os
 import secrets
+import threading
+import time
+from collections import defaultdict, deque
 from urllib.parse import unquote
 
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.requests import HTTPConnection
 
-from api.config import MOVIES_KEY, STAGING, USERS_DATA
+from api.config import API_DATA_DIR, MOVIES_KEY, STAGING, USERS_DATA
+from api.passwords import hash_password, password_matches, password_problem
 
 
 def _load_users() -> dict[str, dict]:
@@ -95,6 +105,68 @@ def require_user(request: HTTPConnection) -> str:
     # for the whole origin, which then shadow the SPA's cookie. The SPA has its
     # own login screen; Android sends the Basic header proactively.
     raise HTTPException(status.HTTP_401_UNAUTHORIZED, "bad username or token")
+
+
+# ── passwords ──────────────────────────────────────────────────────────────
+# {"<user>": "<hash>"}, written only through set_password. Hashing and the
+# strength rule are in api/passwords.py.
+PASSWORDS_PATH = API_DATA_DIR / "passwords.json"
+_passwords_lock = threading.Lock()
+
+
+def _read_passwords() -> dict[str, str]:
+    try:
+        return json.loads(PASSWORDS_PATH.read_text("utf-8"))
+    except FileNotFoundError:
+        return {}
+
+
+def has_password(user: str) -> bool:
+    return user in _read_passwords()
+
+
+def set_password(user: str, password: str | None) -> None:
+    """Sets `user`'s password, or removes it (None). 400s a weak one."""
+    if password is not None and (problem := password_problem(password)):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"the password needs {problem}")
+    with _passwords_lock:
+        stored = _read_passwords()
+        if password is None:
+            stored.pop(user, None)
+        else:
+            stored[user] = hash_password(password)
+        tmp = PASSWORDS_PATH.with_suffix(".tmp")
+        tmp.write_text(json.dumps(stored, indent=2), "utf-8")
+        tmp.chmod(0o600)
+        tmp.replace(PASSWORDS_PATH)
+
+
+# A password is weaker than a token, so wrong guesses are rationed per user:
+# MAX_FAILURES within FAILURE_WINDOW seconds, then 429 until the oldest ages
+# out. Only the password route is locked; the token keeps working.
+MAX_FAILURES, FAILURE_WINDOW = 5, 15 * 60
+_failures: dict[str, deque[float]] = defaultdict(deque)
+_failures_lock = threading.Lock()
+
+
+def token_for_password(user: str, password: str) -> str:
+    """`user`'s token, for the right password: 401 otherwise (also for a
+    user with no password set), 429 after too many wrong ones."""
+    now = time.monotonic()
+    with _failures_lock:
+        recent = _failures[user]
+        while recent and now - recent[0] > FAILURE_WINDOW:
+            recent.popleft()
+        if len(recent) >= MAX_FAILURES:
+            raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS,
+                                "too many wrong passwords, try again later")
+    stored = _read_passwords().get(user)
+    token = (USERS.get(user) or {}).get("token")
+    if stored and token and password_matches(stored, password):
+        return token
+    with _failures_lock:
+        _failures[user].append(time.monotonic())
+    raise HTTPException(status.HTTP_401_UNAUTHORIZED, "bad username or password")
 
 
 def basic_header(user: str) -> dict[str, str]:
@@ -237,3 +309,4 @@ def require_panel(panel: str):
             raise HTTPException(status.HTTP_403_FORBIDDEN, f"not permitted to access {panel!r}")
         return user
     return _dep
+

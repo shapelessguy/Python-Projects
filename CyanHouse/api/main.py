@@ -28,7 +28,8 @@ from starlette.concurrency import run_in_threadpool
 
 from api import longpoll
 from api import routers as _routers_pkg
-from api.auth import USERS, granted, require_panel, require_user, visible_panels
+from api.auth import (USERS, granted, has_password, require_panel, require_user, set_password,
+                      token_for_password, visible_panels)
 from api.config import DEV_ORIGINS, FRONTEND_DIST
 from api.db import connect, diary_version_key, get_version, init_db
 
@@ -194,7 +195,8 @@ def me(user: str = Depends(require_user)):
         vis = vis | {"movies"}   # the Media panel's old id, for apps built before the rename
     return {"username": user,
             "visible_panels": sorted(vis) if vis is not None else None,
-            "permissions": granted(user)}
+            "permissions": granted(user),
+            "has_password": has_password(user)}
 
 
 # The browser's sign-in. The credential cookie is set here, by the server,
@@ -206,8 +208,15 @@ AUTH_MAX_AGE = 60 * 60 * 24 * 365
 
 
 class Login(BaseModel):
+    # One of the two: the token itself, or a password exchanged for it.
     username: str
-    token: str
+    token: str = ""
+    password: str = ""
+
+
+class PasswordLogin(BaseModel):
+    username: str
+    password: str
 
 
 def _https(request: Request) -> bool:
@@ -217,6 +226,8 @@ def _https(request: Request) -> bool:
 
 @app.post("/api/login", tags=["meta"])
 def login(body: Login, request: Request, response: Response):
+    if body.password:
+        body.token = token_for_password(body.username, body.password)
     cred = base64.b64encode(f"{body.username}:{body.token}".encode("utf-8")).decode("ascii")
     expected = (USERS.get(body.username) or {}).get("token")
     if not expected or not secrets.compare_digest(expected.encode("utf-8"), body.token.encode("utf-8")):
@@ -227,6 +238,31 @@ def login(body: Login, request: Request, response: Response):
     response.set_cookie(USER_COOKIE, body.username, max_age=AUTH_MAX_AGE, path="/",
                         secure=secure, samesite="strict")
     return {"username": body.username}
+
+
+# Android's sign-in with a password: it gets the token back and from then on
+# sends `user:token` as Basic, exactly as if it had been typed in.
+@app.post("/api/token", tags=["meta"])
+def token(body: PasswordLogin):
+    return {"token": token_for_password(body.username, body.password)}
+
+
+class NewPassword(BaseModel):
+    password: str
+
+
+# The signed-in user's own password: set or changed, or removed (after which
+# only the token signs them in). Never anyone else's.
+@app.put("/api/password", tags=["meta"])
+def put_password(body: NewPassword, user: str = Depends(require_user)):
+    set_password(user, body.password)
+    return {"has_password": True}
+
+
+@app.delete("/api/password", tags=["meta"])
+def delete_password(user: str = Depends(require_user)):
+    set_password(user, None)
+    return {"has_password": False}
 
 
 @app.post("/api/logout", tags=["meta"])

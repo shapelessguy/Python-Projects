@@ -92,6 +92,8 @@ data class Me(
     val visible_panels: List<String>? = null,
     /** Opt-in flags (`admin`, `publish`, `downloaders`, ...) -- api/auth.py. */
     val permissions: Map<String, Boolean> = emptyMap(),
+    /** Whether they have set a password of their own (PasswordDialog). */
+    val has_password: Boolean = false,
 )
 
 // ── calendar service (self-contained; personal + shared events, local only —

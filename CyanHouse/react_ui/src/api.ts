@@ -157,6 +157,8 @@ export interface Me {
    *  a default of "everything". Used to hide actions the user cannot take
    *  rather than letting them discover it from a 403. */
   permissions: Record<string, boolean>;
+  /** Whether they have set a password of their own (PasswordDialog). */
+  has_password?: boolean;
 }
 
 export type RecurFreq = "daily" | "weekly" | "monthly" | "yearly";
@@ -593,6 +595,10 @@ export interface TmdbCandidate {
 export const api = {
   version: () => f("/api/version").then(j<Versions>),
   me: () => f("/api/me").then(j<Me>),
+  setPassword: (password: string) =>
+    f("/api/password", { method: "PUT", headers: JSON_HEADERS, body: JSON.stringify({ password }) })
+      .then(j<{ has_password: boolean }>),
+  removePassword: () => f("/api/password", { method: "DELETE" }).then(j<{ has_password: boolean }>),
 
   envBootstrap: () => f("/api/environment/bootstrap").then(j<EnvBootstrap>),
   series: (q: Record<string, string>) =>

@@ -8,6 +8,7 @@ import { MoviesPanel } from "./panels/MoviesPanel";
 import { AlarmOverlay } from "./AlarmOverlay";
 import { useVisibility } from "./api";
 import { currentUsername, logout } from "./auth";
+import { PasswordDialog } from "./PasswordDialog";
 import { readCookie, writeCookie } from "./cookies";
 
 type PanelId = "controls" | "environment" | "personal" | "food" | "calendar" | "media";
@@ -42,6 +43,7 @@ export default function App() {
     writeCookie(LAST_SECTION_COOKIE, id);
   };
   const username = currentUsername();
+  const [passwordOpen, setPasswordOpen] = useState(false);
 
   // Icons only once the full labels no longer fit in the bar. The bar
   // measures itself rather than trusting a breakpoint, because how much room
@@ -108,14 +110,29 @@ export default function App() {
           ))}
           {username && (
             <span className="whoami">
-              {username}
-              <button className="ghost icon-btn" onClick={logout} title="Sign out">
-                ⏻
-              </button>
+              <span className="whoami-name">{username}</span>
+              <span className="whoami-actions">
+                <button className="ghost icon-btn" onClick={() => setPasswordOpen(true)}
+                        title="Password" aria-label="Password">
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
+                       strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="8" cy="15" r="4" />
+                    <path d="M10.85 12.15 19 4M17 6l2 2M14.5 8.5l2 2" />
+                  </svg>
+                </button>
+                <button className="ghost icon-btn" onClick={logout} title="Sign out" aria-label="Sign out">
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
+                       strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 3v9" />
+                    <path d="M6.3 7.2a8 8 0 1 0 11.4 0" />
+                  </svg>
+                </button>
+              </span>
             </span>
           )}
         </nav>
       </header>
+      {passwordOpen && <PasswordDialog onClose={() => setPasswordOpen(false)} />}
       <main className="content">
         {!loaded ? (
           <p className="muted">Loading…</p>

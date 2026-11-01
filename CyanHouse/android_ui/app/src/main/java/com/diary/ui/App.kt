@@ -14,6 +14,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MenuBook
@@ -94,6 +95,7 @@ fun App() {
     // api/auth.py's require_panel) -- this is purely about not showing a
     // tab, or firing a request, that would just fail.
     var me by remember { mutableStateOf<Me?>(null) }
+    var passwordOpen by remember { mutableStateOf(false) }
     var visibilityLoaded by remember { mutableStateOf(false) }
     LaunchedEffect(credential) {
         visibilityLoaded = false
@@ -132,6 +134,8 @@ fun App() {
     val alarmViewModel: AlarmViewModel = viewModel()
     val calendarVisible = visible == null || "calendar" in visible
     LaunchedEffect(calendarVisible) { alarmViewModel.setEnabled(calendarVisible) }
+
+    if (passwordOpen) PasswordDialog(onDismiss = { passwordOpen = false })
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -173,6 +177,16 @@ fun App() {
                             modifier = Modifier.padding(start = 28.dp, top = 12.dp, bottom = 6.dp),
                         )
                     }
+                    NavigationDrawerItem(
+                        icon = { Icon(Icons.Default.Key, contentDescription = null) },
+                        label = { Text("Password") },
+                        selected = false,
+                        onClick = {
+                            scope.launch { drawerState.close() }
+                            passwordOpen = true
+                        },
+                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
+                    )
                     NavigationDrawerItem(
                         icon = { Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null) },
                         label = { Text("Log out") },
