@@ -80,8 +80,9 @@ Signed in, each user can also set a password of their own (the key icon in the w
 top bar, "Password" in the Android menu: 9+ characters, an uppercase letter,
 a number). The sign-in screens then take it instead of the token -- the
 server swaps it for the token, which the device stores and uses as always.
-The hashes are kept in `api/data/passwords.json` (git-ignored); `users.json`
-is never written. Five wrong passwords in 15 minutes pause password sign-in
+The hashes are kept in `passwords.json` beside `diary.db` (`<DATA_DIR>/api/data/`,
+git-ignored); `users.json` is never written. Lansi reads that file too, so
+the same password logs in there. Five wrong passwords in 15 minutes pause password sign-in
 for that user; the token keeps working.
 
 The React UI has a sign-in screen and keeps the credential in the `diary_auth`

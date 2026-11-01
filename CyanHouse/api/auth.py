@@ -29,7 +29,8 @@ Each user is `{"token": str, "permissions": dict}`:
 
 A user may also give themselves a password, from the account menu of either
 app (PUT /api/password, signed in with the token). It lives hashed in
-api/data/passwords.json, never in users.json, and is only ever exchanged for
+passwords.json beside diary.db (API_DATA_DIR), never in users.json, and Lansi
+reads it too to let them in. It is only ever exchanged for
 the token (token_for_password, POST /api/token and /api/login), which the
 client then uses as always.
 """
