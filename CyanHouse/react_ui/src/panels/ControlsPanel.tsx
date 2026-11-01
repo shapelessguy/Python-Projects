@@ -144,11 +144,10 @@ export function ControlsPanel() {
                 };
 
           if (it.slider) {
-            const nudge = (delta: number) => {
-              const next = Math.min(1, Math.max(0, +(vol + delta).toFixed(2)));
-              setInfo((p) => ({ ...p, volume: next }));
-              run(it, { slide_value: next });
-            };
+            // −/+ just tell CyanManager to step the volume (VOLUME_DOWN/UP);
+            // it picks the step and the new level comes back in its reply.
+            const nudge = (command: "VOLUME_DOWN" | "VOLUME_UP") =>
+              run({ ...it, command, slider: false });
             return (
               <div key={it.label} className="ctl-slider" style={style}>
                 <label>
@@ -158,7 +157,7 @@ export function ControlsPanel() {
                   <button
                     className="ctl-nudge"
                     aria-label="volume down"
-                    onClick={() => nudge(-0.01)}
+                    onClick={() => nudge("VOLUME_DOWN")}
                   >
                     −
                   </button>
@@ -178,7 +177,7 @@ export function ControlsPanel() {
                   <button
                     className="ctl-nudge"
                     aria-label="volume up"
-                    onClick={() => nudge(0.01)}
+                    onClick={() => nudge("VOLUME_UP")}
                   >
                     +
                   </button>

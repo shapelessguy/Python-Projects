@@ -244,7 +244,9 @@ fun VolumeCard(item: ControlItem, vm: ControlsViewModel, modifier: Modifier, pad
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            NudgeButton("−") { commit(local - 0.01f) }
+            // −/+ just tell CyanManager to step the volume (VOLUME_DOWN/UP);
+            // it picks the step and the new level comes back in its reply.
+            NudgeButton("−") { vm.run(item.copy(command = "VOLUME_DOWN", slider = false)) }
             Slider(
                 value = local,
                 onValueChange = { vm.dragging = true; local = it },
@@ -252,7 +254,7 @@ fun VolumeCard(item: ControlItem, vm: ControlsViewModel, modifier: Modifier, pad
                 onValueChangeFinished = { commit(local) },
                 modifier = Modifier.weight(1f),
             )
-            NudgeButton("+") { commit(local + 0.01f) }
+            NudgeButton("+") { vm.run(item.copy(command = "VOLUME_UP", slider = false)) }
         }
     }
 }
