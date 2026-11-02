@@ -5,6 +5,7 @@
 
 package com.diary.ui
 
+import android.content.res.Configuration
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -15,10 +16,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -47,6 +52,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModel
@@ -137,25 +143,67 @@ class ControlsViewModel : ViewModel() {
 fun ControlsScreen(vm: ControlsViewModel = viewModel()) {
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     LaunchedEffect(vm) { lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) { vm.follow() } }
+    // Device rotation, not container aspect ratio -- the container shrinks when
+    // the keyboard opens (imePadding below) in the MOUSE tab's Keyboard mode.
+    val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+    // imePadding: only the MOUSE tab's Keyboard mode brings the keyboard up; it
+    // shrinks the body so the pad and its buttons stay above it.
+    val outer = Modifier.fillMaxSize().imePadding().padding(start = 12.dp, top = 12.dp, end = 12.dp)
+    if (landscape && vm.mode == ControlMode.MOUSE) {
+        // The MOUSE tab fills the rail's free space with its own buttons.
+        MouseContent(true, outer.padding(bottom = 4.dp), RAIL_WIDTH) { ControlsHeader(vm) }
+    } else if (landscape) {
+        // Volume + tabs as a left rail, so the body keeps the whole (short) height.
+        Row(outer, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(Modifier.width(RAIL_WIDTH), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                ControlsHeader(vm)
+            }
+            ControlsBody(vm, Modifier.weight(1f).fillMaxHeight())
+        }
+    } else {
+        Column(outer, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            // The MOUSE tab's keyboard leaves room for its own few buttons only.
+            if (!(vm.mode == ControlMode.MOUSE && WindowInsets.isImeVisible)) ControlsHeader(vm)
+            ControlsBody(vm, Modifier.weight(1f).fillMaxWidth())
+        }
+    }
+}
+
+/** Landscape's left column: volume card and tabs (plus the mouse buttons on the MOUSE tab). */
+private val RAIL_WIDTH = 220.dp
+
+/** On screen whatever the tab: the OS volume card, then one icon tab per mode. */
+@Composable
+private fun ControlsHeader(vm: ControlsViewModel) {
+    VolumeCard(VOLUME_ITEM, vm, Modifier.fillMaxWidth(), padding = 8.dp)
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        // No ALL tab: ALL is simply "nothing selected" -- tap the selected
+        // tab again to deselect it and get back to everything.
+        ControlMode.entries.filter { it != ControlMode.ALL }.forEach { m ->
+            FilterChip(
+                selected = vm.mode == m,
+                onClick = { vm.selectMode(if (vm.mode == m) ControlMode.ALL else m) },
+                label = {
+                    Text(modeIcon(m), fontSize = 18.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                },
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun ControlsBody(vm: ControlsViewModel, modifier: Modifier) {
+    if (vm.mode == ControlMode.MOUSE) {
+        // A small bottom margin rather than 12dp, so the Mouse/Keyboard row
+        // sits close to the system keyboard when that is up.
+        MouseContent(false, modifier.padding(bottom = 4.dp))
+        return
+    }
     Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp),
+        modifier.verticalScroll(rememberScrollState()).padding(bottom = 12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalArrangement = Arrangement.spacedBy(0.dp),
-        ) {
-            // No ALL chip: ALL is simply "nothing selected" -- tap the selected
-            // chip again to deselect it and get back to everything.
-            ControlMode.entries.filter { it != ControlMode.ALL }.forEach { m ->
-                FilterChip(
-                    selected = vm.mode == m,
-                    onClick = { vm.selectMode(if (vm.mode == m) ControlMode.ALL else m) },
-                    label = { Text("${modeIcon(m)} ${m.name}") },
-                )
-            }
-        }
-
         Text(
             vm.status ?: " ",
             fontSize = 12.sp,
@@ -169,9 +217,8 @@ fun ControlsScreen(vm: ControlsViewModel = viewModel()) {
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 allControlItems().forEach {
-                    // slider spans 2 cells (150 + 8 gap + 150); everything else one cell.
                     // Taller buttons here (~1.5x the per-mode height).
-                    ControlCell(it, vm, Modifier.width(if (it.slider) 308.dp else 150.dp), minHeight = 126.dp)
+                    ControlCell(it, vm, Modifier.width(150.dp), minHeight = 126.dp)
                 }
             }
         } else if (vm.mode == ControlMode.VOICES) {
@@ -212,9 +259,8 @@ fun ControlsScreen(vm: ControlsViewModel = viewModel()) {
     }
 }
 
-/** The OS-volume card (label + −/slider/+) -- shared by the Controls > Audio
- *  screen and the Mouse screen, both driven by the same [ControlsViewModel]
- *  (and its 1s volume poll). [item] is the "OS Volume" slider [ControlItem]. */
+/** The OS-volume card (label + −/slider/+) at the top of the Controls screen,
+ *  above the mode tabs. [item] is [VOLUME_ITEM]. */
 @Composable
 fun VolumeCard(item: ControlItem, vm: ControlsViewModel, modifier: Modifier, padding: Dp = 10.dp) {
     val device = vm.info.device ?: ""
@@ -272,11 +318,6 @@ private fun ControlCell(
     modifier: Modifier,
     minHeight: Dp = 84.dp,
 ) {
-    if (item.slider) {
-        VolumeCard(item, vm, modifier)
-        return
-    }
-
     val device = vm.info.device ?: ""
 
     val active = (item.label == "Speaker" && device.contains("speaker", ignoreCase = true)) ||

@@ -1,6 +1,5 @@
 package com.diary.ui
 
-import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -9,14 +8,16 @@ import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -28,6 +29,9 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.KeyboardDoubleArrowLeft
+import androidx.compose.material.icons.filled.KeyboardDoubleArrowRight
+import androidx.compose.material.icons.filled.OpenInFull
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -51,7 +55,6 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
@@ -61,7 +64,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.diary.net.MouseSocket
 import com.diary.net.Route
 import kotlinx.coroutines.delay
@@ -72,20 +74,28 @@ private const val SENSITIVITY = 2f
 
 private enum class MouseMode { MOUSE, KEYBOARD }
 
-/** Straight to the PC on Wi-Fi, through CyanHouse otherwise (see MouseSocket),
- *  so it works wherever the app does. */
+/** The Controls screen's MOUSE tab (under its volume card and mode tabs).
+ *  Straight to the PC on Wi-Fi, through CyanHouse otherwise (see MouseSocket),
+ *  so it works wherever the app does. [landscape] is the device rotation,
+ *  decided by ControlsScreen. In landscape this lays out the whole screen:
+ *  [rail] (the volume card and tabs) heads a [railWidth] left column, with the
+ *  Mouse/Keyboard switch, arrow keys and Right under it, and the pad beside.
+ *  With the system keyboard up, the space left can't hold all that: only the
+ *  window buttons and the arrow keys stay (ControlsScreen drops its volume card
+ *  and tabs too), plus the pad in portrait, where that still leaves it room. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun MouseScreen() {
-    MouseContent()
-}
-
-@Composable
-private fun MouseContent() {
+fun MouseContent(
+    landscape: Boolean,
+    modifier: Modifier,
+    railWidth: Dp = 0.dp,
+    rail: @Composable () -> Unit = {},
+) {
     val connected by MouseSocket.connected.collectAsState()
     val lastError by MouseSocket.lastError.collectAsState()
     val context = LocalContext.current
 
-    // Connected only while this screen is on screen -- the socket isn't worth
+    // Connected only while this tab is on screen -- the socket isn't worth
     // holding open the rest of the time. connect() is a no-op once a socket
     // exists, so retrying on a timer is cheap and self-healing after a drop.
     DisposableEffect(Unit) { onDispose { MouseSocket.disconnect() } }
@@ -106,48 +116,44 @@ private fun MouseContent() {
     }
 
     var mode by rememberSaveable { mutableStateOf(MouseMode.MOUSE) }
-    val controlsVm: ControlsViewModel = viewModel()
-    // Device rotation, not container aspect ratio -- the container's own height
-    // shrinks when the keyboard opens (imePadding below), which was flipping this
-    // into "landscape" mode in portrait any time the keyboard was up.
-    val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val squeezed = WindowInsets.isImeVisible
 
-    // Bottom padding kept small (rather than the uniform 12dp) so the tabs row
-    // sits close to the Samsung keyboard in portrait instead of leaving a gap
-    // above it -- imePadding above already reserves exactly the keyboard's own
-    // height, so this is purely the breathing room below the tabs themselves.
-    Box(
-        Modifier
-            .fillMaxSize()
-            .imePadding()
-            .padding(start = 12.dp, top = 12.dp, end = 12.dp, bottom = 4.dp),
-    ) {
+    Box(modifier) {
         if (landscape) {
             Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                // Wider than the bare tabs need: the volume card's −/slider/+
-                // row has to leave the slider itself some usable width.
-                Column(Modifier.width(200.dp).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    // FilterChip pads itself out to Material's 48dp minimum touch
-                    // target -- ~16dp of dead space above and below each chip,
-                    // which is what was pushing the Right button off short
-                    // (phone landscape) screens. Off for these two only.
-                    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
-                        ModeChip(mode == MouseMode.MOUSE, "🖱 Mouse", Modifier.fillMaxWidth()) { mode = MouseMode.MOUSE }
-                        ModeChip(mode == MouseMode.KEYBOARD, "⌨ Keyboard", Modifier.fillMaxWidth()) { mode = MouseMode.KEYBOARD }
+                Column(Modifier.width(railWidth).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (!squeezed) {
+                        rail()
+                        Spacer(Modifier.weight(1f))
                     }
-                    if (connected) VolumeCard(VOLUME_ITEM, controlsVm, Modifier.fillMaxWidth(), padding = 6.dp)
-                    Spacer(Modifier.weight(1f))
-                    if (connected) ArrowKeys(Modifier.fillMaxWidth())
-                    if (mode == MouseMode.MOUSE) {
-                        ClickButton("Right", Modifier.height(44.dp).fillMaxWidth()) { MouseSocket.click("right") }
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.Bottom) {
+                        // FilterChip pads itself out to Material's 48dp minimum touch
+                        // target -- ~16dp of dead space above and below each chip,
+                        // which is what was pushing the Right button off short
+                        // (phone landscape) screens. Off for these two only.
+                        // Icons only: the rail is too narrow for their labels.
+                        if (!squeezed) {
+                            Column(Modifier.width(56.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
+                                    ModeChip(mode == MouseMode.MOUSE, "🖱", Modifier.fillMaxWidth()) { mode = MouseMode.MOUSE }
+                                    ModeChip(mode == MouseMode.KEYBOARD, "⌨", Modifier.fillMaxWidth()) { mode = MouseMode.KEYBOARD }
+                                }
+                            }
+                        }
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            if (connected) ArrowKeys(Modifier.fillMaxWidth())
+                            if (mode == MouseMode.MOUSE && !squeezed) {
+                                ClickButton("Right", Modifier.height(44.dp).fillMaxWidth()) { MouseSocket.click("right") }
+                            }
+                        }
                     }
                 }
-                MouseModeArea(connected, lastError, mode, Modifier.weight(1f).fillMaxHeight(), controlsVm, inlineExtras = false)
+                MouseModeArea(connected, lastError, mode, Modifier.weight(1f).fillMaxHeight(), inlineExtras = false, showPad = !squeezed)
             }
         } else {
             Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                MouseModeArea(connected, lastError, mode, Modifier.weight(1f).fillMaxWidth(), controlsVm, inlineExtras = true)
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                MouseModeArea(connected, lastError, mode, Modifier.weight(1f).fillMaxWidth(), inlineExtras = true)
+                if (!squeezed) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
                     ModeChip(mode == MouseMode.MOUSE, "🖱 Mouse", Modifier) { mode = MouseMode.MOUSE }
                     ModeChip(mode == MouseMode.KEYBOARD, "⌨ Keyboard", Modifier) { mode = MouseMode.KEYBOARD }
                     if (mode == MouseMode.MOUSE) {
@@ -166,22 +172,22 @@ private fun MouseContent() {
  *  other section shows its own loading state, rather than a status label sitting
  *  over the pad on every normal launch).
  *
- *  [inlineExtras] puts the volume bar under the window buttons and the arrow
- *  keys under the pad -- portrait only; landscape moves both into the left
- *  column instead (see MouseContent). */
+ *  [inlineExtras] puts the arrow keys under the pad -- portrait only;
+ *  landscape moves them into the left column instead (see MouseContent).
+ *  ![showPad] leaves the pad out but keeps the keyboard field, so the system
+ *  keyboard stays up. */
 @Composable
 private fun MouseModeArea(
     connected: Boolean,
     lastError: String?,
     mode: MouseMode,
     modifier: Modifier,
-    controlsVm: ControlsViewModel,
     inlineExtras: Boolean,
+    showPad: Boolean = true,
 ) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (connected) {
             WindowButtons()
-            if (inlineExtras) VolumeCard(VOLUME_ITEM, controlsVm, Modifier.fillMaxWidth())
         } else if (lastError != null) {
             Text("Not connected: $lastError", fontSize = 12.sp, color = MaterialTheme.colorScheme.error)
         }
@@ -193,9 +199,11 @@ private fun MouseModeArea(
                 // the same space; it doesn't draw anything, so the pad is what's
                 // actually seen and dragged/tapped in either mode.
                 connected -> {
-                    Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        TouchSurface(Modifier.weight(1f).fillMaxHeight())
-                        ScrollStrip(Modifier.width(40.dp).fillMaxHeight())
+                    if (showPad) {
+                        Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            TouchSurface(Modifier.weight(1f).fillMaxHeight())
+                            ScrollStrip(Modifier.width(40.dp).fillMaxHeight())
+                        }
                     }
                     if (mode == MouseMode.KEYBOARD) RemoteKeyboardField()
                 }
@@ -205,8 +213,6 @@ private fun MouseModeArea(
         if (connected && inlineExtras) ArrowKeys(Modifier.fillMaxWidth())
     }
 }
-
-private val VOLUME_ITEM: ControlItem = MODE_CONFIGS.getValue(ControlMode.AUDIO).first { it.slider }
 
 /** Left/Right arrow keystrokes sent to the PC (CyanManager's `keyboard` lib
  *  takes the names "left"/"right"). */
@@ -233,21 +239,21 @@ private fun KeyButton(icon: ImageVector, description: String, modifier: Modifier
 @Composable
 private fun WindowButtons() {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        WindowButton("Move Left", Modifier.weight(1f)) { MouseSocket.window("move_left") }
-        WindowButton("Max/Restore", Modifier.weight(1f)) { MouseSocket.window("toggle_maximize") }
-        WindowButton("Move Right", Modifier.weight(1f)) { MouseSocket.window("move_right") }
+        WindowButton(Icons.Default.KeyboardDoubleArrowLeft, "Move window left", Modifier.weight(1f)) { MouseSocket.window("move_left") }
+        WindowButton(Icons.Default.OpenInFull, "Maximize/restore window", Modifier.weight(1f)) { MouseSocket.window("toggle_maximize") }
+        WindowButton(Icons.Default.KeyboardDoubleArrowRight, "Move window right", Modifier.weight(1f)) { MouseSocket.window("move_right") }
     }
 }
 
 @Composable
-private fun WindowButton(label: String, modifier: Modifier, onClick: () -> Unit) {
+private fun WindowButton(icon: ImageVector, description: String, modifier: Modifier, onClick: () -> Unit) {
     OutlinedButton(
         onClick = onClick,
-        modifier = modifier.height(40.dp),
+        modifier = modifier.height(36.dp),
         shape = RoundedCornerShape(10.dp),
-        contentPadding = PaddingValues(horizontal = 2.dp),
+        contentPadding = PaddingValues(0.dp),
     ) {
-        Text(label, fontSize = 11.sp, maxLines = 1)
+        Icon(icon, contentDescription = description)
     }
 }
 

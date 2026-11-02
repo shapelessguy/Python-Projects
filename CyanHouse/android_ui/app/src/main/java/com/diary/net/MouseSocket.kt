@@ -47,7 +47,7 @@ object MouseSocket {
     val connected: StateFlow<Boolean> = _connected
 
     /** Set whenever a connect attempt fails, cleared on success -- shown in
-     *  MouseScreen so a broken connection is visible instead of just an
+     *  the Controls MOUSE tab so a broken connection is visible instead of just an
      *  indefinite "Connecting..." (this exact silence is what made the last
      *  connectivity bug take so long to track down). */
     private val _lastError = MutableStateFlow<String?>(null)

@@ -5,8 +5,9 @@ package com.diary.ui
  *  "function" item to /api/controls/fn/{command}. Sliders add {slide_value:0..1}. */
 
 /** VOICES is different from the rest: it has no static catalogue in [MODE_CONFIGS] --
- *  its buttons are whatever voices CyanManager reports, polled while the mode is open. */
-enum class ControlMode { ALL, GROW, AUDIO, PC, VOICES }
+ *  its buttons are whatever voices CyanManager reports, polled while the mode is open.
+ *  MOUSE has none either: it is the touchpad/keyboard (MouseScreen.kt). */
+enum class ControlMode { ALL, GROW, AUDIO, PC, VOICES, MOUSE }
 
 fun modeIcon(m: ControlMode): String = when (m) {
     ControlMode.ALL -> "▦"
@@ -14,6 +15,7 @@ fun modeIcon(m: ControlMode): String = when (m) {
     ControlMode.AUDIO -> "🔊"
     ControlMode.PC -> "🖥"
     ControlMode.VOICES -> "🗣"
+    ControlMode.MOUSE -> "🖱"
 }
 
 data class ControlItem(
@@ -56,25 +58,28 @@ val MODE_CONFIGS: Map<ControlMode, List<ControlItem>> = mapOf(
         ControlItem("PLAY", "⏯", "", "PLAY_PAUSE", false, 0, 1, tint = GREEN),
         ControlItem("Speaker", "🔊", "", "SPEAKERS", false, 0, 2, tint = CYAN),
         ControlItem("HW Vol -", "🔉", "audio", "vol-", true, 1, 0),
-        ControlItem("AUDIO PWR", "⏻", "audio", "on/off", true, 1, 1, tint = RED),
+        ControlItem("AUDIO PWR", "⚡", "audio", "on/off", true, 1, 1, tint = RED),
         ControlItem("HW Vol +", "🔊", "audio", "vol+", true, 1, 2),
-        ControlItem("OS Volume", "🔊", "", "SET_VOLUME", false, 2, 0, colSpan = 3, slider = true),
-        ControlItem("Prev", "⏮", "", "PREV", false, 3, 0),
-        ControlItem("Next", "⏭", "", "NEXT", false, 3, 2),
+        ControlItem("Prev", "⏮", "", "PREV", false, 2, 0),
+        ControlItem("Next", "⏭", "", "NEXT", false, 2, 2),
     ),
     ControlMode.PC to listOf(
-        ControlItem("Screens OFF", "🖥", "", "SHUTDOWN_MONITORS", false, 0, 0, tint = RED),
+        ControlItem("Screens ON", "🖥", "", "TURN_ON_MONITORS", false, 0, 0, tint = GREEN),
         ControlItem("Startup", "🚀", "", "STARTUP", false, 0, 1, tint = CYAN),
-        ControlItem("Screens ON", "🖥", "", "TURN_ON_MONITORS", false, 0, 2, tint = GREEN),
-        ControlItem("TV ON/OFF", "🔌", "tv", "power", true, 1, 0, tint = RED),
+        ControlItem("TV ON/OFF", "📺", "tv", "power", true, 0, 2, tint = RED),
+        ControlItem("Screens OFF", "💤", "", "SHUTDOWN_MONITORS", false, 1, 0, tint = RED),
         ControlItem("Win Snap", "📸", "", "WIN_SNAPSHOT", false, 1, 1, tint = CYAN),
-        ControlItem("TV OK", "📺", "tv", "ok", true, 1, 2, tint = GREEN),
+        ControlItem("TV OK", "🆗", "tv", "ok", true, 1, 2, tint = GREEN),
         ControlItem("Strips OFF", "⚫", "strips", "off", true, 2, 0, tint = RED),
         ControlItem("Strips ON", "💡", "strips", "on", true, 2, 2, tint = GREEN),
         ControlItem("Mouse OFF", "🖱", "", "TURN_OFF_MOUSEPAD", false, 3, 0, tint = RED),
         ControlItem("Mouse ON", "🖱", "", "TURN_ON_MOUSEPAD", false, 3, 2, tint = GREEN),
     ),
 )
+
+/** The OS volume slider -- not in any mode's grid: its card sits above the
+ *  mode tabs, always on screen (see ControlsScreen). */
+val VOLUME_ITEM = ControlItem("OS Volume", "🔊", "", "SET_VOLUME", false, slider = true)
 
 /** ALL mode: de-duplicated union (by label) of every mode. */
 fun allControlItems(): List<ControlItem> {

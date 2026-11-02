@@ -18,7 +18,6 @@ import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MenuBook
-import androidx.compose.material.icons.filled.Mouse
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.VideoLibrary
@@ -65,10 +64,9 @@ import kotlinx.coroutines.launch
  *  [panelId] must match the backend's panel keys (api/routers/\*.py's own
  *  `PANEL` constant) -- it's what permissions.visibility entries list. */
 private enum class Section(val label: String, val icon: ImageVector, val panelId: String) {
+    // Includes the mouse/keyboard (its MOUSE tab), so that is behind the
+    // controls permission too.
     Controls("Controls", Icons.Default.Tune, "controls"),
-    // Connects straight to CyanManager over the LAN, never touches the backend --
-    // so it has no backend panelId to be gated by and is always shown.
-    Mouse("Mouse", Icons.Default.Mouse, "mouse"),
     Environment("Environment", Icons.Default.Cloud, "environment"),
     Personal("Personal", Icons.Default.MenuBook, "personal"),
     Food("Food", Icons.Default.Restaurant, "food"),
@@ -113,7 +111,7 @@ fun App() {
         return
     }
     val visible = visiblePanels
-    val visibleSections = Section.entries.filter { it == Section.Mouse || visible == null || it.panelId in visible }
+    val visibleSections = Section.entries.filter { visible == null || it.panelId in visible }
     if (visibleSections.isEmpty()) {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             Box(Modifier.systemBarsPadding().fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -241,7 +239,6 @@ fun App() {
                         Section.Personal -> PersonalScreen()
                         Section.Food -> FoodScreen()
                         Section.Calendar -> CalendarScreen()
-                        Section.Mouse -> MouseScreen()
                         Section.Media -> MediaScreen()
                     }
                 }
