@@ -9,6 +9,12 @@
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
+/* No pull-to-refresh: on a page that doesn't scroll (Media, Weather) a
+ * phone browser takes the slightest downward drift of a tap or a sideways
+ * swipe as a pull and reloads everything. The app keeps itself current
+ * (the /api/version long poll), so there is nothing to refresh by hand.
+ * Chrome reads this from the root scroller (html), Firefox from body. */
+html, body { overscroll-behavior-y: none; }
 body {
   margin: 0;
   background: var(--bg);
@@ -110,7 +116,10 @@ h3 { font-size: 0.85rem; margin: 12px 0 6px; text-transform: uppercase; letter-s
  * which drifts (and produces a second, page-level scrollbar) whenever the
  * topbar's actual rendered height differs, e.g. the nav wrapping to two
  * rows on a narrow window. */
-.app--fixed { height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+/* 100dvh, not 100vh: on a phone 100vh is the height with the browser's
+ * address bar hidden, so while the bar shows the bottom of the page sat
+ * below the screen and had to be scrolled to. dvh follows the bar. */
+.app--fixed { height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
 .app--fixed .content { flex: 1 1 auto; min-height: 0; overflow: hidden; }
 .panel.environment { height: 100%; align-items: stretch; }
 .panel.environment.panel--column { flex-direction: column; gap: 10px; }
@@ -306,7 +315,9 @@ button.link:hover { color: var(--text); }
 .personal-main { flex: 1 1 auto; min-width: 0; }
 .month-nav { display: flex; align-items: center; gap: 10px; }
 .month-nav h2 { min-width: 160px; text-align: center; }
-.table-toolbar { display: flex; justify-content: flex-end; margin-top: 8px; }
+.personal-tools { margin-left: auto; display: flex; gap: 4px; }
+/* A button holding just an icon: square-ish, the icon centred. */
+button.icon-only { display: inline-flex; align-items: center; justify-content: center; padding: 5px 8px; }
 .col-order-list { list-style: none; margin: 8px 0 12px; padding: 0; max-height: 55vh; overflow: auto; }
 .col-order-list li {
   display: flex; align-items: center; gap: 6px;
@@ -320,7 +331,8 @@ button.link:hover { color: var(--text); }
   border: 1px solid var(--line);
   border-radius: 8px;
   overflow: auto;
-  max-height: calc(100vh - 170px);
+  max-height: calc(100vh - 130px);
+  max-height: calc(100dvh - 130px);
 }
 table.grid { border-collapse: collapse; width: 100%; font-size: 0.86rem; }
 table.grid th, table.grid td {
@@ -404,18 +416,28 @@ table.grid td.date { color: var(--muted); }
 table.grid tr.today td { background: rgba(255, 90, 90, 0.16); }
 table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: var(--text); }
 /* ── column manager ──────────────────────────────────────── */
-.col-manager {
-  flex: 0 0 260px;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 8px 10px;
-  position: sticky; top: 56px;
-  max-height: calc(100vh - 80px);
-  overflow: auto;
+/* A drawer sliding in from the right over the page, opened from the month
+ * bar's columns button: the whole height, the table left at full width. */
+.drawer-backdrop {
+  position: fixed; inset: 0; z-index: 90;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex; justify-content: flex-end;
+  overscroll-behavior: contain;
 }
-.col-manager.collapsed { flex-basis: 50px; }
-.col-manager-toggle { width: 100%; margin-bottom: 6px; }
+.col-drawer {
+  width: min(360px, 100vw); height: 100%;
+  background: var(--panel); border-left: 1px solid var(--line);
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.35);
+  padding: 12px 14px; overflow-y: auto; overscroll-behavior: contain;
+  animation: drawer-in 0.18s ease-out;
+}
+@keyframes drawer-in { from { transform: translateX(100%); } }
+.col-drawer-head {
+  position: sticky; top: -12px; z-index: 1;
+  display: flex; align-items: center; justify-content: space-between;
+  margin: -12px -14px 6px; padding: 12px 14px 8px;
+  background: var(--panel); border-bottom: 1px solid var(--line);
+}
 .col-row { border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; margin: 6px 0; }
 .col-row summary { cursor: pointer; }
 .col-row.add summary { color: var(--accent); }
@@ -588,6 +610,11 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
   .dish-card-foot .dish-name { flex: 1 1 100%; }
   .dish-card-foot .dish-stars { flex: 1 1 auto; }
   .dish-card-foot .acts { margin-left: auto; }
+}
+/* Phone-small cards: the buttons themselves wrap too, and tighten up. */
+@container (max-width: 160px) {
+  .dish-card-foot .acts { flex-wrap: wrap; justify-content: flex-end; }
+  .dish-card-foot .acts button { padding: 2px 5px; }
 }
 /* form image preview (still a small thumb) */
 .dish-thumb {
@@ -765,7 +792,7 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
 .cal-week-head, .cal-week-allday { display: flex; flex: 0 0 auto; border-bottom: 1px solid var(--line); }
 .cal-week-gutter { flex: 0 0 50px; }
 .cal-week-head > *:not(.cal-week-gutter) {
-  flex: 1 1 0; text-align: center; padding: 6px 2px;
+  flex: 1 1 0; min-width: 0; text-align: center; padding: 6px 2px;
   font-size: 0.75rem; color: var(--muted); border-left: 1px solid var(--line);
 }
 .cal-week-daylabel.today { color: var(--text); font-weight: 600; }
@@ -773,10 +800,19 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
 .cal-week-num { color: var(--text); }
 .cal-week-allday { min-height: 28px; }
 .cal-allday-label { display: flex; align-items: center; padding-left: 6px; font-size: 0.68rem; color: var(--muted); }
-.cal-week-allday-col {
-  flex: 1 1 0; border-left: 1px solid var(--line); padding: 2px 3px;
-  display: flex; flex-direction: column; gap: 2px;
+/* The all-day row: seven equal columns (minmax(0, ...) so a long title
+   gets its ellipsis instead of widening its day out of line with the
+   columns below), the day cells behind and the bars over them. */
+.cal-week-allday-days {
+  flex: 1 1 auto; min-width: 0;
+  display: grid; grid-template-columns: repeat(7, minmax(0, 1fr));
+  row-gap: 2px; padding: 2px 0;
 }
+.cal-week-allday-col { border-left: 1px solid var(--line); margin: -2px 0; }
+.cal-week-banner { z-index: 1; width: auto; margin: 0 3px; }
+/* Carrying on from last week / into next: square, flush to the edge. */
+.cal-week-banner.cont-left { margin-left: 0; border-top-left-radius: 0; border-bottom-left-radius: 0; }
+.cal-week-banner.cont-right { margin-right: 0; border-top-right-radius: 0; border-bottom-right-radius: 0; }
 .cal-week-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
 .cal-week-grid { position: relative; display: flex; }
 .cal-hour-labels { flex: 0 0 50px; }
@@ -1131,6 +1167,9 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
      and search bar, less a margin, with the 16:9 picture plus the ~210px of
      controls under it setting the width. */
   width: min(1200px, 90vw, calc((100vh - 200px - 210px) * 16 / 9 + 30px));
+  /* ...but never shrunk to a postage stamp by a short window, where that
+     height-based width runs out first. */
+  min-width: min(380px, 90vw);
   max-height: calc(100vh - 200px);
   overflow-y: auto;
   display: flex;
@@ -2358,3 +2397,122 @@ label.button-like {
   padding: 6px 8px; border-radius: 10px; background: rgba(0, 0, 0, 0.6);
 }
 .iv-posternote { color: #fff; font-size: 0.8rem; }
+/* ── phone ───────────────────────────────────────────────── */
+/* One width threshold for the whole app (narrow.ts uses the same 600px for
+ * what CSS can't rearrange, like the calendar's day agenda). Last in the
+ * file so it outranks the equally specific desktop rules above it. */
+@media (max-width: 600px) {
+  /* Anything still too wide is cut off here rather than widening the page:
+   * a phone browser grows its layout viewport to fit the widest content,
+   * which zooms everything out and pushes fixed dialogs off the right edge. */
+  .app { overflow-x: clip; }
+  .topbar { padding: 6px 8px; }
+  .switcher { gap: 4px; }
+  .switcher.compact > button { height: 44px; font-size: 1.4rem; }
+  .switcher.compact .whoami { margin-left: 6px; }
+  .whoami { padding-right: 0; }
+  .whoami-name { max-width: 6em; }
+  .content { padding: 10px 8px; }
+
+  /* Dialogs never wider than the screen, whatever width they ask for. */
+  .modal { max-width: calc(100vw - 16px); padding: 12px; }
+  .modal-backdrop { padding: 8px 0; }
+  .modal.event-form .field textarea,
+  .modal.event-form .field .description-view { min-height: 120px; max-height: 160px; }
+
+  /* Headers wrap onto a second row instead of running off the side. */
+  /* The calendar's bar stays one row: icons for Today/Month/Week and a
+   * smaller title that gives way (ellipsis) before anything wraps. */
+  .month-nav { gap: 4px; }
+  .month-nav > button, .cal-view-toggle button { padding: 4px 7px; }
+  .month-nav h2 {
+    min-width: 0; flex: 1 1 auto; font-size: 0.85rem;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .nav-text { display: none; }
+  .month-nav .nav-icon { display: block; }
+  .food-head { gap: 6px; }
+  .food-head h2 { font-size: 1rem; }
+  .food-head button { padding: 4px 8px; }
+  .btn-text { display: none; }
+
+  /* Media: the tabs scroll sideways (swipe) instead of wrapping into rows,
+   * with the job queue held at the right; the disk readout is just its
+   * ring (the numbers stay in its tooltip). */
+  .mv-sources { flex-wrap: nowrap; }
+  .mv-sources .mv-tabstrip {
+    display: flex; gap: 4px; flex: 1 1 auto; min-width: 0;
+    overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain;
+  }
+  .mv-tabstrip::-webkit-scrollbar { display: none; }
+  .mv-tabstrip > * { flex: 0 0 auto; }
+  .mv-queue { flex: 0 0 auto; max-width: 45%; }
+  .mv-queuemenu { width: min(340px, calc(100vw - 16px)); }
+  .mv-space { flex: 0 0 auto; width: auto; }
+  .mv-spacetext { display: none; }
+  .mv-searchslide { animation: mv-searchslide 0.2s ease-out; }
+  /* The open box's focus is its own border, inside its edges: the browser's
+   * ring sits outside them, where the library column's clip cut it off. */
+  .mv-search > input.mv-searchslide { height: 28px; padding: 3px 8px; }
+  .mv-search > input.mv-searchslide:focus { outline: none; border-color: var(--accent); }
+  /* The player fills the phone's screen: the height-based size above it
+   * comes out tiny on a phone. */
+  .modal-backdrop.mv-filmback { padding: 8px; }
+  .modal.mv-filmdialog { width: calc(100vw - 16px); max-width: none; max-height: calc(100dvh - 16px); padding: 10px; }
+  .mv-transport { gap: 4px; }
+  .mv-transport button { width: 40px; }
+  .mv-transport .size-pop { margin-left: auto; }
+  .mv-searchbtn, .size-pop-btn { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 28px; padding: 0; }
+  /* With the search folded to its button, the view icons (and the disk)
+   * still sit against the right, as they do beside the open box. */
+  .mv-search .mv-viewpick { margin-left: auto; }
+
+  /* Weather overview: the toolbar wraps, the humidity tube goes (its % stays)
+   * and every column may shrink -- a bare 1fr never goes below its content,
+   * which is what pushed the rows a fixed distance past the right edge. */
+  .overview-toolbar { flex-wrap: wrap; gap: 6px; }
+  .overview-toolbar select { min-width: 0; flex: 1 1 100%; }
+  .overview-toolbar .presets { flex: 1 1 100%; }
+  .overview-toolbar .presets button { flex: 1 1 0; padding: 4px 2px; white-space: nowrap; }
+  .ov-part { gap: 4px; }
+  .ov-row { grid-template-columns: 40px repeat(4, minmax(0, 1fr)); gap: 4px; }
+  .ov-time { font-size: 0.76rem; }
+  .humidity-gauge svg { display: none; }
+  .wind-icon svg { width: 22px; height: 22px; }
+  .temp-bar svg { width: 30px; }
+  .temp-bar-label, .humidity-gauge-label, .wind-icon-label { white-space: nowrap; font-size: 0.72rem; }
+  .food-zoom > span[aria-hidden] { display: none; }
+  /* Taller than the screen scrolls inside the dialog, so its title and
+   * buttons stay reachable (a centred overflow cuts off the top for good). */
+  .modal { max-height: calc(100dvh - 16px); overflow-y: auto; overscroll-behavior: contain; }
+
+  /* Month view: colour bars only (tapping selects the day for the agenda
+   * below), so a 45px-wide cell still says how busy the day is. */
+  .cal-weekdays { gap: 2px; }
+  .cal-grid { gap: 2px; grid-auto-rows: 52px; }
+  .cal-day { padding: 2px 3px; gap: 2px; border-radius: 6px; cursor: pointer; }
+  .cal-day.selected { outline: 2px solid var(--text); outline-offset: -2px; }
+  .cal-add { display: none; }
+  .cal-grid .cal-event {
+    pointer-events: none;
+    height: 4px; padding: 0; font-size: 0; border-left: none; border-radius: 2px;
+    background: var(--cal-color, var(--muted));
+  }
+  .cal-week-gutter, .cal-hour-labels { flex-basis: 34px; }
+}
+.cal-agenda { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+.cal-agenda-head { display: flex; align-items: center; justify-content: space-between; font-weight: 600; }
+.cal-agenda .cal-agenda-event { font-size: 0.9rem; padding: 8px 10px; white-space: normal; }
+.cal-agenda-time { color: var(--muted); margin-right: 8px; font-variant-numeric: tabular-nums; }
+.nav-icon { display: none; }
+.mv-tabstrip { display: contents; }
+@keyframes mv-searchslide { from { max-width: 0; opacity: 0; } to { max-width: 100vw; opacity: 1; } }
+/* SizeSlider's phone form: a button (sized with the search button in the
+ * phone block), and the slider as a strip below it. */
+.size-pop-panel {
+  /* above dialogs (100), so it also works from inside the player */
+  position: fixed; left: 8px; right: 8px; z-index: 120;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+  padding: 14px 12px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+.size-pop-panel input[type="range"] { display: block; width: 100%; }

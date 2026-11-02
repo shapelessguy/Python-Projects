@@ -11,6 +11,7 @@ import {
   dishImageUrl,
   foodApi,
 } from "./food";
+import { SizeSlider } from "./SizeSlider";
 import {
   GroceryList,
   loadCheckedIngredients,
@@ -42,7 +43,7 @@ function MarkdownView({ text }: { text: string }) {
 }
 
 // Zoom = target card (column) width in px; image height tracks it.
-const ZOOM_MIN = 190; // was 140 -- too narrow left no room for the footer's icon buttons
+const ZOOM_MIN = 110; // phone-sized; the footer's buttons wrap below 160px (styles.css)
 const ZOOM_MAX = 460;
 const ZOOM_DEFAULT = 240;
 
@@ -244,14 +245,7 @@ export function FoodPanel() {
           <h2>Dishes</h2>
           <label className="food-zoom" title="Card size">
             <span aria-hidden>🔍</span>
-            <input
-              type="range"
-              min={ZOOM_MIN}
-              max={ZOOM_MAX}
-              step={10}
-              value={zoom}
-              onChange={(e) => setZoom(Number(e.target.value))}
-            />
+            <SizeSlider min={ZOOM_MIN} max={ZOOM_MAX} step={10} value={zoom} title="Card size" onChange={setZoom} />
           </label>
           {groceryMode ? (
             <>
@@ -261,10 +255,15 @@ export function FoodPanel() {
             </>
           ) : (
             <>
-              <button className="ghost" onClick={() => setShowCatalog(true)}>🥕 Ingredients</button>
-              <button className="ghost" onClick={enterGroceryMode}>🛒 Grocery</button>
-              <button className="active" onClick={() => setEditing("new")}>
-                + Add dish
+              {/* The words go on a phone (.btn-text), leaving the icons. */}
+              <button className="ghost" title="Ingredients" onClick={() => setShowCatalog(true)}>
+                🥕<span className="btn-text"> Ingredients</span>
+              </button>
+              <button className="ghost" title="Grocery" onClick={enterGroceryMode}>
+                🛒<span className="btn-text"> Grocery</span>
+              </button>
+              <button className="active" title="Add dish" onClick={() => setEditing("new")}>
+                +<span className="btn-text"> Add dish</span>
               </button>
             </>
           )}

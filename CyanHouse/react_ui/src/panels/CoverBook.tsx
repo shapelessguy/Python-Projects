@@ -122,8 +122,10 @@ export function CoverBook<T extends { id: string; title: string }>({
     }
   }, [items, page, per, px]);
 
-  // A swipe turns the page on a touch screen.
-  const touchX = useRef<number | null>(null);
+  // A swipe turns the page on a touch screen -- a deliberate sideways one:
+  // far enough, and clearly more across than up or down, so a tap that
+  // drifts a little doesn't turn it.
+  const touchAt = useRef<{ x: number; y: number } | null>(null);
 
   return (
     <div className={"mv-book" + (round ? " round" : "")}>
@@ -132,12 +134,13 @@ export function CoverBook<T extends { id: string; title: string }>({
       <div
         className="mv-bookpage"
         ref={pageRef}
-        onTouchStart={(e) => { touchX.current = e.touches[0].clientX; }}
+        onTouchStart={(e) => { touchAt.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; }}
         onTouchEnd={(e) => {
-          if (touchX.current === null) return;
-          const dx = e.changedTouches[0].clientX - touchX.current;
-          touchX.current = null;
-          if (Math.abs(dx) > 50) go(dx < 0 ? page + 1 : page - 1);
+          if (touchAt.current === null) return;
+          const dx = e.changedTouches[0].clientX - touchAt.current.x;
+          const dy = e.changedTouches[0].clientY - touchAt.current.y;
+          touchAt.current = null;
+          if (Math.abs(dx) > 70 && Math.abs(dx) > 2 * Math.abs(dy)) go(dx < 0 ? page + 1 : page - 1);
         }}
       >
         {box.w > 0 && (

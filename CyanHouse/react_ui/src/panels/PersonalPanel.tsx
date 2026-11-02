@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, Column, ColType, MonthData, useVersionPoll } from "../api";
 import { ColumnManager } from "./ColumnManager";
+import { Icon } from "./icons";
 
 // YYYY-MM-DD, local. A function (not a module constant) so a tab left open
 // across midnight doesn't keep highlighting the day it was loaded on.
@@ -42,6 +43,8 @@ export function PersonalPanel() {
   const [draft, setDraft] = useState<Draft>({});
   const [error, setError] = useState<string | null>(null);
   const [reordering, setReordering] = useState(false);
+  // The column editor: a drawer over the page, opened from the month bar.
+  const [managing, setManaging] = useState(false);
   const appliedVersion = useRef(-1);
 
   // The one place a server month-snapshot becomes the UI state.
@@ -102,17 +105,20 @@ export function PersonalPanel() {
           <button onClick={() => setMonth((m) => addMonths(m, -1))}>◀</button>
           <h2>{monthLabel(month)}</h2>
           <button onClick={() => setMonth((m) => addMonths(m, 1))}>▶</button>
-          <button className="ghost" onClick={() => setMonth(currentMonth())}>Today</button>
-        </div>
-        <div className="table-toolbar">
-          <button
-            className="ghost"
-            onClick={() => setReordering(true)}
-            disabled={columns.length < 2}
-            title="Reorder columns"
-          >
-            ⇅ Reorder columns
+          <button className="ghost" title="Today" onClick={() => setMonth(currentMonth())}>
+            <span className="nav-text">Today</span><Icon name="today" />
           </button>
+          {/* The table's own tools, held at the right of the month bar. */}
+          <span className="personal-tools">
+            <button className="ghost icon-only" onClick={() => setReordering(true)}
+                    disabled={columns.length < 2} title="Reorder columns" aria-label="Reorder columns">
+              <Icon name="reorder" className="" />
+            </button>
+            <button className="ghost icon-only" onClick={() => setManaging(true)}
+                    title="Columns: add, edit, delete" aria-label="Columns">
+              <Icon name="columns" className="" />
+            </button>
+          </span>
         </div>
 
         <div className="table-wrap">
@@ -158,6 +164,8 @@ export function PersonalPanel() {
       </div>
 
       <ColumnManager
+        open={managing}
+        onClose={() => setManaging(false)}
         columns={columns}
         units={data.units}
         month={month}

@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import TimePicker from "react-time-picker";
 import "react-time-picker/dist/TimePicker.css";
 import { api, Calendar, CalendarEvent, EventInput, RecurFreq, useVersionPoll } from "../api";
 import { CalendarShareDialog } from "./ShareDialog";
 import { readCookie, writeCookie } from "../cookies";
+import { useNarrow } from "../narrow";
+import { Icon } from "./icons";
 
 
 const TODAY = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD, local
@@ -22,6 +24,7 @@ function isWeekend(date: string): boolean {
 }
 
 type ViewMode = "month" | "week";
+
 
 function addDays(date: string, delta: number): string {
   const d = new Date(date + "T00:00:00");
@@ -261,6 +264,15 @@ export function CalendarPanel() {
     writeCookie(VIEW_COOKIE, v);
   };
   const [anchor, setAnchor] = useState(TODAY);
+  // Phone month view: the cells are too narrow for titles, so they only show
+  // colour bars, and tapping one picks the day listed below the grid.
+  const narrow = useNarrow();
+  const phoneMonth = narrow && view === "month";
+  const [selectedDay, setSelectedDay] = useState(TODAY);
+  // A sideways swipe over the grid does what ◀/▶ do -- the same deliberate
+  // swipe as the cover pages (CoverBook): far enough, and clearly more
+  // across than up or down.
+  const touchAt = useRef<{ x: number; y: number } | null>(null);
   // A native "click" fires on the nearest common ancestor of the mousedown
   // and mouseup targets when they differ -- so selecting text in the form
   // (mousedown inside .modal) and releasing the mouse past the backdrop's
@@ -466,6 +478,10 @@ export function CalendarPanel() {
   if (error) return <div className="panel"><p className="error">{error}</p></div>;
   if (!events) return <div className="panel"><p className="muted">Loading…</p></div>;
 
+  // ◀/▶ move the anchor to the 1st of the month (Today to today), so a day
+  // picked in another month falls back to it instead of an empty agenda.
+  const agendaDay = days.includes(selectedDay) ? selectedDay : anchor;
+
   const headerLabel = view === "month" ? monthLabel(anchor.slice(0, 7)) : weekLabel(days);
   const goPrev = () => setAnchor((a) => (view === "month" ? addMonths(a, -1) : addDays(a, -7)));
   const goNext = () => setAnchor((a) => (view === "month" ? addMonths(a, 1) : addDays(a, 7)));
@@ -480,10 +496,18 @@ export function CalendarPanel() {
           <button onClick={goPrev}>◀</button>
           <h2>{headerLabel}</h2>
           <button onClick={goNext}>▶</button>
-          <button className="ghost" onClick={() => setAnchor(TODAY)}>Today</button>
+          {/* Words on a wide screen, icons on a phone (styles.css swaps
+              .nav-text for .nav-icon), so the bar stays one row. */}
+          <button className="ghost" title="Today" onClick={() => setAnchor(TODAY)}>
+            <span className="nav-text">Today</span><Icon name="today" />
+          </button>
           <div className="cal-view-toggle">
-            <button className={view === "month" ? "active" : ""} onClick={() => setView("month")}>Month</button>
-            <button className={view === "week" ? "active" : ""} onClick={() => setView("week")}>Week</button>
+            <button className={view === "month" ? "active" : ""} title="Month" onClick={() => setView("month")}>
+              <span className="nav-text">Month</span><Icon name="month" />
+            </button>
+            <button className={view === "week" ? "active" : ""} title="Week" onClick={() => setView("week")}>
+              <span className="nav-text">Week</span><Icon name="week" />
+            </button>
           </div>
           <div className="cal-calendars-menu" ref={calendarsMenuRef}>
             <button
@@ -491,7 +515,7 @@ export function CalendarPanel() {
               title={`Calendars (${visibleIds.size}/${calendars.length} shown)`}
               onClick={() => setCalendarsOpen((o) => !o)}
             >
-              🗂
+              <Icon name="calendars" className="" />
             </button>
             {calendarsOpen && (
               <div className="cal-calendars-popover">
@@ -551,7 +575,19 @@ export function CalendarPanel() {
           </div>
         </div>
 
-        <div className="cal-body" ref={bodyRef} style={{ height: bodyHeight }}>
+        {/* The phone month view sizes itself (grid + agenda) and the page
+            scrolls, instead of squeezing both into the measured height. */}
+        <div
+          className="cal-body" ref={bodyRef} style={phoneMonth ? undefined : { height: bodyHeight }}
+          onTouchStart={(e) => { touchAt.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; }}
+          onTouchEnd={(e) => {
+            if (touchAt.current === null) return;
+            const dx = e.changedTouches[0].clientX - touchAt.current.x;
+            const dy = e.changedTouches[0].clientY - touchAt.current.y;
+            touchAt.current = null;
+            if (Math.abs(dx) > 70 && Math.abs(dx) > 2 * Math.abs(dy)) (dx < 0 ? goNext : goPrev)();
+          }}
+        >
           {view === "month" ? (
             <>
               <div className="cal-weekdays">
@@ -568,8 +604,10 @@ export function CalendarPanel() {
                         "cal-day" +
                         (inMonth ? "" : " out") +
                         (date === TODAY ? " today" : "") +
-                        (isWeekend(date) ? " weekend" : "")
+                        (isWeekend(date) ? " weekend" : "") +
+                        (phoneMonth && date === agendaDay ? " selected" : "")
                       }
+                      onClick={phoneMonth ? () => setSelectedDay(date) : undefined}
                     >
                       <div className="cal-day-head">
                         <span className="cal-daynum">{Number(date.slice(8))}</span>
@@ -582,7 +620,7 @@ export function CalendarPanel() {
                           <button
                             key={e.id}
                             className="cal-event"
-                            style={{ borderLeftColor: e.calendar_color }}
+                            style={{ borderLeftColor: e.calendar_color, "--cal-color": e.calendar_color } as CSSProperties}
                             onClick={() => { setDraft(draftFromEvent(e)); setDescEditing(false); }}
                             title={e.mine ? e.title : `${e.title} (by ${e.owner})`}
                           >
@@ -597,6 +635,37 @@ export function CalendarPanel() {
                   );
                 })}
               </div>
+              {phoneMonth && (
+                <div className="cal-agenda">
+                  <div className="cal-agenda-head">
+                    <span>
+                      {new Date(agendaDay + "T00:00:00").toLocaleDateString(undefined, {
+                        weekday: "long", day: "numeric", month: "long",
+                      })}
+                    </span>
+                    <button className="ghost" onClick={() => { setDraft(blankDraft(agendaDay, defaultCalendarId)); setDescEditing(true); }}>
+                      + Add
+                    </button>
+                  </div>
+                  {(eventsByDate[agendaDay] ?? []).length === 0 && <p className="muted small">No events.</p>}
+                  {(eventsByDate[agendaDay] ?? []).map((e) => (
+                    <button
+                      key={e.id}
+                      className="cal-event cal-agenda-event"
+                      style={{ borderLeftColor: e.calendar_color }}
+                      onClick={() => { setDraft(draftFromEvent(e)); setDescEditing(false); }}
+                    >
+                      <span className="cal-agenda-time">
+                        {e.all_day || !e.start_time ? "All day" : e.start_time}
+                      </span>
+                      {e.recurring ? "↻ " : ""}
+                      {e.alarm ? "🔔 " : ""}
+                      {e.title}
+                      {!e.mine && <span className="muted"> · {e.owner}</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
             </>
           ) : (
             <WeekGrid
@@ -880,6 +949,30 @@ function WeekGrid({
   const isTimedSingleDay = (e: CalendarEvent) =>
     !e.all_day && e.start_date === e.end_date && !!e.start_time && !!e.end_time;
 
+  // The all-day row's bars: each banner event once, from the first to the
+  // last of this week's days it touches, given the lowest row that is free
+  // across that whole stretch. Longer bars first, so they take the top rows.
+  const banners = useMemo(() => {
+    const spans = new Map<string, { e: CalendarEvent; from: number; to: number }>();
+    days.forEach((date, i) => {
+      for (const e of eventsByDate[date] ?? []) {
+        if (!isBanner(e)) continue;
+        const key = `${e.id}|${e.start_date}`;   // a recurring event's occurrences share an id
+        const span = spans.get(key);
+        if (span) span.to = i; else spans.set(key, { e, from: i, to: i });
+      }
+    });
+    const sorted = [...spans.values()].sort((a, b) => a.from - b.from || (b.to - b.from) - (a.to - a.from));
+    const laneEnds: number[] = [];   // per row: the last day taken so far
+    const bars = sorted.map((sp) => {
+      let lane = laneEnds.findIndex((end) => end < sp.from);
+      if (lane < 0) lane = laneEnds.length;
+      laneEnds[lane] = sp.to;
+      return { ...sp, lane };
+    });
+    return { bars, lanes: laneEnds.length };
+  }, [days, eventsByDate]);
+
   return (
     <div className="cal-week">
       <div className="cal-week-head" style={{ paddingRight: scrollbarWidth }}>
@@ -897,25 +990,31 @@ function WeekGrid({
         })}
       </div>
 
+      {/* One bar per event across all the days it covers this week (cut at
+          the week's edges), stacked in as few rows as fit. The day columns
+          behind the bars only draw the borders and weekend shading. */}
       <div className="cal-week-allday" style={{ paddingRight: scrollbarWidth }}>
         <div className="cal-week-gutter cal-allday-label">All day</div>
-        {days.map((date) => (
-          <div key={date} className={"cal-week-allday-col" + (isWeekend(date) ? " weekend" : "")}>
-            {(eventsByDate[date] ?? []).filter(isBanner).map((e) => (
-              <button
-                key={e.id}
-                className="cal-event"
-                style={{ borderLeftColor: e.calendar_color }}
-                onClick={() => onOpen(e)}
-                title={e.mine ? e.title : `${e.title} (by ${e.owner})`}
-              >
-                {e.recurring ? "↻ " : ""}
-                {e.alarm ? "🔔 " : ""}
-                {e.title}
-              </button>
-            ))}
-          </div>
-        ))}
+        <div className="cal-week-allday-days" style={{ gridTemplateRows: `repeat(${Math.max(1, banners.lanes)}, auto)` }}>
+          {days.map((date, i) => (
+            <div key={date} className={"cal-week-allday-col" + (isWeekend(date) ? " weekend" : "")}
+                 style={{ gridColumn: i + 1, gridRow: `1 / span ${Math.max(1, banners.lanes)}` }} />
+          ))}
+          {banners.bars.map(({ e, from, to, lane }) => (
+            <button
+              key={`${e.id}|${e.start_date}`}
+              className={"cal-event cal-week-banner" +
+                         (e.start_date < days[0] ? " cont-left" : "") + (e.end_date > days[6] ? " cont-right" : "")}
+              style={{ borderLeftColor: e.calendar_color, gridColumn: `${from + 1} / ${to + 2}`, gridRow: lane + 1 }}
+              onClick={() => onOpen(e)}
+              title={e.mine ? e.title : `${e.title} (by ${e.owner})`}
+            >
+              {e.recurring ? "↻ " : ""}
+              {e.alarm ? "🔔 " : ""}
+              {e.title}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="cal-week-scroll" ref={scrollRef}>

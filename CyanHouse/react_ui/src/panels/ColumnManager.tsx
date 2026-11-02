@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useRef, useState } from "react";
 import { api, Column, ColType, MonthData } from "../api";
 
 const TYPES: ColType[] = ["number", "text", "bool", "enum"];
@@ -55,17 +55,23 @@ function ConfirmModal({ ask, onDone }: { ask: Ask; onDone: () => void }) {
 }
 
 export function ColumnManager({
+  open,
+  onClose,
   columns,
   units,
   month,
   onState,
 }: {
+  open: boolean;
+  onClose: () => void;
   columns: Column[];
   units: string[];
   month: string;
   onState: (snapshot: MonthData) => void;
 }) {
-  const [open, setOpen] = useState(false); // start retracted
+  // Only a press that also started on the backdrop closes the drawer, so
+  // selecting text in a field and letting go past its edge doesn't.
+  const downOnBackdrop = useRef(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [ask, setAsk] = useState<Ask | null>(null);
@@ -79,13 +85,19 @@ export function ColumnManager({
       .finally(() => setBusy(false));
   };
 
+  if (!open) return null;
   return (
-    <aside className={"col-manager" + (open ? "" : " collapsed")}>
-      <button className="col-manager-toggle" onClick={() => setOpen((o) => !o)}>
-        {open ? "Columns ›" : "‹"}
-      </button>
-      {open && (
-        <div className="col-manager-body">
+    <div
+      className="drawer-backdrop"
+      onMouseDown={(e) => { downOnBackdrop.current = e.target === e.currentTarget; }}
+      onClick={(e) => { if (downOnBackdrop.current && e.target === e.currentTarget) onClose(); }}
+    >
+    <aside className="col-drawer">
+      <div className="col-drawer-head">
+        <h2>Columns</h2>
+        <button className="ghost icon-only" onClick={onClose} title="Close" aria-label="Close">✕</button>
+      </div>
+      <div className="col-manager-body">
           {err && (
             <p className="error small" onClick={() => setErr(null)}>
               {err}
@@ -140,10 +152,10 @@ export function ColumnManager({
               {units.filter((u) => u).length === 0 && <li className="muted">none</li>}
             </ul>
           </details>
-        </div>
-      )}
+      </div>
       {ask && <ConfirmModal ask={ask} onDone={() => setAsk(null)} />}
     </aside>
+    </div>
   );
 }
 

@@ -12,6 +12,10 @@ import { ShareDialog } from "./ShareDialog";
 import { CreateVaultDialog, VaultDrop, VaultView } from "./VaultView";
 import { MusicPlayerBar } from "./MusicPlayerBar";
 import { MusicIdentify } from "./MusicPrep";
+import { SizeSlider } from "./SizeSlider";
+import { useNarrow } from "../narrow";
+import { useDragScroll } from "../dragScroll";
+import { Icon } from "./icons";
 import { ConflictDialog, Clash } from "./ConflictDialog";
 
 /** The stream is a transcode piped into a fragmented MP4: no byte ranges, no
@@ -37,9 +41,9 @@ const COVER_COOKIE = "movies_cover";
 const MUSIC_VIEW_COOKIE = "music_view";
 const IMAGES_VIEW_COOKIE = "images_view";
 const THUMB_COOKIE = "image_size";
-const THUMB_MIN = 120;
+const THUMB_MIN = 70;
 const THUMB_MAX = 420;
-const COVER_MIN = 90;
+const COVER_MIN = 60;
 const COVER_MAX = 280;
 
 /** Other programs' own web UIs, shown in place of the library: qBittorrent
@@ -362,6 +366,12 @@ export function MoviesPanel() {
   const [movies, setMovies] = useState<MovieItem[]>([]);
   const [listError, setListError] = useState("");
   const [query, setQuery] = useState("");
+  // On a phone the search box is a magnifier until tapped, then slides open;
+  // it folds back once it loses focus with nothing typed in it.
+  const narrow = useNarrow();
+  const [searchOpen, setSearchOpen] = useState(false);
+  const tabStripRef = useRef<HTMLDivElement>(null);
+  useDragScroll(tabStripRef);
   const [coverSize, setCoverSizeState] = useState(() => {
     const n = Number(readCookie(COVER_COOKIE));
     return n >= COVER_MIN && n <= COVER_MAX ? n : 150;
@@ -1555,6 +1565,12 @@ export function MoviesPanel() {
               arrows beside it in most fonts. */}
           <span className="mv-stopicon" aria-hidden />
         </button>
+        {narrow ? (
+          // A phone has no room for the slider in this row: a speaker
+          // button that opens it.
+          <SizeSlider min={0} max={1} step={0.01} value={volume} title="Volume" onChange={changeVolume}
+                      icon={<span aria-hidden>🔊</span>} />
+        ) : (
         <label className="mv-volume" title="Volume">
           🔊
           <input
@@ -1566,6 +1582,7 @@ export function MoviesPanel() {
             onChange={(e) => changeVolume(+e.target.value)}
           />
         </label>
+        )}
         <button
           className="ghost"
           onClick={toggleFullscreen}
@@ -1588,6 +1605,9 @@ export function MoviesPanel() {
           the torrent client. Spans the whole panel, above both columns,
           so the torrent client gets the full width when it is open. */}
       <div className="mv-sources">
+        {/* Just a wrapper on a wide screen (display: contents); on a phone
+            the tabs scroll sideways in it while the queue stays put. */}
+        <div className="mv-tabstrip" ref={tabStripRef}>
         {groups.map((g, i) => {
           const target = tabTarget(g);
           const ready = !!(g.todo?.ready || g.done?.ready);
@@ -1636,6 +1656,7 @@ export function MoviesPanel() {
             <TabFace icon={x.icon} label={x.label} />
           </button>
         ))}
+        </div>
         {/* The remux queue, at the far end of the tab row: visible from
             every tab whatever is selected, because it is happening on
             the server regardless. The running one is shown outright; the
@@ -1716,13 +1737,22 @@ export function MoviesPanel() {
       ) : (<>
       <section className="mv-library">
         <div className="mv-search">
+          {narrow && !searchOpen && !query ? (
+            <button className="ghost mv-searchbtn" title="Search" aria-label="Search" onClick={() => setSearchOpen(true)}>
+              <Icon name="search" size={14} className="" />
+            </button>
+          ) : (
           <input
+            className={narrow ? "mv-searchslide" : undefined}
+            autoFocus={narrow}
+            onBlur={() => { if (!query) setSearchOpen(false); }}
             placeholder={tab
               ? `Search ${panes.reduce((n, p) => n + (listings[p.key]?.length ?? 0), 0) || ""} files…`
               : `Search ${movies.length || ""} movies…`}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
+          )}
           {/* The size slider, the view icons and the disk, in that order,
               held against the right: the disk is a fixed width and Folders
               is the last icon everywhere, so moving between tabs and views
@@ -1735,13 +1765,8 @@ export function MoviesPanel() {
                 ? { min: COVER_MIN, max: COVER_MAX, step: 5, value: coverSize, set: setCoverSize, title: "Cover size" }
                 : null;
             return size && (
-              <input className="mv-coversize" type="range"
-                     min={size.min} max={size.max} step={size.step}
-                     value={size.value} title={size.title}
-                     onChange={(e) => size.set(+e.target.value)}
-                     // Let go of the slider once set, so the arrow keys go back
-                     // to turning pages rather than nudging the size.
-                     onPointerUp={(e) => e.currentTarget.blur()} />
+              <SizeSlider className="mv-coversize" min={size.min} max={size.max} step={size.step}
+                          value={size.value} title={size.title} onChange={size.set} />
             );
           })()}
           <span className="mv-viewpick">
