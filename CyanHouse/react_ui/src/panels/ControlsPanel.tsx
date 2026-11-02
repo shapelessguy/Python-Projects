@@ -7,6 +7,7 @@ import {
   MODE_ICON,
   MODES,
   SEPARATOR_BEFORE_ROW,
+  VOLUME_ITEM,
   allItems,
 } from "../controls";
 
@@ -115,14 +116,85 @@ export function ControlsPanel() {
   const device = info.device ?? "";
   const vol = info.volume ?? 0;
 
+  // The OS volume card sits above the mode tabs, on screen whatever the mode.
+  // Its −/+ just tell CyanManager to step the volume (VOLUME_DOWN/UP);
+  // it picks the step and the new level comes back in its reply.
+  const nudge = (command: "VOLUME_DOWN" | "VOLUME_UP") =>
+    run({ ...VOLUME_ITEM, command, slider: false });
+  // One step on press, then repeated while held (NUDGE_DELAY_MS, then
+  // every NUDGE_REPEAT_MS).
+  // A keyboard press (Enter/Space) arrives only as a click, detail 0.
+  const hold = (command: "VOLUME_DOWN" | "VOLUME_UP") => ({
+    onPointerDown: (e: React.PointerEvent<HTMLButtonElement>) => {
+      if (e.button !== 0) return;
+      e.currentTarget.setPointerCapture(e.pointerId);
+      stopNudge();
+      nudge(command);
+      nudgeTimer.current = window.setTimeout(() => {
+        nudge(command);
+        nudgeTimer.current = window.setInterval(() => nudge(command), NUDGE_REPEAT_MS);
+      }, NUDGE_DELAY_MS);
+    },
+    onPointerUp: stopNudge,
+    onPointerCancel: stopNudge,
+    onLostPointerCapture: stopNudge,
+    onClick: (e: React.MouseEvent) => {
+      if (e.detail === 0) nudge(command);
+    },
+    onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
+  });
+  const volumeCard = (
+    <div className="ctl-slider">
+      <label>
+        {VOLUME_ITEM.icon} OS Volume{device ? `: ${device}` : ""} · {Math.round(vol * 100)}%
+      </label>
+      <div className="ctl-slider-row">
+        <button
+          className="ctl-nudge"
+          aria-label="volume down"
+          {...hold("VOLUME_DOWN")}
+        >
+          −
+        </button>
+        <input
+          type="range"
+          min={0}
+          max={1}
+          step={0.01}
+          value={vol}
+          onPointerDown={() => (draggingVol.current = true)}
+          onChange={(e) => setInfo((p) => ({ ...p, volume: +e.target.value }))}
+          onPointerUp={(e) =>
+            run(VOLUME_ITEM, { slide_value: +(e.target as HTMLInputElement).value })
+          }
+          onPointerCancel={() => (draggingVol.current = false)}
+        />
+        <button
+          className="ctl-nudge"
+          aria-label="volume up"
+          {...hold("VOLUME_UP")}
+        >
+          +
+        </button>
+      </div>
+    </div>
+  );
+
   return (
     <div className="panel controls">
+      {volumeCard}
       <div className="ctl-modes">
-        {/* No ALL chip: ALL is simply "nothing selected" -- click the selected
-            chip again to deselect it and get back to everything. */}
+        {/* One icon tab per mode. No ALL tab: ALL is simply "nothing selected" --
+            click the selected tab again to deselect it and get back to everything. */}
         {MODES.filter((m) => m !== "ALL").map((m) => (
-          <button key={m} className={m === mode ? "active" : ""} onClick={() => setMode(m === mode ? "ALL" : m)}>
-            <span aria-hidden>{MODE_ICON[m]}</span> {m}
+          <button
+            key={m}
+            className={m === mode ? "active" : ""}
+            title={m}
+            aria-label={m}
+            onClick={() => setMode(m === mode ? "ALL" : m)}
+          >
+            {MODE_ICON[m]}
           </button>
         ))}
       </div>
@@ -138,13 +210,10 @@ export function ControlsPanel() {
         ))}
         {items.map((it) => {
           // Per-mode views keep CyanControls' fixed 3-column row/col layout (its
-          // gaps are intentional) — AUDIO's slider has colSpan 3, so it fills the
-          // row. ALL just flows; there the slider spans 2 columns.
+          // gaps are intentional). ALL just flows.
           const style: React.CSSProperties | undefined =
             mode === "ALL"
-              ? it.slider
-                ? { gridColumn: "span 2" }
-                : undefined
+              ? undefined
               : {
                   gridRow: gridRowOf(it.row ?? 0),
                   gridColumn:
@@ -152,71 +221,6 @@ export function ControlsPanel() {
                       ? `${(it.col ?? 0) + 1} / span ${it.colSpan}`
                       : `${(it.col ?? 0) + 1}`,
                 };
-
-          if (it.slider) {
-            // −/+ just tell CyanManager to step the volume (VOLUME_DOWN/UP);
-            // it picks the step and the new level comes back in its reply.
-            const nudge = (command: "VOLUME_DOWN" | "VOLUME_UP") =>
-              run({ ...it, command, slider: false });
-            // One step on press, then repeated while held (NUDGE_DELAY_MS, then
-            // every NUDGE_REPEAT_MS).
-            // A keyboard press (Enter/Space) arrives only as a click, detail 0.
-            const hold = (command: "VOLUME_DOWN" | "VOLUME_UP") => ({
-              onPointerDown: (e: React.PointerEvent<HTMLButtonElement>) => {
-                if (e.button !== 0) return;
-                e.currentTarget.setPointerCapture(e.pointerId);
-                stopNudge();
-                nudge(command);
-                nudgeTimer.current = window.setTimeout(() => {
-                  nudge(command);
-                  nudgeTimer.current = window.setInterval(() => nudge(command), NUDGE_REPEAT_MS);
-                }, NUDGE_DELAY_MS);
-              },
-              onPointerUp: stopNudge,
-              onPointerCancel: stopNudge,
-              onLostPointerCapture: stopNudge,
-              onClick: (e: React.MouseEvent) => {
-                if (e.detail === 0) nudge(command);
-              },
-              onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
-            });
-            return (
-              <div key={it.label} className="ctl-slider" style={style}>
-                <label>
-                  {it.icon} OS Volume{device ? `: ${device}` : ""} · {Math.round(vol * 100)}%
-                </label>
-                <div className="ctl-slider-row">
-                  <button
-                    className="ctl-nudge"
-                    aria-label="volume down"
-                    {...hold("VOLUME_DOWN")}
-                  >
-                    −
-                  </button>
-                  <input
-                    type="range"
-                    min={0}
-                    max={1}
-                    step={0.01}
-                    value={vol}
-                    onPointerDown={() => (draggingVol.current = true)}
-                    onChange={(e) => setInfo((p) => ({ ...p, volume: +e.target.value }))}
-                    onPointerUp={(e) =>
-                      run(it, { slide_value: +(e.target as HTMLInputElement).value })
-                    }
-                    onPointerCancel={() => (draggingVol.current = false)}
-                  />
-                  <button
-                    className="ctl-nudge"
-                    aria-label="volume up"
-                    {...hold("VOLUME_UP")}
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-            );
-          }
 
           const active =
             (it.label === "Speaker" && /speaker/i.test(device)) ||

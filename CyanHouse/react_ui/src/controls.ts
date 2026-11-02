@@ -24,7 +24,7 @@ export const MODE_ICON: Record<ControlMode, string> = {
   ALL: "▦",
   GROW: "🌱",
   AUDIO: "🔊",
-  PC: "🖥",
+  PC: "💻",
   VOICES: "🗣",
 };
 
@@ -64,12 +64,11 @@ export const MODE_CONFIGS: Record<Exclude<ControlMode, "ALL" | "VOICES">, Contro
     { label: "HW Vol -", icon: "🔉", topic: "audio", command: "vol-", room: true, row: 1, col: 0 },
     { label: "AUDIO PWR", icon: "⚡", topic: "audio", command: "on/off", room: true, row: 1, col: 1, tint: RED },
     { label: "HW Vol +", icon: "🔊", topic: "audio", command: "vol+", room: true, row: 1, col: 2 },
-    { label: "OS Volume", icon: "🔊", topic: "", command: "SET_VOLUME", room: false, row: 2, col: 0, colSpan: 3, slider: true },
-    { label: "Prev", icon: "⏮", topic: "", command: "PREV", room: false, row: 3, col: 0 },
-    { label: "Next", icon: "⏭", topic: "", command: "NEXT", room: false, row: 3, col: 2 },
+    { label: "Prev", icon: "⏮", topic: "", command: "PREV", room: false, row: 2, col: 0 },
+    { label: "Next", icon: "⏭", topic: "", command: "NEXT", room: false, row: 2, col: 2 },
   ],
   PC: [
-    { label: "Screens ON", icon: "🖥", topic: "", command: "TURN_ON_MONITORS", room: false, row: 0, col: 0, tint: GREEN },
+    { label: "Screens ON", icon: "💻", topic: "", command: "TURN_ON_MONITORS", room: false, row: 0, col: 0, tint: GREEN },
     { label: "Startup", icon: "🚀", topic: "", command: "STARTUP", room: false, row: 0, col: 1, tint: CYAN },
     { label: "TV ON/OFF", icon: "📺", topic: "tv", command: "power", room: true, row: 0, col: 2, tint: RED },
     { label: "Screens OFF", icon: "💤", topic: "", command: "SHUTDOWN_MONITORS", room: false, row: 1, col: 0, tint: RED },
@@ -80,6 +79,12 @@ export const MODE_CONFIGS: Record<Exclude<ControlMode, "ALL" | "VOICES">, Contro
     { label: "Mouse OFF", icon: "🖱", topic: "", command: "TURN_OFF_MOUSEPAD", room: false, row: 3, col: 0, tint: RED },
     { label: "Mouse ON", icon: "🖱", topic: "", command: "TURN_ON_MOUSEPAD", room: false, row: 3, col: 2, tint: GREEN },
   ],
+};
+
+/** The OS volume slider -- not in any mode's grid: its card sits above the
+ *  mode tabs, always on screen (see ControlsPanel). */
+export const VOLUME_ITEM: ControlItem = {
+  label: "OS Volume", icon: "🔊", topic: "", command: "SET_VOLUME", room: false, slider: true,
 };
 
 /** ALL mode: de-duplicated union (by label) of every mode, flowed responsively. */
