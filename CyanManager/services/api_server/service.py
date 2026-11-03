@@ -338,13 +338,16 @@ def entrypoint(thread_manager):
         except WebSocketDisconnect:
             pass
 
-    server = threading.Thread(
-        target=lambda: uvicorn.run(app, host="0.0.0.0", port=PORT, log_level="warning"),
-        daemon=True,
-    )
-    server.start()
+    # Kept as a Server, not uvicorn.run(), so stopping the service stops it:
+    # otherwise the port (and an open mouse /ws) stayed up until CyanManager exited.
+    server = uvicorn.Server(uvicorn.Config(app, host="0.0.0.0", port=PORT, log_level="warning",
+                                           timeout_graceful_shutdown=5))
+    server_thread = threading.Thread(target=server.run, daemon=True)
+    server_thread.start()
 
     while signal.is_alive() and not thread_manager.to_kill:
         wait(signal, 2000)
 
+    server.should_exit = True
+    server_thread.join(timeout=10)
     print(f"{thread_manager.name} thread down..")
