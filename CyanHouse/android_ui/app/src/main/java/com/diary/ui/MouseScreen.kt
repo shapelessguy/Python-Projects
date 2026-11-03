@@ -47,6 +47,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -56,6 +57,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -64,6 +66,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.diary.net.MouseSocket
 import com.diary.net.Route
 import kotlinx.coroutines.delay
@@ -82,26 +86,52 @@ private enum class MouseMode { MOUSE, KEYBOARD }
  *  Mouse/Keyboard switch, arrow keys and Right under it, and the pad beside.
  *  With the system keyboard up, the space left can't hold all that: only the
  *  window buttons and the arrow keys stay (ControlsScreen drops its volume card
- *  and tabs too), plus the pad in portrait, where that still leaves it room. */
+ *  and tabs too), plus the pad in portrait, where that still leaves it room.
+ *  [managerDown] is what the Controls screen's /info already says: shown at
+ *  once rather than a spinner while this socket's own try takes ~7 s to fail. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun MouseContent(
     landscape: Boolean,
+    managerDown: Boolean,
     modifier: Modifier,
     railWidth: Dp = 0.dp,
     rail: @Composable () -> Unit = {},
 ) {
     val connected by MouseSocket.connected.collectAsState()
-    val lastError by MouseSocket.lastError.collectAsState()
+    val socketError by MouseSocket.lastError.collectAsState()
+    val lastError = if (managerDown) "CyanManager is down" else socketError
+    val down by rememberUpdatedState(managerDown)
     val context = LocalContext.current
 
     // Connected only while this tab is on screen -- the socket isn't worth
     // holding open the rest of the time. connect() is a no-op once a socket
     // exists, so retrying on a timer is cheap and self-healing after a drop.
     DisposableEffect(Unit) { onDispose { MouseSocket.disconnect() } }
-    LaunchedEffect(Unit) {
-        while (true) {
-            if (!connected) MouseSocket.connect()
+    // The screen going off only stops the activity -- the tab stays composed, so
+    // the above never runs and the socket sat through Doze, its pings unanswered
+    // and TCP's retry backing off; back on, moves queued behind it for seconds.
+    // Off with the screen, and a fresh socket when it's back.
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    var started by remember { mutableStateOf(lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) }
+    DisposableEffect(lifecycle) {
+        val observer = LifecycleEventObserver { _, ev ->
+            when (ev) {
+                Lifecycle.Event.ON_STOP -> { started = false; MouseSocket.disconnect() }
+                Lifecycle.Event.ON_START -> { started = true; if (!down) MouseSocket.connect() }
+                else -> {}
+            }
+        }
+        lifecycle.addObserver(observer)
+        onDispose { lifecycle.removeObserver(observer) }
+    }
+    // CyanManager down: the socket to CyanHouse can look alive for a while
+    // after the PC behind it is gone, so it goes, and isn't retried until
+    // /info says CyanManager is back.
+    LaunchedEffect(managerDown) { if (managerDown) MouseSocket.disconnect() }
+    LaunchedEffect(started) {
+        while (started) {
+            if (!connected && !down) MouseSocket.connect()
             delay(2000)
         }
     }
@@ -112,7 +142,7 @@ fun MouseContent(
     LaunchedEffect(onLan) {
         if (firstRoute) { firstRoute = false; return@LaunchedEffect }
         MouseSocket.disconnect()
-        MouseSocket.connect()
+        if (!down) MouseSocket.connect()
     }
 
     var mode by rememberSaveable { mutableStateOf(MouseMode.MOUSE) }
@@ -132,7 +162,7 @@ fun MouseContent(
                         // which is what was pushing the Right button off short
                         // (phone landscape) screens. Off for these two only.
                         // Icons only: the rail is too narrow for their labels.
-                        if (!squeezed) {
+                        if (connected && !squeezed) {
                             Column(Modifier.width(56.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
                                     ModeChip(mode == MouseMode.MOUSE, "🖱", Modifier.fillMaxWidth()) { mode = MouseMode.MOUSE }
@@ -142,7 +172,7 @@ fun MouseContent(
                         }
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             if (connected) ArrowKeys(Modifier.fillMaxWidth())
-                            if (mode == MouseMode.MOUSE && !squeezed) {
+                            if (connected && mode == MouseMode.MOUSE && !squeezed) {
                                 ClickButton("Right", Modifier.height(44.dp).fillMaxWidth()) { MouseSocket.click("right") }
                             }
                         }
@@ -153,7 +183,7 @@ fun MouseContent(
         } else {
             Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 MouseModeArea(connected, lastError, mode, Modifier.weight(1f).fillMaxWidth(), inlineExtras = true)
-                if (!squeezed) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (connected && !squeezed) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
                     ModeChip(mode == MouseMode.MOUSE, "🖱 Mouse", Modifier) { mode = MouseMode.MOUSE }
                     ModeChip(mode == MouseMode.KEYBOARD, "⌨ Keyboard", Modifier) { mode = MouseMode.KEYBOARD }
                     if (mode == MouseMode.MOUSE) {
@@ -189,7 +219,7 @@ private fun MouseModeArea(
         if (connected) {
             WindowButtons()
         } else if (lastError != null) {
-            Text("Not connected: $lastError", fontSize = 12.sp, color = MaterialTheme.colorScheme.error)
+            Text(lastError, fontSize = 14.sp, color = MaterialTheme.colorScheme.error)
         }
         Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
             when {

@@ -55,7 +55,7 @@ val MODE_CONFIGS: Map<ControlMode, List<ControlItem>> = mapOf(
     ),
     ControlMode.AUDIO to listOf(
         ControlItem("PHONES", "🎧", "", "HEADPHONES", false, 0, 0, tint = BLUE),
-        ControlItem("PLAY", "⏯", "", "PLAY_PAUSE", false, 0, 1, tint = GREEN),
+        ControlItem("PLAY", "⏯", "", "PLAY_PAUSE", false, 2, 1, tint = GREEN),
         ControlItem("Speaker", "🔊", "", "SPEAKERS", false, 0, 2, tint = CYAN),
         ControlItem("HW Vol -", "🔉", "audio", "vol-", true, 1, 0),
         ControlItem("AUDIO PWR", "⚡", "audio", "on/off", true, 1, 1, tint = RED),

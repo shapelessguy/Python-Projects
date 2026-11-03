@@ -88,6 +88,15 @@ class ControlsViewModel : ViewModel() {
      *  finishes. */
     var dragging = false
 
+    /** Whether CyanManager answers: /info is asked of it (CyanHouse 502s
+     *  when it can't), so the last /info answer says. Off, everything that
+     *  goes through it -- volume, fn buttons, voices -- is disabled; room
+     *  buttons go to the boards directly and stay on. Null until the first
+     *  answer -- off too, since a down CyanManager takes CyanHouse ~7 s to
+     *  give up on, while an up one answers the first /info at once. */
+    var managerState by mutableStateOf<Boolean?>(null); private set
+    val managerUp get() = managerState == true
+
     /** Followed with a held request (api/longpoll.py): it comes back when
      *  the volume or device changes, not once a second. Run by
      *  ControlsScreen only while it is on screen and the app in front, so a
@@ -96,7 +105,12 @@ class ControlsViewModel : ViewModel() {
         var since = ""
         while (true) {
             val answer = runCatching { Api.controlInfoHeld(since) }.getOrNull()
+            managerState = answer != null
             if (answer == null) {
+                // Asked again without a tag, so the server answers at once:
+                // with the old one it held the retry up to 25 s while "down"
+                // stayed on screen, the room's state not having changed.
+                since = ""
                 delay(3000)
                 continue
             }
@@ -151,7 +165,7 @@ fun ControlsScreen(vm: ControlsViewModel = viewModel()) {
     val outer = Modifier.fillMaxSize().imePadding().padding(start = 12.dp, top = 12.dp, end = 12.dp)
     if (landscape && vm.mode == ControlMode.MOUSE) {
         // The MOUSE tab fills the rail's free space with its own buttons.
-        MouseContent(true, outer.padding(bottom = 4.dp), RAIL_WIDTH) { ControlsHeader(vm) }
+        MouseContent(true, vm.managerState == false, outer.padding(bottom = 4.dp), RAIL_WIDTH) { ControlsHeader(vm) }
     } else if (landscape) {
         // Volume + tabs as a left rail, so the body keeps the whole (short) height.
         Row(outer, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -197,7 +211,7 @@ private fun ControlsBody(vm: ControlsViewModel, modifier: Modifier) {
     if (vm.mode == ControlMode.MOUSE) {
         // A small bottom margin rather than 12dp, so the Mouse/Keyboard row
         // sits close to the system keyboard when that is up.
-        MouseContent(false, modifier.padding(bottom = 4.dp))
+        MouseContent(false, vm.managerState == false, modifier.padding(bottom = 4.dp))
         return
     }
     Column(
@@ -273,10 +287,11 @@ fun VolumeCard(item: ControlItem, vm: ControlsViewModel, modifier: Modifier, pad
             .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(10.dp))
             .padding(padding),
     ) {
+        val up = vm.managerUp
         Text(
             "${item.icon} OS Volume" +
-                (if (device.isNotEmpty()) ": $device" else "") +
-                " · ${(local * 100).roundToInt()}%",
+                if (vm.managerState == false) " · CyanManager is down"
+                else (if (device.isNotEmpty()) ": $device" else "") + " · ${(local * 100).roundToInt()}%",
             fontSize = 12.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -297,15 +312,16 @@ fun VolumeCard(item: ControlItem, vm: ControlsViewModel, modifier: Modifier, pad
         ) {
             // −/+ just tell CyanManager to step the volume (VOLUME_DOWN/UP);
             // it picks the step and the new level comes back in its reply.
-            NudgeButton("−") { vm.run(item.copy(command = "VOLUME_DOWN", slider = false)) }
+            NudgeButton("−", up) { vm.run(item.copy(command = "VOLUME_DOWN", slider = false)) }
             Slider(
                 value = local,
                 onValueChange = { vm.dragging = true; local = it },
                 valueRange = 0f..1f,
                 onValueChangeFinished = { commit(local) },
+                enabled = up,
                 modifier = Modifier.weight(1f),
             )
-            NudgeButton("+") { vm.run(item.copy(command = "VOLUME_UP", slider = false)) }
+            NudgeButton("+", up) { vm.run(item.copy(command = "VOLUME_UP", slider = false)) }
         }
     }
 }
@@ -326,6 +342,7 @@ private fun ControlCell(
 
     OutlinedButton(
         onClick = { vm.run(item) },
+        enabled = item.room || vm.managerUp,
         modifier = modifier.heightIn(min = minHeight),
         shape = RoundedCornerShape(10.dp),
         border = BorderStroke(
@@ -351,6 +368,7 @@ private fun ControlCell(
 private fun VoiceCell(name: String, vm: ControlsViewModel, modifier: Modifier) {
     OutlinedButton(
         onClick = { vm.playVoice(name) },
+        enabled = vm.managerUp,
         modifier = modifier.heightIn(min = 60.dp),
         shape = RoundedCornerShape(10.dp),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
@@ -372,7 +390,7 @@ private const val NUDGE_DELAY_MS = 1000L
 private const val NUDGE_REPEAT_MS = 250L
 
 @Composable
-private fun NudgeButton(text: String, onClick: () -> Unit) {
+private fun NudgeButton(text: String, enabled: Boolean, onClick: () -> Unit) {
     // One step on press, then repeated while held (NUDGE_DELAY_MS, then
     // every NUDGE_REPEAT_MS). The
     // interactions themselves, not a pressed state: a quick tap inside the
@@ -398,6 +416,7 @@ private fun NudgeButton(text: String, onClick: () -> Unit) {
     }
     OutlinedButton(
         onClick = {},
+        enabled = enabled,
         interactionSource = interaction,
         modifier = Modifier.size(40.dp),
         contentPadding = PaddingValues(0.dp),

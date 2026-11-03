@@ -81,14 +81,25 @@ object MouseSocket {
                     if (socket !== webSocket) return
                     socket = null
                     _connected.value = false
-                    _lastError.value = t.message ?: t::class.simpleName
+                    _lastError.value = reason(response?.code)
                 }
             })
         } catch (e: Exception) {
-            _lastError.value = e.message ?: e::class.simpleName
+            _lastError.value = reason(null)
         } finally {
             connecting = false
         }
+    }
+
+    /** What the MOUSE tab says when it can't connect; the raw error is in
+     *  DiagLog. CyanHouse answers 502 when CyanManager's API Server doesn't
+     *  answer it, 503 when it has none set up (api/routers/controls.py). */
+    private fun reason(code: Int?) = when (code) {
+        null -> "Can't reach CyanHouse"
+        502 -> "CyanManager is down"
+        503 -> "CyanManager isn't set up on CyanHouse"
+        401, 403 -> "Not allowed to use the mouse"
+        else -> "Can't connect to the mouse (error $code)"
     }
 
     fun disconnect() {

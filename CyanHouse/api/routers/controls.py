@@ -42,6 +42,10 @@ router = APIRouter(prefix="/api/controls", tags=["controls"])
 PANEL = "controls"  # gates the whole router behind permissions.visibility -- see api/auth.py
 
 _TIMEOUT = 5  # same as CyanControls' OkHttp timeouts
+# The PC is on the LAN: a connection opens in milliseconds or not at all, and
+# Windows drops (rather than refuses) one to a closed port, so a down
+# CyanManager used to cost the whole _TIMEOUT every time it was asked.
+_CONNECT_TIMEOUT = 1
 
 
 def init() -> None:
@@ -56,13 +60,14 @@ def _forward(method: str, base: str, path: str, payload: dict | None, user: str)
         )
     url = f"{base}{path}"
     headers = basic_header(user)
+    timeout = (_CONNECT_TIMEOUT, _TIMEOUT)
     try:
         if method == "GET":
-            r = requests.get(url, headers=headers, timeout=_TIMEOUT)
+            r = requests.get(url, headers=headers, timeout=timeout)
         elif payload is None:
-            r = requests.post(url, headers=headers, timeout=_TIMEOUT)
+            r = requests.post(url, headers=headers, timeout=timeout)
         else:
-            r = requests.post(url, json=payload, headers=headers, timeout=_TIMEOUT)
+            r = requests.post(url, json=payload, headers=headers, timeout=timeout)
     except requests.RequestException as e:
         raise HTTPException(status_code=502, detail=f"control server unreachable: {e}")
     if not r.ok:
@@ -164,8 +169,10 @@ async def mouse(websocket: WebSocket, user: str = Depends(require_user)):
             "mouse server not configured — set CONTROLS_FN_HOST in config.json", status_code=503))
         return
     try:
+        # Pinged often: a PC that went silent (no close) is dropped in seconds,
+        # and the phone with it, instead of the library's 20 s + 20 s.
         pc = await websockets.connect(MOUSE_WS_URL, additional_headers=basic_header(user),
-                                      open_timeout=_TIMEOUT)
+                                      open_timeout=_TIMEOUT, ping_interval=3, ping_timeout=3)
     except (OSError, TimeoutError, websockets.WebSocketException) as e:
         await websocket.send_denial_response(PlainTextResponse(
             f"mouse server unreachable: {e}", status_code=502))

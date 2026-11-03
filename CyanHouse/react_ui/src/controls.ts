@@ -59,12 +59,12 @@ export const MODE_CONFIGS: Record<Exclude<ControlMode, "ALL" | "VOICES">, Contro
   ],
   AUDIO: [
     { label: "PHONES", icon: "🎧", topic: "", command: "HEADPHONES", room: false, row: 0, col: 0, tint: BLUE },
-    { label: "PLAY", icon: "⏯", topic: "", command: "PLAY_PAUSE", room: false, row: 0, col: 1, tint: GREEN },
     { label: "Speaker", icon: "🔊", topic: "", command: "SPEAKERS", room: false, row: 0, col: 2, tint: CYAN },
     { label: "HW Vol -", icon: "🔉", topic: "audio", command: "vol-", room: true, row: 1, col: 0 },
     { label: "AUDIO PWR", icon: "⚡", topic: "audio", command: "on/off", room: true, row: 1, col: 1, tint: RED },
     { label: "HW Vol +", icon: "🔊", topic: "audio", command: "vol+", room: true, row: 1, col: 2 },
     { label: "Prev", icon: "⏮", topic: "", command: "PREV", room: false, row: 2, col: 0 },
+    { label: "PLAY", icon: "⏯", topic: "", command: "PLAY_PAUSE", room: false, row: 2, col: 1, tint: GREEN },
     { label: "Next", icon: "⏭", topic: "", command: "NEXT", room: false, row: 2, col: 2 },
   ],
   PC: [
