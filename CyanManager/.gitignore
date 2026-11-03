@@ -4,3 +4,5 @@ logs/*
 exe_map.json
 services/clef_flash/tools/
 profile.txt
+configurations/*.json
+!configurations/default.json
