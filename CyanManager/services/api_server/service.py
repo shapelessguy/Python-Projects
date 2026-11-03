@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 import tempfile
@@ -27,6 +28,7 @@ from utils import wait
 from services.stt.service import transcribe, transcribe_movie, synthesize_speech, askLLM, NAME as STT_NAME
 from services.clef_flash.service import URL as CLEF_URL
 from services.devices.service import active_output
+from services.audio_stream.service import listen as listen_audio, stop_listening as stop_listening_audio
 from services.docling_converter.service import convert as docling_convert, FORMATS as DOCLING_FORMATS, NAME as DOCLING_NAME
 import api_auth
 
@@ -339,6 +341,44 @@ def entrypoint(thread_manager):
                     print(f"mouse ws: error handling {msg}: {e}")
         except WebSocketDisconnect:
             pass
+
+    @app.websocket("/ws/audio")
+    async def audio_ws(websocket: WebSocket):
+        # What the PC is playing (services/audio_stream), for CyanHouse to
+        # relay: same users as /ws. Text frames are the format, binary ones PCM.
+        if not api_auth.allowed(remote(websocket), websocket.headers.get("authorization")):
+            await websocket.close(code=1008)
+            return
+        await websocket.accept()
+        listener = listen_audio(asyncio.get_running_loop())
+        if listener is None:
+            await websocket.close(code=1013, reason="Audio Stream is off")
+            return
+
+        async def send():
+            while (item := await listener.queue.get()) is not None:
+                if isinstance(item, bytes):
+                    await websocket.send_bytes(item)
+                else:
+                    await websocket.send_json(item)
+
+        async def until_gone():
+            # The listener sends nothing: this only notices it leaving, even
+            # while the PC is silent and send() has nothing to write.
+            while (await websocket.receive())["type"] != "websocket.disconnect":
+                pass
+
+        tasks = [asyncio.create_task(send()), asyncio.create_task(until_gone())]
+        try:
+            done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+            for task in pending:
+                task.cancel()
+            if tasks[0] in done and tasks[0].exception() is None:  # the service stopped
+                await websocket.close(code=1013, reason="Audio Stream is off")
+        except Exception:
+            pass
+        finally:
+            stop_listening_audio(listener)
 
     # Kept as a Server, not uvicorn.run(), so stopping the service stops it:
     # otherwise the port (and an open mouse /ws) stayed up until CyanManager exited.
