@@ -39,9 +39,11 @@ PARAMETERS = {
 }
 
 
-def get_info(signal):
-    info = get_current_audio_info()
-    return {**info, "output": active_output(signal, info["device"])}
+def get_info():
+    return {
+        **get_current_audio_info(),
+        "output": active_output(),
+    }
 
 
 def handle_mouse_message(msg):
@@ -93,7 +95,7 @@ def entrypoint(thread_manager):
 
     @app.get("/info")
     def get_info_():
-        return get_info(signal)
+        return get_info()
 
     @app.post("/audio")
     async def receive_audio(request: Request):
@@ -295,7 +297,7 @@ def entrypoint(thread_manager):
         else:
             result = await run_in_threadpool(funcs[name].run)
 
-        return {"status": "ok", "ran": name, "result": str(result), "info": get_info(signal)}
+        return {"status": "ok", "ran": name, "result": str(result), "info": get_info()}
 
     @app.get("/voices")
     def get_voices():

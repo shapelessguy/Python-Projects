@@ -1,5 +1,5 @@
 import time
-from functions.audio import switch_to_audio_device, split_friendly_name
+from functions.audio import switch_to_audio_device, get_default_output_id
 from functions.monitors import set_primary_screen
 from PyQt5.QtWidgets import QLineEdit
 from utils import Parameter
@@ -14,19 +14,15 @@ PARAMETERS = {
 }
 
 
-def active_output(signal, friendly_name):
-    """"speakers" or "headphones" when Windows' default output is the one set
-    in that parameter (its name or its device, as the switch takes either),
-    None for any other output."""
-    devices = signal.thread_managers.get(NAME)
-    if devices is None:
-        return None
-    parts = split_friendly_name(friendly_name)
-    for spec in ("Speakers", "Headphones"):
-        value = devices.get_param(spec)
-        if value and value in parts:
-            return spec.lower()
-    return None
+# Windows endpoint id -> "Speakers"/"Headphones": what each switch landed on
+output_ids = {}
+
+
+def active_output():
+    """"speakers" or "headphones" when Windows' default output is the device
+    a switch to it landed on, None for any other (or none switched to yet)."""
+    spec = output_ids.get(get_default_output_id())
+    return spec.lower() if spec else None
 
 
 def switch_to_headphones_():
@@ -59,7 +55,11 @@ def entrypoint(thread_manager):
                 pending_message = None
                 device_name = thread_manager.get_param(device_spec)
                 if device_type == "Audio":
-                    switch_to_audio_device(thread_manager.signal, device_name, icon)
+                    device_id = switch_to_audio_device(thread_manager.signal, device_name, icon)
+                    if device_id:
+                        for k in [k for k, v in output_ids.items() if v == device_spec]:
+                            del output_ids[k]
+                        output_ids[device_id] = device_spec
                 elif device_type == "Screen":
                     set_primary_screen(thread_manager.signal, device_name, icon)
             except:
