@@ -1,43 +1,59 @@
+import { useId } from "react";
+
 interface Props {
   humidityPct: number | null;
   width?: number;
   height?: number;
 }
 
-/** Vertical capsule "sensor tube", filled bottom-up to the humidity
- * percentage, with the value printed underneath. Fill opacity floors at 50%
- * for anything at or below 50% humidity, then tracks the percentage above
- * that (so 100% humidity is fully opaque). */
-export function HumidityGauge({ humidityPct, width = 12, height = 26 }: Props) {
+/** How full the humidity drop is, 0..1: empty at 30% or less, half at 70%,
+ * full at 90% or more -- the quadratic through those three points, so the
+ * humid end, where differences matter, gets most of the drop. Same as
+ * humidityFill in the Android OverviewBoard.kt. */
+export function humidityFill(pct: number): number {
+  if (pct <= 30) return 0; // the parabola rises again below 10%
+  return Math.min(1, ((pct - 30) * (pct - 10)) / 4800);
+}
+
+/** Water drop, filled bottom-up by humidityFill, with the value printed
+ * next to it. */
+export function HumidityGauge({ humidityPct, width = 16, height = 24 }: Props) {
+  // One clip path per gauge (a board shows many); useId's colons kept out of url(#...).
+  const clipId = `humidity-drop${useId().replace(/:/g, "")}`;
   if (humidityPct == null) return <span className="muted">–</span>;
   const pct = Math.max(0, Math.min(100, humidityPct));
-  const opacity = pct <= 50 ? 0.5 : pct / 100;
-  const pad = 1.5;
-  const innerH = height - pad * 2;
-  const fillH = (innerH * pct) / 100;
-  const r = (width - pad * 2) / 2;
+  const pad = 1;
+  // A round bottom (circle as wide as the box) tapering to a point at the top.
+  const r = width / 2 - pad;
+  const cx = width / 2;
+  const cy = height - pad - r;
+  const tip = pad;
+  const bend = tip + (cy - tip) * 0.35;
+  const drop =
+    `M ${cx} ${tip} ` +
+    `C ${cx} ${bend} ${cx + r} ${cy - r * 0.9} ${cx + r} ${cy} ` +
+    `A ${r} ${r} 0 0 1 ${cx - r} ${cy} ` +
+    `C ${cx - r} ${cy - r * 0.9} ${cx} ${bend} ${cx} ${tip} Z`;
+  const bottom = cy + r;
+  const fillH = (bottom - tip) * humidityFill(pct);
   return (
     <span className="humidity-gauge">
       <svg viewBox={`0 0 ${width} ${height}`} width={width} height={height}>
+        <defs>
+          <clipPath id={clipId}>
+            <path d={drop} />
+          </clipPath>
+        </defs>
         <rect
-          x={pad / 2}
-          y={pad / 2}
-          width={width - pad}
-          height={height - pad}
-          rx={(width - pad) / 2}
-          fill="none"
-          stroke="#4c9be8"
-          strokeWidth="1.3"
-        />
-        <rect
-          x={pad}
-          y={pad + (innerH - fillH)}
-          width={width - pad * 2}
+          x={0}
+          y={bottom - fillH}
+          width={width}
           height={fillH}
-          rx={r}
           fill="#4c9be8"
-          opacity={opacity}
+          opacity={0.85}
+          clipPath={`url(#${clipId})`}
         />
+        <path d={drop} fill="none" stroke="#4c9be8" strokeWidth="1.3" />
       </svg>
       <span className="humidity-gauge-label">{Math.round(pct)}%</span>
     </span>

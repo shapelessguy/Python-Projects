@@ -28,12 +28,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -210,14 +212,20 @@ fun TemperatureBar(
     }
 }
 
-/** Vertical capsule "sensor tube", filled bottom-up to the humidity
- *  percentage. Fill opacity floors at 50% for anything at or below 50%
- *  humidity. Port of HumidityGauge.tsx. */
+/** How full the humidity drop is, 0..1: empty at 30% or less, half at 70%,
+ *  full at 90% or more -- the quadratic through those three points, so the
+ *  humid end, where differences matter, gets most of the drop. Same as
+ *  humidityFill in HumidityGauge.tsx. */
+fun humidityFill(pct: Float): Float =
+    if (pct <= 30f) 0f  // the parabola rises again below 10%
+    else ((pct - 30f) * (pct - 10f) / 4800f).coerceAtMost(1f)
+
+/** Water drop, filled bottom-up by [humidityFill]. Port of HumidityGauge.tsx. */
 @Composable
 fun HumidityGauge(
     humidityPct: Float?,
     modifier: Modifier = Modifier,
-    width: Dp = 10.dp,
+    width: Dp = 14.dp,
     height: Dp = 20.dp,
 ) {
     if (humidityPct == null) {
@@ -225,26 +233,33 @@ fun HumidityGauge(
         return
     }
     val pct = humidityPct.coerceIn(0f, 100f)
-    val opacity = if (pct <= 50f) 0.5f else pct / 100f
+    val fill = humidityFill(pct)
     Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         Canvas(Modifier.size(width, height)) {
-            val pad = 1.5.dp.toPx()
-            val innerH = size.height - pad * 2
-            val fillH = innerH * pct / 100f
-            drawRoundRect(
-                color = RAIN_COLOR,
-                topLeft = Offset(pad / 2, pad / 2),
-                size = Size(size.width - pad, size.height - pad),
-                cornerRadius = CornerRadius((size.width - pad) / 2),
-                style = Stroke(width = 1.3.dp.toPx()),
-            )
-            drawRoundRect(
-                color = RAIN_COLOR,
-                topLeft = Offset(pad, pad + (innerH - fillH)),
-                size = Size(size.width - pad * 2, fillH),
-                cornerRadius = CornerRadius((size.width - pad * 2) / 2),
-                alpha = opacity,
-            )
+            val pad = 1.dp.toPx()
+            // A round bottom (circle as wide as the canvas) tapering to a point at the top.
+            val r = size.width / 2 - pad
+            val cx = size.width / 2
+            val cy = size.height - pad - r
+            val tip = pad
+            val drop = Path().apply {
+                moveTo(cx, tip)
+                cubicTo(cx, tip + (cy - tip) * 0.35f, cx + r, cy - r * 0.9f, cx + r, cy)
+                arcTo(Rect(cx - r, cy - r, cx + r, cy + r), 0f, 180f, false)
+                cubicTo(cx - r, cy - r * 0.9f, cx, tip + (cy - tip) * 0.35f, cx, tip)
+                close()
+            }
+            val bottom = cy + r
+            val fillH = (bottom - tip) * fill
+            clipPath(drop) {
+                drawRect(
+                    color = RAIN_COLOR,
+                    topLeft = Offset(0f, bottom - fillH),
+                    size = Size(size.width, fillH),
+                    alpha = 0.85f,
+                )
+            }
+            drawPath(drop, color = RAIN_COLOR, style = Stroke(width = 1.3.dp.toPx()))
         }
         Text(
             "${pct.roundToInt()}%",
