@@ -593,13 +593,6 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
 }
 .dish-card-foot .dish-stars { color: #f2c14e; font-size: 0.78rem; margin-top: 1px; }
 .dish-card-foot .acts { display: flex; align-items: center; gap: 4px; flex: 0 0 auto; }
-/* Recipe url/html fetch status: red = url set but page not saved yet,
-   green = page fetched and stored. Absent entirely when there's no url. */
-.dish-status-dot {
-  width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto;
-}
-.dish-status-dot.ok { background: #46a758; }
-.dish-status-dot.bad { background: #e5484d; }
 .dish-card-foot .acts button { padding: 2px 7px; font-size: 0.8rem; line-height: 1.3; }
 .dish-card-foot.armed { flex-wrap: wrap; }
 .dish-card-foot .confirm-label {
@@ -639,6 +632,22 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
 .dish-form label input[type="range"] { padding: 0; }
 .dish-form-image { display: flex; gap: 12px; align-items: flex-start; }
 .dish-form-image .col { display: flex; flex-direction: column; gap: 6px; }
+.dish-form-image .dish-thumb { width: 200px; height: 150px; }
+/* "Upload image…": a file input's label, drawn as the buttons next to it. */
+.dish-form label.dish-form-upload {
+  display: block; text-align: center; cursor: pointer;
+  background: var(--panel-2); color: var(--text); font-size: inherit;
+  border: 1px solid var(--line); border-radius: 6px; padding: 4px 10px;
+}
+.dish-form label.dish-form-upload:hover { border-color: #3a414f; }
+/* "Rating:" and its ten stars on one line. */
+.dish-form-rating { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.star-rating { display: inline-flex; }
+.star-rating button {
+  background: none; border: none; padding: 0 1px; cursor: pointer;
+  font-size: 1.25rem; line-height: 1; color: var(--line);
+}
+.star-rating button.on { color: #f5b301; }
 .modal.image-picker {
   width: min(1240px, 96vw);
   height: min(960px, 90vh);
@@ -666,6 +675,78 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
   display: block;
 }
 .picker-cell:hover { border-color: var(--accent); }
+/* A recipe search result: the photo, its title and category over the bottom. */
+.recipe-cell { position: relative; }
+.recipe-cell:disabled { cursor: wait; }
+.recipe-cell:disabled:not(.fetching) { opacity: 0.5; }
+.recipe-cell-caption {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  padding: 18px 10px 8px; text-align: left;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.85));
+  display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px;
+}
+.recipe-cell-title { font-weight: 600; font-size: 0.85rem; color: #fff; flex: 1 1 100%; }
+.recipe-cell-cat { font-size: 0.72rem; color: rgba(255, 255, 255, 0.75); }
+.recipe-cell-facts { font-size: 0.72rem; color: #fff; flex: 1 1 100%; }
+.recipe-cell-facts:empty { display: none; }
+.dish-form-recipe { display: flex; flex-direction: column; gap: 6px; }
+.dish-form-recipe .row-actions { margin-top: 0; }
+.dish-form-label { font-size: 0.8rem; color: var(--muted); }
+.recipe-link {
+  padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px;
+  background: var(--panel-2); display: flex; flex-direction: column; gap: 2px;
+  color: inherit; text-decoration: none; overflow-wrap: anywhere;
+}
+.recipe-link:hover { border-color: var(--accent); }
+/* The recipe viewer: a page as kept, every step's photos in order. */
+.modal.recipe-viewer { width: min(860px, 96vw); max-height: 90vh; display: flex; flex-direction: column; }
+.recipe-viewer-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.recipe-viewer-head h4 { margin: 0; }
+.recipe-viewer .dish-info-scroll { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.recipe-viewer h5 { margin: 10px 0 0; }
+.recipe-viewer-cover { width: 100%; max-height: 320px; object-fit: cover; border-radius: 8px; }
+.recipe-viewer-ingredients { margin: 0; padding-left: 1.3em; font-size: 0.85rem; line-height: 1.6; }
+.recipe-viewer-step { display: flex; flex-direction: column; gap: 6px; padding: 8px 0; border-top: 1px solid var(--line); }
+.recipe-viewer-step p { margin: 0; font-size: 0.85rem; line-height: 1.6; }
+.recipe-viewer-step-num { font-weight: 700; font-size: 0.85rem; color: var(--muted); }
+/* Three photos to a row; a step's only photo (a strip of them, a collage)
+   the whole width. */
+.recipe-viewer-photos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+.recipe-viewer-photos.single { grid-template-columns: 1fr; }
+.recipe-viewer-photos figure { position: relative; margin: 0; }
+.recipe-viewer-photos img { width: 100%; display: block; border-radius: 4px; }
+.recipe-viewer-photos figcaption {
+  position: absolute; right: 0; bottom: 0; padding: 2px 7px;
+  background: #f7962e; color: #fff; font-size: 0.72rem; font-weight: 600; border-radius: 4px 0 4px 0;
+}
+/* The recipe import: on a dish's card while it runs or when it failed, and
+   its progress. */
+.dish-card { position: relative; }
+.dish-card-import {
+  position: absolute; left: 6px; top: 6px; z-index: 2;
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; font-size: 0.72rem; border-radius: 10px;
+  background: rgba(0, 0, 0, 0.7); color: #fff; border: none;
+}
+.dish-card-import.failed { background: rgba(229, 72, 77, 0.9); }
+.modal.import-progress { width: min(420px, 92vw); }
+.import-stages { list-style: none; margin: 8px 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 0.85rem; }
+.import-stages li { color: var(--muted); }
+.import-stages li.done, .import-stages li.now { color: var(--text); }
+.import-failed { color: var(--accent); }
+/* A dish's facts in its view. */
+.facts-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 10px; }
+.facts-grid .facts-wide { grid-column: 1 / -1; }
+.facts-grid { align-items: end; }
+.facts-grid label { display: flex; flex-direction: column; gap: 3px; min-width: 0; font-size: 0.78rem; color: var(--muted); }
+/* One line each, so the boxes of a row line up whatever the language. */
+.facts-grid label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dish-info-body .recipe-viewer-photos { margin: 4px 0 6px; }
+.photo-badge {
+  display: inline-block; min-width: 1.5em; padding: 0 4px; margin: 0 2px;
+  text-align: center; border-radius: 3px; font-size: 0.75rem; font-weight: 600;
+  background: rgba(247, 150, 46, 0.18); color: #f7962e;
+}
 .picker-cell img {
   width: 100%; height: 100%;
   object-fit: cover; display: block;
@@ -870,6 +951,9 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
   width: min(340px, 90vw);
 }
 .modal h4 { margin: 0 0 10px; font-size: 0.95rem; }
+.modal.settings-dialog { display: flex; flex-direction: column; gap: 12px; }
+.settings-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.settings-row select { width: auto; }
 .modal.password-form { display: flex; flex-direction: column; gap: 10px; }
 .password-form p { margin: 0; }
 .password-form label { display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem; color: var(--muted); }
@@ -894,17 +978,55 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
 .alarm-actions select { font-size: 0.78rem; }
 .dish-info-scroll {
   overflow-y: auto; min-height: 0; margin: 0 0 12px;
+  /* Room for the focus ring and the scrollbar, which would cover the
+     rows' delete buttons. */
+  padding: 3px 12px 3px 3px;
   overscroll-behavior: contain;
 }
-.ingredients-top { display: flex; gap: 10px; margin-bottom: 12px; }
-.ingredients-top label { flex: 1 1 0; display: flex; flex-direction: column; gap: 3px; font-size: 0.78rem; color: var(--muted); }
+.modal.dish-info .row-actions { margin-top: 4px; }
+.btn-ring { display: inline-block; vertical-align: -1px; margin-right: 7px; }
+/* The dish dialog: sections one under the other, a thin line between. */
+.dish-section { padding: 12px 0; border-top: 1px solid var(--line); }
+.dish-section:first-of-type { border-top: 0; padding-top: 2px; }
+.dish-section-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 26px; margin-bottom: 8px; }
+.dish-section-head h5 { margin: 0; font-size: 0.74rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+button.small-btn { padding: 2px 8px; font-size: 0.78rem; color: var(--muted); border-color: transparent; }
+button.small-btn:hover { color: var(--text); border-color: var(--line); }
+button.add-btn { width: 100%; border-style: dashed; color: var(--muted); }
+button.add-btn:hover { color: var(--text); }
+/* A trash can etc.: just the glyph, dimmed; no box, so it isn't read as an error. */
+button.glyph-btn { background: transparent; border-color: transparent; padding: 4px 6px; opacity: 0.6; }
+button.glyph-btn:hover:not(:disabled) { opacity: 1; border-color: transparent; }
+button.glyph-btn:disabled { opacity: 0.2; }
+/* "Serves [4] [persons]" */
+.ingredients-top { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.ingredients-top input { flex: 1 1 auto; min-width: 0; }
+.ingredients-top input.yield-qty { flex: 0 0 4.5em; text-align: center; }
+.ingredients-top > span { white-space: nowrap; }
 .ingredients-rows { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
-.ingredients-row { display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 6px; align-items: center; }
-.ingredients-row.invalid input { border-color: var(--accent); }
+.ingredients-row { display: grid; grid-template-columns: minmax(0, 1fr) 4.5em 3.6em auto; gap: 6px; align-items: center; }
+.ingredients-row.catalog-row { grid-template-columns: 2fr 1fr 1fr auto; }
+.ingredients-row input:nth-child(2) { text-align: right; }
+/* A unit picker: the select's own text hidden, its unit's short name laid
+   over it (FoodPanel's UnitSelect); the options keep their full names. */
+.unit-select { position: relative; display: block; min-width: 0; }
+.unit-select select { width: 100%; color: transparent; }
+.unit-select select option, .unit-select select optgroup { color: var(--text); }
+.unit-select-label {
+  position: absolute; inset: 0 16px 0 2px; display: flex; align-items: center; justify-content: center;
+  pointer-events: none; overflow: hidden; white-space: nowrap; font-size: 0.85rem;
+}
+.unit-icon { width: 22px; height: 22px; flex: 0 0 auto; color: var(--text); }
+/* !important: the app-wide input rule (top of this file) carries eight
+   :not() parts, more specific than any class rule here. */
+.ingredients-row.invalid input, .ingredients-top input.invalid { border-color: var(--accent) !important; }
 /* The dish dialog's Instructions heading, with its Edit button at the end. */
 .dish-info-section { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 16px; }
 .dish-info-section h5, .dish-info-scroll > h5 { margin: 0 0 6px; }
 .ingredients-row-error { color: var(--accent); font-size: 0.74rem; margin: 2px 0 0 2px; }
+.ingredients-row-note { color: var(--muted); font-size: 0.74rem; margin: 2px 0 0 2px; }
+.ingredients-conversions { margin: 4px 0 8px; padding: 6px 8px; border-left: 2px solid var(--line); display: flex; flex-direction: column; gap: 6px; }
+.ingredients-conversion { display: grid; grid-template-columns: 4.5em minmax(5em, 7em) auto 4.5em minmax(5em, 7em); gap: 6px; align-items: center; }
 /* Both inside .dish-info-scroll, which scrolls the dialog: neither may keep
    the wheel to itself, or the dialog stops scrolling under the pointer. */
 .dish-info-edit {
@@ -916,6 +1038,9 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
   background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px;
   font-size: 0.85rem; line-height: 1.5;
 }
+/* The dish dialog's preparation, read (not edited): plain text under its
+   heading, no box. */
+.dish-section .dish-info-body { margin: 0; padding: 0; background: none; border: 0; border-radius: 0; }
 .dish-info-body.markdown > :first-child { margin-top: 0; }
 .dish-info-body.markdown > :last-child { margin-bottom: 0; }
 .dish-info-body.markdown h1,
@@ -1388,8 +1513,6 @@ input.mv-rename {
 /* The right panel at rest: a document, so it gets a document's measure. */
 .mv-home { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 2px 4px; position: relative; }
 /* EN / IT, in the top right corner of the text. */
-.mv-homelang { float: right; display: flex; gap: 2px; margin: 0 0 6px 8px; }
-.mv-homelang button { padding: 1px 7px; font-size: 0.72rem; }
 .mv-home ol, .mv-home ul { padding-left: 1.3em; }
 .mv-home h1 { font-size: 1.15rem; margin: 0 0 8px; }
 .mv-home h2 { font-size: 0.98rem; margin: 14px 0 6px; }
@@ -2423,6 +2546,30 @@ label.button-like {
 
   /* Dialogs never wider than the screen, whatever width they ask for. */
   .modal { max-width: calc(100vw - 16px); padding: 12px; }
+  /* The dish dialog is a page of its own on a phone: the whole screen, the
+     buttons fixed at the bottom, controls big enough for a thumb (16px
+     text: smaller makes a phone zoom in on focus). */
+  .modal-backdrop:has(> .modal.dish-info) { padding: 0; align-items: stretch; overflow: hidden; }
+  /* The page behind stops scrolling meanwhile: its scrollbar, drawn beside
+     the dialog in a narrow desktop window, was the second one. */
+  html:has(.modal.dish-info), html:has(.modal.dish-info) body { overflow: hidden; }
+  .modal.dish-info {
+    /* 100%, not 100vw: vw counts the page's scrollbar in. */
+    width: 100%; max-width: 100%; height: 100dvh; max-height: 100dvh;
+    border: 0; border-radius: 0; padding: 12px 12px calc(10px + env(safe-area-inset-bottom));
+    /* Only its middle scrolls (.dish-info-scroll): not the dialog too, as
+       other dialogs do on a phone (the .modal rule further down). */
+    overflow: hidden;
+  }
+  .modal.dish-info .dish-info-scroll { flex: 1 1 auto; padding-right: 3px; }
+  .modal.dish-info input:not([type="checkbox"]), .modal.dish-info select, .modal.dish-info textarea {
+    min-height: 40px; font-size: 16px !important;  /* !important: the app-wide input rule sets font: inherit, and outranks this */
+  }
+  .modal.dish-info button { min-height: 40px; }
+  .modal.dish-info button.glyph-btn { min-width: 40px; }
+  .modal.dish-info .row-actions { margin-top: 0; }
+  .modal.dish-info .row-actions button { flex: 1 1 0; }
+  .modal.dish-info .ingredients-row { grid-template-columns: minmax(0, 1fr) 4em 3.4em auto; gap: 5px; }
   .modal-backdrop { padding: 8px 0; }
   .modal.event-form .field textarea,
   .modal.event-form .field .description-view { min-height: 120px; max-height: 160px; }
