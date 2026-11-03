@@ -378,6 +378,9 @@ data class OverviewResponse(
 data class ControlsInfo(
     val volume: Double? = null,
     val device: String? = null,
+    /** Which of CyanManager's Devices outputs is the default one: "speakers",
+     *  "headphones", or null for neither. */
+    val output: String? = null,
 )
 
 @Serializable

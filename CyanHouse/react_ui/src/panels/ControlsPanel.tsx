@@ -223,8 +223,8 @@ export function ControlsPanel() {
                 };
 
           const active =
-            (it.label === "Speaker" && /speaker/i.test(device)) ||
-            (it.label === "PHONES" && /headphone/i.test(device));
+            (it.command === "SPEAKERS" && info.output === "speakers") ||
+            (it.command === "HEADPHONES" && info.output === "headphones");
 
           return (
             <button

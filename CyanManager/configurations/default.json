@@ -1,8 +1,4 @@
 {
-    "devices": {
-        "speakers": "SPDIF-Out",
-        "headphones": "Headphones"
-    },
     "roomserver_settings": {
         "url": "http://cyanhouse.duckdns.org",
         "port": 10004,

@@ -108,6 +108,8 @@ export interface OverviewResponse {
 export interface ControlsInfo {
   volume?: number;
   device?: string;
+  // Which of CyanManager's Devices outputs is the default one, null for neither
+  output?: "speakers" | "headphones" | null;
 }
 
 async function j<T>(r: Response): Promise<T> {

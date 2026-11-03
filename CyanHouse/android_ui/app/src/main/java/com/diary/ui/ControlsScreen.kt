@@ -334,10 +334,9 @@ private fun ControlCell(
     modifier: Modifier,
     minHeight: Dp = 84.dp,
 ) {
-    val device = vm.info.device ?: ""
-
-    val active = (item.label == "Speaker" && device.contains("speaker", ignoreCase = true)) ||
-        (item.label == "PHONES" && device.contains("headphone", ignoreCase = true))
+    val output = vm.info.output
+    val active = (item.command == "SPEAKERS" && output == "speakers") ||
+        (item.command == "HEADPHONES" && output == "headphones")
     val tint = if (item.tint != 0L) Color(item.tint) else MaterialTheme.colorScheme.onSurface
 
     OutlinedButton(

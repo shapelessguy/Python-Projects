@@ -225,6 +225,12 @@ def volume_down(signal, verbose=False):
     un_mute_volume(volume, new_vol)
 
 
+def split_friendly_name(friendly_name):
+    """FriendlyName is "<name> (<device>)": (name, device)."""
+    name, _, device = friendly_name.partition(" (")
+    return name, device[:-1] if device.endswith(")") else device
+
+
 def get_audio_devices(signal, verbose=False):
     """The audio devices Windows has now (not the ones it only remembers).
     "name" or "device" is what the Devices service's Speakers/Headphones take."""
@@ -243,11 +249,11 @@ def get_audio_devices(signal, verbose=False):
         state = getattr(d.state, "name", str(d.state))
         if state == "NotPresent" or not d.FriendlyName:
             continue
-        # FriendlyName is "<name> (<device>)"; ids start {0.0.0...} for outputs, {0.0.1...} for inputs
-        name, _, device = d.FriendlyName.partition(" (")
+        # ids start {0.0.0...} for outputs, {0.0.1...} for inputs
+        name, device = split_friendly_name(d.FriendlyName)
         found.append({
             "name": name,
-            "device": device[:-1] if device.endswith(")") else device,
+            "device": device,
             "direction": "input" if d.id.startswith("{0.0.1.") else "output",
             "state": state,
             "default": d.id in default_ids,
