@@ -35,9 +35,11 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -53,6 +55,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModel
@@ -62,6 +65,7 @@ import androidx.lifecycle.viewModelScope
 import com.diary.Prefs
 import com.diary.net.Api
 import com.diary.net.ControlsInfo
+import com.diary.pcaudio.PcAudio
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -323,6 +327,32 @@ fun VolumeCard(item: ControlItem, vm: ControlsViewModel, modifier: Modifier, pad
             )
             NudgeButton("+", up) { vm.run(item.copy(command = "VOLUME_UP", slider = false)) }
         }
+        PcAudioRow(up)
+    }
+}
+
+/** The "PC audio" toggle: the PC's sound played on the phone, screen off
+ *  included (pcaudio/PcAudioService.kt). Off can always be had; on only while
+ *  CyanManager answers. */
+@Composable
+private fun PcAudioRow(managerUp: Boolean) {
+    val context = LocalContext.current
+    val on by PcAudio.on.collectAsState()
+    val status by PcAudio.status.collectAsState()
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            "🎧 PC audio" + (status?.let { " · $it" } ?: ""),
+            fontSize = 12.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f),
+        )
+        Switch(
+            checked = on,
+            onCheckedChange = { if (it) PcAudio.start(context) else PcAudio.stop(context) },
+            enabled = on || managerUp,
+        )
     }
 }
 

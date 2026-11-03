@@ -889,7 +889,13 @@ export const api = {
  *  of what we have, get an answer when it changes (or after `wait` seconds
  *  anyway), ask again. `onValue` hears every answer. Stops when `signal`
  *  aborts; after a failure it waits a little before asking again. */
-export function follow<T>(url: string, onValue: (v: T) => void, signal: AbortSignal, wait = 25): void {
+export function follow<T>(
+  url: string,
+  onValue: (v: T) => void,
+  signal: AbortSignal,
+  wait = 25,
+  onError?: () => void,
+): void {
   let since = "";
   const sleep = (ms: number) => new Promise<void>((r) => {
     const t = window.setTimeout(r, ms);
@@ -907,7 +913,11 @@ export function follow<T>(url: string, onValue: (v: T) => void, signal: AbortSig
         // every time: pace it like the old poll instead.
         if (!since) await sleep(1000);
       } catch {
-        if (!signal.aborted) await sleep(3000);
+        if (signal.aborted) break;
+        onError?.();
+        // Asked again without a tag, so the server answers at once.
+        since = "";
+        await sleep(3000);
       }
     }
   })();

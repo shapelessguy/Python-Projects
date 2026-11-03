@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { api, ControlsInfo, follow } from "../api";
+import { PcAudio, PcAudioState } from "../pcAudio";
 import {
   ControlItem,
   ControlMode,
@@ -57,13 +58,31 @@ export function ControlsPanel() {
 
   // The OS volume and active audio device, followed: a held request that
   // comes back when they change (api/longpoll.py), not a poll a second.
+  // Whether CyanManager answers (CyanHouse 502s /info when it can't); null
+  // until the first answer.
+  const [managerUp, setManagerUp] = useState<boolean | null>(null);
   useEffect(() => {
     const stop = new AbortController();
     follow<ControlsInfo>("/api/controls/info", (i) => {
+      setManagerUp(true);
       if (!draggingVol.current) setInfo((p) => ({ ...p, ...i }));
-    }, stop.signal);
+    }, stop.signal, 25, () => setManagerUp(false));
     return () => stop.abort();
   }, []);
+
+  // "PC audio": the PC's sound played here (pcAudio.ts), for as long as the
+  // panel is open.
+  const [pcAudio, setPcAudio] = useState<PcAudioState>({ on: false });
+  const player = useRef<PcAudio>();
+  useEffect(() => () => player.current?.stop(), []);
+  const togglePcAudio = () => {
+    if (pcAudio.on) {
+      player.current?.stop();
+      return;
+    }
+    player.current ??= new PcAudio(setPcAudio);
+    player.current.start();
+  };
 
   // Voices CyanManager offers right now: only refreshed while the VOICES mode is
   // open; an unreachable backend/manager keeps the last known list.
@@ -176,6 +195,23 @@ export function ControlsPanel() {
         >
           +
         </button>
+      </div>
+      <div className="ctl-audio-row">
+        <button
+          className={"ctl-audio" + (pcAudio.on ? " on" : "")}
+          aria-pressed={pcAudio.on}
+          disabled={!pcAudio.on && managerUp !== true}
+          onClick={togglePcAudio}
+        >
+          🎧 PC audio {pcAudio.on ? "on" : "off"}
+        </button>
+        <span className="muted small">
+          {managerUp === false
+            ? "CyanManager is down"
+            : pcAudio.on
+              ? pcAudio.connected ? "" : "Connecting…"
+              : pcAudio.error ?? ""}
+        </span>
       </div>
     </div>
   );

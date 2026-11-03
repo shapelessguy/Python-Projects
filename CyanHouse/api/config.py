@@ -242,6 +242,9 @@ CONTROLS_FN_URL = f"http://{CONTROLS_FN_HOST}:{CONTROLS_FN_PORT}" if CONTROLS_FN
 # CyanManager's mouse/keyboard WebSocket, served by the fn service itself: the
 # Android app's Mouse section reaches it through /api/controls/mouse.
 MOUSE_WS_URL = f"ws://{CONTROLS_FN_HOST}:{CONTROLS_FN_PORT}/ws" if CONTROLS_FN_HOST else ""
+# Its audio WebSocket (the PC's sound, as PCM): the Controls "PC audio"
+# players reach it through /api/controls/audio.
+AUDIO_WS_URL = f"ws://{CONTROLS_FN_HOST}:{CONTROLS_FN_PORT}/ws/audio" if CONTROLS_FN_HOST else ""
 
 # ── qBittorrent ────────────────────────────────────────────────────────────
 # Its Web UI, served to the Media panel through /api/qbt/ (api/routers/qbt.py)

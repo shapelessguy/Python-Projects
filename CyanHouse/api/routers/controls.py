@@ -15,6 +15,7 @@ users too (CyanManager/api_auth.py).
     GET  /api/controls/info          ->  {CONTROLS_FN_URL}/info
     GET  /api/controls/users         ->  who the fn service lets in (users())
     WS   /api/controls/mouse         ->  {MOUSE_WS_URL}  (the Android app's Mouse section)
+    WS   /api/controls/audio         ->  {AUDIO_WS_URL}  (the "PC audio" players, downstream only)
 
 Contract picked up by ``api/main.py`` auto-discovery: only `router` and
 `init()` (starts the Room actuator's lights-auto scheduler) — no DB, no
@@ -34,7 +35,7 @@ from starlette.concurrency import run_in_threadpool
 
 from api import longpoll
 from api.auth import USERS, basic_header, require_user, visible_panels
-from api.config import CONTROLS_FN_URL, MOUSE_WS_URL
+from api.config import AUDIO_WS_URL, CONTROLS_FN_URL, MOUSE_WS_URL
 from api.services import room
 
 router = APIRouter(prefix="/api/controls", tags=["controls"])
@@ -199,3 +200,79 @@ async def mouse(websocket: WebSocket, user: str = Depends(require_user)):
             await websocket.close()
         except (RuntimeError, WebSocketDisconnect):
             pass  # the phone already went
+
+
+@router.websocket("/audio")
+async def audio(websocket: WebSocket, user: str = Depends(require_user)):
+    """The "PC audio" players' WebSocket, relayed from CyanManager's audio
+    server with the caller's own credential, as /mouse is. Downstream only:
+    its format messages (text) and PCM chunks (binary) go to the client
+    unchanged, and its close code and reason with them (1013 "Audio Stream
+    is off" is what the players show)."""
+    if not AUDIO_WS_URL:
+        await websocket.send_denial_response(PlainTextResponse(
+            "audio server not configured — set CONTROLS_FN_HOST in config.json", status_code=503))
+        return
+    try:
+        # Pinged as /mouse is, so a PC that went silent is told from one
+        # that is just quiet: it sends nothing while it plays nothing.
+        pc = await websockets.connect(AUDIO_WS_URL, additional_headers=basic_header(user),
+                                      open_timeout=_TIMEOUT, ping_interval=3, ping_timeout=3)
+    except (OSError, TimeoutError, websockets.WebSocketException) as e:
+        await websocket.send_denial_response(PlainTextResponse(
+            f"audio server unreachable: {e}", status_code=502))
+        return
+    await websocket.accept()
+
+    # Nothing is queued for a slow client: a send waits while its buffer is
+    # full (uvicorn), and a chunk that comes meanwhile replaces the one
+    # waiting, so it hears the latest audio rather than ever later audio. A
+    # format message is never dropped, and drops the chunk waiting before it
+    # (it was in the old format).
+    pending_text: str | None = None
+    pending_bytes: bytes | None = None
+    ready = asyncio.Event()
+
+    async def from_pc():
+        nonlocal pending_text, pending_bytes
+        async for message in pc:
+            if isinstance(message, str):
+                pending_text, pending_bytes = message, None
+            else:
+                pending_bytes = message
+            ready.set()
+
+    async def to_client():
+        nonlocal pending_text, pending_bytes
+        while True:
+            await ready.wait()
+            ready.clear()
+            while pending_text is not None or pending_bytes is not None:
+                if pending_text is not None:
+                    text, pending_text = pending_text, None
+                    await websocket.send_text(text)
+                else:
+                    data, pending_bytes = pending_bytes, None
+                    await websocket.send_bytes(data)
+
+    async def client_gone():
+        # The client sends nothing; this only sees it leave.
+        while (await websocket.receive())["type"] != "websocket.disconnect":
+            pass
+
+    tasks = [asyncio.create_task(from_pc()), asyncio.create_task(to_client()),
+             asyncio.create_task(client_gone())]
+    try:
+        await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+    finally:
+        for t in tasks:
+            t.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+        await pc.close()
+        # The PC's close, passed on (1013 "Audio Stream is off" included);
+        # 1011 if it dropped without one.
+        code = pc.close_code if pc.close_code not in (None, 1005, 1006) else 1011
+        try:
+            await websocket.close(code, pc.close_reason or "")
+        except (RuntimeError, WebSocketDisconnect):
+            pass  # the client already went

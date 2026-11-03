@@ -47,6 +47,7 @@ export default defineConfig({
       "/api": {
         target: env.API_URL || `http://localhost:${apiPort}`,
         changeOrigin: true,
+        ws: true, // the Controls "PC audio" socket
       },
     },
   },

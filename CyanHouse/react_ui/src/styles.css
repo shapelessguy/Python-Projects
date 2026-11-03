@@ -309,6 +309,13 @@ button.link:hover { color: var(--text); }
 }
 .ctl-nudge:hover { border-color: #3a414f; }
 .ctl-nudge:active { background: var(--panel-2); }
+.ctl-audio-row { display: flex; align-items: center; gap: 10px; }
+.ctl-audio {
+  flex: none; padding: 4px 10px; font-size: 12px; border-radius: 6px;
+  background: var(--panel); border: 1px solid var(--line); color: var(--text);
+}
+.ctl-audio.on { border-color: var(--accent); color: var(--accent); }
+.ctl-audio:disabled { opacity: 0.5; }
 .ctl-sep { width: 100%; margin: 2px 0; border: 0; border-top: 1px solid var(--line); }
 /* ── personal ────────────────────────────────────────────── */
 .personal { align-items: stretch; }

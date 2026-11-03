@@ -59,6 +59,13 @@
             </intent-filter>
         </service>
 
+        <!-- The Controls "PC audio" toggle: the PC's sound, going on with
+             the screen off. -->
+        <service
+            android:name=".pcaudio.PcAudioService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
+
         <receiver
             android:name=".alarm.BootReceiver"
             android:exported="true">

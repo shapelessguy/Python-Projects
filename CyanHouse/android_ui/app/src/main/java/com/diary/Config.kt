@@ -14,4 +14,7 @@ object Config {
     /** The mouse/keyboard WebSocket, through CyanHouse (api/controls.py
      *  relays it to CyanManager). https -> wss. */
     val MOUSE_WS_URL: String get() = BASE_URL.replaceFirst("http", "ws") + "/api/controls/mouse"
+
+    /** The PC's sound (pcaudio/PcAudioService.kt), relayed the same way. */
+    val AUDIO_WS_URL: String get() = BASE_URL.replaceFirst("http", "ws") + "/api/controls/audio"
 }
