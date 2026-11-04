@@ -1,6 +1,7 @@
 """GialloZafferano: everything that depends on how its pages are built.
 
-When GialloZafferano changes its HTML, this is the file to fix. It only
+A recipe site of recipe_sites.py (see RECIPE_SITES.md), and the one that
+has it all. When GialloZafferano changes its HTML, this is the file to fix. It only
 reads HTML; fetching is the caller's (`fetch`, a URL -> page text function
 that refuses non-public addresses -- food.py's _public_get).
 
@@ -22,6 +23,10 @@ import html
 import re
 from typing import Callable
 from urllib.parse import quote, urljoin
+
+NAME = "GialloZafferano"
+LANGUAGE = "it"
+HOSTS = ("giallozafferano.it",)
 
 SEARCH_URL = "https://www.giallozafferano.it/ricerca-ricette/{page}{query}/"
 
@@ -69,11 +74,12 @@ def _cards(page_html: str) -> list[dict]:
         img, cat, desc = _IMG_RE.search(card), _CATEGORY_RE.search(card), _DESCRIPTION_RE.search(card)
         hit = {"url": link[1], "title": _clean(title[1]), "image": img[1] if img else "",
                "category": _clean(cat[1]) if cat else "", "description": _clean(desc[1]) if desc else "",
-               **{k: "" for k in _FACTS.values()}}
+               "votes": "", **{k: "" for k in _FACTS.values()}}
         for fact in _FACT_RE.findall(card):
             icon = _FACT_ICON_RE.search(fact)
             if icon and icon[1] in _FACTS:
                 hit[_FACTS[icon[1]]] = re.sub(r"(?i)^kcal\s*", "", _clean(fact))
+        hit["difficulty"] = _DIFFICULTIES.get(hit["difficulty"].lower(), "")
         results.append(hit)
     return results
 
@@ -81,8 +87,8 @@ def _cards(page_html: str) -> list[dict]:
 def search(query: str, page: int, fetch: Callable[[str], str]) -> dict:
     """One page of results for `query`: each with its recipe URL, title,
     image, category, description, and the facts its card shows -- rating
-    ("4,3"), comments, difficulty (Italian: "Facile"), time ("4 h 40 min"),
-    kcal ("" where it shows none); `next_page`, None for the last as far as
+    ("4,3"), votes (never: its cards don't say), comments, difficulty
+    (food.DIFFICULTIES), time ("4 h 40 min"), kcal ("" where it shows none); `next_page`, None for the last as far as
     can be told (one past it just comes back empty).
 
     A landing page's cards show only rating and comments, so its page 2 --

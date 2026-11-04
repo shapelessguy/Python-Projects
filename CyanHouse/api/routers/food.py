@@ -164,15 +164,13 @@ async def grocery(body: GroceryIn, _user: str = Depends(require_user)):
     return {"lines": await run_in_threadpool(food.grocery, body.items)}
 
 
-# ── recipe pages: GialloZafferano search, a picked page fetched and kept ──
+# ── recipe pages: the recipe sites searched, a picked page fetched and kept ─
 @router.get("/recipe-search")
-async def recipe_search(
-    q: str = Query(..., min_length=1),
-    page: int = Query(1, ge=1, le=50),
-    _user: str = Depends(require_user),
-):
+async def recipe_search(q: str = Query(..., min_length=1), _user: str = Depends(require_user)):
+    """Every recipe site's results for `q`, ranked together by how well
+    their names fit it; the sites that failed in `failed`."""
     try:
-        return await run_in_threadpool(food.recipe_search, q, page)
+        return await run_in_threadpool(food.recipe_search, q)
     except Exception as e:
         raise HTTPException(502, f"recipe search failed: {e}")
 

@@ -1723,12 +1723,19 @@ function DishForm({
   );
 }
 
-/** The site a recipe url is on: GialloZafferano by name, else its host
+// The recipe sites searched (recipe_sites.py), by their domains.
+const SITE_NAMES: [RegExp, string][] = [
+  [/(^|\.)giallozafferano\.it$/, "GialloZafferano"],
+  [/(^|\.)chefkoch\.de$/, "Chefkoch"],
+  [/(^|\.)bbcgoodfood\.com$/, "BBC Good Food"],
+];
+
+/** The site a recipe url is on: a searched one by name, else its host
  *  ("www." off); the url itself if it isn't one. */
 function siteOf(url: string): string {
   try {
     const host = new URL(url).hostname.replace(/^www\./, "");
-    return /(^|\.)giallozafferano\.it$/.test(host) ? "GialloZafferano" : host;
+    return SITE_NAMES.find(([re]) => re.test(host))?.[1] ?? host;
   } catch {
     return url;
   }
@@ -1921,13 +1928,13 @@ function RecipeViewer({ url, onClose }: { url: string; onClose: () => void }) {
   );
 }
 
-/** GialloZafferano's difficulty levels, as its cards say them. */
-const GZ_DIFFICULTY: Record<string, Key> = {
-  "molto facile": "food_difficulty_very_easy", facile: "food_difficulty_easy",
-  media: "food_difficulty_medium", difficile: "food_difficulty_hard",
+const HIT_DIFFICULTY: Record<string, Key> = {
+  very_easy: "food_difficulty_very_easy", easy: "food_difficulty_easy", medium: "food_difficulty_medium",
+  hard: "food_difficulty_hard", very_hard: "food_difficulty_very_hard",
 };
+const SHOWN_FIRST = 20; // the best results shown; More shows the rest
 
-/** Search GialloZafferano and pick a recipe: its page is fetched and kept
+/** Search the recipe sites and pick a recipe: its page is fetched and kept
  *  by the server, and what it says comes back to fill the dish form in. */
 function RecipeSearch({ initialQuery, onPicked, onClose }: {
   initialQuery: string;
@@ -1938,27 +1945,26 @@ function RecipeSearch({ initialQuery, onPicked, onClose }: {
   const { t } = useT();
   const [query, setQuery] = useState(initialQuery);
   const [results, setResults] = useState<RecipeHit[]>([]);
-  const [nextPage, setNextPage] = useState<number | null>(null);
+  const [shown, setShown] = useState(SHOWN_FIRST);
+  const [failed, setFailed] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [fetching, setFetching] = useState<string | null>(null); // the url being fetched
   const [error, setError] = useState<string | null>(null);
 
-  const run = (q: string, p: number) => {
+  const run = (q: string) => {
     if (!q.trim()) return;
     setLoading(true);
     setError(null);
     setSearched(true);
+    setResults([]);
+    setFailed([]);
     foodApi
-      .recipeSearch(q.trim(), p)
+      .recipeSearch(q.trim())
       .then((r) => {
-        // A later page can repeat earlier results (popular searches).
-        setResults((prev) => {
-          if (p === 1) return r.results;
-          const have = new Set(prev.map((h) => h.url));
-          return [...prev, ...r.results.filter((h) => !have.has(h.url))];
-        });
-        setNextPage(r.next_page);
+        setResults(r.results);
+        setShown(SHOWN_FIRST);
+        setFailed(Object.keys(r.failed));
       })
       .catch((e) => setError(serverMessage(e)))
       .finally(() => setLoading(false));
@@ -1977,7 +1983,7 @@ function RecipeSearch({ initialQuery, onPicked, onClose }: {
   return (
     <div className="modal-backdrop picker">
       <div className="modal image-picker" onClick={(e) => e.stopPropagation()}>
-        <form className="picker-search" onSubmit={(e) => { e.preventDefault(); run(query, 1); }}>
+        <form className="picker-search" onSubmit={(e) => { e.preventDefault(); run(query); }}>
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -1989,8 +1995,9 @@ function RecipeSearch({ initialQuery, onPicked, onClose }: {
         </form>
         {error && <p className="error small">{error}</p>}
         {!searched && <p className="muted small">{t("food_recipe_search_hint")}</p>}
+        {failed.length > 0 && <p className="muted small">{t("food_sites_failed", { sites: failed.join(", ") })}</p>}
         <div className="picker-grid">
-          {results.map((hit) => (
+          {results.slice(0, shown).map((hit) => (
             <button
               type="button"
               key={hit.url}
@@ -2005,13 +2012,12 @@ function RecipeSearch({ initialQuery, onPicked, onClose }: {
                   {fetching === hit.url && <span className="mv-ring btn-ring" aria-hidden />}
                   {hit.title}
                 </span>
-                {hit.category && <span className="recipe-cell-cat">{hit.category}</span>}
+                <span className="recipe-cell-cat">{[hit.site, hit.category].filter(Boolean).join(" · ")}</span>
                 <span className="recipe-cell-facts">
                   {[
-                    hit.rating && `★ ${hit.rating}`,
+                    hit.rating && `★ ${hit.rating}${hit.votes ? ` (${hit.votes})` : ""}`,
                     hit.comments && `💬 ${hit.comments}`,
-                    hit.difficulty && (GZ_DIFFICULTY[hit.difficulty.toLowerCase()]
-                      ? t(GZ_DIFFICULTY[hit.difficulty.toLowerCase()]) : hit.difficulty),
+                    HIT_DIFFICULTY[hit.difficulty] && t(HIT_DIFFICULTY[hit.difficulty]),
                     hit.time && `⏱ ${hit.time}`,
                     hit.kcal && `${hit.kcal} kcal`,
                   ].filter(Boolean).join(" · ")}
@@ -2022,9 +2028,9 @@ function RecipeSearch({ initialQuery, onPicked, onClose }: {
         </div>
         {loading && <p className="muted">{t("food_searching")}</p>}
         {searched && !loading && !error && results.length === 0 && <p className="muted">{t("food_no_results")}</p>}
-        {nextPage !== null && !loading && (
+        {shown < results.length && !loading && (
           <div className="row-actions">
-            <button type="button" className="ghost" onClick={() => run(query, nextPage)}>{t("food_more_results")}</button>
+            <button type="button" className="ghost" onClick={() => setShown(results.length)}>{t("food_more_results")}</button>
           </div>
         )}
       </div>

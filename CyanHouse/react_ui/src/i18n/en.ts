@@ -188,7 +188,7 @@ export const en = {
   food_difficulty: "Difficulty",
   food_source_rating: "On its site: ★ {rating} ({count})",
   food_difficulty_very_hard: "Very hard",
-  food_find_recipe: "Find on GialloZafferano…",
+  food_find_recipe: "Find a recipe…",
   food_upload_image: "Upload image…",
   food_upload_failed: "That file isn't an image.",
   food_show_recipe: "Show recipe",
@@ -205,9 +205,10 @@ export const en = {
   food_difficulty_hard: "Hard",
   food_recipe: "Recipe",
   food_change_recipe: "Change recipe…",
-  food_recipe_search_placeholder: "Search GialloZafferano…",
-  food_recipe_search_hint: "Search GialloZafferano and pick a recipe to start a dish from it.",
+  food_recipe_search_placeholder: "Search recipes…",
+  food_recipe_search_hint: "Search GialloZafferano, Chefkoch and BBC Good Food at once and pick a recipe to start a dish from it.",
   food_more_results: "More results",
+  food_sites_failed: "Not searched (didn't answer): {sites}",
   food_recipe_from: "From {site}",
 
   // Environment panel

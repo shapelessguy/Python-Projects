@@ -179,7 +179,7 @@ export const de: Dict = {
   food_difficulty: "Schwierigkeit",
   food_source_rating: "Auf der Website: ★ {rating} ({count})",
   food_difficulty_very_hard: "Sehr schwer",
-  food_find_recipe: "Auf GialloZafferano suchen…",
+  food_find_recipe: "Rezept suchen…",
   food_upload_image: "Bild hochladen…",
   food_upload_failed: "Die Datei ist kein Bild.",
   food_show_recipe: "Rezept anzeigen",
@@ -196,9 +196,10 @@ export const de: Dict = {
   food_difficulty_hard: "Schwer",
   food_recipe: "Rezept",
   food_change_recipe: "Rezept ändern…",
-  food_recipe_search_placeholder: "Auf GialloZafferano suchen…",
-  food_recipe_search_hint: "Suche auf GialloZafferano und wähle ein Rezept, um daraus ein Gericht anzulegen.",
+  food_recipe_search_placeholder: "Rezepte suchen…",
+  food_recipe_search_hint: "Suche gleichzeitig auf GialloZafferano, Chefkoch und BBC Good Food und wähle ein Rezept, um daraus ein Gericht anzulegen.",
   food_more_results: "Weitere Ergebnisse",
+  food_sites_failed: "Nicht durchsucht (keine Antwort): {sites}",
   food_recipe_from: "Von {site}",
 
   // Environment panel

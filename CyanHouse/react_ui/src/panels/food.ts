@@ -105,16 +105,19 @@ export interface ImageHit {
   source: string;
 }
 
-/** One GialloZafferano search result, with the facts its card shows ("" for
- *  one it doesn't): rating "4,3", comments "160", difficulty in Italian
- *  ("Facile"), time "4 h 40 min", kcal "772". */
+/** One recipe site's search result (recipe_sites.py), with the facts its
+ *  card shows ("" for one it doesn't): rating "4,3" / "4.6", votes "1077",
+ *  comments "160", difficulty one of DIFFICULTIES' keys ("easy"), time
+ *  "1 h 10 min", kcal "772". */
 export interface RecipeHit {
   url: string;
+  site: string; // the site's name, "Chefkoch"
   title: string;
   image: string;
   category: string;
   description: string;
   rating: string;
+  votes: string;
   comments: string;
   difficulty: string;
   time: string;
@@ -239,10 +242,11 @@ export const foodApi = {
       body: JSON.stringify({ items }),
     }).then(j<{ lines: GroceryLine[] }>),
 
-  /** A page of GialloZafferano's search results. */
-  recipeSearch: (q: string, page = 1) =>
-    f(`/api/food/recipe-search?q=${encodeURIComponent(q)}&page=${page}`).then(
-      j<{ results: RecipeHit[]; next_page: number | null }>,
+  /** Every recipe site's results, best fitting the query first; the
+   *  sites that failed (name -> why) in `failed`. */
+  recipeSearch: (q: string) =>
+    f(`/api/food/recipe-search?q=${encodeURIComponent(q)}`).then(
+      j<{ results: RecipeHit[]; failed: Record<string, string>; queries: Record<string, string> }>,
     ),
 
   /** Fetch a recipe page; the server keeps it (HTML and metadata). */

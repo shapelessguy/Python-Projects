@@ -44,7 +44,7 @@ from api.config import (
     SERPER_IMAGE_URL,
 )
 from api.db import bump, connect as _connect, get_version
-from api.services import giallozafferano
+from api.services import recipe_sites
 
 DEFAULT_CATEGORIES = [
     "Pasta", "Dough", "Risotti", "Meat", "Fish", "Desserts", "Restaurants",
@@ -1200,15 +1200,16 @@ def search_images(query: str, num: int = 60) -> list[dict]:
     return out
 
 
-# ── recipe pages: searched on GialloZafferano, fetched and kept ──────────
-# What depends on GialloZafferano's HTML -- its search, a recipe's
-# preparation -- is in giallozafferano.py. A picked recipe's page is fetched
-# and kept in food_recipe_pages, by URL, for the import on Save to work from:
-# every schema.org JSON-LD block in it (Recipe, NutritionInformation,
-# AggregateRating, InteractionCounter, Organization...) -- a web standard,
-# read here -- and its preparation, steps with their photos, the one thing
-# the metadata lacks. Any page with a schema.org Recipe works; GialloZafferano
-# is just the one searched, and the one whose preparation photos are read.
+# ── recipe pages: searched on the recipe sites, fetched and kept ─────────
+# What depends on a site's HTML -- its search, a recipe's preparation photos
+# or difficulty -- is in its module (giallozafferano.py, chefkoch.py,
+# bbcgoodfood.py), searched together by recipe_sites.py. A picked recipe's
+# page is fetched and kept in food_recipe_pages, by URL, for the import on
+# Save to work from: every schema.org JSON-LD block in it (Recipe,
+# NutritionInformation, AggregateRating, InteractionCounter, Organization...)
+# -- a web standard, read here -- its preparation, steps with their photos,
+# and its site's facts. Any page with a schema.org Recipe works; the sites are
+# the ones searched, and the ones whose extras are read.
 _JSON_LD_RE = re.compile(r'<script[^>]*type=["\']application/ld\+json["\'][^>]*>(.*?)</script>', re.S | re.I)
 
 
@@ -1219,9 +1220,56 @@ def _public_text(url: str) -> str:
     return resp.text
 
 
-def recipe_search(query: str, page: int = 1) -> dict:
-    """A page of GialloZafferano's results for `query` (giallozafferano.search)."""
-    return giallozafferano.search(query, page, _public_text)
+_QUERIES_SYSTEM_PROMPT = (
+    "You are given what someone typed to search for a recipe, in any "
+    "language. Call search_queries with it as a cook would type it into a "
+    "recipe site's search in each language: the dish's usual name there, "
+    "short, no explanations. A dish known by one name everywhere keeps it "
+    "(\"carbonara\", \"tiramisu\", \"ramen\"); a query already in a language "
+    "stays as it is in that one."
+)
+_queries_cache: dict[str, dict[str, str]] = {}
+
+
+def _search_queries(query: str) -> dict[str, str]:
+    """`query` in each language a recipe site is searched in (lang -> query),
+    by the model; the query as typed for every one when it can't say. Kept
+    for the server's life, a search typed again costing nothing."""
+    langs = sorted(recipe_sites.languages())
+    as_typed = {lang: query for lang in langs}
+    key = " ".join(query.lower().split())
+    if key in _queries_cache:
+        return _queries_cache[key]
+    if not OPENROUTER_KEY:
+        return as_typed
+    tool = {"type": "function", "function": {
+        "name": "search_queries",
+        "description": "The search in each language.",
+        "parameters": {"type": "object", "properties": {LANGUAGES[lang]: {"type": "string"} for lang in langs},
+                       "required": [LANGUAGES[lang] for lang in langs], "additionalProperties": False},
+    }}
+    try:
+        msg = _openrouter([{"role": "system", "content": _QUERIES_SYSTEM_PROMPT},
+                           {"role": "user", "content": query}],
+                          tools=[tool], reasoning={"enabled": False},
+                          tool_choice={"type": "function", "function": {"name": "search_queries"}})
+        args = json.loads(msg["tool_calls"][0]["function"]["arguments"])
+        out = {lang: " ".join(str(args.get(LANGUAGES[lang]) or "").split()) or query for lang in langs}
+    except Exception as e:
+        print(f"[food search] queries as typed: {e}")
+        return as_typed
+    if len(_queries_cache) > 500:
+        _queries_cache.clear()
+    _queries_cache[key] = out
+    return out
+
+
+def recipe_search(query: str) -> dict:
+    """The recipe sites' results for `query`, each site asked in its own
+    language, ranked together (recipe_sites.search): {"results", "failed",
+    "queries": what each language was asked}."""
+    queries = _search_queries(query.strip())
+    return {**recipe_sites.search(queries, _public_text), "queries": queries}
 
 
 def _clean(fragment: str) -> str:
@@ -1288,10 +1336,11 @@ def _recipe(blocks: list) -> dict:
 
 
 def _preparation(url: str, page_html: str, recipe: dict) -> list[dict]:
-    """The recipe's steps, each {"text", "images": [{"steps", "url"}]}:
-    GialloZafferano's preparation section with its photos, else the
-    schema.org steps with the images they have."""
-    steps = giallozafferano.preparation(url, page_html, ref_mark)
+    """The recipe's steps, each {"text", "images": [{"steps", "url"}]}: its
+    site's own, with their photos (GialloZafferano's preparation section),
+    else the schema.org steps with the images they have."""
+    read = getattr(recipe_sites.site_for(url), "preparation", None)
+    steps = read(url, page_html, ref_mark) if read else []
     if steps:
         return steps
     for step in _ld_steps(recipe.get("recipeInstructions") or []):
@@ -1336,6 +1385,12 @@ def _recipe_summary(url: str, recipe: dict) -> dict:
     }
 
 
+def _site_difficulty(url: str, page_html: str) -> str:
+    """A recipe page's difficulty as its site shows it, "" when it doesn't."""
+    read = getattr(recipe_sites.site_for(url), "difficulty", None)
+    return read(page_html) if read else ""
+
+
 def fetch_recipe_page(url: str) -> dict:
     """Fetch a recipe page and keep it (food_recipe_pages: its JSON-LD blocks
     parsed, and its preparation); returns _recipe_summary of it. Raises
@@ -1357,7 +1412,7 @@ def fetch_recipe_page(url: str) -> dict:
             "fetched_at = excluded.fetched_at, site_facts = excluded.site_facts",
             (url, json.dumps(_preparation(url, text, recipe), ensure_ascii=False),
              json.dumps(blocks, ensure_ascii=False),
-             json.dumps({"difficulty": giallozafferano.difficulty(text)})))
+             json.dumps({"difficulty": _site_difficulty(url, text)})))
     return _recipe_summary(url, recipe)
 
 
