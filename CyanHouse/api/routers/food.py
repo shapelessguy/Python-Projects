@@ -127,19 +127,23 @@ class Conversion(BaseModel):
 
 class IngredientPatch(BaseModel):
     name: str | None = None
+    lang: str = "en"  # the language `name` is written in
     # All of its conversions, replacing what it had ([] clears them).
     conversions: list[Conversion] | None = None
 
 
 @router.patch("/ingredients/{ingredient_id}")
 async def patch_ingredient(ingredient_id: int, body: IngredientPatch, user: str = Depends(require_user)):
-    """Rename an ingredient (into another one, merging them), or set its
-    conversions."""
+    """Rename an ingredient in one language (into another one, merging them;
+    the other languages following when it is another thing now), or set
+    its conversions."""
     convs = None if body.conversions is None else [c.model_dump() for c in body.conversions]
     try:
-        return await run_in_threadpool(food.update_ingredient, user, ingredient_id, body.name, convs)
+        return await run_in_threadpool(food.update_ingredient, user, ingredient_id, body.name, convs, body.lang)
     except food.IngredientError as e:
         raise HTTPException(e.status_code, str(e))
+    except food.TranslationError as e:
+        raise HTTPException(502, str(e))
 
 
 @router.delete("/ingredients/{ingredient_id}")
@@ -216,8 +220,9 @@ async def image_search(
 
 # ── serve stored dish images (shared catalogue; auth enforced at include) ─
 @router.get("/images/{name}")
-def get_image(name: str):
-    path = food.image_path(name)
+def get_image(name: str, small: bool = False):
+    """A stored image; `small`: its small copy, for cards and lists."""
+    path = food.image_path(name, small)
     if path is None:
         raise HTTPException(404, "no such image")
     return FileResponse(path, headers={"Cache-Control": "public, max-age=604800, immutable"})

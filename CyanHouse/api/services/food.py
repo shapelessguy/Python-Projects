@@ -21,7 +21,9 @@ import secrets
 import shutil
 import socket
 import sqlite3
+import subprocess
 import threading
+import time
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from pathlib import Path
@@ -30,6 +32,7 @@ from urllib.parse import urljoin, urlsplit
 import requests
 
 from api.config import (
+    FFMPEG,
     FOOD_DB,
     FOOD_IMAGES_DIR,
     OPENROUTER_KEY,
@@ -230,10 +233,68 @@ def _bump_all(conn: sqlite3.Connection) -> None:
 
 
 # ── image store (shared) ─────────────────────────────────────────────────
-def image_path(name: str) -> Path | None:
+# Each stored image also has a small JPEG copy, SMALL_WIDTH wide at most,
+# for the cards and lists: small/<its file name>.jpg. Made when the image is
+# saved (_store_image); one missing -- an image from before, a copy that
+# failed -- is made when first asked for, and all of them on start.
+SMALL_DIR = FOOD_IMAGES_DIR / "small"
+SMALL_WIDTH = 480  # a card is at most 460px, a phone draws its ~170px at 3x
+_small_lock = threading.Lock()
+
+
+def image_path(name: str, small: bool = False) -> Path | None:
+    """A stored image's file; with `small` its small copy, made now if it
+    has none yet -- the image itself when it can't be made."""
     base = FOOD_IMAGES_DIR.resolve()
     p = (base / name).resolve()
-    return p if p.parent == base and p.is_file() else None
+    if p.parent != base or not p.is_file():
+        return None
+    return (_small(p) or p) if small else p
+
+
+def _small(p: Path) -> Path | None:
+    """The small copy of the image file `p`, made if it has none."""
+    out = SMALL_DIR / f"{p.name}.jpg"
+    if out.is_file():
+        return out
+    with _small_lock:  # one ffmpeg at a time: the start's backfill and a page's requests
+        if out.is_file():
+            return out
+        SMALL_DIR.mkdir(parents=True, exist_ok=True)
+        tmp = out.with_suffix(".tmp.jpg")
+        try:
+            r = subprocess.run(
+                [FFMPEG, "-nostdin", "-v", "error", "-y", "-i", str(p), "-frames:v", "1",
+                 # Never larger than the image; keeps its shape.
+                 "-vf", f"scale='min({SMALL_WIDTH},iw)':-2", "-q:v", "4", str(tmp)],
+                capture_output=True, text=True, timeout=60)
+        except (OSError, subprocess.TimeoutExpired) as e:
+            print(f"[food] no small copy of {p.name}: {e}")
+            tmp.unlink(missing_ok=True)
+            return None
+        if r.returncode or not tmp.is_file():
+            print(f"[food] no small copy of {p.name}: {r.stderr.strip()[:200]}")
+            tmp.unlink(missing_ok=True)
+            return None
+        tmp.replace(out)
+        return out
+
+
+def _store_image(fname: str, raw: bytes) -> str:
+    """Save an image into the store under `fname`, with its small copy."""
+    (FOOD_IMAGES_DIR / fname).write_bytes(raw)
+    _small(FOOD_IMAGES_DIR / fname)
+    return fname
+
+
+def _make_missing_small() -> None:
+    """Small copies for the stored images that have none (on start)."""
+    made = 0
+    for p in sorted(FOOD_IMAGES_DIR.iterdir()):
+        if p.is_file() and not (SMALL_DIR / f"{p.name}.jpg").is_file() and _small(p):
+            made += 1
+    if made:
+        print(f"[food] made {made} small image copies")
 
 
 # ── lifecycle ─────────────────────────────────────────────────────────────
@@ -267,6 +328,9 @@ def _migrate(conn: sqlite3.Connection) -> None:
         if col in cols:
             conn.execute(f"ALTER TABLE food_dishes DROP COLUMN {col}")
     _migrate_ingredients(conn, cols)
+    if conn.execute("PRAGMA user_version").fetchone()[0] < 1:
+        _migrate_photo_marks(conn)
+        conn.execute("PRAGMA user_version = 1")
     if "html" in {r["name"] for r in conn.execute("PRAGMA table_info(food_recipe_pages)")}:
         # Its first version kept each page's whole HTML. Pages are fetched
         # again when picked again, so the old ones just go.
@@ -305,6 +369,52 @@ def _migrate_ingredients(conn: sqlite3.Connection, dish_cols: set[str]) -> None:
         conn.execute("ALTER TABLE food_dishes DROP COLUMN ingredients")
 
 
+def _photos_shown(text: str, photos: dict) -> str:
+    """Instructions from when {{photo:N}} was both a mention and where a
+    photo went (each step showing at its start the photos it marked, once a
+    file), as they look then with the two told apart: the step's photos a
+    {{photo:N}} each on a line above it, its markers {{ref:N}}, a step's
+    leading ones -- photos it never mentioned -- gone."""
+    blocks: list[list[str]] = []
+    for chunk in text.split("\n\n"):
+        if blocks and chunk[:1] in (" ", "\t"):
+            blocks[-1].append(chunk)  # a further paragraph of the step above
+        else:
+            blocks.append([chunk])
+    out = []
+    for block in blocks:
+        b = "\n\n".join(block)
+        shown: list[str] = []
+        for n in re.findall(r"\{\{photo:(\d+)\}\}", b):
+            f = photos.get(n)
+            if f and f not in [photos[x] for x in shown]:
+                shown.append(n)
+        m = re.match(r"(\s*\d+\.\s+)?((?:\{\{photo:\d+\}\}\s*)*)", b)
+        rest = re.sub(r"\{\{photo:(\d+)\}\}", r"{{ref:\1}}", b[m.end():])
+        head = " ".join(photo_mark(int(n)) for n in shown)
+        out.append((f"{head}\n" if head else "") + (m[1] or "").lstrip() + rest)
+    return "\n\n".join(out)
+
+
+def _migrate_photo_marks(conn: sqlite3.Connection) -> None:
+    """To {{photo:N}} / {{ref:N}} (PHOTO_MARK_RE): the recipe pages' markers
+    were all mentions; the dishes' instructions as _photos_shown. Also the
+    \"\"\" some translations came back wrapped in."""
+    conn.execute("UPDATE food_recipe_pages SET preparation = replace(preparation, '{{photo:', '{{ref:')")
+    photos = {r["id"]: json.loads(r["photos"] or "{}") for r in conn.execute("SELECT id, photos FROM food_dishes")}
+    for r in conn.execute("SELECT id, instructions FROM food_dishes").fetchall():
+        new = _photos_shown(_unquoted(r["instructions"]), photos[r["id"]])
+        if new != r["instructions"]:
+            conn.execute("UPDATE food_dishes SET instructions = ? WHERE id = ?", (new, r["id"]))
+    for r in conn.execute("SELECT dish_id, field, lang, text FROM food_translations").fetchall():
+        new = _unquoted(r["text"])
+        if r["field"] == "instructions":
+            new = _photos_shown(new, photos.get(r["dish_id"], {}))
+        if new != r["text"]:
+            conn.execute("UPDATE food_translations SET text = ? WHERE dish_id = ? AND field = ? AND lang = ?",
+                         (new, r["dish_id"], r["field"], r["lang"]))
+
+
 def init_db() -> None:
     FOOD_IMAGES_DIR.mkdir(parents=True, exist_ok=True)
     with connect() as conn:
@@ -320,6 +430,7 @@ def init_db() -> None:
         for dish_id in interrupted:
             _start_import(conn, dish_id)
     _spawn_translations_processing()  # pick up anything left over from before a restart
+    threading.Thread(target=_make_missing_small, daemon=True).start()
 
 
 def _seed_missing_ratings(conn: sqlite3.Connection) -> None:
@@ -501,9 +612,7 @@ def store_image_data(data_url: str, name_hint: str) -> str:
         raise ValueError("the image is not valid base64")
     if not raw or len(raw) > _MAX_UPLOAD_BYTES:
         raise ValueError("the image is empty or larger than 10 MB")
-    fname = f"{_slug(name_hint)}-{secrets.token_hex(4)}.{'jpg' if m[1] == 'jpeg' else m[1]}"
-    (FOOD_IMAGES_DIR / fname).write_bytes(raw)
-    return fname
+    return _store_image(f"{_slug(name_hint)}-{secrets.token_hex(4)}.{'jpg' if m[1] == 'jpeg' else m[1]}", raw)
 
 
 def _new_image(image_url: str | None, image_data: str | None, name_hint: str) -> str:
@@ -519,9 +628,8 @@ def download_image(url: str, name_hint: str) -> str:
     stored filename. Raises on network / HTTP error."""
     resp = _public_get(url, timeout=20)
     resp.raise_for_status()
-    fname = f"{_slug(name_hint)}-{secrets.token_hex(4)}{_ext_for(resp.headers.get('content-type', ''), url)}"
-    (FOOD_IMAGES_DIR / fname).write_bytes(resp.content)
-    return fname
+    return _store_image(f"{_slug(name_hint)}-{secrets.token_hex(4)}{_ext_for(resp.headers.get('content-type', ''), url)}",
+                        resp.content)
 
 
 # ── LLM (OpenRouter) ──────────────────────────────────────────────────────
@@ -529,18 +637,30 @@ def _openrouter(messages: list[dict], **extra) -> dict:
     """One raw OpenRouter chat-completion call, `extra` going into the
     request as it is (tools, ...); returns the reply message. Raises on any
     request/HTTP failure -- callers decide what "the call itself failed"
-    should mean for their retry policy, so this doesn't swallow anything."""
-    resp = requests.post(
-        OPENROUTER_URL,
-        headers={
-            "Authorization": f"Bearer {OPENROUTER_KEY}",
-            "Content-Type": "application/json",
-        },
-        json={"model": OPENROUTER_MODEL, "messages": messages, **extra},
-        timeout=60,
-    )
-    resp.raise_for_status()
-    return resp.json()["choices"][0]["message"]
+    should mean for their retry policy, so this doesn't swallow anything.
+    Each call is a line in the server log: what for, how long, which
+    provider, the tokens -- or how it failed."""
+    what = extra["tools"][0]["function"]["name"] if extra.get("tools") else "chat"
+    start = time.monotonic()
+    try:
+        resp = requests.post(
+            OPENROUTER_URL,
+            headers={
+                "Authorization": f"Bearer {OPENROUTER_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={"model": OPENROUTER_MODEL, "messages": messages, **extra},
+            timeout=60,
+        )
+        resp.raise_for_status()
+        body = resp.json()
+    except Exception as e:
+        print(f"[food llm] {what}: failed after {time.monotonic() - start:.1f}s ({e.__class__.__name__}: {e})")
+        raise
+    usage = body.get("usage") or {}
+    print(f"[food llm] {what}: {time.monotonic() - start:.1f}s, {body.get('provider', '?')}, "
+          f"{usage.get('prompt_tokens', '?')} in / {usage.get('completion_tokens', '?')} out")
+    return body["choices"][0]["message"]
 
 
 # ── translations (LLM, a tool call) ─────────────────────────────────────
@@ -552,15 +672,22 @@ def _openrouter(messages: list[dict], **extra) -> dict:
 LANGUAGES = {"en": "english", "it": "italian", "de": "german"}
 _TRANSLATED_FIELDS = ("name", "instructions")  # food_dishes columns
 
-# Where a recipe's text points at one of its photos (a recipe page's
-# preparation, food_recipe_pages): "{{photo:N}}", N the photo's number. A
-# marker no language would write, so a translation keeps it as it is --
-# _translate tells the model so, and holds it to the same markers.
-PHOTO_MARK_RE = re.compile(r"\{\{photo:(\d+)\}\}")
+# A recipe's photos in its text, N a photo's number (a dish's `photos`):
+# "{{photo:N}}" is the photo itself, shown where it stands -- on a line of
+# its own above its step, as imported -- and "{{ref:N}}" the text's mention
+# of it, shown as its number ("clean the clams {{ref:1}}"). A recipe page's
+# preparation (food_recipe_pages) has only the mentions. Markers no language
+# would write, so a translation keeps them as they are -- _translate tells
+# the model so, and holds it to the same markers. findall: (kind, N).
+PHOTO_MARK_RE = re.compile(r"\{\{(photo|ref):(\d+)\}\}")
 
 
 def photo_mark(n: int) -> str:
     return f"{{{{photo:{n}}}}}"
+
+
+def ref_mark(n: int) -> str:
+    return f"{{{{ref:{n}}}}}"
 
 
 class TranslationError(Exception):
@@ -570,17 +697,26 @@ class TranslationError(Exception):
 # What is being translated, as the model is told, and anything particular to it.
 _TRANSLATE_KINDS = {
     "instructions": ("a recipe's cooking instructions, in Markdown",
-                     "A marker like {{photo:3}} points at a photo of the recipe: keep every one exactly "
-                     "as it is, in the same place of the sentence it belongs to; never translate, "
-                     "renumber, add or drop one."),
+                     "A marker like {{photo:3}} is a photo of the recipe, shown where it stands, and one "
+                     "like {{ref:3}} the text's mention of that photo: keep every one exactly as it is, "
+                     "{{photo:N}} on its own line where it is, {{ref:N}} in the same place of the sentence "
+                     "it belongs to; never translate, renumber, add or drop one."),
     "name": ("the name of a dish",
              "A name used as it is in that language -- an international dish or a "
              "proper name (Carbonara, Döner, Tiramisù, Wiener Schnitzel) -- stays "
              "exactly as it is; translate only what that language would say in its own words."),
     "ingredient": ("the name of an ingredient, as it is sold and bought",
                    "Give the plain name a shop and a shopping list use in that language, singular, "
-                   "written as that language writes it: Italian lowercase (\"cipolla\"), German "
-                   "nouns capitalised (\"Zwiebel\")."),
+                   "written as that language writes it: English and Italian lowercase (\"onion\", "
+                   "\"cipolla\"), German nouns capitalised (\"Zwiebel\").\n"
+                   "An ingredient renamed in one language: what matters is the thing bought, not the "
+                   "words. Judge from all the names before the edit and the edit what it was: a "
+                   "translation corrected or a name respelled -- the other names still name the same "
+                   "thing to buy, so they stay exactly as they are; or the ingredient made a different "
+                   "thing to buy -- then each other name becomes that thing's name in its language. "
+                   "Here that rule comes before copying the edit: a plural, a spelling, an accent or "
+                   "a word order changed is never copied into the other languages, and every name "
+                   "stays singular."),
     "category": ("the name of a category of dishes in a recipe collection",
                  "A name used as it is in that language (Pasta, Risotti) stays exactly as it is."),
 }
@@ -642,13 +778,19 @@ def _translate(kind: str, source: str, before: str, after: str, current: dict[st
             raise TranslationError(f"the translation failed: {e}")
         try:
             args = json.loads(msg["tool_calls"][0]["function"]["arguments"])
-            out = {lang: str(args[LANGUAGES[lang]]).strip() for lang in targets}
+            out = {lang: _unquoted(str(args[LANGUAGES[lang]])) for lang in targets}
         except (KeyError, IndexError, TypeError, ValueError):
             continue
         marks = sorted(PHOTO_MARK_RE.findall(after))
         if all(out.values()) and all(sorted(PHOTO_MARK_RE.findall(t)) == marks for t in out.values()):
             return out
     raise TranslationError("the translation came back incomplete or with photo markers changed -- try saving again")
+
+
+def _unquoted(text: str) -> str:
+    """A translation without the \"\"\" the prompt quotes texts in, which a
+    model sometimes copies around its answer."""
+    return re.sub(r'^\s*"""[ \t]*\n?|\n?[ \t]*"""\s*$', "", text).strip()
 
 
 def _translate_all(jobs: dict, pick=None) -> tuple[dict, str]:
@@ -1031,6 +1173,7 @@ def _forget_image(fname: str) -> None:
     try:
         if p.is_file() and p.parent == base:
             p.unlink()
+            (SMALL_DIR / f"{fname}.jpg").unlink(missing_ok=True)
     except OSError:
         pass
 
@@ -1148,7 +1291,7 @@ def _preparation(url: str, page_html: str, recipe: dict) -> list[dict]:
     """The recipe's steps, each {"text", "images": [{"steps", "url"}]}:
     GialloZafferano's preparation section with its photos, else the
     schema.org steps with the images they have."""
-    steps = giallozafferano.preparation(url, page_html, photo_mark)
+    steps = giallozafferano.preparation(url, page_html, ref_mark)
     if steps:
         return steps
     for step in _ld_steps(recipe.get("recipeInstructions") or []):
@@ -1599,30 +1742,87 @@ def _merge(conn: sqlite3.Connection, src: int, dst: int, src_name: str, dst_name
     conn.execute("DELETE FROM food_ingredients WHERE id = ?", (src,))
 
 
-def update_ingredient(user: str, ingredient_id: int, new_name: str | None, conversions: list | None) -> dict:
+def _ingredient_names(conn: sqlite3.Connection, ingredient_id: int) -> dict[str, str]:
+    """An ingredient's name in every language that has one (lang -> name)."""
+    row = conn.execute("SELECT name FROM food_ingredients WHERE id = ?", (ingredient_id,)).fetchone()
+    if row is None:
+        return {}
+    names = {r["lang"]: r["name"] for r in conn.execute(
+        "SELECT lang, name FROM food_ingredient_names WHERE ingredient_id = ?", (ingredient_id,))}
+    return {"en": row["name"], **names}
+
+
+def _ingredient_named(conn: sqlite3.Connection, name: str, lang: str, other_than: int) -> int | None:
+    """The ingredient other than `other_than` called `name` in `lang`."""
+    if lang == "en":
+        r = conn.execute("SELECT id FROM food_ingredients WHERE name = ? AND id != ?",
+                         (name.lower(), other_than)).fetchone()
+    else:
+        r = conn.execute("SELECT ingredient_id AS id FROM food_ingredient_names "
+                         "WHERE lang = ? AND lower(name) = ? AND ingredient_id != ? ORDER BY ingredient_id",
+                         (lang, name.lower(), other_than)).fetchone()
+    return r["id"] if r else None
+
+
+def _ingredient_name_ok(name: str, lang: str) -> bool:
+    """English names are the list's working ones (the import matches against
+    them): lowercase words. The others as their language writes them."""
+    return bool(_LOWER_WORD_RE.match(name) if lang == "en" else _TYPED_NAME_RE.match(name))
+
+
+def update_ingredient(user: str, ingredient_id: int, new_name: str | None, conversions: list | None,
+                      lang: str = "en") -> dict:
     """Correct one ingredient of the list.
 
     `conversions`: all of its conversions, replacing the ones it had ([] for
-    none). `new_name`: renamed, and when that name is already in the list the
-    two become one (_merge)."""
+    none). `new_name`: its name in `lang` now. When another ingredient is
+    called that in `lang` the two become one (_merge); otherwise the model is
+    given all its names before and the edit, and says whether the other
+    languages' names change too (a respelling or a translation fixed leaves
+    them, a different thing to buy renames them) -- outside the transaction,
+    it takes seconds; nothing is renamed if it fails. Raises
+    TranslationError."""
+    if lang not in LANGUAGES:
+        raise IngredientError(f"no language {lang!r}")
+    target = (new_name or "").strip()
+    target = " ".join(target.split())
+    if lang != "de":
+        target = target.lower()
     with connect() as conn:
-        row = conn.execute("SELECT id, name FROM food_ingredients WHERE id = ?", (ingredient_id,)).fetchone()
-        if row is None:
+        names = _ingredient_names(conn, ingredient_id)
+        if not names:
             raise IngredientError(f"no ingredient {ingredient_id}", 404)
         if conversions is not None:
             _save_conversions(conn, ingredient_id, _parse_conversions(conversions))
-        target = (new_name or "").strip().lower()
-        if target and target != row["name"]:
-            if not _LOWER_WORD_RE.match(target):
-                raise IngredientError("a name is lowercase letters, words separated by single spaces")
-            other = conn.execute("SELECT id FROM food_ingredients WHERE name = ?", (target,)).fetchone()
-            if other is None:
-                conn.execute("UPDATE food_ingredients SET name = ? WHERE id = ?", (target, ingredient_id))
-                # Its other languages' names were of the old name: made again.
-                conn.execute("DELETE FROM food_ingredient_names WHERE ingredient_id = ?", (ingredient_id,))
-                _spawn_translations_processing()
+        rename = bool(target) and target != names.get(lang)
+        if rename and not _ingredient_name_ok(target, lang):
+            raise IngredientError("a name is letters, words separated by single spaces")
+        other = _ingredient_named(conn, target, lang, ingredient_id) if rename else None
+        if other is not None:
+            _merge(conn, ingredient_id, other, names.get(lang, names["en"]), target)
+            rename = False
+        _bump_all(conn)
+        if not rename:
+            return snapshot(conn, user)
+    current = {k: v for k, v in names.items() if k != lang}
+    out = {lang: target, **_translate("ingredient", lang, names.get(lang, ""), target, current)}
+    with connect() as conn:
+        if not _ingredient_names(conn, ingredient_id):
+            raise IngredientError(f"no ingredient {ingredient_id}", 404)
+        for k in list(out):
+            if k == lang:
+                continue
+            n = out[k] if k == "de" else out[k].lower()
+            # One the model got wrong, or another ingredient's: its name stays.
+            if not _ingredient_name_ok(n, k) or _ingredient_named(conn, n, k, ingredient_id) is not None:
+                print(f"[food] ingredient {ingredient_id}: kept its {k} name, not {n!r}")
+                out.pop(k)
             else:
-                _merge(conn, ingredient_id, other["id"], row["name"], target)
+                out[k] = n
+        print(f"[food] ingredient {ingredient_id} renamed in {lang}: {names} -> {out}")
+        if "en" in out:
+            conn.execute("UPDATE food_ingredients SET name = ? WHERE id = ?", (out["en"], ingredient_id))
+        name_ingredient(conn, ingredient_id, out)
         _bump_all(conn)
         return snapshot(conn, user)
 

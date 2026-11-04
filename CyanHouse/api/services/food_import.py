@@ -10,8 +10,10 @@ the clients to show:
   reading      at once: the preparation cleaned of what isn't preparation
                (LLM, save_preparation), and the ingredient lines turned into
                ingredients of the list (LLM, save_ingredients)
-  translating  at once: the instructions translated (food._translate), and
-               their photos downloaded into the image store
+  translating  at once: the instructions written in every language, in the
+               house style (LLM, save_instructions -- the page's own
+               language too, so whatever it was written in), and their
+               photos downloaded into the image store
   done / failed
 
 What succeeds is saved even when another part fails -- "failed" lists what
@@ -78,6 +80,7 @@ def _run(dish_id: int) -> None:
 
 def _import(dish_id: int, url: str, name: str) -> None:
     errors: list[str] = []
+    started = time.monotonic()
     _state(dish_id, {"state": "running", "stage": "fetching"})
     food.fetch_recipe_page(url)
     with food.connect() as conn:
@@ -85,7 +88,7 @@ def _import(dish_id: int, url: str, name: str) -> None:
                             (url,)).fetchone()
         known = _known(conn)
     recipe = food._recipe(json.loads(page["json_ld"]))
-    steps = _mark_unmarked(json.loads(page["preparation"]))
+    steps = _number_unmarked(json.loads(page["preparation"]))
     facts = _facts(url, recipe, json.loads(page["site_facts"] or "{}"))
 
     _state(dish_id, {"state": "running", "stage": "reading"})
@@ -102,20 +105,21 @@ def _import(dish_id: int, url: str, name: str) -> None:
     instructions, photos = None, None
     if kept:
         _state(dish_id, {"state": "running", "stage": "translating"})
-        md, lang = _markdown(kept), _language(recipe)
         with ThreadPoolExecutor(max_workers=2) as pool:
-            f_tr = pool.submit(food._translate, "instructions", lang, "", md, {})
+            f_tr = pool.submit(_write_instructions, kept)
             f_photos = pool.submit(_download_photos, kept, name)
         photos, photo_errors = f_photos.result()
         errors += photo_errors
         try:
-            instructions = {lang: md, **f_tr.result()}
-        except food.TranslationError as e:
+            instructions = f_tr.result()
+        except ImportProblem as e:
             errors.append(f"instructions: {e}")
             for f in set(photos.values()):
                 food._forget_image(f)
             photos = None
     _save(dish_id, url, facts, ingredients, instructions, photos, errors)
+    print(f"[food import] dish {dish_id} ({name}): done in {time.monotonic() - started:.1f}s"
+          + (f", {len(errors)} error(s)" if errors else ""))
 
 
 def _save(dish_id: int, url: str, facts: dict, ingredients: dict | None,
@@ -171,29 +175,18 @@ def _facts(url: str, recipe: dict, site_facts: dict) -> dict:
     }
 
 
-def _language(recipe: dict) -> str:
-    """The language the page is written in, one of food.LANGUAGES; Italian
-    when it doesn't say (GialloZafferano is Italian)."""
-    lang = food._ld_text(recipe.get("inLanguage"))[:2].lower()
-    return lang if lang in food.LANGUAGES else "it"
-
-
 # ── the preparation ──────────────────────────────────────────────────────
-def _mark_unmarked(steps: list[dict]) -> list[dict]:
-    """A photo the text doesn't point at (a blog's one photo a step) gets a
-    number and a marker at its step's start, so it stays in its place."""
-    used = [int(n) for st in steps for n in food.PHOTO_MARK_RE.findall(st["text"])]
+def _number_unmarked(steps: list[dict]) -> list[dict]:
+    """A photo the text doesn't mention (a blog's one photo a step) gets a
+    number of its own, after the ones the text mentions."""
+    used = [int(n) for st in steps for kind, n in food.PHOTO_MARK_RE.findall(st["text"]) if kind == "ref"]
     used += [n for st in steps for img in st["images"] for n in img["steps"]]
     n = max(used, default=0)
     for st in steps:
-        marks = []
         for img in st["images"]:
             if not img["steps"]:
                 n += 1
                 img["steps"] = [n]
-                marks.append(food.photo_mark(n))
-        if marks:
-            st["text"] = " ".join(marks) + " " + st["text"]
     return steps
 
 
@@ -203,7 +196,7 @@ _PREPARATION_SYSTEM_PROMPT = (
     "the dish, invitations to read other recipes, links, sign-offs, ads. Call "
     "save_preparation with the steps, keeping only the preparation.\n\n"
     "Copy every sentence you keep exactly as it is, word for word, with every "
-    "marker like {{photo:3}} in it -- never reword, translate, reorder, merge "
+    "marker like {{ref:3}} in it -- never reword, translate, reorder, merge "
     "or add anything. Leave out a step whose sentences are none of them "
     "preparation. Advice on making the dish (another pasta shape, how to keep "
     "it) is preparation: keep it."
@@ -233,10 +226,13 @@ def _check_preparation(args: dict, steps: list[dict]) -> tuple[list[dict] | None
         for sentence in _SENTENCE_SPLIT.split(_norm(text)):
             if sentence and sentence not in source:
                 errors.append(f'step {n}: "{sentence[:80]}" is not word for word in the step -- copy, do not reword')
-        marks = set(food.PHOTO_MARK_RE.findall(text))
-        if not marks <= set(food.PHOTO_MARK_RE.findall(source)):
+        marks = {m for _kind, m in food.PHOTO_MARK_RE.findall(text)}
+        mentioned = {m for _kind, m in food.PHOTO_MARK_RE.findall(source)}
+        if not marks <= mentioned:
             errors.append(f"step {n}: a photo marker that the step does not have")
-        images = [img for img in steps[n - 1]["images"] if {str(s) for s in img["steps"]} & marks]
+        # Its photos the kept text still mentions, and the ones it never did.
+        images = [img for img in steps[n - 1]["images"]
+                  if {str(s) for s in img["steps"]} & marks or not {str(s) for s in img["steps"]} & mentioned]
         kept.append({"text": text, "images": images})
     if not kept and not errors:
         errors.append("keep at least the steps of the preparation")
@@ -263,23 +259,129 @@ def _clean_preparation(steps: list[dict]) -> list[dict]:
     for _attempt in range(2):
         try:
             args = _call_tool(messages, tool)
-        except ImportProblem:
+        except ImportProblem as e:
+            print(f"[food import] preparation kept as it was: {e}")
             return steps
         kept, errors = _check_preparation(args, steps)
         if kept is not None:
             return kept
+        print(f"[food import] preparation answer rejected: {'; '.join(errors[:3])}")
         messages += [{"role": "assistant", "content": json.dumps(args, ensure_ascii=False)},
                      {"role": "user", "content": _fix_these(errors)}]
     return steps
 
 
 def _markdown(steps: list[dict]) -> str:
-    """The steps as a numbered Markdown list, a step's paragraphs in its item."""
+    """The steps as a numbered Markdown list, a step's paragraphs in its
+    item -- the text's {{ref:N}} mentions where they are; no photos (see
+    _with_photos)."""
     items = []
     for i, st in enumerate(steps, 1):
         paras = [p.strip() for p in st["text"].split("\n\n") if p.strip()]
         items.append(f"{i}. " + "\n\n   ".join(paras))
     return "\n\n".join(items)
+
+
+_ITEM_RE = re.compile(r"^(\d+)\. ", re.M)
+
+
+def _items(md: str) -> list[int]:
+    return [int(n) for n in _ITEM_RE.findall(md)]
+
+
+def _with_photos(md: str, steps: list[dict]) -> str:
+    """_markdown's list (in any language) with each step's photos on a line
+    of their own just above its item: a {{photo:N}} each (N its first
+    number; a strip of several is one photo), shown there."""
+    def above(m: re.Match) -> str:
+        st = steps[int(m[1]) - 1]
+        shown = " ".join(food.photo_mark(img["steps"][0]) for img in st["images"] if img["steps"])
+        return f"{shown}\n{m[0]}" if shown else m[0]
+    return _ITEM_RE.sub(above, md)
+
+
+# How each language's instructions are written, whatever the page's style.
+_INSTRUCTIONS_STYLE = {
+    "en": 'the imperative ("Chop the onion and fry it in the oil.")',
+    "it": 'the infinitive ("Tritare la cipolla e farla soffriggere nell\'olio.") -- never '
+          '"tritate" or "trita"',
+    "de": 'the infinitive at the end of the sentence ("Die Zwiebel hacken und im Öl anbraten.") -- '
+          'never "Hacken Sie" or "hacke"',
+}
+
+_INSTRUCTIONS_SYSTEM_PROMPT = (
+    "You are given a recipe's cooking instructions as scraped from its web "
+    "page, in Markdown, in whatever language the page is written in. Call "
+    "save_instructions with them written in each of these languages -- the "
+    "page's own language too, rewritten like the others:\n{styles}\n\n"
+    "The same steps, in the same order, saying the same things: every "
+    "ingredient, amount, temperature, time and piece of advice, nothing "
+    "added, dropped or explained -- but an amount or temperature in units "
+    "not metric (pounds, ounces, cups, inches, Fahrenheit) gets its metric "
+    "value after it, in brackets, rounded as a cook would (\"3½ lb (1.6 "
+    "kg)\", \"350°F (175°C)\"), in every language; metric ones stay as "
+    "they are. Only the wording becomes the style above: "
+    "no addressing the reader (\"you\", \"voi\", \"Sie\"), no \"I\" or "
+    "\"we\", plain and concise sentences. Keep the Markdown: a numbered item "
+    "a step, numbered as it is, its paragraphs in it. A marker like {{ref:3}} "
+    "is the text's mention of a photo of the recipe: keep every one exactly "
+    "as it is, in the same place of the sentence it belongs to -- never "
+    "translate, renumber, add or drop one."
+)
+
+
+def _write_instructions(steps: list[dict]) -> dict[str, str]:
+    """The steps as Markdown (_markdown, _with_photos) in every language of
+    food.LANGUAGES, the house style (_INSTRUCTIONS_STYLE) -- the page's own
+    language rewritten too, so it needn't be known. The model never sees
+    the photos' lines: they are put back above their steps after. One retry
+    with what was wrong. Raises ImportProblem."""
+    md = _markdown(steps)
+    prompt = _INSTRUCTIONS_SYSTEM_PROMPT.replace("{styles}", "\n".join(
+        f"- {food.LANGUAGES[lang]}: {_INSTRUCTIONS_STYLE[lang]}" for lang in food.LANGUAGES))
+    tool = {"type": "function", "function": {
+        "name": "save_instructions",
+        "description": "Save the instructions in every language.",
+        "parameters": {"type": "object", "properties": {
+            food.LANGUAGES[lang]: {"type": "string", "description": f"The full instructions in {food.LANGUAGES[lang]}"}
+            for lang in food.LANGUAGES},
+            "required": list(food.LANGUAGES.values()), "additionalProperties": False},
+    }}
+    messages = [{"role": "system", "content": prompt}, {"role": "user", "content": f'"""\n{md}\n"""'}]
+    marks = sorted(food.PHOTO_MARK_RE.findall(md))
+    errors: list[str] = []
+    for _attempt in range(2):
+        args = _call_tool(messages, tool)
+        out = {lang: food._unquoted(str(args.get(name, ""))) for lang, name in food.LANGUAGES.items()}
+        errors = [f"the {food.LANGUAGES[lang]} instructions are missing" for lang, t in out.items() if not t]
+        for lang, t in out.items():
+            have = sorted(food.PHOTO_MARK_RE.findall(t))
+            if t and _items(t) != list(range(1, len(steps) + 1)):
+                errors.append(f"the {food.LANGUAGES[lang]} instructions are not the {len(steps)} steps, "
+                              f"numbered 1. to {len(steps)}. as given, each at the start of its line")
+            if t and have != marks:
+                missing, extra = _diff_marks(marks, have), _diff_marks(have, marks)
+                errors.append(f"the {food.LANGUAGES[lang]} instructions' markers are not the original's"
+                              + (f" -- missing: {missing}" if missing else "")
+                              + (f" -- not in the original: {extra}" if extra else ""))
+        if not errors:
+            return {lang: _with_photos(t, steps) for lang, t in out.items()}
+        print(f"[food import] instructions answer rejected: {'; '.join(errors[:3])}")
+        messages += [{"role": "assistant", "content": json.dumps(args, ensure_ascii=False)},
+                     {"role": "user", "content": _fix_these(errors)}]
+    raise ImportProblem("; ".join(errors[:3]))
+
+
+def _diff_marks(a: list[tuple[str, str]], b: list[tuple[str, str]]) -> str:
+    """The markers of `a` that `b` lacks (a count each), written as they are."""
+    rest = list(b)
+    out = []
+    for m in a:
+        if m in rest:
+            rest.remove(m)
+        else:
+            out.append("{{%s:%s}}" % m)
+    return ", ".join(out)
 
 
 def _download_photos(steps: list[dict], name: str) -> tuple[dict[str, str], list[str]]:
@@ -293,9 +395,9 @@ def _download_photos(steps: list[dict], name: str) -> tuple[dict[str, str], list
     def get(url: str) -> str:
         resp = food._public_get(url, timeout=20)
         resp.raise_for_status()
-        fname = f"{food._slug(name)}-step-{secrets.token_hex(4)}{food._ext_for(resp.headers.get('content-type', ''), url)}"
-        (food.FOOD_IMAGES_DIR / fname).write_bytes(resp.content)
-        return fname
+        return food._store_image(
+            f"{food._slug(name)}-step-{secrets.token_hex(4)}{food._ext_for(resp.headers.get('content-type', ''), url)}",
+            resp.content)
 
     photos, errors = {}, []
     with ThreadPoolExecutor(max_workers=6) as pool:
@@ -460,6 +562,7 @@ def _ingredients(recipe: dict, dish_name: str, known: dict) -> dict:
         result, errors = _check_ingredients(args, lines, names, others)
         if result is not None:
             return result
+        print(f"[food import] ingredients answer rejected: {'; '.join(errors[:3])}")
         messages += [{"role": "assistant", "content": json.dumps(args, ensure_ascii=False)},
                      {"role": "user", "content": _fix_these(errors)}]
     raise ImportProblem("; ".join(errors[:5]))

@@ -191,6 +191,9 @@ const f = (url: string, init: RequestInit = {}) =>
 export const dishImageUrl = (file: string) =>
   `/api/food/images/${encodeURIComponent(file)}`;
 
+/** Its small copy (480px wide at most), for cards and lists. */
+export const dishSmallUrl = (file: string) => `${dishImageUrl(file)}?small=1`;
+
 export const foodApi = {
   list: () => f("/api/food/dishes").then(j<FoodData>),
 
@@ -218,7 +221,7 @@ export const foodApi = {
 
   /** Rename an ingredient of the list (into another: they merge), or set
    *  all of its conversions. */
-  patchIngredient: (id: number, body: { name?: string; conversions?: Conversion[] }) =>
+  patchIngredient: (id: number, body: { name?: string; lang?: string; conversions?: Conversion[] }) =>
     f(`/api/food/ingredients/${id}`, {
       method: "PATCH",
       headers: JSON_HEADERS,

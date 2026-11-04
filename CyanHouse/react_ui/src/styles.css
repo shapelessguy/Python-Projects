@@ -658,11 +658,6 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
 .dish-card-foot .dish-stars { color: #f2c14e; font-size: 0.78rem; margin-top: 1px; }
 .dish-card-foot .acts { display: flex; align-items: center; gap: 4px; flex: 0 0 auto; }
 .dish-card-foot .acts button { padding: 2px 7px; font-size: 0.8rem; line-height: 1.3; }
-.dish-card-foot.armed { flex-wrap: wrap; }
-.dish-card-foot .confirm-label {
-  flex: 1 1 100%; font-size: 0.78rem; color: var(--muted);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
 /* Narrow cards: up to five icon buttons in .acts leaves the name only a
    sliver of room next to it. Below this width, give the name its own full
    row and drop the star rating down to share a row with the buttons instead
@@ -694,6 +689,8 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
 .modal.dish-form { width: min(420px, 92vw); display: flex; flex-direction: column; gap: 10px; }
 .dish-form label { display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem; color: var(--muted); }
 .dish-form label input[type="range"] { padding: 0; }
+.dish-form-newcat { display: flex; gap: 6px; }
+.dish-form-newcat input { flex: 1; min-width: 0; }
 .dish-form-image { display: flex; gap: 12px; align-items: flex-start; }
 .dish-form-image .col { display: flex; flex-direction: column; gap: 6px; }
 .dish-form-image .dish-thumb { width: 200px; height: 150px; }
@@ -707,11 +704,29 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
 /* "Rating:" and its ten stars on one line. */
 .dish-form-rating { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .star-rating { display: inline-flex; }
+/* A card's rating, picked in a popup under its stars. */
+.dish-card-foot button.dish-stars {
+  background: transparent; border: none; padding: 2px 4px; margin-left: -4px; border-radius: 4px; cursor: pointer;
+  align-self: flex-start; text-align: left;
+}
+.dish-card-foot button.dish-stars:hover { background: var(--panel-2); }
+.rating-popup-backdrop { position: fixed; inset: 0; z-index: 70; }
+.rating-popup {
+  position: fixed; display: flex; justify-content: center; padding: 6px 8px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+}
+.rating-popup .star-rating { width: 100%; justify-content: space-between; }
+.rating-popup .star-rating button { font-size: 1.35rem; padding: 4px 2px; min-width: 26px; }
 .star-rating button {
   background: none; border: none; padding: 0 1px; cursor: pointer;
   font-size: 1.25rem; line-height: 1; color: var(--line);
 }
 .star-rating button.on { color: #f5b301; }
+/* Each star's number under it -- no counting stars. */
+.star-rating button { display: inline-flex; flex-direction: column; align-items: center; }
+.star-rating .star-num { font-size: 0.6rem; line-height: 1.2; color: var(--muted); }
+.star-rating button.on .star-num { color: #f5b301; }
 .modal.image-picker {
   width: min(1240px, 96vw);
   height: min(960px, 90vh);
@@ -754,7 +769,39 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
 .recipe-cell-facts { font-size: 0.72rem; color: #fff; flex: 1 1 100%; }
 .recipe-cell-facts:empty { display: none; }
 .dish-form-recipe { display: flex; flex-direction: column; gap: 6px; }
-.dish-form-recipe .row-actions { margin-top: 0; }
+/* The linked recipe as one row: what it is (opens it here), the page
+ * itself, and a menu with the rarer actions. */
+.recipe-row {
+  position: relative; display: flex; align-items: stretch;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2);
+}
+.recipe-row-main {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px; background: transparent; border: none; border-radius: 8px 0 0 8px; text-align: left;
+}
+.recipe-row-main .recipe-row-text { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.recipe-row-main strong, .recipe-row-main .muted { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.recipe-row-main:hover { background: var(--panel); }
+.recipe-row > a, .recipe-row > .recipe-row-more {
+  flex: none; display: grid; place-items: center; width: 40px;
+  border: none; border-left: 1px solid var(--line); border-radius: 0;
+  background: transparent; color: inherit; text-decoration: none;
+}
+.recipe-row > .recipe-row-more { border-radius: 0 8px 8px 0; }
+.recipe-row > a:hover, .recipe-row > .recipe-row-more:hover { background: var(--panel); }
+.recipe-row-menu {
+  position: absolute; top: calc(100% + 4px); right: 0; z-index: 20; min-width: 180px;
+  display: flex; flex-direction: column; gap: 1px; padding: 4px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+}
+.recipe-row-menu button {
+  text-align: left; background: transparent; border: none; border-radius: 5px; padding: 8px 10px; white-space: nowrap;
+}
+.recipe-row-menu button:hover { background: var(--panel-2); }
+.recipe-row-menu button.danger { color: #ff9b9b; }
+.dish-form-actions { display: flex; gap: 6px; margin-top: 8px; }
+.dish-form-actions .dish-form-delete { margin-right: auto; }
 .dish-form-label { font-size: 0.8rem; color: var(--muted); }
 .recipe-link {
   padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px;
@@ -1107,6 +1154,11 @@ button.glyph-btn:disabled { opacity: 0.2; }
 .ingredients-row-error { color: var(--accent); font-size: 0.74rem; margin: 2px 0 0 2px; }
 .ingredients-row-note { color: var(--muted); font-size: 0.74rem; margin: 2px 0 0 2px; }
 .ingredients-conversions { margin: 4px 0 8px; padding: 6px 8px; border-left: 2px solid var(--line); display: flex; flex-direction: column; gap: 6px; }
+.catalog-uses { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.catalog-dishes { flex-direction: row; flex-wrap: wrap; }
+.catalog-dish { display: inline-flex; align-items: center; gap: 8px; padding: 4px 10px 4px 4px; }
+.catalog-dish img, .catalog-dish-blank { width: 32px; height: 32px; border-radius: 6px; object-fit: cover; flex: none; }
+.catalog-dish-blank { display: grid; place-items: center; background: var(--line); font-size: 0.9rem; }
 .ingredients-conversion { display: grid; grid-template-columns: 4.5em minmax(5em, 7em) auto 4.5em minmax(5em, 7em); gap: 6px; align-items: center; }
 /* Both inside .dish-info-scroll, which scrolls the dialog: neither may keep
    the wheel to itself, or the dialog stops scrolling under the pointer. */

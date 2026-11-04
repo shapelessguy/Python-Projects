@@ -19,6 +19,7 @@ import {
   RecipeSummary,
   UnitDef,
   dishImageUrl,
+  dishSmallUrl,
   foodApi,
 } from "./food";
 import { SizeSlider } from "./SizeSlider";
@@ -30,7 +31,9 @@ import {
   saveCheckedIngredients,
   saveGroceryList,
 } from "./grocery";
+import { createPortal } from "react-dom";
 import { useBackToClose } from "../backClose";
+import { ConfirmDialog } from "../ConfirmDialog";
 
 function stars(rating: number): string {
   const full = Math.max(0, Math.min(Math.round(rating), 10));
@@ -53,50 +56,63 @@ const dishName = (d: Dish, lang: string) => d.name_tr?.[lang] || d.name;
  *  sanitize before it ever touches the DOM. */
 function MarkdownView({ text, photos }: { text: string; photos?: Record<string, string> }) {
   const html = useMemo(() => {
-    // A {{photo:N}} marker reads as the photo's number; the photos an item
-    // points at go above it, as on the recipe's page.
-    const marked_ = text.replace(/\{\{photo:(\d+)\}\}/g, '<span class="photo-badge" data-photo="$1">$1</span>');
+    // {{ref:N}}, the text's mention of photo N, reads as its number;
+    // {{photo:N}} is the photo itself, put where it stands (withPhotos).
+    const marked_ = text
+      // A line of photos above a step is a block of its own: a list may
+      // start right under a paragraph only at 1.
+      .replace(/^((?:\{\{photo:\d+\}\}[ \t]*)+)\n(?!\n)/gm, "$1\n\n")
+      .replace(/\{\{ref:(\d+)\}\}/g, '<span class="photo-badge">$1</span>')
+      .replace(/\{\{photo:(\d+)\}\}/g, '<span class="photo-slot" data-photo="$1"></span>');
     const raw = marked.parse(marked_, { async: false, breaks: true }) as string;
     const clean = DOMPurify.sanitize(raw);
-    return photos && Object.keys(photos).length ? withPhotos(clean, photos) : clean;
+    return clean.includes("photo-slot") ? withPhotos(clean, photos ?? {}) : clean;
   }, [text, photos]);
   // eslint-disable-next-line react/no-danger
   return <div className="dish-info-body markdown" dangerouslySetInnerHTML={{ __html: html }} />;
 }
 
-/** Sanitized instructions HTML with each list item's (or paragraph's)
- *  photos above it: the files its photo badges point at, once each -- a
- *  strip of several numbers is one photo, captioned with none. */
+/** Sanitized instructions HTML with each {{photo:N}} slot as photo N --
+ *  side by side with the slots next to it, a paragraph of nothing but
+ *  photos becoming their row; captioned with its number unless a strip of
+ *  several. A slot with no photo (one that couldn't be downloaded) goes. */
 function withPhotos(html: string, photos: Record<string, string>): string {
   const doc = new DOMParser().parseFromString(`<div>${html}</div>`, "text/html");
   const root = doc.body.firstElementChild as HTMLElement;
   const shared = new Map<string, number>();  // file -> how many numbers show it
   for (const f of Object.values(photos)) shared.set(f, (shared.get(f) ?? 0) + 1);
-  const blocks = [...root.querySelectorAll("li"), ...[...root.querySelectorAll("p")].filter((p) => !p.closest("li"))];
-  for (const block of blocks) {
-    const files: { file: string; n: string }[] = [];
-    for (const badge of block.querySelectorAll<HTMLElement>(".photo-badge")) {
-      const n = badge.textContent ?? "";
-      const file = photos[n];
-      if (file && !files.some((f) => f.file === file)) files.push({ file, n });
+  const isBlank = (n: Node | null) => n?.nodeType === Node.TEXT_NODE && !n.textContent?.trim()
+    || (n as Element | null)?.tagName === "BR";
+  for (const slot of [...root.querySelectorAll<HTMLElement>(".photo-slot")]) {
+    const n = slot.dataset.photo ?? "";
+    const file = photos[n];
+    if (!file) { slot.remove(); continue; }
+    const fig = doc.createElement("figure");
+    const img = doc.createElement("img");
+    img.src = dishImageUrl(file);
+    img.loading = "lazy";
+    fig.appendChild(img);
+    if (shared.get(file) === 1) {
+      const cap = doc.createElement("figcaption");
+      cap.textContent = n;
+      fig.appendChild(cap);
     }
-    if (!files.length) continue;
-    const grid = doc.createElement("div");
-    grid.className = "recipe-viewer-photos" + (files.length === 1 ? " single" : "");
-    for (const { file, n } of files) {
-      const fig = doc.createElement("figure");
-      const img = doc.createElement("img");
-      img.src = dishImageUrl(file);
-      img.loading = "lazy";
-      fig.appendChild(img);
-      if (shared.get(file) === 1) {
-        const cap = doc.createElement("figcaption");
-        cap.textContent = n;
-        fig.appendChild(cap);
-      }
+    let prev = slot.previousSibling;
+    while (prev && isBlank(prev)) prev = prev.previousSibling;
+    if ((prev as Element | null)?.classList?.contains("recipe-viewer-photos")) {
+      prev!.appendChild(fig);
+      slot.remove();
+    } else {
+      const grid = doc.createElement("div");
+      grid.className = "recipe-viewer-photos";
       grid.appendChild(fig);
+      slot.replaceWith(grid);
     }
-    block.insertBefore(grid, block.firstChild);
+  }
+  for (const grid of root.querySelectorAll(".recipe-viewer-photos")) {
+    if (grid.children.length === 1) grid.classList.add("single");
+    const p = grid.parentElement!;
+    if (p.tagName === "P" && [...p.childNodes].every((n) => n === grid || isBlank(n))) p.replaceWith(grid);
   }
   return root.innerHTML;
 }
@@ -129,7 +145,6 @@ export function FoodPanel() {
   const [everOpened, setEverOpened] = useState<Set<string>>(() => new Set());
   const [imgLoaded, setImgLoaded] = useState<Set<string>>(() => new Set());
   const [editing, setEditing] = useState<Dish | "new" | null>(null);
-  const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
   const [zoom, setZoom] = useState<number>(loadZoom);
   const [editingIngredients, setEditingIngredients] = useState<Dish | null>(null);
   // The dish whose recipe import is being watched (ImportProgress).
@@ -371,14 +386,8 @@ export function FoodPanel() {
                   collapsed={!isOpen}
                   loaded={imgLoaded.has(cat)}
                   onAllLoaded={() => markLoaded(cat)}
-                  confirmDelete={confirmDelete}
                   onEdit={setEditing}
-                  onArm={setConfirmDelete}
-                  onCancelArm={() => setConfirmDelete(null)}
-                  onDelete={(id) => {
-                    setConfirmDelete(null);
-                    mutate(foodApi.remove(id));
-                  }}
+                  onRate={(id, rating) => mutate(foodApi.patch(id, { rating }))}
                   onEditIngredients={setEditingIngredients}
                   onWatchImport={setWatching}
                   groceryMode={groceryMode}
@@ -397,6 +406,10 @@ export function FoodPanel() {
           categories={data.categories}
           categoryTr={data.category_tr ?? {}}
           onCancel={() => setEditing(null)}
+          onDelete={(id) => {
+            setEditing(null);
+            mutate(foodApi.remove(id));
+          }}
           onSubmit={(body) => {
             const editedId = editing === "new" ? null : editing.id;
             return mutate(
@@ -428,7 +441,8 @@ export function FoodPanel() {
       )}
 
       {showCatalog && (
-        <IngredientCatalog items={data.ingredients ?? []} units={data.units ?? []} onChanged={apply} onClose={() => setShowCatalog(false)} />
+        <IngredientCatalog items={data.ingredients ?? []} units={data.units ?? []} dishes={data.dishes}
+                           onOpenDish={setEditingIngredients} onChanged={apply} onClose={() => setShowCatalog(false)} />
       )}
 
       {editingIngredients && (
@@ -619,11 +633,8 @@ function CategoryGrid({
   collapsed,
   loaded,
   onAllLoaded,
-  confirmDelete,
   onEdit,
-  onArm,
-  onCancelArm,
-  onDelete,
+  onRate,
   onEditIngredients,
   onWatchImport,
   groceryMode,
@@ -634,11 +645,8 @@ function CategoryGrid({
   collapsed: boolean;
   loaded: boolean;
   onAllLoaded: () => void;
-  confirmDelete: number | null;
   onEdit: (d: Dish) => void;
-  onArm: (id: number) => void;
-  onCancelArm: () => void;
-  onDelete: (id: number) => void;
+  onRate: (id: number, rating: number) => void;
   onEditIngredients: (d: Dish) => void;
   onWatchImport: (id: number) => void;
   groceryMode: boolean;
@@ -682,11 +690,8 @@ function CategoryGrid({
           <DishCard
             key={d.id}
             dish={d}
-            armed={confirmDelete === d.id}
             onEdit={() => onEdit(d)}
-            onArm={() => onArm(d.id)}
-            onCancelArm={onCancelArm}
-            onDelete={() => onDelete(d.id)}
+            onRate={(n) => onRate(d.id, n)}
             onImgSettled={() => onImgSettled(d.id)}
             onEditIngredients={() => onEditIngredients(d)}
             onWatchImport={() => onWatchImport(d.id)}
@@ -702,11 +707,8 @@ function CategoryGrid({
 
 function DishCard({
   dish,
-  armed,
   onEdit,
-  onArm,
-  onCancelArm,
-  onDelete,
+  onRate,
   onImgSettled,
   onEditIngredients,
   onWatchImport,
@@ -715,11 +717,8 @@ function DishCard({
   onToggleSelect,
 }: {
   dish: Dish;
-  armed: boolean;
   onEdit: () => void;
-  onArm: () => void;
-  onCancelArm: () => void;
-  onDelete: () => void;
+  onRate: (rating: number) => void;
   onImgSettled?: () => void;
   onEditIngredients: () => void;
   onWatchImport: () => void;
@@ -730,12 +729,14 @@ function DishCard({
   const { t, lang } = useT();
   const name = dishName(dish, lang);
   const eligibleForGrocery = Boolean(dish.ingredients);
+  // Where the rating's popup opens: below the card's stars.
+  const [ratingAt, setRatingAt] = useState<DOMRect | null>(null);
   const img = dish.image ? (
     <img
       // No loading="lazy": the category itself is the lazy boundary
       // (images mount only after you open it), and the loading bar needs
       // every image in the category to actually start loading.
-      src={dishImageUrl(dish.image)}
+      src={dishSmallUrl(dish.image)}
       alt={name}
       ref={(el) => {
         // Cached images can be `complete` before onLoad would fire.
@@ -804,48 +805,26 @@ function DishCard({
             : <>⚠ {t("food_import_failed")}</>}
         </button>
       )}
-      <div className={"dish-card-foot" + (armed ? " armed" : "")}>
-        {armed ? (
-          <>
-            <span className="confirm-label">{t("food_delete_confirm", { name })}</span>
-            <div className="acts">
-              <button className="danger" onClick={onDelete}>
-                {t("delete")}
-              </button>
-              <button className="ghost" onClick={onCancelArm}>
-                {t("cancel")}
-              </button>
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="meta">
-              <div className="dish-name" title={name}>
-                {name}
-              </div>
-              <div className="dish-stars" title={stars(dish.rating)}>
-                {ratingShort(dish.rating)}
-              </div>
-            </div>
-            <div className="acts">
-              {dish.url && (
-                <button
-                  className="ghost"
-                  title={t("food_open_recipe", { url: dish.url })}
-                  onClick={() => window.open(dish.url, "_blank", "noopener,noreferrer")}
-                >
-                  🔗
-                </button>
-              )}
-              <button className="ghost" title={t("edit")} onClick={onEdit}>
-                ✎
-              </button>
-              <button className="ghost danger" title={t("delete")} onClick={onArm}>
-                🗑
-              </button>
-            </div>
-          </>
+      <div className="dish-card-foot">
+        <div className="meta">
+          <div className="dish-name" title={name}>
+            {name}
+          </div>
+          <button type="button" className="dish-stars" title={`${t("food_rating")} ${stars(dish.rating)}`}
+                  onClick={(e) => setRatingAt(e.currentTarget.getBoundingClientRect())}>
+            {ratingShort(dish.rating)}
+          </button>
+        </div>
+        {ratingAt && (
+          <RatingPopup at={ratingAt} value={dish.rating}
+                       onPick={(n) => { setRatingAt(null); if (n !== dish.rating) onRate(n); }}
+                       onClose={() => setRatingAt(null)} />
         )}
+        <div className="acts">
+          <button className="ghost" title={t("edit")} onClick={onEdit}>
+            ✎
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -983,9 +962,12 @@ function convDrafts(convs: Conversion[], units: UnitDef[]): ConvDraft[] {
  *  optional conversions between mass, volume and pieces -- what lets the
  *  shopping list add up recipes that measure it differently
  *  (api/services/food.py). Renaming one into another merges them. */
-function IngredientCatalog({ items, units, onChanged, onClose }: {
+function IngredientCatalog({ items, units, dishes, onOpenDish, onChanged, onClose }: {
   items: CatalogIngredient[];
   units: UnitDef[];
+  dishes: Dish[];
+  /** A dish of an ingredient's list, opened over this one. */
+  onOpenDish: (d: Dish) => void;
   onChanged: (d: FoodData) => void;
   onClose: () => void;
 }) {
@@ -997,6 +979,18 @@ function IngredientCatalog({ items, units, onChanged, onClose }: {
   const [converting, setConverting] = useState<{ id: number; drafts: ConvDraft[] } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // The ingredient whose dishes are shown, and each ingredient's dishes
+  // (by its list name, as the dishes' ingredients have it).
+  const [showingDishes, setShowingDishes] = useState<number | null>(null);
+  const dishesOf = useMemo(() => {
+    const m = new Map<string, Dish[]>();
+    for (const d of dishes) {
+      for (const r of parseIngredients(d.ingredients).rows) m.set(r.name, [...(m.get(r.name) ?? []), d]);
+    }
+    return m;
+  }, [dishes]);
+  // A rename into another ingredient's name, waiting to be confirmed.
+  const [merging, setMerging] = useState<{ message: string; yes: () => void; no: () => void } | null>(null);
 
   const run = (p: Promise<FoodData>) => {
     setBusy(true);
@@ -1005,11 +999,22 @@ function IngredientCatalog({ items, units, onChanged, onClose }: {
       .catch((e) => { setError(serverMessage(e)); return false; })
       .finally(() => setBusy(false));
   };
+  const { lang: uiLang } = useT();
+  // Names are shown and edited in the UI's language only: German keeps its
+  // capitals, the others are lowercase. The server has the other languages
+  // follow when the edit makes it another thing to buy.
+  const typed = (v: string) => (uiLang === "de" ? v : v.toLowerCase());
+  const forget = (id: number) => setNames((n) => { const { [id]: _, ...rest } = n; return rest; });
   const rename = (it: CatalogIngredient) => {
-    const to = (names[it.id] ?? it.name).trim().toLowerCase();
-    if (!to || to === it.name) return;
-    run(foodApi.patchIngredient(it.id, { name: to }))
-      .then((ok) => ok && setNames((n) => { const { [it.id]: _, ...rest } = n; return rest; }));
+    const was = ingredientName(it, uiLang);
+    const to = typed((names[it.id] ?? was).trim().replace(/\s+/g, " "));
+    if (!to || to === was) return forget(it.id);
+    const send = () =>
+      run(foodApi.patchIngredient(it.id, { name: to, lang: uiLang })).then((ok) => ok && forget(it.id));
+    const into = items.find((o) => o.id !== it.id && ingredientName(o, uiLang).toLowerCase() === to.toLowerCase());
+    if (into) setMerging({ message: t("food_merge_confirm", { a: was, b: ingredientName(into, uiLang), n: it.uses }),
+                           yes: send, no: () => forget(it.id) });
+    else send();
   };
   const setDraft = (i: number, patch: Partial<ConvDraft>) =>
     setConverting((c) => c && { ...c, drafts: c.drafts.map((d, j) => (j === i ? { ...d, ...patch } : d)) });
@@ -1024,9 +1029,10 @@ function IngredientCatalog({ items, units, onChanged, onClose }: {
     }));
     run(foodApi.patchIngredient(id, { conversions })).then((ok) => ok && setConverting(null));
   };
-  const { lang: uiLang } = useT();
   const q = query.trim().toLowerCase();
-  const shown = items.filter((it) => it.name.includes(q) || ingredientName(it, uiLang).toLowerCase().includes(q));
+  const shown = items
+    .filter((it) => ingredientName(it, uiLang).toLowerCase().includes(q))
+    .sort((a, b) => ingredientName(a, uiLang).localeCompare(ingredientName(b, uiLang), uiLang));
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
@@ -1040,8 +1046,8 @@ function IngredientCatalog({ items, units, onChanged, onClose }: {
               <div key={it.id}>
                 <div className="ingredients-row catalog-row">
                   <input
-                    value={names[it.id] ?? it.name}
-                    onChange={(e) => setNames((n) => ({ ...n, [it.id]: e.target.value.toLowerCase() }))}
+                    value={names[it.id] ?? ingredientName(it, uiLang)}
+                    onChange={(e) => setNames((n) => ({ ...n, [it.id]: typed(e.target.value) }))}
                     onBlur={() => rename(it)}
                     onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
                     disabled={busy}
@@ -1052,15 +1058,28 @@ function IngredientCatalog({ items, units, onChanged, onClose }: {
                             : { id: it.id, drafts: convDrafts(it.conversions, units) })}>
                     ⇄{it.conversions.length ? ` ${it.conversions.length}` : ""}
                   </button>
-                  <span className="muted small" title={t("food_dishes_using_it")}>{tn("food_uses", it.uses)}</span>
+                  <button type="button" className={"ghost catalog-uses" + (showingDishes === it.id ? " active" : "")}
+                          disabled={!it.uses} title={`${t("food_dishes_using_it")}: ${tn("food_uses", it.uses)}`}
+                          onClick={() => setShowingDishes(showingDishes === it.id ? null : it.id)}>
+                    🍽 {it.uses}
+                  </button>
                   <button type="button" className="glyph-btn" disabled={busy || it.uses > 0}
                           title={it.uses ? t("food_in_use") : t("remove")}
                           onClick={() => run(foodApi.removeIngredient(it.id))}>
                     🗑
                   </button>
                 </div>
-                {uiLang !== "en" && it.names?.[uiLang] && (
-                  <div className="ingredients-row-note">{it.names[uiLang]}</div>
+                {showingDishes === it.id && (
+                  <div className="ingredients-conversions catalog-dishes">
+                    {[...(dishesOf.get(it.name) ?? [])]
+                      .sort((a, b) => dishName(a, uiLang).localeCompare(dishName(b, uiLang), uiLang))
+                      .map((d) => (
+                        <button type="button" key={d.id} className="ghost catalog-dish" onClick={() => onOpenDish(d)}>
+                          {d.image ? <img src={dishSmallUrl(d.image)} alt="" loading="lazy" /> : <span className="catalog-dish-blank">🍽</span>}
+                          {dishName(d, uiLang)}
+                        </button>
+                      ))}
+                  </div>
                 )}
                 {converting?.id === it.id && (
                   <div className="ingredients-conversions">
@@ -1099,6 +1118,11 @@ function IngredientCatalog({ items, units, onChanged, onClose }: {
           <button type="button" className="active" onClick={onClose}>{t("done")}</button>
         </div>
       </div>
+      {merging && (
+        <ConfirmDialog message={merging.message}
+                       onYes={() => { setMerging(null); merging.yes(); }}
+                       onNo={() => { setMerging(null); merging.no(); }} />
+      )}
     </div>
   );
 }
@@ -1423,6 +1447,7 @@ function DishForm({
   categories,
   categoryTr,
   onCancel,
+  onDelete,
   onSubmit,
   onImport,
 }: {
@@ -1430,6 +1455,7 @@ function DishForm({
   categories: string[];
   categoryTr: Record<string, Record<string, string>>;
   onCancel: () => void;
+  onDelete: (dishId: number) => void;
   onSubmit: (body: Partial<DishInput>) => Promise<unknown>;
   /** Import the recipe the dish already links to (never imported yet). */
   onImport: (dishId: number) => void;
@@ -1441,8 +1467,10 @@ function DishForm({
   const initialCategory = dish?.category ? catName(dish.category) : "";
   const [name, setName] = useState(initialName);
   const [category, setCategory] = useState(initialCategory);
-  const [saving, setSaving] = useState<"saving" | "translating" | null>(null);
   const [rating, setRating] = useState(dish?.rating ?? 7);
+  // A category of the list is picked; typing one is only for a new one.
+  const [newCategory, setNewCategory] = useState(false);
+  const [saving, setSaving] = useState<"saving" | "translating" | null>(null);
   // The recipe the dish comes from: its page's url, and -- once one is
   // picked from the search here -- what the page says (the server keeps the
   // page itself).
@@ -1461,13 +1489,32 @@ function DishForm({
       ? dishImageUrl(dish.image)
       : null;
 
+  const [askReplace, setAskReplace] = useState(false);
+  const [askDelete, setAskDelete] = useState(false);
+  const [recipeMenu, setRecipeMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!recipeMenu) return;
+    const away = (e: PointerEvent) => {
+      if (!menuRef.current?.contains(e.target as Node)) setRecipeMenu(false);
+    };
+    document.addEventListener("pointerdown", away);
+    return () => document.removeEventListener("pointerdown", away);
+  }, [recipeMenu]);
+  const canImport = Boolean(dish && recipeUrl && recipeUrl === dish.url && !dish.import.imported
+    && dish.import.state !== "running");
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
     // A new recipe for a dish that has ingredients or instructions replaces
     // them (its import): asked first.
-    if (dish && recipeUrl.trim() && recipeUrl.trim() !== dish.url && (dish.ingredients || dish.instructions)
-        && !window.confirm(t("food_replace_confirm"))) return;
+    if (dish && recipeUrl.trim() && recipeUrl.trim() !== dish.url && (dish.ingredients || dish.instructions)) {
+      setAskReplace(true);
+      return;
+    }
+    save();
+  };
+  const save = () => {
     const body: Partial<DishInput> = { rating, url: recipeUrl.trim(), lang };
     if (!dish || name.trim() !== initialName) body.name = name.trim();
     if (!dish || category.trim() !== initialCategory) body.category = category.trim();
@@ -1489,23 +1536,39 @@ function DishForm({
 
         <div className="dish-form-recipe">
           <span className="dish-form-label">{t("food_recipe")}</span>
-          {recipeUrl && <RecipeLink url={recipeUrl} name={recipe?.name} />}
-          <div className="row-actions">
-            <button type="button" onClick={() => setFindingRecipe(true)}>
-              📖 {recipeUrl ? t("food_change_recipe") : t("food_find_recipe")}
-            </button>
-            {recipeUrl && (
-              <button type="button" onClick={() => setViewingRecipe(true)}>{t("food_show_recipe")}</button>
-            )}
-            {dish && recipeUrl && recipeUrl === dish.url && !dish.import.imported && dish.import.state !== "running" && (
-              <button type="button" onClick={() => onImport(dish.id)}>{t("food_import_recipe")}</button>
-            )}
-            {recipeUrl && (
-              <button type="button" className="ghost" onClick={() => { setRecipeUrl(""); setRecipe(null); }}>
-                {t("remove")}
+          {recipeUrl ? (
+            <div className="recipe-row" ref={menuRef}>
+              <button type="button" className="recipe-row-main" title={t("food_show_recipe")}
+                      onClick={() => setViewingRecipe(true)}>
+                <span aria-hidden>📖</span>
+                <span className="recipe-row-text">
+                  {recipe?.name && <strong>{recipe.name}</strong>}
+                  <span className="muted small">{t("food_recipe_from", { site: siteOf(recipeUrl) })}</span>
+                </span>
               </button>
-            )}
-          </div>
+              <a href={recipeUrl} target="_blank" rel="noopener noreferrer" title={t("food_open_recipe", { url: recipeUrl })}>↗</a>
+              <button type="button" className="recipe-row-more" title={t("more")} aria-expanded={recipeMenu}
+                      onClick={() => setRecipeMenu((o) => !o)}>⋯</button>
+              {recipeMenu && (
+                <div className="recipe-row-menu">
+                  <button type="button" onClick={() => { setRecipeMenu(false); setFindingRecipe(true); }}>
+                    {t("food_change_recipe")}
+                  </button>
+                  {canImport && (
+                    <button type="button" onClick={() => { setRecipeMenu(false); onImport(dish!.id); }}>
+                      {t("food_import_recipe")}
+                    </button>
+                  )}
+                  <button type="button" className="danger"
+                          onClick={() => { setRecipeMenu(false); setRecipeUrl(""); setRecipe(null); }}>
+                    {t("remove")}
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <button type="button" onClick={() => setFindingRecipe(true)}>📖 {t("food_find_recipe")}</button>
+          )}
         </div>
 
         <label>
@@ -1515,18 +1578,39 @@ function DishForm({
 
         <label>
           {t("food_category")}
-          <input
-            list="food-categories"
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            placeholder={t("food_category_placeholder")}
-          />
-          <datalist id="food-categories">
-            {categories.map((c) => (
-              <option key={c} value={catName(c)} />
-            ))}
-          </datalist>
+          {newCategory ? (
+            <span className="dish-form-newcat">
+              <input
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                placeholder={t("food_category_placeholder")}
+                autoFocus
+              />
+              <button type="button" className="ghost" title={t("cancel")}
+                      onClick={() => { setNewCategory(false); setCategory(initialCategory); }}>
+                ✕
+              </button>
+            </span>
+          ) : (
+            <select
+              value={category}
+              onChange={(e) => {
+                if (e.target.value === "\0new") {
+                  setNewCategory(true);
+                  setCategory("");
+                } else setCategory(e.target.value);
+              }}
+            >
+              {/* None: one of the list is chosen for it on save. */}
+              <option value="">{t("food_category_auto")}</option>
+              {categories.map((c) => (
+                <option key={c} value={catName(c)}>{catName(c)}</option>
+              ))}
+              <option value={"\0new"}>{t("food_category_new")}</option>
+            </select>
+          )}
         </label>
+
 
         <div className="dish-form-rating">
           <span className="dish-form-label">{t("food_rating")}</span>
@@ -1581,7 +1665,13 @@ function DishForm({
           </div>
         </div>
 
-        <div className="row-actions">
+        <div className="dish-form-actions">
+          {dish && (
+            <button type="button" className="ghost danger dish-form-delete" disabled={saving !== null}
+                    onClick={() => setAskDelete(true)}>
+              🗑 {t("delete")}
+            </button>
+          )}
           <button type="submit" className="active" disabled={!name.trim() || saving !== null}>
             {saving === "translating" && <span className="mv-ring btn-ring" aria-hidden />}
             {saving === "translating" ? t("food_translating") : saving ? t("saving") : dish ? t("save") : t("create")}
@@ -1619,6 +1709,16 @@ function DishForm({
           }}
         />
       )}
+      {askDelete && dish && (
+        <ConfirmDialog message={t("food_delete_confirm", { name: dishName(dish, lang) })} yesLabel={t("delete")} danger
+                       onYes={() => { setAskDelete(false); onDelete(dish.id); }}
+                       onNo={() => setAskDelete(false)} />
+      )}
+      {askReplace && (
+        <ConfirmDialog message={t("food_replace_confirm")}
+                       onYes={() => { setAskReplace(false); save(); }}
+                       onNo={() => setAskReplace(false)} />
+      )}
     </div>
   );
 }
@@ -1636,6 +1736,31 @@ function siteOf(url: string): string {
 
 /** 0-10 as ten stars: a click sets it, a click on the star it already is
  *  clears it. */
+/** The rating of a dish, picked on its card: its stars in a small popup
+ *  just below `at` (kept on the screen), drawn on the page's body. A star
+ *  is the rating, the one it has already clears it; a tap outside or Back
+ *  leaves it as it was. */
+function RatingPopup({ at, value, onPick, onClose }: {
+  at: DOMRect;
+  value: number;
+  onPick: (n: number) => void;
+  onClose: () => void;
+}) {
+  useBackToClose(onClose);
+  const width = Math.min(320, window.innerWidth - 16);
+  const left = Math.max(8, Math.min(at.left, window.innerWidth - width - 8));
+  const below = at.bottom + 6 + 52 < window.innerHeight;
+  return createPortal(
+    <div className="rating-popup-backdrop" onClick={onClose}>
+      <div className="rating-popup" onClick={(e) => e.stopPropagation()}
+           style={{ left, width, ...(below ? { top: at.bottom + 6 } : { bottom: window.innerHeight - at.top + 6 }) }}>
+        <StarRating value={value} onChange={onPick} />
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 function StarRating({ value, onChange }: { value: number; onChange: (n: number) => void }) {
   const [hover, setHover] = useState(0);
   const shown = hover || value;
@@ -1653,6 +1778,7 @@ function StarRating({ value, onChange }: { value: number; onChange: (n: number) 
           onClick={() => onChange(n === value ? 0 : n)}
         >
           ★
+          <span className="star-num">{n}</span>
         </button>
       ))}
     </span>
@@ -1704,14 +1830,14 @@ function fmtDuration(iso: string): string {
 const nutrientName = (key: string) =>
   key.replace(/Content$/, "").replace(/([A-Z])/g, " $1").toLowerCase();
 
-/** A step's text with its {{photo:N}} markers as the numbers on the photos. */
+/** A step's text with its {{ref:N}} mentions as the numbers on the photos. */
 function StepText({ text }: { text: string }) {
   return (
     <>
       {text.split(/\n\n+/).map((para, i) => (
         <p key={i}>
-          {para.split(/(\{\{photo:\d+\}\})/).map((part, j) => {
-            const n = /^\{\{photo:(\d+)\}\}$/.exec(part);
+          {para.split(/(\{\{ref:\d+\}\})/).map((part, j) => {
+            const n = /^\{\{ref:(\d+)\}\}$/.exec(part);
             return n ? <span key={j} className="photo-badge">{n[1]}</span> : part;
           })}
         </p>
