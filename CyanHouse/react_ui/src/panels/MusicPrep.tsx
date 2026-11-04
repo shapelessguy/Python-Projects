@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, MusicIdentity, MusicOption, StagedFile } from "../api";
+import { useT } from "../i18n";
 
 /** Under a song opened from a music inbox: what it is, and which album to
  *  file it under.
@@ -17,6 +18,7 @@ export function MusicIdentify({ area, file, canEdit, onFiled }: {
   /** Filed: `newPath` is where it went, relative to the output. */
   onFiled: (newPath: string) => void;
 }) {
+  const { t } = useT();
   const [data, setData] = useState<MusicIdentity | null>(null);
   const [artist, setArtist] = useState("");
   const [title, setTitle] = useState("");
@@ -24,10 +26,10 @@ export function MusicIdentify({ area, file, canEdit, onFiled }: {
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
 
-  const load = (a?: string, t?: string) => {
-    setBusy("Looking it up…");
+  const load = (a?: string, ti?: string) => {
+    setBusy(t("mu_looking"));
     setError("");
-    api.musicIdentify(area, file.path, a, t)
+    api.musicIdentify(area, file.path, a, ti)
       .then((r) => {
         setData(r);
         setArtist(r.song.artist);
@@ -44,7 +46,7 @@ export function MusicIdentify({ area, file, canEdit, onFiled }: {
 
   const fileIt = async () => {
     if (!chosen) return;
-    setBusy("Filing…");
+    setBusy(t("mu_filing"));
     setError("");
     try {
       const r = await api.musicFile(area, file.path, chosen);
@@ -59,25 +61,23 @@ export function MusicIdentify({ area, file, canEdit, onFiled }: {
     <div className="mu-identify">
       <div className="mu-search">
         <label>
-          <span className="muted small">Artist</span>
+          <span className="muted small">{t("mu_artist")}</span>
           <input value={artist} onChange={(e) => setArtist(e.target.value)}
                  onKeyDown={(e) => e.key === "Enter" && load(artist, title)} />
         </label>
         <label>
-          <span className="muted small">Title</span>
+          <span className="muted small">{t("cal_title")}</span>
           <input value={title} onChange={(e) => setTitle(e.target.value)}
                  onKeyDown={(e) => e.key === "Enter" && load(artist, title)} />
         </label>
-        <button onClick={() => load(artist, title)} disabled={!!busy || !title.trim()}>Search</button>
+        <button onClick={() => load(artist, title)} disabled={!!busy || !title.trim()}>{t("search")}</button>
       </div>
       {data?.review && (
-        <p className="small mu-review">Not filed automatically: {data.review}.</p>
+        <p className="small mu-review">{t("mu_review", { why: data.review })}</p>
       )}
       {data && (
         <p className="muted small mu-from">
-          {data.song.from === "tags" ? "Read from the file's tags."
-            : data.song.from === "name" ? "Read from the file name."
-            : "As you typed it."}
+          {t(data.song.from === "tags" ? "mu_from_tags" : data.song.from === "name" ? "mu_from_name" : "mu_from_typed")}
         </p>
       )}
 
@@ -86,7 +86,7 @@ export function MusicIdentify({ area, file, canEdit, onFiled }: {
 
       {data && !busy && !data.options.length && (
         <p className="muted small">
-          Nothing on MusicBrainz for this. Correct the artist or title and search again.
+          {t("mu_nothing")}
         </p>
       )}
 
@@ -105,8 +105,8 @@ export function MusicIdentify({ area, file, canEdit, onFiled }: {
                 <span className="mu-optiontext">
                   <span className="mu-album">{o.album}</span>
                   <span className="muted small">
-                    {[o.album_artist, o.year, o.type + (o.live ? " (live)" : ""),
-                      o.track ? `track ${o.track}${o.tracks ? `/${o.tracks}` : ""}`
+                    {[o.album_artist, o.year, o.type + (o.live ? ` (${t("mu_live")})` : ""),
+                      o.track ? `${t("mu_track")} ${o.track}${o.tracks ? `/${o.tracks}` : ""}`
                         + (o.track_label && o.track_label !== o.track ? ` (${o.track_label})` : "") : "",
                       o.country].filter(Boolean).join(" · ")}
                   </span>
@@ -123,7 +123,7 @@ export function MusicIdentify({ area, file, canEdit, onFiled }: {
           <button
             className="mu-file"
             disabled={!canEdit || !!busy}
-            title={canEdit ? "Write the tags and move it into the output" : "Filing needs the right to change this folder"}
+            title={canEdit ? t("mu_file_title") : t("mu_file_denied")}
             onClick={fileIt}
           >
             TAG &amp; FILE

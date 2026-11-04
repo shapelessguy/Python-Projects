@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, MoveConflict } from "../api";
 import { fmtSize } from "./StagingView";
+import { useT } from "../i18n";
 
 /** The conflicts of one move: the files it could not place, and where. */
 export interface Clash {
@@ -26,6 +27,7 @@ export function ConflictDialog({ clashes, labelOf, onDone }: {
   /** Closed: `summary` says what was done, empty if nothing. */
   onDone: (summary: string) => void;
 }) {
+  const { t, lang } = useT();
   const rows = clashes.flatMap((c) => c.items.map((item) => ({ clash: c, item })));
   const [choice, setChoice] = useState<Choice[]>(() => rows.map((r) => (r.item.mixed ? "keep" : "skip")));
   const [busy, setBusy] = useState(false);
@@ -58,26 +60,23 @@ export function ConflictDialog({ clashes, labelOf, onDone }: {
     setBusy(false);
     if (failed.length) { setError(failed.join(" · ")); return; }
     const skipped = rows.length - replaced - kept;
-    onDone([replaced && `${replaced} replaced`, kept && `${kept} kept as copies`,
-            skipped && `${skipped} left where they were`].filter(Boolean).join(", "));
+    onDone([replaced && t("cf_replaced", { n: replaced }), kept && t("cf_kept", { n: kept }),
+            skipped && t("cf_skipped", { n: skipped })].filter(Boolean).join(", "));
   };
 
-  const when = (t: number) => new Date(t * 1000).toLocaleString();
-  const size = (n: number | null) => (n === null ? "folder" : fmtSize(n));
+  const when = (secs: number) => new Date(secs * 1000).toLocaleString(lang);
+  const size = (n: number | null) => (n === null ? t("cf_folder") : fmtSize(n));
 
   return (
     <div className="cf-backdrop" onClick={() => !busy && onDone("")}>
       <div className="cf-dialog" role="dialog" aria-modal onClick={(e) => e.stopPropagation()}>
-        <h2>{rows.length === 1 ? "A file is already there" : `${rows.length} files are already there`}</h2>
-        <p className="muted small">
-          The folders were merged. These files have the same name as one already in the destination:
-          choose what to do with each.
-        </p>
+        <h2>{rows.length === 1 ? t("cf_one_there") : t("cf_many_there", { n: rows.length })}</h2>
+        <p className="muted small">{t("cf_intro")}</p>
         <div className="cf-all">
-          <span className="muted small">All:</span>
-          <button className="ghost" onClick={() => setAll("skip")}>Leave</button>
-          <button className="ghost" onClick={() => setAll("replace")}>Replace</button>
-          <button className="ghost" onClick={() => setAll("keep")}>Keep both</button>
+          <span className="muted small">{t("cf_all")}</span>
+          <button className="ghost" onClick={() => setAll("skip")}>{t("cf_leave")}</button>
+          <button className="ghost" onClick={() => setAll("replace")}>{t("cf_replace")}</button>
+          <button className="ghost" onClick={() => setAll("keep")}>{t("cf_keep")}</button>
         </div>
         <ul className="cf-list">
           {rows.map(({ clash, item }, i) => (
@@ -87,17 +86,17 @@ export function ConflictDialog({ clashes, labelOf, onDone }: {
                 <span className="muted small"> → {labelOf(clash.toArea)}</span>
               </div>
               <div className="cf-sides small">
-                <span><b>Incoming</b> {size(item.size)} · {when(item.modified)}</span>
-                <span><b>There</b> {size(item.dest_size)} · {when(item.dest_modified)}</span>
+                <span><b>{t("cf_incoming")}</b> {size(item.size)} · {when(item.modified)}</span>
+                <span><b>{t("cf_there")}</b> {size(item.dest_size)} · {when(item.dest_modified)}</span>
               </div>
               <div className="cf-choice">
                 {(["skip", "replace", "keep"] as Choice[]).map((c) => (
                   <label key={c} className={choice[i] === c ? "active" : ""}
-                         title={c === "replace" && item.mixed ? "A file and a folder cannot replace each other" : ""}>
+                         title={c === "replace" && item.mixed ? t("cf_mixed") : ""}>
                     <input type="radio" name={`cf-${i}`} checked={choice[i] === c}
                            disabled={busy || (c === "replace" && item.mixed)}
                            onChange={() => setChoice((all) => all.map((x, j) => (j === i ? c : x)))} />
-                    {c === "skip" ? "Leave" : c === "replace" ? "Replace" : "Keep both"}
+                    {t(c === "skip" ? "cf_leave" : c === "replace" ? "cf_replace" : "cf_keep")}
                   </label>
                 ))}
               </div>
@@ -106,8 +105,8 @@ export function ConflictDialog({ clashes, labelOf, onDone }: {
         </ul>
         {error && <p className="error small">{error}</p>}
         <div className="cf-actions">
-          <button className="ghost" disabled={busy} onClick={() => onDone("")}>Cancel</button>
-          <button className="cf-apply" disabled={busy} onClick={apply}>{busy ? "Working…" : "APPLY"}</button>
+          <button className="ghost" disabled={busy} onClick={() => onDone("")}>{t("cancel")}</button>
+          <button className="cf-apply" disabled={busy} onClick={apply}>{busy ? t("cf_working") : t("cf_apply")}</button>
         </div>
       </div>
     </div>

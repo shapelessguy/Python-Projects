@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api, Column, ColType, MonthData, useVersionPoll } from "../api";
 import { ColumnManager } from "./ColumnManager";
 import { Icon } from "./icons";
+import { useBackToClose } from "../backClose";
+import { useT } from "../i18n";
 
 // YYYY-MM-DD, local. A function (not a module constant) so a tab left open
 // across midnight doesn't keep highlighting the day it was loaded on.
@@ -19,19 +21,20 @@ function addMonths(month: string, delta: number): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
-function monthLabel(month: string): string {
+function monthLabel(month: string, lang: string): string {
   const [y, m] = month.split("-").map(Number);
-  return new Date(y, m - 1, 1).toLocaleString(undefined, { month: "long", year: "numeric" });
+  return new Date(y, m - 1, 1).toLocaleString(lang, { month: "long", year: "numeric" });
 }
 
-function weekdayDay(date: string): string {
+function weekdayDay(date: string, lang: string): string {
   const d = new Date(date + "T00:00:00");
-  return d.toLocaleDateString(undefined, { weekday: "short", day: "2-digit" });
+  return d.toLocaleDateString(lang, { weekday: "short", day: "2-digit" });
 }
 
 type Draft = Record<string, Record<string, unknown>>;
 
 export function PersonalPanel() {
+  const { t, lang } = useT();
   const { diary } = useVersionPoll();
   const [month, setMonth] = useState(currentMonth);
   const [today, setToday] = useState(todayIso);
@@ -94,7 +97,7 @@ export function PersonalPanel() {
   };
 
   if (error) return <div className="panel"><p className="error">{error}</p></div>;
-  if (!data) return <div className="panel"><p className="muted">Loading…</p></div>;
+  if (!data) return <div className="panel"><p className="muted">{t("loading")}</p></div>;
 
   const columns = [...data.columns].sort((a, b) => a.position - b.position);
 
@@ -103,19 +106,19 @@ export function PersonalPanel() {
       <div className="personal-main">
         <div className="month-nav">
           <button onClick={() => setMonth((m) => addMonths(m, -1))}>◀</button>
-          <h2>{monthLabel(month)}</h2>
+          <h2>{monthLabel(month, lang)}</h2>
           <button onClick={() => setMonth((m) => addMonths(m, 1))}>▶</button>
-          <button className="ghost" title="Today" onClick={() => setMonth(currentMonth())}>
-            <span className="nav-text">Today</span><Icon name="today" />
+          <button className="ghost" title={t("env_today")} onClick={() => setMonth(currentMonth())}>
+            <span className="nav-text">{t("env_today")}</span><Icon name="today" />
           </button>
           {/* The table's own tools, held at the right of the month bar. */}
           <span className="personal-tools">
             <button className="ghost icon-only" onClick={() => setReordering(true)}
-                    disabled={columns.length < 2} title="Reorder columns" aria-label="Reorder columns">
+                    disabled={columns.length < 2} title={t("personal_reorder")} aria-label={t("personal_reorder")}>
               <Icon name="reorder" className="" />
             </button>
             <button className="ghost icon-only" onClick={() => setManaging(true)}
-                    title="Columns: add, edit, delete" aria-label="Columns">
+                    title={t("personal_columns_title")} aria-label={t("cols_title")}>
               <Icon name="columns" className="" />
             </button>
           </span>
@@ -125,7 +128,7 @@ export function PersonalPanel() {
           <table className="grid">
             <thead>
               <tr>
-                <th className="sticky-col">Date</th>
+                <th className="sticky-col">{t("personal_date")}</th>
                 {columns.map((c) => (
                   <th key={c.key} title={c.description}>
                     {c.name}
@@ -139,7 +142,7 @@ export function PersonalPanel() {
                 const merged = { ...row.values, ...(draft[row.date] || {}) };
                 return (
                   <tr key={row.date} className={row.date === today ? "today" : ""}>
-                    <td className="sticky-col date">{weekdayDay(row.date)}</td>
+                    <td className="sticky-col date">{weekdayDay(row.date, lang)}</td>
                     {columns.map((c) => (
                       <td key={c.key} className={c.type === "text" ? "text-col" : "fill-col"}>
                         <Cell
@@ -200,6 +203,8 @@ function ColumnOrderModal({
   onClose: () => void;
   onSave: (keys: string[]) => void;
 }) {
+  const { t } = useT();
+  useBackToClose(onClose);
   const [order, setOrder] = useState<Column[]>(columns);
 
   const move = (i: number, delta: number) => {
@@ -215,19 +220,19 @@ function ColumnOrderModal({
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h4>Reorder columns</h4>
+        <h4>{t("personal_reorder")}</h4>
         <ol className="col-order-list">
           {order.map((c, i) => (
             <li key={c.key}>
               <span className="name">{c.name}</span>
-              <button className="ghost" disabled={i === 0} onClick={() => move(i, -1)} title="Move up">
+              <button className="ghost" disabled={i === 0} onClick={() => move(i, -1)} title={t("personal_move_up")}>
                 ▲
               </button>
               <button
                 className="ghost"
                 disabled={i === order.length - 1}
                 onClick={() => move(i, 1)}
-                title="Move down"
+                title={t("personal_move_down")}
               >
                 ▼
               </button>
@@ -236,10 +241,10 @@ function ColumnOrderModal({
         </ol>
         <div className="row-actions">
           <button className="active" disabled={!dirty} onClick={() => onSave(order.map((c) => c.key))}>
-            Save
+            {t("save")}
           </button>
           <button className="ghost" onClick={onClose}>
-            Cancel
+            {t("cancel")}
           </button>
         </div>
       </div>

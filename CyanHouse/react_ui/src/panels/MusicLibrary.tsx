@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { api, MusicLibrary as Library, MusicSong } from "../api";
 import { CoverBook } from "./CoverBook";
+import { useT } from "../i18n";
 
 /** The Music tab as a music library rather than a folder tree: artists —
  *  each one a single list of all their songs, album by album under a
@@ -27,6 +28,7 @@ export function MusicLibrary({ view, query, activePath, version, onOpen, coverSi
    *  album or list it is in, which previous / next then walk. */
   onOpen: (song: MusicSong, play: boolean, list: MusicSong[], index: number) => void;
 }) {
+  const { t, tn } = useT();
   const [lib, setLib] = useState<Library | null>(null);
   const [error, setError] = useState("");
   const [artist, setArtist] = useState<string | null>(null);   // artist open
@@ -58,7 +60,7 @@ export function MusicLibrary({ view, query, activePath, version, onOpen, coverSi
 
   // In the list's own box, so the player bar under it stays where it will be.
   if (error) return <div className="ml-scroll"><p className="error small">{error}</p></div>;
-  if (!lib) return <div className="ml-scroll"><p className="muted small">Reading the library…</p></div>;
+  if (!lib) return <div className="ml-scroll"><p className="muted small">{t("ml_reading")}</p></div>;
 
   // ── one artist: every song, album by album ──────────────────────────
   if (artist !== null) {
@@ -70,7 +72,7 @@ export function MusicLibrary({ view, query, activePath, version, onOpen, coverSi
     const x = lib.artists.find((y) => y.name === artist);
     return (
       <div className="ml-scroll">
-        <button className="ghost ml-back" onClick={() => setArtist(null)}>‹ Artists</button>
+        <button className="ghost ml-back" onClick={() => setArtist(null)}>‹ {t("ml_artists")}</button>
         <div className="ml-artisthead">
           <span className="ml-art ml-round ml-headart">
             {x?.cover ? <img src={api.musicArtUrl(x.cover, 400)} alt="" /> : <span className="ml-blank">{artist}</span>}
@@ -78,10 +80,10 @@ export function MusicLibrary({ view, query, activePath, version, onOpen, coverSi
           <div className="ml-albuminfo">
             <h2>{artist}</h2>
             <p className="muted small">
-              {albums.length} album{albums.length === 1 ? "" : "s"} · {all.length} song{all.length === 1 ? "" : "s"}
+              {tn("ml_albums", albums.length)} · {tn("ml_songs", all.length)}
               {" · "}{duration(all.reduce((n, s) => n + (s.seconds || 0), 0))}
             </p>
-            <button className="ml-play" disabled={!all.length} onClick={() => onOpen(all[0], true, all, 0)}>▶ PLAY</button>
+            <button className="ml-play" disabled={!all.length} onClick={() => onOpen(all[0], true, all, 0)}>▶ {t("ml_play")}</button>
           </div>
         </div>
         {albums.map((a) => (
@@ -108,7 +110,7 @@ export function MusicLibrary({ view, query, activePath, version, onOpen, coverSi
     return (
       <div className="ml-scroll">
         <SongRows songs={songs} activePath={activePath} onOpen={onOpen} showArtist={() => true} showAlbum />
-        {!songs.length && <p className="muted small">No matches.</p>}
+        {!songs.length && <p className="muted small">{t("no_matches")}</p>}
       </div>
     );
   }

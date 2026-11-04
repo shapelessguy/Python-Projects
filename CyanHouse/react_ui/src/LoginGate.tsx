@@ -1,5 +1,6 @@
 import { ReactNode, useEffect, useState } from "react";
 import { hasAuth, login, upgradeLegacyCookie } from "./auth";
+import { useT } from "./i18n";
 
 export function LoginGate({ children }: { children: ReactNode }) {
   const [authed, setAuthed] = useState(hasAuth());
@@ -19,6 +20,7 @@ export function LoginGate({ children }: { children: ReactNode }) {
 }
 
 function LoginForm({ onDone }: { onDone: () => void }) {
+  const { t } = useT();
   const [username, setUsername] = useState("");
   const [secret, setSecret] = useState("");
   const [usePassword, setUsePassword] = useState(true);
@@ -34,10 +36,10 @@ function LoginForm({ onDone }: { onDone: () => void }) {
       const status = await login(username.trim(),
         usePassword ? { password: secret } : { token: secret.trim() });
       if (status === 200) onDone();
-      else if (status === 429) setError("Too many wrong passwords — try again later, or use the token.");
-      else setError(usePassword ? "Wrong username or password." : "Wrong username or token.");
+      else if (status === 429) setError(t("login_too_many"));
+      else setError(t(usePassword ? "login_wrong_password" : "login_wrong_token"));
     } catch {
-      setError("Could not reach the server.");
+      setError(t("login_unreachable"));
     } finally {
       setBusy(false);
     }
@@ -46,21 +48,21 @@ function LoginForm({ onDone }: { onDone: () => void }) {
   return (
     <div className="login-wrap">
       <form className="login" onSubmit={submit}>
-        <h1>Sign in</h1>
+        <h1>{t("sign_in")}</h1>
         <label>
-          Username
+          {t("username")}
           <input value={username} onChange={(e) => setUsername(e.target.value)} autoFocus />
         </label>
         <label>
-          {usePassword ? "Password" : "Token"}
+          {usePassword ? t("password") : t("token")}
           <input type="password" value={secret} onChange={(e) => setSecret(e.target.value)}
                  autoComplete={usePassword ? "current-password" : "off"} />
         </label>
         {error && <p className="error small">{error}</p>}
-        <button disabled={busy || !username || !secret}>{busy ? "Checking…" : "Sign in"}</button>
+        <button disabled={busy || !username || !secret}>{busy ? t("login_checking") : t("sign_in")}</button>
         <button type="button" className="linkish login-switch"
                 onClick={() => { setUsePassword(!usePassword); setSecret(""); setError(null); }}>
-          {usePassword ? "Use the token instead" : "Use a password instead"}
+          {t(usePassword ? "login_use_token" : "login_use_password")}
         </button>
       </form>
     </div>

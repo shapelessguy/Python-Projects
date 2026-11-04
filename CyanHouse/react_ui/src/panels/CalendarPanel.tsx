@@ -6,10 +6,14 @@ import { CalendarShareDialog } from "./ShareDialog";
 import { readCookie, writeCookie } from "../cookies";
 import { useNarrow } from "../narrow";
 import { Icon } from "./icons";
+import { useBackToClose } from "../backClose";
+import { Key, useT } from "../i18n";
 
 
 const TODAY = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD, local
-const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+/** Mon..Sun, short, in `lang` (2024-01-01 was a Monday). */
+const weekdayNames = (lang: string) =>
+  Array.from({ length: 7 }, (_, i) => new Date(2024, 0, 1 + i).toLocaleDateString(lang, { weekday: "short" }));
 const HOUR_HEIGHT = 48; // px per hour row in the week grid
 
 /** getDay() is 0=Sunday..6=Saturday; this reindexes to 0=Monday..6=Sunday so
@@ -58,23 +62,23 @@ function weekDays(anchor: string): string[] {
   return Array.from({ length: 7 }, (_, i) => addDays(start, i));
 }
 
-function monthLabel(monthStr: string): string {
+function monthLabel(monthStr: string, lang: string): string {
   const [y, m] = monthStr.split("-").map(Number);
-  return new Date(y, m - 1, 1).toLocaleString(undefined, { month: "long", year: "numeric" });
+  return new Date(y, m - 1, 1).toLocaleString(lang, { month: "long", year: "numeric" });
 }
 
-function weekLabel(days: string[]): string {
+function weekLabel(days: string[], lang: string): string {
   const fmt = (d: string, withYear: boolean) =>
     new Date(d + "T00:00:00").toLocaleDateString(
-      undefined,
+      lang,
       withYear ? { month: "short", day: "numeric", year: "numeric" } : { month: "short", day: "numeric" },
     );
   return `${fmt(days[0], false)} – ${fmt(days[6], true)}`;
 }
 
-function dayLabel(d: string): { weekday: string; num: number } {
+function dayLabel(d: string, lang: string): { weekday: string; num: number } {
   const dt = new Date(d + "T00:00:00");
-  return { weekday: dt.toLocaleDateString(undefined, { weekday: "short" }), num: dt.getDate() };
+  return { weekday: dt.toLocaleDateString(lang, { weekday: "short" }), num: dt.getDate() };
 }
 
 function toMinutes(t: string): number {
@@ -142,8 +146,12 @@ function monthsOf(days: string[]): string[] {
   return [...new Set(days.map((d) => d.slice(0, 7)))];
 }
 
-const RECUR_LABELS: Record<RecurFreq, string> = {
-  daily: "Daily", weekly: "Weekly", monthly: "Monthly", yearly: "Yearly",
+const RECUR_LABELS: Record<RecurFreq, Key> = {
+  daily: "cal_daily", weekly: "cal_weekly", monthly: "cal_monthly", yearly: "cal_yearly",
+};
+/** "every 3 days" etc., by frequency. */
+const RECUR_EVERY: Record<RecurFreq, Key> = {
+  daily: "cal_every_days", weekly: "cal_every_weeks", monthly: "cal_every_months", yearly: "cal_every_years",
 };
 
 interface Draft {
@@ -190,13 +198,13 @@ const draftFromEvent = (e: CalendarEvent): Draft => ({
 /** Client-side mirror of the backend's _validate_span/_validate_recurrence,
  *  so the form can block submission and explain why instead of
  *  round-tripping a 400. */
-function draftValidationError(d: Draft): string | null {
-  if (d.end_date < d.start_date) return "End date must not be before start date.";
+function draftValidationError(d: Draft): Key | null {
+  if (d.end_date < d.start_date) return "cal_err_end_date";
   if (!d.all_day && d.end_date === d.start_date && d.end_time <= d.start_time) {
-    return "End time must be after start time.";
+    return "cal_err_end_time";
   }
   if (d.recur_freq && d.recur_until && d.recur_until < d.start_date) {
-    return "Repeat-until date must not be before start date.";
+    return "cal_err_until";
   }
   return null;
 }
@@ -255,6 +263,7 @@ function linkifyText(text: string): JSX.Element[] {
 }
 
 export function CalendarPanel() {
+  const { t, lang } = useT();
   // The calendar whose sharing is being edited (CalendarShareDialog).
   const [sharingCal, setSharingCal] = useState<Calendar | null>(null);
   const { calendar } = useVersionPoll();
@@ -315,6 +324,7 @@ export function CalendarPanel() {
   const [events, setEvents] = useState<CalendarEvent[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
+  useBackToClose(() => setDraft(null), !!draft);
   // Whether the description field is showing its editable textarea (true)
   // or the read view with clickable links (false) -- reset explicitly
   // whenever a modal is opened, never derived from `draft` itself since that
@@ -361,6 +371,7 @@ export function CalendarPanel() {
   };
   const [calendarsOpen, setCalendarsOpen] = useState(false);
   const [confirmDeleteCal, setConfirmDeleteCal] = useState<Calendar | null>(null);
+  useBackToClose(() => setConfirmDeleteCal(null), !!confirmDeleteCal);
   const calendarsMenuRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!calendarsOpen) return;
@@ -476,13 +487,13 @@ export function CalendarPanel() {
   };
 
   if (error) return <div className="panel"><p className="error">{error}</p></div>;
-  if (!events) return <div className="panel"><p className="muted">Loading…</p></div>;
+  if (!events) return <div className="panel"><p className="muted">{t("loading")}</p></div>;
 
   // ◀/▶ move the anchor to the 1st of the month (Today to today), so a day
   // picked in another month falls back to it instead of an empty agenda.
   const agendaDay = days.includes(selectedDay) ? selectedDay : anchor;
 
-  const headerLabel = view === "month" ? monthLabel(anchor.slice(0, 7)) : weekLabel(days);
+  const headerLabel = view === "month" ? monthLabel(anchor.slice(0, 7), lang) : weekLabel(days, lang);
   const goPrev = () => setAnchor((a) => (view === "month" ? addMonths(a, -1) : addDays(a, -7)));
   const goNext = () => setAnchor((a) => (view === "month" ? addMonths(a, 1) : addDays(a, 7)));
 
@@ -498,21 +509,21 @@ export function CalendarPanel() {
           <button onClick={goNext}>▶</button>
           {/* Words on a wide screen, icons on a phone (styles.css swaps
               .nav-text for .nav-icon), so the bar stays one row. */}
-          <button className="ghost" title="Today" onClick={() => setAnchor(TODAY)}>
-            <span className="nav-text">Today</span><Icon name="today" />
+          <button className="ghost" title={t("env_today")} onClick={() => setAnchor(TODAY)}>
+            <span className="nav-text">{t("env_today")}</span><Icon name="today" />
           </button>
           <div className="cal-view-toggle">
-            <button className={view === "month" ? "active" : ""} title="Month" onClick={() => setView("month")}>
-              <span className="nav-text">Month</span><Icon name="month" />
+            <button className={view === "month" ? "active" : ""} title={t("cal_month")} onClick={() => setView("month")}>
+              <span className="nav-text">{t("cal_month")}</span><Icon name="month" />
             </button>
-            <button className={view === "week" ? "active" : ""} title="Week" onClick={() => setView("week")}>
-              <span className="nav-text">Week</span><Icon name="week" />
+            <button className={view === "week" ? "active" : ""} title={t("cal_week")} onClick={() => setView("week")}>
+              <span className="nav-text">{t("cal_week")}</span><Icon name="week" />
             </button>
           </div>
           <div className="cal-calendars-menu" ref={calendarsMenuRef}>
             <button
               className="ghost cal-calendars-btn"
-              title={`Calendars (${visibleIds.size}/${calendars.length} shown)`}
+              title={t("cal_calendars_shown", { n: visibleIds.size, total: calendars.length })}
               onClick={() => setCalendarsOpen((o) => !o)}
             >
               <Icon name="calendars" className="" />
@@ -532,7 +543,7 @@ export function CalendarPanel() {
                         className="cal-swatch"
                         value={c.color}
                         disabled={!c.mine}
-                        title={`${c.name} colour`}
+                        title={t("cal_colour", { name: c.name })}
                         onChange={(e) => recolorCalendar(c.id, e.target.value)}
                       />
                       <span className="cal-cal-name">{c.name}</span>
@@ -542,8 +553,8 @@ export function CalendarPanel() {
                       disabled={!c.mine}
                       title={
                         c.mine
-                          ? `${c.name} is ${c.shared ? "shared" : "private"} — click to change who sees it`
-                          : `${c.name} is ${c.owner}'s, shared with you to ${c.level === "see" ? "look at" : "edit"}`
+                          ? t(c.shared ? "cal_is_shared" : "cal_is_private", { name: c.name })
+                          : t(c.level === "see" ? "cal_shared_see" : "cal_shared_edit", { name: c.name, owner: c.owner })
                       }
                       onClick={() => c.mine && setSharingCal(c)}
                     >
@@ -552,7 +563,7 @@ export function CalendarPanel() {
                     {c.level === "owner" && (
                       <button
                         className="ghost cal-cal-delete"
-                        title={`Delete ${c.name}`}
+                        title={t("cal_delete_named", { name: c.name })}
                         onClick={() => setConfirmDeleteCal(c)}
                       >
                         🗑
@@ -564,11 +575,11 @@ export function CalendarPanel() {
                   <input
                     className="cal-new-cal-input"
                     value={newCalName}
-                    placeholder="New calendar…"
+                    placeholder={t("cal_new_calendar")}
                     onChange={(e) => setNewCalName(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && addCalendar()}
                   />
-                  <button className="ghost" onClick={addCalendar} disabled={!newCalName.trim()}>+ Add</button>
+                  <button className="ghost" onClick={addCalendar} disabled={!newCalName.trim()}>{t("cal_add")}</button>
                 </div>
               </div>
             )}
@@ -591,7 +602,7 @@ export function CalendarPanel() {
           {view === "month" ? (
             <>
               <div className="cal-weekdays">
-                {WEEKDAYS.map((d, i) => <div key={d} className={i >= 5 ? "weekend" : ""}>{d}</div>)}
+                {weekdayNames(lang).map((d, i) => <div key={i} className={i >= 5 ? "weekend" : ""}>{d}</div>)}
               </div>
               <div className="cal-grid">
                 {days.map((date) => {
@@ -611,7 +622,7 @@ export function CalendarPanel() {
                     >
                       <div className="cal-day-head">
                         <span className="cal-daynum">{Number(date.slice(8))}</span>
-                        <button className="cal-add" title="Add event" onClick={() => { setDraft(blankDraft(date, defaultCalendarId)); setDescEditing(true); }}>
+                        <button className="cal-add" title={t("cal_add_event")} onClick={() => { setDraft(blankDraft(date, defaultCalendarId)); setDescEditing(true); }}>
                           +
                         </button>
                       </div>
@@ -622,7 +633,7 @@ export function CalendarPanel() {
                             className="cal-event"
                             style={{ borderLeftColor: e.calendar_color, "--cal-color": e.calendar_color } as CSSProperties}
                             onClick={() => { setDraft(draftFromEvent(e)); setDescEditing(false); }}
-                            title={e.mine ? e.title : `${e.title} (by ${e.owner})`}
+                            title={e.mine ? e.title : `${e.title} (${t("cal_by", { owner: e.owner })})`}
                           >
                             {e.recurring ? "↻ " : ""}
                             {e.alarm ? "🔔 " : ""}
@@ -639,15 +650,15 @@ export function CalendarPanel() {
                 <div className="cal-agenda">
                   <div className="cal-agenda-head">
                     <span>
-                      {new Date(agendaDay + "T00:00:00").toLocaleDateString(undefined, {
+                      {new Date(agendaDay + "T00:00:00").toLocaleDateString(lang, {
                         weekday: "long", day: "numeric", month: "long",
                       })}
                     </span>
                     <button className="ghost" onClick={() => { setDraft(blankDraft(agendaDay, defaultCalendarId)); setDescEditing(true); }}>
-                      + Add
+                      {t("cal_add")}
                     </button>
                   </div>
-                  {(eventsByDate[agendaDay] ?? []).length === 0 && <p className="muted small">No events.</p>}
+                  {(eventsByDate[agendaDay] ?? []).length === 0 && <p className="muted small">{t("cal_no_events")}</p>}
                   {(eventsByDate[agendaDay] ?? []).map((e) => (
                     <button
                       key={e.id}
@@ -656,7 +667,7 @@ export function CalendarPanel() {
                       onClick={() => { setDraft(draftFromEvent(e)); setDescEditing(false); }}
                     >
                       <span className="cal-agenda-time">
-                        {e.all_day || !e.start_time ? "All day" : e.start_time}
+                        {e.all_day || !e.start_time ? t("cal_all_day") : e.start_time}
                       </span>
                       {e.recurring ? "↻ " : ""}
                       {e.alarm ? "🔔 " : ""}
@@ -695,14 +706,14 @@ export function CalendarPanel() {
             <h4>
               {draft.id
                 ? draft.mine
-                  ? "Edit event"
+                  ? t("cal_edit_event")
                   : editable
-                    ? `Edit event (by ${draft.owner})`
-                    : `By ${draft.owner}`
-                : "New event"}
+                    ? t("cal_edit_event_by", { owner: draft.owner ?? "" })
+                    : t("cal_by", { owner: draft.owner ?? "" })
+                : t("cal_new_event")}
             </h4>
             <label className="field">
-              Title
+              {t("cal_title")}
               <input
                 value={draft.title}
                 disabled={!editable}
@@ -711,7 +722,7 @@ export function CalendarPanel() {
               />
             </label>
             <label className="field">
-              Description
+              {t("cols_description")}
               {editable && descEditing ? (
                 <textarea
                   value={draft.description}
@@ -726,7 +737,7 @@ export function CalendarPanel() {
                 >
                   {draft.description
                     ? linkifyText(draft.description)
-                    : editable && <span className="muted">Click to add a description</span>}
+                    : editable && <span className="muted">{t("cal_add_description")}</span>}
                 </div>
               )}
             </label>
@@ -738,7 +749,7 @@ export function CalendarPanel() {
                   disabled={!editable}
                   onChange={(e) => setDraft({ ...draft, all_day: e.target.checked })}
                 />
-                All day
+                {t("cal_all_day")}
               </label>
               <label className="check-row">
                 <input
@@ -747,11 +758,11 @@ export function CalendarPanel() {
                   disabled={!editable}
                   onChange={(e) => setDraft({ ...draft, alarm: e.target.checked })}
                 />
-                🔔 Alarm
+                🔔 {t("alarm_one")}
               </label>
             </div>
             <div className="field">
-              Start
+              {t("cal_start")}
               <div className="dates">
                 <input
                   type="date"
@@ -770,7 +781,7 @@ export function CalendarPanel() {
               </div>
             </div>
             <div className="field">
-              End
+              {t("cal_end")}
               <div className="dates">
                 <input
                   type="date"
@@ -789,7 +800,7 @@ export function CalendarPanel() {
               </div>
             </div>
             <div className="field">
-              Calendar
+              {t("panel_calendar")}
               <select
                 value={draft.calendar_id}
                 disabled={!editable}
@@ -803,21 +814,21 @@ export function CalendarPanel() {
               </select>
             </div>
             <div className="field">
-              Repeat
+              {t("cal_repeat")}
               <select
                 value={draft.recur_freq}
                 disabled={!editable}
                 onChange={(e) => setDraft({ ...draft, recur_freq: e.target.value as RecurFreq | "" })}
               >
-                <option value="">Doesn't repeat</option>
+                <option value="">{t("cal_no_repeat")}</option>
                 {(Object.keys(RECUR_LABELS) as RecurFreq[]).map((f) => (
-                  <option key={f} value={f}>{RECUR_LABELS[f]}</option>
+                  <option key={f} value={f}>{t(RECUR_LABELS[f])}</option>
                 ))}
               </select>
             </div>
             {draft.recur_freq && (
               <div className="field">
-                Every / until
+                {t("cal_every_until")}
                 <div className="dates">
                   <input
                     type="number"
@@ -830,40 +841,40 @@ export function CalendarPanel() {
                     type="date"
                     value={draft.recur_until}
                     disabled={!editable}
-                    placeholder="never"
+                    placeholder={t("cal_never")}
                     onChange={(e) => setDraft({ ...draft, recur_until: e.target.value })}
                   />
                 </div>
                 {editable && (
                   <p className="muted small">
                     {draft.recur_interval > 1
-                      ? `Every ${draft.recur_interval} ${draft.recur_freq === "daily" ? "days" : draft.recur_freq === "weekly" ? "weeks" : draft.recur_freq === "monthly" ? "months" : "years"}`
-                      : RECUR_LABELS[draft.recur_freq]}
-                    {draft.recur_until ? `, until ${draft.recur_until}` : ", no end date"}.
-                    Editing or deleting applies to the whole series.
+                      ? t(RECUR_EVERY[draft.recur_freq], { n: draft.recur_interval })
+                      : t(RECUR_LABELS[draft.recur_freq])}
+                    {draft.recur_until ? t("cal_until", { date: draft.recur_until }) : t("cal_no_end")}.{" "}
+                    {t("cal_series_note")}
                   </p>
                 )}
               </div>
             )}
-            {editable && draftError && <p className="error small">{draftError}</p>}
+            {editable && draftError && <p className="error small">{t(draftError)}</p>}
             <div className="row-actions">
               {editable && (
                 <button onClick={saveDraft} disabled={!draft.title.trim() || !!draftError}>
-                  {draft.id ? "Save" : "Add"}
+                  {draft.id ? t("save") : t("cols_add_btn")}
                 </button>
               )}
               {editable && draft.id && (
                 draft.recur_freq ? (
                   <>
-                    <button className="danger" onClick={deleteThisOccurrence}>Delete this event</button>
-                    <button className="danger" onClick={deleteSeries}>Delete series</button>
+                    <button className="danger" onClick={deleteThisOccurrence}>{t("cal_delete_this")}</button>
+                    <button className="danger" onClick={deleteSeries}>{t("cal_delete_series")}</button>
                   </>
                 ) : (
-                  <button className="danger" onClick={deleteSeries}>Delete</button>
+                  <button className="danger" onClick={deleteSeries}>{t("delete")}</button>
                 )
               )}
               <button className="ghost" onClick={() => setDraft(null)}>
-                {editable ? "Cancel" : "Close"}
+                {editable ? t("cancel") : t("close")}
               </button>
             </div>
           </div>
@@ -874,15 +885,15 @@ export function CalendarPanel() {
       {confirmDeleteCal && (
         <div className="modal-backdrop" onClick={() => setConfirmDeleteCal(null)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h4>Delete "{confirmDeleteCal.name}"?</h4>
+            <h4>{t("cal_delete_ask", { name: confirmDeleteCal.name })}</h4>
             <p>
-              All events in this calendar will be permanently deleted. This can't be undone.
+              {t("cal_delete_warning")}
             </p>
             <div className="row-actions">
               <button className="danger" onClick={() => removeCalendar(confirmDeleteCal.id)}>
-                Delete calendar
+                {t("cal_delete_calendar")}
               </button>
-              <button className="ghost" onClick={() => setConfirmDeleteCal(null)}>Cancel</button>
+              <button className="ghost" onClick={() => setConfirmDeleteCal(null)}>{t("cancel")}</button>
             </div>
           </div>
         </div>
@@ -899,6 +910,7 @@ function WeekGrid({
   onAdd: (date: string, start: string, end: string) => void;
   onOpen: (e: CalendarEvent) => void;
 }) {
+  const { t, lang } = useT();
   const hours = useMemo(() => Array.from({ length: 24 }, (_, i) => i), []);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [scrollbarWidth, setScrollbarWidth] = useState(0);
@@ -978,7 +990,7 @@ function WeekGrid({
       <div className="cal-week-head" style={{ paddingRight: scrollbarWidth }}>
         <div className="cal-week-gutter" />
         {days.map((date) => {
-          const { weekday, num } = dayLabel(date);
+          const { weekday, num } = dayLabel(date, lang);
           return (
             <div
               key={date}
@@ -994,7 +1006,13 @@ function WeekGrid({
           the week's edges), stacked in as few rows as fit. The day columns
           behind the bars only draw the borders and weekend shading. */}
       <div className="cal-week-allday" style={{ paddingRight: scrollbarWidth }}>
-        <div className="cal-week-gutter cal-allday-label">All day</div>
+        <div className="cal-week-gutter cal-allday-label" title={t("cal_all_day")} aria-label={t("cal_all_day")}>
+          {/* A sun: the whole day, without a word to fit in the gutter. */}
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <circle cx="12" cy="12" r="4" />
+            <path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+          </svg>
+        </div>
         <div className="cal-week-allday-days" style={{ gridTemplateRows: `repeat(${Math.max(1, banners.lanes)}, auto)` }}>
           {days.map((date, i) => (
             <div key={date} className={"cal-week-allday-col" + (isWeekend(date) ? " weekend" : "")}
@@ -1007,7 +1025,7 @@ function WeekGrid({
                          (e.start_date < days[0] ? " cont-left" : "") + (e.end_date > days[6] ? " cont-right" : "")}
               style={{ borderLeftColor: e.calendar_color, gridColumn: `${from + 1} / ${to + 2}`, gridRow: lane + 1 }}
               onClick={() => onOpen(e)}
-              title={e.mine ? e.title : `${e.title} (by ${e.owner})`}
+              title={e.mine ? e.title : `${e.title} (${t("cal_by", { owner: e.owner })})`}
             >
               {e.recurring ? "↻ " : ""}
               {e.alarm ? "🔔 " : ""}
@@ -1054,7 +1072,7 @@ function WeekGrid({
                       className="cal-week-event"
                       style={style}
                       onClick={(ev) => { ev.stopPropagation(); onOpen(e); }}
-                      title={e.mine ? e.title : `${e.title} (by ${e.owner})`}
+                      title={e.mine ? e.title : `${e.title} (${t("cal_by", { owner: e.owner })})`}
                     >
                       {e.recurring ? "↻ " : ""}{e.alarm ? "🔔 " : ""}{e.title}
                     </button>

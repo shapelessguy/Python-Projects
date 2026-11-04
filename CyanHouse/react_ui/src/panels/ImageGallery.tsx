@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ACCESS_RANK, api, FolderAccess, StagedFile } from "../api";
 import { AccessBadge } from "./ShareDialog";
+import { useT } from "../i18n";
 
 /** Tiles drawn at a time: a first screenful or two, then another batch
  *  whenever the end of what is drawn comes near — so ten thousand photos
@@ -91,6 +92,7 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
   onMove?: (paths: string[], to: string) => Promise<void>;
   onRemove?: (paths: string[]) => Promise<void>;
 }) {
+  const { t } = useT();
   const q = query.trim().toLowerCase();
   // What a drag of files is over: a folder's card ("a:" + folder), a
   // section ("s:" + folder), or the space around them ("bg"). Kept apart
@@ -280,13 +282,13 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
   };
   const selBar = sel.size > 0 && (
     <div className="ig-selbar" onClick={(e) => e.stopPropagation()}>
-      <span className="ig-selcount">{sel.size} selected</span>
+      <span className="ig-selcount">{t("ig_selected", { n: sel.size })}</span>
       <button className="ghost" disabled={busy}
-              onClick={() => setSel(new Set(shownOrder()))}>Select all</button>
+              onClick={() => setSel(new Set(shownOrder()))}>{t("ig_select_all")}</button>
       {onMove && (
         <span className="ig-movewrap">
           <button disabled={busy} onClick={() => setMoving((m) => !m)}>
-            {busy && moving ? "Moving…" : "Move to…"}
+            {busy && moving ? t("ig_moving") : t("ig_move_to")}
           </button>
           {moving && !busy && (
             <MovePicker folders={destinations} onClose={() => setMoving(false)}
@@ -297,10 +299,10 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
       {onRemove && (
         <button className={"danger" + (armed ? " armed" : "")} disabled={busy}
                 onClick={() => { if (!armed) { setArmed(true); return; } run(() => onRemove([...sel])); }}>
-          {busy && !moving ? "Deleting…" : armed ? `Delete ${sel.size}? click again` : "🗑 Delete"}
+          {busy && !moving ? t("ig_deleting") : armed ? t("ig_delete_n_confirm", { n: sel.size }) : `🗑 ${t("delete")}`}
         </button>
       )}
-      <button className="ghost" disabled={busy} onClick={clearSel} title="Clear the selection (Esc)">✕</button>
+      <button className="ghost" disabled={busy} onClick={clearSel} title={t("ig_clear_sel")}>✕</button>
     </div>
   );
 
@@ -374,7 +376,7 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
     <>
       {picturesFirst && sections.length > 0 && (
         <header className="ig-head ig-folderhead">
-          <h3>Folders</h3>
+          <h3>{t("ig_folders")}</h3>
           <span className="ig-count">{albums.length}</span>
           <span className="ig-line" aria-hidden />
         </header>
@@ -413,15 +415,15 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
     <>
       {!showAlbums && !sections.length && (
         loading
-          ? <p className="muted small ig-empty ig-loading"><span className="mv-ring" aria-hidden />Reading the library…</p>
-          : <p className="muted small ig-empty">{q ? "No pictures match." : "No pictures here yet."}</p>
+          ? <p className="muted small ig-empty ig-loading"><span className="mv-ring" aria-hidden />{t("ml_reading")}</p>
+          : <p className="muted small ig-empty">{q ? t("ig_no_match") : t("ig_none_yet")}</p>
       )}
       {drawn.map(([folder, list, rows, sounds]) => (
         <section key={folder} className={"ig-section" + (dropOn === "s:" + folder ? " dropping" : "")}
                  {...dropProps(folder, "s:" + folder)}>
           {(q || (showAlbums && !picturesFirst)) && (
             <header className="ig-head">
-              <h3>{q ? (folder ? folder.split("/").pop() : "Pictures") : "Pictures here"}</h3>
+              <h3>{q ? (folder ? folder.split("/").pop() : t("ig_pictures")) : t("ig_pictures_here")}</h3>
               {q && folder.includes("/") && <span className="ig-path">{folder}</span>}
               <span className="ig-count">{list.length}</span>
               <span className="ig-line" aria-hidden />
@@ -460,7 +462,7 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
          {...dropProps(at, "bg")}>
       {at && (
         <nav className="ig-crumbs">
-          <button className="ghost ig-crumb" onClick={() => go("")}>Pictures</button>
+          <button className="ghost ig-crumb" onClick={() => go("")}>{t("ig_pictures")}</button>
           {crumbs.map((c, i) => (
             <span key={i} className="ig-crumbpart">
               <span className="ig-sep" aria-hidden>›</span>
@@ -489,6 +491,7 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
  *  the card; the new folder is the maker's (image_access.claim), and it
  *  appears as soon as the listing is read again (the server says so). */
 function NewAlbum({ area, folder }: { area: string; folder: string; size: number }) {
+  const { t } = useT();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState("");
   const [error, setError] = useState("");
@@ -510,24 +513,24 @@ function NewAlbum({ area, folder }: { area: string; folder: string; size: number
   };
   if (!editing) {
     return (
-      <button className="ig-album ig-newalbum" onClick={() => setEditing(true)} title="Make a new folder here">
+      <button className="ig-album ig-newalbum" onClick={() => setEditing(true)} title={t("ig_new_folder_title")}>
         <span className="ig-cover"><span className="ig-newplus" aria-hidden>＋</span></span>
-        <span className="ig-albumname">New folder</span>
-        <span className="ig-albumsub">{folder ? `in ${folder.split("/").pop()}` : "an album of your own"}</span>
+        <span className="ig-albumname">{t("vault_new_folder")}</span>
+        <span className="ig-albumsub">{folder ? t("ig_in", { name: folder.split("/").pop() ?? "" }) : t("ig_own_album")}</span>
       </button>
     );
   }
   return (
     <div className="ig-album ig-newalbum editing">
       <span className="ig-cover"><span className="ig-newplus" aria-hidden>📁</span></span>
-      <input className="ig-newname" autoFocus placeholder="Folder name" value={name} disabled={busy}
+      <input className="ig-newname" autoFocus placeholder={t("ig_folder_name")} value={name} disabled={busy}
              onChange={(e) => setName(e.target.value)}
              onBlur={() => { if (!name.trim()) setEditing(false); }}
              onKeyDown={(e) => {
                if (e.key === "Enter") { e.preventDefault(); create(); }
                if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); setEditing(false); setName(""); }
              }} />
-      <span className={"ig-albumsub" + (error ? " error" : "")}>{error || (busy ? "Creating…" : "Enter to create · Esc to cancel")}</span>
+      <span className={"ig-albumsub" + (error ? " error" : "")}>{error || (busy ? t("vault_creating") : t("ig_enter_esc"))}</span>
     </div>
   );
 }
@@ -557,6 +560,7 @@ export const shown = (f: StagedFile) => f.kind === "image" || isVideo(f) || isAu
 function MovePicker({ folders, onPick, onClose }: {
   folders: string[]; onPick: (to: string) => void; onClose: () => void;
 }) {
+  const { t } = useT();
   const [filter, setFilter] = useState("");
   const box = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
@@ -568,7 +572,7 @@ function MovePicker({ folders, onPick, onClose }: {
   const list = f ? folders.filter((p) => p.toLowerCase().includes(f)) : folders;
   return (
     <div ref={box} className="ig-picker">
-      <input autoFocus placeholder="Filter folders…" value={filter} onChange={(e) => setFilter(e.target.value)}
+      <input autoFocus placeholder={t("ig_filter_folders")} value={filter} onChange={(e) => setFilter(e.target.value)}
              onKeyDown={(e) => {
                if (e.key === "Escape") { e.stopPropagation(); onClose(); }
                if (e.key === "Enter" && list.length === 1) onPick(list[0]);
@@ -577,14 +581,14 @@ function MovePicker({ folders, onPick, onClose }: {
         {list.map((p) => {
           const depth = p ? p.split("/").length - 1 : 0;
           return (
-            <button key={p || "/"} onClick={() => onPick(p)} title={p || "The top of Pictures"}
+            <button key={p || "/"} onClick={() => onPick(p)} title={p || t("ig_top_title")}
                     style={{ paddingLeft: 10 + (f ? 0 : depth * 14) }}>
-              <span className="ig-pickname">{p ? p.split("/").pop() : "Pictures (top)"}</span>
+              <span className="ig-pickname">{p ? p.split("/").pop() : t("ig_top")}</span>
               {f && p.includes("/") && <span className="ig-pickpath">{p.slice(0, p.lastIndexOf("/"))}</span>}
             </button>
           );
         })}
-        {!list.length && <span className="ig-picknone">No folder matches.</span>}
+        {!list.length && <span className="ig-picknone">{t("ig_no_folder")}</span>}
       </div>
     </div>
   );
@@ -592,8 +596,9 @@ function MovePicker({ folders, onPick, onClose }: {
 
 /** The tick on a tile or card: shown on hover, and always once picked. */
 function Check({ on, onPick }: { on: boolean; onPick: (e: React.MouseEvent) => void }) {
+  const { t } = useT();
   return (
-    <span role="checkbox" aria-checked={on} title={on ? "Unselect" : "Select (Shift: a range)"}
+    <span role="checkbox" aria-checked={on} title={on ? t("ig_unselect") : t("ig_select")}
           className={"ig-check" + (on ? " on" : "")} onClick={onPick}>✓</span>
   );
 }
@@ -628,6 +633,7 @@ function SoundCard({ file, src, onClick, picked, onPick }: {
   file: StagedFile; src: string; onClick: (e: React.MouseEvent) => void;
   picked: boolean; onPick?: (e: React.MouseEvent) => void;
 }) {
+  const { lang } = useT();
   const ref = useRef<HTMLButtonElement | null>(null);
   const [length, setLength] = useState<number | null>(null);
   useEffect(() => {
@@ -657,7 +663,7 @@ function SoundCard({ file, src, onClick, picked, onPick }: {
         <span className="ig-soundname">{file.name.replace(/\.[^.]+$/, "")}</span>
         <span className="ig-soundmeta">
           {[length !== null ? fmtLength(length) : null, ext,
-            file.modified ? new Date(file.modified * 1000).toLocaleDateString(undefined,
+            file.modified ? new Date(file.modified * 1000).toLocaleDateString(lang,
               { day: "numeric", month: "short", year: "numeric" }) : null].filter(Boolean).join(" · ")}
         </span>
       </span>
@@ -690,6 +696,7 @@ export function ImageViewer({ area, list, index, onIndex, onClose, mayDelete, on
   mayOwn?: (file: StagedFile) => boolean;
   onPoster?: (file: StagedFile, jpeg: Blob) => Promise<void>;
 }) {
+  const { t } = useT();
   const file = list[index];
   const [loaded, setLoaded] = useState(false);
   const [touch, setTouch] = useState<number | null>(null);
@@ -721,11 +728,11 @@ export function ImageViewer({ area, list, index, onIndex, onClose, mayDelete, on
       jpeg = await new Promise<Blob | null>((ok) => c.toBlob(ok, "image/jpeg", quality));
       if (!jpeg || jpeg.size < 950_000) break;
     }
-    if (!jpeg) { setPosterNote("Could not grab the frame"); return; }
-    setPosterNote("Saving…");
+    if (!jpeg) { setPosterNote(t("ig_no_frame")); return; }
+    setPosterNote(t("saving"));
     try {
       await onPoster(file, jpeg);
-      setPosterNote("Thumbnail set ✓");
+      setPosterNote(t("ig_thumb_set"));
     } catch (e) {
       setPosterNote(String(e).replace(/^Error:\s*/, ""));
     }
@@ -771,11 +778,11 @@ export function ImageViewer({ area, list, index, onIndex, onClose, mayDelete, on
       <div className="iv-top" onClick={(e) => e.stopPropagation()}>
         <span className="iv-name" title={file.path}>{file.name}</span>
         <span className="iv-meta">
-          {file.folder || "Pictures"} · {fmtSize(file.size)} · {index + 1} / {list.length}
+          {file.folder || t("ig_pictures")} · {fmtSize(file.size)} · {index + 1} / {list.length}
         </span>
         <a className="iv-btn" href={api.prepRawUrl(area, file.path)} target="_blank" rel="noreferrer"
-           title="Open the original in a new tab">↗</a>
-        <button className="iv-btn" onClick={onClose} title="Close (Esc)">✕</button>
+           title={t("ig_open_original")}>↗</a>
+        <button className="iv-btn" onClick={onClose} title={t("ig_close_esc")}>✕</button>
       </div>
       {!loaded && <span className="mv-ring iv-spin" aria-hidden />}
       {isAudio(file) ? (
@@ -797,8 +804,8 @@ export function ImageViewer({ area, list, index, onIndex, onClose, mayDelete, on
       )}
       {isVideo(file) && paused && onPoster && mayOwn?.(file) && (
         <div className="iv-poster" onClick={(e) => e.stopPropagation()}>
-          <button onClick={usePoster} disabled={posterNote === "Saving…"}
-                  title="Use the frame on screen as this video's thumbnail">🖼 Use as thumbnail</button>
+          <button onClick={usePoster} disabled={posterNote === t("saving")}
+                  title={t("ig_thumb_title")}>🖼 {t("ig_use_thumb")}</button>
           {posterNote && <span className="iv-posternote">{posterNote}</span>}
         </div>
       )}
@@ -811,15 +818,15 @@ export function ImageViewer({ area, list, index, onIndex, onClose, mayDelete, on
                     setDeleting(true);
                     try { await onDelete!(file); } finally { setDeleting(false); setMenu(null); }
                   }}>
-            {deleting ? "Deleting…" : menu.armed ? `Delete ${file.name}? click again` : "🗑 Delete"}
+            {deleting ? t("ig_deleting") : menu.armed ? t("ig_delete_name_confirm", { name: file.name }) : `🗑 ${t("delete")}`}
           </button>
         </div>
       )}
       {index > 0 && (
-        <button className="iv-nav prev" title="Previous (←)" onClick={(e) => { e.stopPropagation(); go(-1); }}>‹</button>
+        <button className="iv-nav prev" title={t("ig_prev")} onClick={(e) => { e.stopPropagation(); go(-1); }}>‹</button>
       )}
       {index < list.length - 1 && (
-        <button className="iv-nav next" title="Next (→)" onClick={(e) => { e.stopPropagation(); go(1); }}>›</button>
+        <button className="iv-nav next" title={t("ig_next")} onClick={(e) => { e.stopPropagation(); go(1); }}>›</button>
       )}
     </div>
   );

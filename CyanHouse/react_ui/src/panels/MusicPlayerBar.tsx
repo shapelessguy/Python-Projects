@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { api, MusicSong } from "../api";
+import { useT } from "../i18n";
 
 /** The Music tab's player: one bar along the bottom of the library, like a
  *  music app's — what is playing on the left, the controls in the middle,
@@ -16,6 +17,7 @@ export function MusicPlayerBar({ song, play, hasPrev, hasNext, onPrev, onNext }:
   onPrev: () => void;
   onNext: () => void;
 }) {
+  const { t: tr } = useT();
   const audio = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
   const [time, setTime] = useState(0);
@@ -114,20 +116,20 @@ export function MusicPlayerBar({ song, play, hasPrev, hasNext, onPrev, onNext }:
                                 onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} />}
         </span>
         <span className="mp-names">
-          <span className="mp-title">{song ? song.title : "Nothing playing"}</span>
-          <span className="mp-artist">{song ? song.artist : "Double-click a song to play it"}</span>
+          <span className="mp-title">{song ? song.title : tr("mp_nothing")}</span>
+          <span className="mp-artist">{song ? song.artist : tr("mp_hint")}</span>
         </span>
       </div>
 
       <div className="mp-controls">
         <div className="mp-buttons">
-          <button className="ghost" disabled={!song} title="Previous (or back to the start)"
+          <button className="ghost" disabled={!song} title={tr("mp_prev")}
                   onClick={() => (audio.current && audio.current.currentTime > 3 || !hasPrev
                     ? audio.current && (audio.current.currentTime = 0) : onPrev())}>⏮</button>
-          <button className="mp-play" disabled={!song} title="Play / pause (space)" onClick={toggle}>
+          <button className="mp-play" disabled={!song} title={tr("mp_play_pause")} onClick={toggle}>
             {playing ? "❚❚" : "▶"}
           </button>
-          <button className="ghost" disabled={!hasNext} title="Next" onClick={onNext}>⏭</button>
+          <button className="ghost" disabled={!hasNext} title={tr("mp_next")} onClick={onNext}>⏭</button>
         </div>
         <div className="mp-seek">
           <span className="mp-time">{mmss(shown)}</span>
@@ -149,7 +151,7 @@ export function MusicPlayerBar({ song, play, hasPrev, hasNext, onPrev, onNext }:
           {song && [song.album, song.year, song.path.split(".").pop()?.toUpperCase(),
                     song.size ? `${(song.size / 1e6).toFixed(1)} MB` : ""].filter(Boolean).join(" · ")}
         </span>
-        <label className="mp-volume" title="Volume">
+        <label className="mp-volume" title={tr("mp_volume")}>
           🔊
           <input type="range" min={0} max={1} step={0.01} value={volume}
                  onChange={(e) => {

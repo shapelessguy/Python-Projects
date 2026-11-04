@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useT } from "../i18n";
 
 /** A library as pages of covers, turned with the arrows: the films (Plex's
  *  posters), and the Music tab's artists.
@@ -39,6 +40,7 @@ export function CoverBook<T extends { id: string; title: string }>({
   /** Going back to the first page whenever this changes (the search text). */
   resetKey: string;
 }) {
+  const { t } = useT();
   const pageRef = useRef<HTMLDivElement | null>(null);
   const [box, setBox] = useState({ w: 0, h: 0 });
   const [first, setFirst] = useState(() => Math.max(0, items.findIndex((m) => m.id === selectedId)));
@@ -130,7 +132,7 @@ export function CoverBook<T extends { id: string; title: string }>({
   return (
     <div className={"mv-book" + (round ? " round" : "")}>
       <button className="mv-turn" disabled={page === 0} onClick={() => go(page - 1)}
-              title="Previous page (←)">‹</button>
+              title={t("book_prev")}>‹</button>
       <div
         className="mv-bookpage"
         ref={pageRef}
@@ -177,12 +179,12 @@ export function CoverBook<T extends { id: string; title: string }>({
             })}
           </div>
         )}
-        {!items.length && <p className="muted small mv-bookempty">No matches.</p>}
+        {!items.length && <p className="muted small mv-bookempty">{t("no_matches")}</p>}
       </div>
       <button className="mv-turn" disabled={page >= pages - 1} onClick={() => go(page + 1)}
-              title="Next page (→)">›</button>
+              title={t("book_next")}>›</button>
       <div className="mv-bookfoot muted small">
-        {items.length ? `${page * per + 1}–${Math.min(items.length, page * per + per)} of ${items.length}` : ""}
+        {items.length ? t("book_range", { from: page * per + 1, to: Math.min(items.length, page * per + per), n: items.length }) : ""}
         <span className="mv-bookpages">page {page + 1} / {pages}</span>
       </div>
     </div>

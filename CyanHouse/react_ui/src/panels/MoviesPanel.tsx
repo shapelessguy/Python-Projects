@@ -17,6 +17,8 @@ import { useNarrow } from "../narrow";
 import { useDragScroll } from "../dragScroll";
 import { Icon } from "./icons";
 import { ConflictDialog, Clash } from "./ConflictDialog";
+import { useBackToClose } from "../backClose";
+import { Key, useT } from "../i18n";
 
 /** The stream is a transcode piped into a fragmented MP4: no byte ranges, no
  *  index, so the browser can't seek it and `video.duration` is meaningless.
@@ -51,8 +53,8 @@ const COVER_MAX = 280;
  *  api/routers/pyload.py) behind the same login as the rest of this page —
  *  and same-origin with it, which both insist on before they can be framed. */
 const EXTERNAL = [
-  { key: "torrents", icon: "🧲", label: "Torrents", url: "/api/qbt/", title: "qBittorrent" },
-  { key: "downloads", icon: "⬇️", label: "Downloads", url: "/api/pyload/", title: "pyLoad" },
+  { key: "torrents", icon: "🧲", label: "mv_torrents", url: "/api/qbt/", title: "qBittorrent" },
+  { key: "downloads", icon: "⬇️", label: "mv_downloads", url: "/api/pyload/", title: "pyLoad" },
 ] as const;
 
 /** The tabs that keep only their icon when the tab row runs out of room
@@ -83,11 +85,8 @@ function treeFiles(area: string, files: StagedFile[]): StagedFile[] {
 /** A tab's face: its icon, if it has one, and its name — which goes when
  *  the row is narrow, leaving the icon (and the name as a tooltip). */
 /** What each library is for, on the introduction. */
-const ABOUT: Record<string, string> = {
-  [MOVIES_KEY]: "Films, as covers. Open one to play it, pick its audio and subtitles.",
-  ":music": "Songs by artist and album, playing in a bar that stays while you browse.",
-  ":images": "Photos and videos by album. Share an album, or keep it to yourself.",
-  ":documents": "Files and folders, shared or private, and folders encrypted with a password.",
+const ABOUT: Record<string, Key> = {
+  [MOVIES_KEY]: "mv_about_movies", ":music": "mv_about_music", ":images": "mv_about_images", ":documents": "mv_about_documents",
 };
 
 /** Where the Media panel opens: what it holds for this user, one card per
@@ -99,26 +98,26 @@ function MediaIntro({ groups, downloaders, loaded, onOpen, onExternal }: {
   onOpen: (key: string) => void;
   onExternal: (key: External) => void;
 }) {
+  const { t: tr } = useT();
   const cards = [
     ...groups.map((g) => ({
       key: g.key, icon: TAB_ICONS[g.key] ?? g.icon ?? "📁", label: g.label,
-      about: ABOUT[g.key] ?? (g.todo && g.done ? "Files waiting to be prepared, and where they go when done."
-        : g.todo ? "Files waiting to be prepared." : "A library folder."),
+      about: tr(ABOUT[g.key] ?? (g.todo && g.done ? "mv_about_workspace" : g.todo ? "mv_about_inbox" : "mv_about_library")),
       open: () => onOpen(g.key),
     })),
     ...(downloaders ? EXTERNAL.map((x) => ({
-      key: x.key, icon: x.icon, label: x.label, about: `${x.title}, for what is being downloaded.`,
+      key: x.key, icon: x.icon, label: tr(x.label), about: tr("mv_about_external", { name: x.title }),
       open: () => onExternal(x.key),
     })) : []),
   ];
   return (
     <section className="mv-intro">
-      <h2>Media</h2>
+      <h2>{tr("panel_media")}</h2>
       {!loaded ? (
-        <p className="muted">Loading…</p>
+        <p className="muted">{tr("loading")}</p>
       ) : cards.length ? (
         <>
-          <p className="muted">Pick where to go — here, or from the tabs above.</p>
+          <p className="muted">{tr("mv_pick_where")}</p>
           <div className="mv-introcards">
             {cards.map((c) => (
               <button key={c.key} className="mv-introcard" onClick={c.open}>
@@ -130,7 +129,7 @@ function MediaIntro({ groups, downloaders, loaded, onOpen, onExternal }: {
           </div>
         </>
       ) : (
-        <p className="muted">Nothing here is shared with you yet. Ask whoever runs this house for access.</p>
+        <p className="muted">{tr("mv_nothing_shared")}</p>
       )}
     </section>
   );
@@ -179,24 +178,6 @@ interface Playing {
   src: string;
 }
 
-const HEIGHT_LABEL: Record<number, string> = {
-  // 0 is the stream-copy rung: the file's own video, no re-encoding, so also
-  // its own resolution and bitrate. Only offered when the server says the
-  // codec is one browsers actually decode.
-  0: "Original",
-  360: "360p",
-  480: "480p",
-  720: "720p",
-  1080: "1080p",
-};
-
-/** Subtitles are burned into the picture, which means decoding and
- *  re-encoding it — the one thing the Original rung doesn't do. Picking one
- *  excludes the other, so whichever the user just chose wins and the panel
- *  says what it moved. */
-const SUBS_NEED_TRANSCODE = (h: number) => `Subtitles are burned in, so Original switched to ${HEIGHT_LABEL[h] ?? h + "p"}.`;
-const ORIGINAL_NEEDS_NO_SUBS = "Original sends the file untouched, so subtitles went off.";
-
 function fmt(seconds: number): string {
   if (!isFinite(seconds) || seconds < 0) seconds = 0;
   const s = Math.floor(seconds % 60);
@@ -232,6 +213,7 @@ function useSettled<T>(value: T, quiet = 1200, most = 5000): T {
 }
 
 export function MoviesPanel() {
+  const { t: tr, tn } = useT();
   // One id per mounted panel: the backend keys its live transcodes on it, so
   // a seek can kill the stream it seeked away from instead of leaving two
   // ffmpegs fighting over the GPU.
@@ -533,7 +515,7 @@ export function MoviesPanel() {
       // no newer edit has replaced the plan meanwhile.
       .then((r) => setPlans((all) => (all[id] === plan
         ? { ...all, [id]: { ...plan, conflicts: r.conflicts } } : all)))
-      .catch((e) => setPrepNote(`Could not save: ${String(e).replace(/^Error:\s*/, "")}`))
+      .catch((e) => setPrepNote(tr("mv_could_not_save", { why: String(e).replace(/^Error:\s*/, "") })))
       .finally(() => {
         // Another edit may have been scheduled while this one was in the
         // air; the film stays protected until that one has gone too.
@@ -709,8 +691,8 @@ export function MoviesPanel() {
       const r = await api.prepRemuxAll(area);
       loadJobs();
       const left = r.skipped.map((x) => `${x.folder} (${x.reason.replace(`${x.folder}: `, "")})`);
-      say(`Queued ${r.queued.length} film${r.queued.length === 1 ? "" : "s"}` +
-          (left.length ? `. Not queued: ${left.join("; ")}` : ""),
+      say(tn("mv_queued", r.queued.length) +
+          (left.length ? `. ${tr("mv_not_queued", { list: left.join("; ") })}` : ""),
           r.queued.length === 0 && left.length > 0);
     } catch (e) { failed(e); }
   };
@@ -723,8 +705,8 @@ export function MoviesPanel() {
       loadJobs();
       const n = r.queued[0]?.steps ?? 0;
       const left = r.skipped.map((x) => `${x.folder} (${x.reason})`);
-      say((n ? `Converting ${n} file${n === 1 ? "" : "s"} to MP3 in the background` : "Nothing to convert") +
-          (left.length ? `. Left out: ${left.join("; ")}` : ""), n === 0);
+      say((n ? tn("mv_converting", n) : tr("mv_nothing_convert")) +
+          (left.length ? `. ${tr("mv_left_out", { list: left.join("; ") })}` : ""), n === 0);
       if (n) setPicked(new Set());
     } catch (e) { failed(e); }
   };
@@ -740,7 +722,7 @@ export function MoviesPanel() {
     const fresh = await loadPanes(panes.map((x) => x.key));
     const left = songsIn(area, fresh[area] ?? []);
     setViewFile(left.find((f) => f.path > was) ?? left[0] ?? null);
-    say(`Filed → ${newPath}`);
+    say(tr("mv_filed", { path: newPath }));
   };
 
   // The background filing in the open music inbox (api/services/music_prep):
@@ -776,11 +758,11 @@ export function MoviesPanel() {
   const failedCount = jobs.filter((j) => j.state === "failed").length;
   const phaseText = (j: RemuxJob) =>
     ((j.steps ?? 0) > 1 && j.step ? `${j.step}/${j.steps} · ` : "") + (
-      j.phase === "generating" ? `${j.step_label} subtitles${j.detail ? `: ${j.detail}` : ""}`
-        : j.kind === "convert" ? `To MP3: ${j.step_label || j.target}`
-        : j.phase === "verifying" ? `Checking ${j.target}`
-        : j.phase === "tidying" ? `Moving ${j.target}`
-        : `Remuxing ${j.target}`);
+      j.phase === "generating" ? tr("st_subtitles", { label: j.step_label ?? "" }) + (j.detail ? `: ${j.detail}` : "")
+        : j.kind === "convert" ? tr("mv_to_mp3", { name: j.step_label || j.target })
+        : j.phase === "verifying" ? tr("mv_checking", { name: j.target })
+        : j.phase === "tidying" ? tr("mv_moving", { name: j.target })
+        : tr("mv_remuxing", { name: j.target }));
 
   // The menu closes on any click outside it, or Escape — like the tree's.
   useEffect(() => {
@@ -829,7 +811,7 @@ export function MoviesPanel() {
       setTreeNote(null);
       try {
         const r = await api.prepRename(area, path, name);
-        say(`Renamed to ${r.name}`);
+        say(tr("mv_renamed", { name: r.name }));
         await afterRearrange(path, r.new_path, area, area);
       } catch (e) { failed(e); }
     },
@@ -839,11 +821,10 @@ export function MoviesPanel() {
       const entries = entriesFrom(dt);
       setTreeNote(null);
       walkEntries(entries, dt).then((found) => {
-        if (!found.length) { say("Nothing usable in that drop", true); return; }
+        if (!found.length) { say(tr("mv_nothing_usable"), true); return; }
         uploads.add(found, area, to);
         const bytes = found.reduce((n, p) => n + p.file.size, 0);
-        say(`Uploading ${found.length} file${found.length === 1 ? "" : "s"} ` +
-            `(${fmtSize(bytes)}) → ${labelOf(area)}${to ? " / " + to : ""}`);
+        say(`${tn("mv_uploading_files", found.length)} (${fmtSize(bytes)}) → ${labelOf(area)}${to ? " / " + to : ""}`);
       }).catch((e) => failed(e));
     },
     remove: (paths: string[]) => deletePaths(area, paths),
@@ -851,7 +832,7 @@ export function MoviesPanel() {
       setTreeNote(null);
       try {
         const r = await api.prepMkdir(area, parent, name);
-        say(`Created ${r.new_path}`);
+        say(tr("mv_created", { path: r.new_path }));
         await loadPanes(panes.map((x) => x.key));
       } catch (e) { failed(e); }
     },
@@ -891,7 +872,7 @@ export function MoviesPanel() {
   const deletePaths = async (area: string, paths: string[]) => {
     setArmedDelete(false);
     setTreeNote(null);
-    setBulkBusy("Deleting…");
+    setBulkBusy(tr("ig_deleting"));
     let gone = 0;
     let files = 0;
     let bytes = 0;
@@ -909,8 +890,8 @@ export function MoviesPanel() {
     setPicked(new Set());
     if (last) await afterRearrange(last, null, area, area);
     const head = paths.length === 1 && gone === 1
-      ? `Deleted ${paths[0].split("/").pop()} — ${files} file${files === 1 ? "" : "s"}, ${fmtSize(bytes)} freed`
-      : `Deleted ${gone} of ${paths.length} — ${files} file${files === 1 ? "" : "s"}, ${fmtSize(bytes)} freed`;
+      ? tr("mv_deleted_one", { name: paths[0].split("/").pop() ?? "", files: tn("mv_files", files), size: fmtSize(bytes) })
+      : tr("mv_deleted_many", { n: gone, total: paths.length, files: tn("mv_files", files), size: fmtSize(bytes) });
     say(problems.length ? `${head}. ${problems[0]}` : head, gone === 0);
   };
 
@@ -922,7 +903,7 @@ export function MoviesPanel() {
     fromArea: string, paths: string[], toArea: string, to: string, label: string,
   ) => {
     setTreeNote(null);
-    setBulkBusy("Moving…");
+    setBulkBusy(tr("ig_moving"));
     let moved = 0;
     let last: { was: string; now: string } | null = null;
     const clashes: Clash[] = [];
@@ -947,8 +928,8 @@ export function MoviesPanel() {
     else if (!problems.length) return;
     // Files the destination already had: asked about, all together.
     if (clashes.length) setConflicts(clashes);
-    const head = `Moved ${moved} of ${paths.length} → ${label}` + (identical
-      ? ` (${identical} identical file${identical === 1 ? "" : "s"} already there, dropped)` : "");
+    const head = tr("mv_moved", { n: moved, total: paths.length, to: label }) + (identical
+      ? ` ${tn("mv_identical", identical)}` : "");
     if (problems.length) say(`${head}. ${problems[0]}`, moved === 0);
     else say(head);
   };
@@ -1081,16 +1062,19 @@ export function MoviesPanel() {
       // Original rung doesn't do -- so the two can't both be on. Whichever
       // the user just changed wins, and the panel says what it moved.
       let moved = "";
+      // Subtitles are burned into the picture, which means re-encoding it --
+      // the one thing the Original rung (height 0, the file's own stream)
+      // doesn't do. Whichever the user just chose wins; the note says what moved.
       if (s !== null && h === 0) {
         if (opts.height === 0) {
           s = null;
-          moved = ORIGINAL_NEEDS_NO_SUBS;
+          moved = tr("mv_original_no_subs");
         } else {
           // In the film library the film is being watched: the best
           // transcoded picture. Elsewhere the smallest, quickest to restart.
           const rungs = meta.heights.filter((x) => x > 0);
           h = tab === MOVIES_KEY && rungs.length ? Math.max(...rungs) : 360;
-          moved = SUBS_NEED_TRANSCODE(h);
+          moved = tr("mv_subs_transcode", { q: h === 0 ? tr("mv_original") : `${h}p` });
         }
       }
       setNote(moved);
@@ -1257,7 +1241,7 @@ export function MoviesPanel() {
       // somewhere else now. Go back to no subtitles.
       setSub(null);
       if (playing) play({ sub: null });
-      setNote(`Removed ${track.label.replace(/^\d+\.\s*/, "")}.`);
+      setNote(tr("mv_removed", { name: track.label.replace(/^\d+\.\s*/, "") }));
     } catch (e) {
       setNote(String(e).replace(/^Error:\s*/, ""));
     } finally {
@@ -1375,10 +1359,10 @@ export function MoviesPanel() {
   const uploadSummary = useMemo(() => {
     const moving = uploads.jobs.filter((j) => j.status === "uploading" || j.status === "queued");
     const skipped = uploads.jobs.filter((j) => j.status === "skipped").length;
-    const there = skipped ? ` · ${skipped} already there` : "";
-    if (!moving.length) return `${uploads.jobs.length - skipped} finished${there}`;
+    const there = skipped ? ` · ${tr("mv_already_there", { n: skipped })}` : "";
+    if (!moving.length) return `${tr("mv_finished", { n: uploads.jobs.length - skipped })}${there}`;
     const left = moving.reduce((n, j) => n + (j.size - j.sent), 0);
-    return `Uploading ${moving.length} of ${uploads.jobs.length} — ${fmtSize(left)} to go${there}`;
+    return `${tr("mv_uploading_progress", { n: moving.length, total: uploads.jobs.length, left: fmtSize(left) })}${there}`;
   }, [uploads.jobs]);
 
   const activeSub = sub === null ? null : info?.subtitles[sub] ?? null;
@@ -1400,7 +1384,7 @@ export function MoviesPanel() {
         : g?.todo ? (g.todo.type === "music" ? "music-workspace" : "workspace") : "output",
       description: main?.description,
       vars: {
-        name: tab === MOVIES_KEY ? (lib?.label ?? "Movies") : (g?.label ?? tab),
+        name: tab === MOVIES_KEY ? (lib?.label ?? tr("mv_movies")) : (g?.label ?? tab),
         inbox: g?.todo?.path ?? "",
         output: tab === MOVIES_KEY ? (lib?.path ?? "") : (g?.done?.path ?? ""),
         user: currentUsername() ?? "",
@@ -1455,14 +1439,14 @@ export function MoviesPanel() {
           <div className="mv-placeholder muted">
             {infoError ? infoError
               : info ? (
-                <button className="mv-bigplay" title="Play"
+                <button className="mv-bigplay" title={tr("mv_play")}
                         onClick={(e) => { e.stopPropagation(); togglePlay(); }}>
                   <span aria-hidden>▶</span>
                 </button>
-              ) : <span className="mv-loader" aria-label="Reading the file" />}
+              ) : <span className="mv-loader" aria-label={tr("mv_reading_file")} />}
           </div>
         )}
-        {playing && buffering && <span className="mv-loader mv-loader-over" aria-label="Transcoding" />}
+        {playing && buffering && <span className="mv-loader mv-loader-over" aria-label={tr("mv_transcoding")} />}
         {fullscreen && (
           <div
             className={"mv-fsbar" + (overlay ? " shown" : "")}
@@ -1471,7 +1455,7 @@ export function MoviesPanel() {
             onClick={(e) => e.stopPropagation()}
             onDoubleClick={(e) => e.stopPropagation()}
           >
-            <button onClick={togglePlay} disabled={!info} title="Play / pause">
+            <button onClick={togglePlay} disabled={!info} title={tr("mv_play_pause")}>
               {playing && !paused && !dead ? "❚❚" : "▶"}
             </button>
             <input
@@ -1487,22 +1471,22 @@ export function MoviesPanel() {
               onKeyUp={(e) => SEEK_KEYS.has(e.key) && seek(+(e.target as HTMLInputElement).value)}
             />
             <span className="mv-time">{fmt(shown)} / {fmt(duration)}</span>
-            <label className="mv-volume" title="Volume">
+            <label className="mv-volume" title={tr("mp_volume")}>
               🔊
               <input type="range" min={0} max={1} step={0.01} value={volume}
                      onChange={(e) => changeVolume(+e.target.value)} />
             </label>
-            <button className="ghost" onClick={toggleFullscreen} title="Leave fullscreen">⛶</button>
+            <button className="ghost" onClick={toggleFullscreen} title={tr("mv_leave_fullscreen")}>⛶</button>
           </div>
         )}
       </div>
 
       <div className="mv-meta">
         <div className="mv-metahead">
-          <h2>{selected ? selected.title : "Movies"}</h2>
+          <h2>{selected ? selected.title : tr("mv_movies")}</h2>
           <button
             className="ghost mv-close"
-            title="Close the film"
+            title={tr("mv_close_film")}
             onClick={closeFilm}
           >
             ✕
@@ -1513,8 +1497,8 @@ export function MoviesPanel() {
             {info.video.codec.toUpperCase()} {info.video.width}×{info.video.height}
             {info.video.hdr ? " · HDR → SDR" : ""} · {fmt(info.duration)} · {gb(info.size)} ·{" "}
             {height === 0 && info.remux.ok
-              ? " · original stream, not re-encoded"
-              : ` · ${info.encoder === "h264_nvenc" ? "GPU" : "CPU"} transcode`}
+              ? ` · ${tr("mv_original_stream")}`
+              : ` · ${tr("mv_transcode", { by: info.encoder === "h264_nvenc" ? "GPU" : "CPU" })}`}
           </p>
         ) : (
           <p className="muted small">
@@ -1541,16 +1525,16 @@ export function MoviesPanel() {
       </div>
 
       <div className="mv-transport">
-        <button onClick={() => skip(-1)} disabled={!info} title="Back 2 min (←)">
+        <button onClick={() => skip(-1)} disabled={!info} title={tr("mv_back_2")}>
           ◀◀
         </button>
-        <button onClick={togglePlay} disabled={!info} title="Play / pause">
+        <button onClick={togglePlay} disabled={!info} title={tr("mv_play_pause")}>
           {playing && !paused && !dead ? "❚❚" : "▶"}
         </button>
         <button
           onClick={() => skip(1)}
           disabled={!info}
-          title="Forward 2 min (→)"
+          title={tr("mv_forward_2")}
         >
           ▶▶
         </button>
@@ -1559,7 +1543,7 @@ export function MoviesPanel() {
           // begins the film again.
           onClick={() => { stop(); setPosition(0); setScrub(null); }}
           disabled={!playing}
-          title="Stop and go back to the start"
+          title={tr("mv_stop_start")}
         >
           {/* Drawn, not the ■ glyph: that renders at half the size of the
               arrows beside it in most fonts. */}
@@ -1568,10 +1552,10 @@ export function MoviesPanel() {
         {narrow ? (
           // A phone has no room for the slider in this row: a speaker
           // button that opens it.
-          <SizeSlider min={0} max={1} step={0.01} value={volume} title="Volume" onChange={changeVolume}
+          <SizeSlider min={0} max={1} step={0.01} value={volume} title={tr("mp_volume")} onChange={changeVolume}
                       icon={<span aria-hidden>🔊</span>} />
         ) : (
-        <label className="mv-volume" title="Volume">
+        <label className="mv-volume" title={tr("mp_volume")}>
           🔊
           <input
             type="range"
@@ -1587,7 +1571,7 @@ export function MoviesPanel() {
           className="ghost"
           onClick={toggleFullscreen}
           disabled={!playing}
-          title="Fullscreen (or double-click the picture)"
+          title={tr("mv_fullscreen")}
         >
           ⛶
         </button>
@@ -1652,8 +1636,8 @@ export function MoviesPanel() {
         {downloaders && <span className="mv-srcsep" aria-hidden />}
         {downloaders && EXTERNAL.map((x) => (
           <button key={x.key} className={external === x.key ? "active" : ""}
-                  title={x.label} onClick={() => setExternal(x.key)}>
-            <TabFace icon={x.icon} label={x.label} />
+                  title={tr(x.label)} onClick={() => setExternal(x.key)}>
+            <TabFace icon={x.icon} label={tr(x.label)} />
           </button>
         ))}
         </div>
@@ -1664,7 +1648,7 @@ export function MoviesPanel() {
         <div className="mv-queue">
           {running && (
             <button className="mv-jobpill" onClick={() => switchTab(running.area)}
-                    title={`${running.target}\nfrom ${running.folder} — click to open its area`}>
+                    title={`${running.target}\n${tr("mv_job_from", { folder: running.folder })}`}>
               <span className="mv-ring" aria-hidden />
               <span className="mv-jobtext">{phaseText(running)}</span>
               <span className="mv-jobmeter"><span style={{ width: `${running.percent ?? 0}%` }} /></span>
@@ -1673,24 +1657,24 @@ export function MoviesPanel() {
           )}
           <button
             className={"mv-queuebtn" + (queueOpen ? " open" : "") + (failedCount ? " failed" : "")}
-            title="Background jobs: remuxes and conversions"
+            title={tr("mv_jobs_title")}
             onClick={(e) => { e.stopPropagation(); setQueueOpen((o) => !o); }}
           >
             <span aria-hidden>☰</span>
             {waiting.length > 0 && <span className="mv-queuecount">{waiting.length}</span>}
-            {failedCount > 0 && <span className="mv-queuefail" title="failed">!</span>}
+            {failedCount > 0 && <span className="mv-queuefail" title={tr("mv_failed")}>!</span>}
           </button>
           {queueOpen && (
             <div className="mv-queuemenu" onClick={(e) => e.stopPropagation()}>
               <div className="mv-queuehead">
-                <span>Background jobs</span>
+                <span>{tr("mv_jobs")}</span>
                 {jobs.some((j) => j.state !== "queued" && j.state !== "running") && (
                   <button className="ghost" onClick={() => api.prepClearJobs().then((r) => setJobs(r.jobs)).catch(() => {})}>
-                    clear finished
+                    {tr("mv_clear_finished")}
                   </button>
                 )}
               </div>
-              {jobs.length === 0 && <p className="muted small mv-queueempty">Nothing queued.</p>}
+              {jobs.length === 0 && <p className="muted small mv-queueempty">{tr("mv_nothing_queued")}</p>}
               <ul>
                 {jobs.map((j) => (
                   <li key={j.id} className={"mv-qrow " + j.state} title={j.error || j.output || j.folder}>
@@ -1704,9 +1688,9 @@ export function MoviesPanel() {
                       <span className="mv-qsub">
                         {j.state === "running" ? phaseText(j)
                           : j.state === "queued" ? `${labelOf(j.area)} · ${j.folder}`
-                          : j.state === "done" ? `done${j.finished && j.started ? ` in ${Math.round(j.finished - j.started)}s` : ""}`
+                          : j.state === "done" ? (j.finished && j.started ? tr("mv_done_in", { s: Math.round(j.finished - j.started) }) : tr("mv_done"))
                           : j.state === "failed" ? j.error
-                          : "stopped"}
+                          : tr("mv_stopped")}
                       </span>
                       {j.state === "running" && (
                         <span className="mv-jobmeter wide"><span style={{ width: `${j.percent ?? 0}%` }} /></span>
@@ -1716,12 +1700,12 @@ export function MoviesPanel() {
                       className="ghost mv-qx"
                       disabled={(j.state === "running" && !["generating", "muxing", "converting", ""].includes(j.phase))
                                 || ((j.state === "running" || j.state === "queued") && !canEditArea(j.area))}
-                      title={j.state === "running" ? "Stop — the source is left as it was"
-                        : j.state === "queued" ? "Take it out of the queue" : "Clear"}
+                      title={j.state === "running" ? tr("st_stop_title")
+                        : j.state === "queued" ? tr("st_unqueue_title") : tr("clear")}
                       onClick={() => api.prepRemoveJob(j.id).then(loadJobs)
                         .catch((e) => setTreeNote({ text: String(e).replace(/^Error:\s*/, ""), bad: true }))}
                     >
-                      {j.state === "running" ? "stop" : "✕"}
+                      {j.state === "running" ? tr("mv_stop") : "✕"}
                     </button>
                   </li>
                 ))}
@@ -1738,7 +1722,7 @@ export function MoviesPanel() {
       <section className="mv-library">
         <div className="mv-search">
           {narrow && !searchOpen && !query ? (
-            <button className="ghost mv-searchbtn" title="Search" aria-label="Search" onClick={() => setSearchOpen(true)}>
+            <button className="ghost mv-searchbtn" title={tr("search")} aria-label={tr("search")} onClick={() => setSearchOpen(true)}>
               <Icon name="search" size={14} className="" />
             </button>
           ) : (
@@ -1747,8 +1731,8 @@ export function MoviesPanel() {
             autoFocus={narrow}
             onBlur={() => { if (!query) setSearchOpen(false); }}
             placeholder={tab
-              ? `Search ${panes.reduce((n, p) => n + (listings[p.key]?.length ?? 0), 0) || ""} files…`
-              : `Search ${movies.length || ""} movies…`}
+              ? tr("mv_search_files", { n: panes.reduce((n, p) => n + (listings[p.key]?.length ?? 0), 0) || "" })
+              : tr("mv_search_movies", { n: movies.length || "" })}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
@@ -1760,9 +1744,9 @@ export function MoviesPanel() {
               slider when a view has something to size. */}
           {(() => {
             const size = tab === ":images" && imagesView === "gallery"
-              ? { min: THUMB_MIN, max: THUMB_MAX, step: 10, value: thumbSize, set: setThumbSize, title: "Picture size" }
+              ? { min: THUMB_MIN, max: THUMB_MAX, step: 10, value: thumbSize, set: setThumbSize, title: tr("mv_picture_size") }
               : (tab === MOVIES_KEY && view === "grid") || (tab === ":music" && musicView === "artists")
-                ? { min: COVER_MIN, max: COVER_MAX, step: 5, value: coverSize, set: setCoverSize, title: "Cover size" }
+                ? { min: COVER_MIN, max: COVER_MAX, step: 5, value: coverSize, set: setCoverSize, title: tr("mv_cover_size") }
                 : null;
             return size && (
               <SizeSlider className="mv-coversize" min={size.min} max={size.max} step={size.step}
@@ -1771,15 +1755,15 @@ export function MoviesPanel() {
           })()}
           <span className="mv-viewpick">
             {(tab === ":music"
-              ? ([["artists", "Artists", musicView, setMusicView], ["songs", "Songs", musicView, setMusicView],
-                  ["folders", "Folders", musicView, setMusicView]] as const)
+              ? ([["artists", "ml_artists", musicView, setMusicView], ["songs", "mv_songs", musicView, setMusicView],
+                  ["folders", "ig_folders", musicView, setMusicView]] as const)
               : tab === ":images"
-                ? ([["gallery", "Gallery", imagesView, setImagesView], ["folders", "Folders", imagesView, setImagesView]] as const)
+                ? ([["gallery", "mv_gallery", imagesView, setImagesView], ["folders", "ig_folders", imagesView, setImagesView]] as const)
                 : tab === MOVIES_KEY
-                  ? ([["grid", "Covers", view, setView], ["list", "Folders", view, setView]] as const)
+                  ? ([["grid", "mv_covers", view, setView], ["list", "ig_folders", view, setView]] as const)
                   : []
             ).map(([v, label, current, set]) => (
-              <button key={v} className={"ghost" + (current === v ? " active" : "")} title={label}
+              <button key={v} className={"ghost" + (current === v ? " active" : "")} title={tr(label as Key)}
                       onClick={() => (set as (x: string) => void)(v)}>
                 <ViewIcon name={v === "list" ? "folders" : v} />
               </button>
@@ -1787,15 +1771,14 @@ export function MoviesPanel() {
           </span>
           <span
             className="mv-space"
-            title={space ? `${space.path}\nis on ${space.mount} (${space.name}) — `
-                   + `${fmtSize(space.free)} free of ${fmtSize(space.total)}` : undefined}
+            title={space ? `${space.path}\n` + tr("mv_disk_title", { mount: space.mount, name: space.name, free: fmtSize(space.free), total: fmtSize(space.total) }) : undefined}
           >
             {space && (
               <>
                 <DiskRing used={space.total ? 1 - space.free / space.total : 0} />
                 <span className="mv-spacetext">
                   <b>{space.name}</b>
-                  <small>{fmtSize(space.free)} free of {fmtSize(space.total)}</small>
+                  <small>{tr("mv_free_of", { free: fmtSize(space.free), total: fmtSize(space.total) })}</small>
                 </span>
               </>
             )}
@@ -1850,26 +1833,26 @@ export function MoviesPanel() {
                       return (
                         <>
                           <span className="mu-auto" title={a.current ?? ""}>
-                            {!a.enabled ? "automatic filing off"
-                              : a.current ? `matching ${a.current.split("/").pop()}${a.pending > 1 ? ` · ${a.pending - 1} more` : ""}`
-                              : "all matched"}
-                            {a.filed > 0 && ` · ${a.filed} filed`}
+                            {!a.enabled ? tr("mv_auto_off")
+                              : a.current ? tr("mv_matching", { name: a.current.split("/").pop() ?? "" }) + (a.pending > 1 ? ` · ${tr("mv_more", { n: a.pending - 1 })}` : "")
+                              : tr("mv_all_matched")}
+                            {a.filed > 0 && ` · ${tr("mv_filed_n", { n: a.filed })}`}
                           </span>
                           <button
                             className={"mv-remuxall" + (reviewOnly ? " on" : "")}
                             disabled={!toCheck && !reviewOnly}
-                            title="Songs the automatic filing was not sure about"
+                            title={tr("mv_to_check_title")}
                             onClick={() => setReviewOnly((v) => !v)}
                           >
-                            {reviewOnly ? "SHOW ALL" : `TO CHECK (${toCheck})`}
+                            {reviewOnly ? tr("mv_show_all") : tr("mv_to_check", { n: toCheck })}
                           </button>
                         </>
                       );
                     })()}
                     {pane.kind === "inbox" && pane.type !== "music" && canEditArea(pane.key) && (
                       <button className="mv-remuxall" onClick={() => remuxAll(pane.key)}
-                              title="Queue every film here that is identified and ready">
-                        REMUX ALL
+                              title={tr("mv_remux_all_title")}>
+                        {tr("mv_remux_all")}
                       </button>
                     )}
                   </div>
@@ -1932,7 +1915,7 @@ export function MoviesPanel() {
             />
           </div>
         ) : (
-          <p className="muted small">{view === "list" ? "Reading the library…" : ""}</p>
+          <p className="muted small">{view === "list" ? tr("ml_reading") : ""}</p>
         )}
         {/* What to do with a selection, under the tree it was made in.
             Absent until something is ticked, so it costs no height the rest
@@ -1940,10 +1923,10 @@ export function MoviesPanel() {
         {canEditArea(pickedArea) && picked.size > 0 && (
           <div className="mv-bulk">
             <span className="mv-bulkcount">
-              {selectionRoots(picked).length} selected{panes.length > 1 ? ` in ${sources.find((x) => x.key === pickedArea)?.short ?? ""}` : ""}
+              {tr("ig_selected", { n: selectionRoots(picked).length })}{panes.length > 1 ? ` ${tr("ig_in", { name: sources.find((x) => x.key === pickedArea)?.short ?? "" })}` : ""}
             </span>
             <select value={bulkTo} onChange={(e) => setBulkTo(e.target.value)} disabled={!!bulkBusy}>
-              <option value="">move to…</option>
+              <option value="">{tr("mv_move_to_option")}</option>
               {/* Every other folder — including the other pane of this
                   pair, which is where a finished film usually goes, and for
                   someone without the publish permission the only one. */}
@@ -1959,15 +1942,15 @@ export function MoviesPanel() {
                 setBulkTo("");
               }}
             >
-              {bulkBusy || "MOVE"}
+              {bulkBusy || tr("mv_move")}
             </button>
             <button
               disabled={!!bulkBusy}
               title={selectionRoots(picked).length === 1 && !listings[pickedArea]?.find((f) => f.path === selectionRoots(picked)[0] && f.kind === "folder")
-                ? "Save it to this computer" : "Save them to this computer, as one ZIP"}
-              onClick={() => api.prepDownload(pickedArea, selectionRoots(picked), (m) => say(m, true))}
+                ? tr("mv_save_one") : tr("mv_save_zip")}
+              onClick={() => api.prepDownload(pickedArea, selectionRoots(picked), (m) => say(m ? tr("mv_download_failed_detail", { message: m }) : tr("mv_download_failed"), true))}
             >
-              DOWNLOAD
+              {tr("mv_download")}
             </button>
             {(() => {
               const flacs = [...picked].filter((p) => p.toLowerCase().endsWith(".flac"));
@@ -1975,8 +1958,8 @@ export function MoviesPanel() {
                 <button
                   disabled={!flacs.length || !!bulkBusy}
                   title={flacs.length
-                    ? `Convert ${flacs.length} FLAC file${flacs.length === 1 ? "" : "s"} to MP3 — runs in the background; each FLAC is replaced by its MP3`
-                    : "Select FLAC files to convert them to MP3"}
+                    ? tr("mv_convert_title", { n: flacs.length })
+                    : tr("mv_convert_select")}
                   onClick={() => convertMp3(pickedArea, flacs)}
                 >
                   → MP3{flacs.length ? ` (${flacs.length})` : ""}
@@ -1986,12 +1969,12 @@ export function MoviesPanel() {
             <button
               className={"mv-bulkdel" + (armedDelete ? " armed" : "")}
               disabled={!!bulkBusy}
-              title="Deletes them — there is no undo"
+              title={tr("mv_delete_no_undo")}
               onClick={() => (armedDelete ? deletePaths(pickedArea, selectionRoots(picked)) : setArmedDelete(true))}
             >
-              {armedDelete ? `Delete ${selectionRoots(picked).length}? click again` : "DELETE"}
+              {armedDelete ? tr("ig_delete_n_confirm", { n: selectionRoots(picked).length }) : tr("mv_delete")}
             </button>
-            <button className="ghost" onClick={() => setPicked(new Set())}>clear</button>
+            <button className="ghost" onClick={() => setPicked(new Set())}>{tr("mv_clear")}</button>
           </div>
         )}
 
@@ -2002,7 +1985,7 @@ export function MoviesPanel() {
           <div className="mv-uploads">
             <div className="mv-uploadhead">
               <span>{uploadSummary}</span>
-              <button className="ghost" onClick={uploads.clear} title="Clear the finished rows">✕</button>
+              <button className="ghost" onClick={uploads.clear} title={tr("mv_clear_finished_rows")}>✕</button>
             </div>
             <ul>
               {batches.map((b) => {
@@ -2016,30 +1999,30 @@ export function MoviesPanel() {
                     <div className="mv-job">
                       <button
                         className="ghost mv-twist"
-                        title={open ? "Hide the files" : "Show the files"}
+                        title={open ? tr("mv_hide_files") : tr("mv_show_files")}
                         onClick={() => setOpenBatch(open ? "" : b.batch)}
                       >
                         {open ? "▾" : "▸"}
                       </button>
                       <span className="mv-jobname">
                         {b.label}
-                        {b.jobs.length > 1 && <span className="muted"> · {b.jobs.length} files</span>}
+                        {b.jobs.length > 1 && <span className="muted"> · {tn("mv_files", b.jobs.length)}</span>}
                       </span>
                       <span className="mv-jobbar">
                         <span className="mv-jobfill" style={{ width: `${pct}%` }} />
                       </span>
                       <span className="mv-jobstate">
-                        {running ? `${pct}%` : failed ? `${failed} failed`
-                          : skipped === b.jobs.length ? "already there"
-                          : skipped ? `${fmtSize(b.size)} · ${skipped} already there` : fmtSize(b.size)}
+                        {running ? `${pct}%` : failed ? tr("mv_n_failed", { n: failed })
+                          : skipped === b.jobs.length ? tr("mv_is_there")
+                          : skipped ? `${fmtSize(b.size)} · ${tr("mv_already_there", { n: skipped })}` : fmtSize(b.size)}
                       </span>
                       {failed > 0 && (
-                        <button className="ghost" title="Send the failed files again" onClick={() => uploads.retryBatch(b.batch)}>
-                          retry failed
+                        <button className="ghost" title={tr("mv_retry_failed_title")} onClick={() => uploads.retryBatch(b.batch)}>
+                          {tr("mv_retry_failed")}
                         </button>
                       )}
                       {running && (
-                        <button className="ghost" title="Stop this upload" onClick={() => uploads.cancelBatch(b.batch)}>✕</button>
+                        <button className="ghost" title={tr("mv_stop_upload")} onClick={() => uploads.cancelBatch(b.batch)}>✕</button>
                       )}
                     </div>
                     {open && (
@@ -2055,17 +2038,17 @@ export function MoviesPanel() {
                             </span>
                             <span className="mv-jobstate">
                               {j.status === "done" ? fmtSize(j.size)
-                                : j.status === "error" ? "failed"
-                                : j.status === "cancelled" ? "stopped"
-                                : j.status === "skipped" ? "already there"
-                                : j.status === "queued" ? "waiting"
+                                : j.status === "error" ? tr("mv_failed")
+                                : j.status === "cancelled" ? tr("mv_stopped")
+                                : j.status === "skipped" ? tr("mv_is_there")
+                                : j.status === "queued" ? tr("mv_waiting")
                                 : `${j.size ? Math.round((j.sent / j.size) * 100) : 0}%`}
                             </span>
                             {(j.status === "uploading" || j.status === "queued") && (
-                              <button className="ghost" title="Cancel this file" onClick={() => uploads.cancel(j.id)}>✕</button>
+                              <button className="ghost" title={tr("mv_cancel_file")} onClick={() => uploads.cancel(j.id)}>✕</button>
                             )}
                             {j.status === "error" && (
-                              <button className="ghost" title={j.error} onClick={() => uploads.retry(j.id)}>retry</button>
+                              <button className="ghost" title={j.error} onClick={() => uploads.retry(j.id)}>{tr("mv_retry")}</button>
                             )}
                           </li>
                         ))}
@@ -2141,7 +2124,7 @@ export function MoviesPanel() {
 
         <div className="mv-tracks">
           <div className="mv-quality">
-            <span className="muted small">Quality</span>
+            <span className="muted small">{tr("mv_quality")}</span>
             <div className="mv-qualityrow">
               {(info?.heights ?? [360, 720, 1080]).map((h) => (
                 <label key={h} className={height === h ? "active" : ""}>
@@ -2152,7 +2135,7 @@ export function MoviesPanel() {
                     disabled={!info}
                     onChange={() => (playing ? play({ height: h }) : setHeight(h))}
                   />
-                  {HEIGHT_LABEL[h] ?? `${h}p`}
+                  {h === 0 ? tr("mv_original") : `${h}p`}
                 </label>
               ))}
             </div>
@@ -2218,30 +2201,30 @@ export function MoviesPanel() {
               changes the file, so no delays, uploads or languages. */}
           <div className="mv-filmopts">
             <label>
-              <span className="muted small">Quality</span>
+              <span className="muted small">{tr("mv_quality")}</span>
               <select value={height} disabled={!info}
                       onChange={(e) => (playing ? play({ height: +e.target.value }) : setHeight(+e.target.value))}>
                 {(info?.heights ?? [360, 720, 1080]).map((h) => (
-                  <option key={h} value={h}>{HEIGHT_LABEL[h] ?? `${h}p`}</option>
+                  <option key={h} value={h}>{h === 0 ? tr("mv_original") : `${h}p`}</option>
                 ))}
               </select>
             </label>
             <label>
-              <span className="muted small">Audio</span>
+              <span className="muted small">{tr("controls_mode_audio")}</span>
               <select value={audio} disabled={!info?.audio.length}
                       onChange={(e) => (playing ? play({ audio: +e.target.value }) : setAudio(+e.target.value))}>
                 {(info?.audio ?? []).map((t) => <option key={t.key} value={t.id}>{t.label}</option>)}
-                {!info?.audio.length && <option>no audio</option>}
+                {!info?.audio.length && <option>{tr("mv_no_audio")}</option>}
               </select>
             </label>
             <label>
-              <span className="muted small">Subtitles</span>
+              <span className="muted small">{tr("mv_subtitles")}</span>
               <select value={sub ?? ""} disabled={!info}
                       onChange={(e) => {
                         const id = e.target.value === "" ? null : +e.target.value;
                         if (playing) play({ sub: id }); else setSub(id);
                       }}>
-                <option value="">off</option>
+                <option value="">{tr("mv_off")}</option>
                 {(info?.subtitles ?? []).map((t) => <option key={t.key} value={t.id}>{t.label}</option>)}
               </select>
             </label>
@@ -2285,7 +2268,7 @@ export function MoviesPanel() {
             }
             const list = viewing.list.filter((x) => x.path !== f.path);
             setViewing(list.length ? { ...viewing, list, index: Math.min(viewing.index, list.length - 1) } : null);
-            say(`Deleted ${f.name}`);
+            say(tr("mv_deleted_name", { name: f.name }));
             refreshListing();
           }}
           // A file is its folder owner's, or, loose at the top, its uploader's.
@@ -2329,6 +2312,7 @@ const SKIP = 120;
 /** The film library's player: a window in the middle of the screen over a
  *  dimmed page. A click outside it or Escape closes it (and stops the film). */
 function FilmDialog({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
+  useBackToClose(onClose);
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
       // Escape in fullscreen only leaves fullscreen.
@@ -2385,6 +2369,7 @@ function TrackTable({
   canDelete: boolean;
   busy: boolean;
 }) {
+  const { t: tr } = useT();
   const prep = !!languages && !!onLanguage && !!planLang;
   const cols = prep ? 5 : 3;
 
@@ -2395,7 +2380,7 @@ function TrackTable({
       step={50}
       value={draft[t.key] ?? String(delays[t.key] ?? 0)}
       disabled={disabled}
-      title="Delay in milliseconds — positive is later, negative earlier"
+      title={tr("mv_delay_title")}
       onChange={(e) => setDraft((d) => ({ ...d, [t.key]: e.target.value }))}
       onBlur={() => commit(t.key, active)}
       onKeyDown={(e) => {
@@ -2418,10 +2403,10 @@ function TrackTable({
         data-empty={planLang!(t.key) ? "false" : "true"}
         value={planLang!(t.key)}
         disabled={disabled}
-        title={planLang!(t.key) ? "" : "No language — this track will be dropped"}
+        title={planLang!(t.key) ? "" : tr("mv_no_language")}
         onChange={(e) => onLanguage!(t.key, e.target.value)}
       >
-        <option value="">— drop —</option>
+        <option value="">{tr("mv_drop")}</option>
         {languages!.map((l) => (
           <option key={l.code} value={l.code}>{l.name} ({l.code})</option>
         ))}
@@ -2433,15 +2418,15 @@ function TrackTable({
       <thead>
         <tr>
           <th className="mv-thplay" />
-          <th>Track</th>
-          {prep && <th className="mv-thlang">Language</th>}
-          {prep && <th className="mv-thgen" title="Generate a subtitle from this audio before remuxing">SRT</th>}
-          <th className="mv-thdelay">Delay (ms)</th>
+          <th>{tr("mv_track")}</th>
+          {prep && <th className="mv-thlang">{tr("language")}</th>}
+          {prep && <th className="mv-thgen" title={tr("mv_srt_title")}>SRT</th>}
+          <th className="mv-thdelay">{tr("mv_delay")}</th>
         </tr>
       </thead>
 
       <tbody>
-        <tr className="mv-section"><td colSpan={cols}>Audio</td></tr>
+        <tr className="mv-section"><td colSpan={cols}>{tr("controls_mode_audio")}</td></tr>
         {audioTracks.map((t) => {
           const active = activeAudio === t.id;
           return (
@@ -2459,8 +2444,8 @@ function TrackTable({
                     checked={!!planGen?.(t.key)}
                     disabled={disabled || !onGen || !planLang!(t.key)}
                     title={planLang!(t.key)
-                      ? `Generate a ${planLang!(t.key)} subtitle from this audio — runs first when remuxed`
-                      : "Give the track a language first"}
+                      ? tr("mv_gen_title", { lang: planLang!(t.key) })
+                      : tr("mv_gen_need_lang")}
                     onChange={(e) => onGen?.(t.key, e.target.checked)}
                   />
                 </td>
@@ -2470,14 +2455,14 @@ function TrackTable({
           );
         })}
         {!audioTracks.length && (
-          <tr><td colSpan={cols} className="muted small">no audio</td></tr>
+          <tr><td colSpan={cols} className="muted small">{tr("mv_no_audio")}</td></tr>
         )}
 
         <tr className="mv-section">
           <td colSpan={cols}>
-            Subtitles
+            {tr("mv_subtitles")}
             <span className="mv-subtools">
-              <button className="ghost" title={canDelete ? "Delete this uploaded subtitle" : "Only uploaded subtitles can be deleted"}
+              <button className="ghost" title={canDelete ? tr("mv_delete_sub") : tr("mv_delete_sub_only")}
                       disabled={!canDelete || busy} onClick={onDeleteSub}>🗑</button>
             </span>
           </td>
@@ -2487,7 +2472,7 @@ function TrackTable({
             <input type="radio" name="mv-sub" checked={activeSub === null}
                    disabled={disabled} onChange={() => onSub(null)} />
           </td>
-          <td className="mv-tdname muted">off</td>
+          <td className="mv-tdname muted">{tr("mv_off")}</td>
           {prep && <td />}
           {prep && <td />}
           <td />

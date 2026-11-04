@@ -4,6 +4,8 @@ import { api, StagedFile } from "../api";
 import { PickedFile, entriesFrom, walkEntries } from "../uploads";
 import { Vault, VaultError, VaultFile, encryptForUpload } from "../vault";
 import { fmtSize } from "./StagingView";
+import { useBackToClose } from "../backClose";
+import { Key, useT } from "../i18n";
 
 /** Encrypted folders of Documents (VAULT.md): creating one, and working in
  *  one once unlocked. Nothing here ever sends a password or a key: the
@@ -34,8 +36,15 @@ function keyFor(path: string): Vault | null {
   return hit.vault;
 }
 
-const message = (e: unknown) =>
-  e instanceof VaultError ? e.message : String(e).replace(/^Error:\s*/, "").replace(/^\d+ [^—]*— /, "");
+type T = ReturnType<typeof useT>["t"];
+/** vault.ts's VaultErrors that reach the user, by their (English) text. */
+const VAULT_ERRORS: Record<string, Key> = {
+  "wrong password": "vault_wrong_password", "wrong recovery code": "vault_wrong_code",
+  "does not decrypt": "vault_no_decrypt",
+};
+const message = (e: unknown, t: T) =>
+  e instanceof VaultError ? (e.message in VAULT_ERRORS ? t(VAULT_ERRORS[e.message]) : e.message)
+    : String(e).replace(/^Error:\s*/, "").replace(/^\d+ [^—]*— /, "");
 
 // What a decrypted file may be opened as in a tab; everything else is only
 // ever saved. An HTML file opened here would run as this site.
@@ -71,9 +80,9 @@ function SecretInput({ inputRef, ...rest }: InputHTMLAttributes<HTMLInputElement
   );
 }
 
-function checkPassword(pw: string, again: string): string | null {
-  if (pw.length < MIN_PASSWORD) return `At least ${MIN_PASSWORD} characters — a sentence is easier to remember than a code.`;
-  if (pw !== again) return "The two passwords are not the same.";
+function checkPassword(t: T, pw: string, again: string): string | null {
+  if (pw.length < MIN_PASSWORD) return t("vault_pw_short", { n: MIN_PASSWORD });
+  if (pw !== again) return t("vault_pw_mismatch");
   return null;
 }
 
@@ -83,6 +92,8 @@ export function CreateVaultDialog({ parent, onClose, onCreated }: {
   onClose: () => void;
   onCreated: (path: string) => void;
 }) {
+  const { t } = useT();
+  useBackToClose(onClose);
   const [name, setName] = useState("");
   const [pw, setPw] = useState("");
   const [again, setAgain] = useState("");
@@ -92,7 +103,7 @@ export function CreateVaultDialog({ parent, onClose, onCreated }: {
   const [saved, setSaved] = useState(false);
 
   const create = async () => {
-    const bad = !name.trim() ? "Give it a name." : checkPassword(pw, again);
+    const bad = !name.trim() ? t("vault_need_name") : checkPassword(t, pw, again);
     if (bad) { setError(bad); return; }
     setBusy(true); setError(null);
     try {
@@ -101,7 +112,7 @@ export function CreateVaultDialog({ parent, onClose, onCreated }: {
       unlocked.set(r.new_path, { vault, used: Date.now() });
       setMade({ path: r.new_path, code: recoveryCode });
     } catch (e) {
-      setError(message(e));
+      setError(message(e, t));
     } finally {
       setBusy(false);
     }
@@ -112,42 +123,37 @@ export function CreateVaultDialog({ parent, onClose, onCreated }: {
       <div className="modal dish-info" onClick={(e) => e.stopPropagation()}>
         {!made ? (
           <>
-            <h4>New encrypted folder{parent ? ` in ${parent}` : ""}</h4>
+            <h4>{parent ? t("vault_new_in", { parent }) : t("vault_new")}</h4>
             <div className="dish-info-scroll vault-form">
-              <p className="muted small">
-                Its files and their names are encrypted here, in your browser, before they are uploaded: the
-                server cannot read them, and nobody can open the folder without its password. It is private
-                to you, for good.
-              </p>
-              <label>Name <input value={name} onChange={(e) => setName(e.target.value)} autoFocus /></label>
-              <label>Password <SecretInput value={pw} onChange={(e) => setPw(e.target.value)} /></label>
-              <label>Again <SecretInput value={again} onChange={(e) => setAgain(e.target.value)} /></label>
+              <p className="muted small">{t("vault_intro")}</p>
+              <label>{t("name")} <input value={name} onChange={(e) => setName(e.target.value)} autoFocus /></label>
+              <label>{t("password")} <SecretInput value={pw} onChange={(e) => setPw(e.target.value)} /></label>
+              <label>{t("password_again")} <SecretInput value={again} onChange={(e) => setAgain(e.target.value)} /></label>
             </div>
             {error && <p className="error small">{error}</p>}
             <div className="row-actions">
               <button type="button" className="active" onClick={create} disabled={busy}>
-                {busy ? "Creating…" : "Create"}
+                {busy ? t("vault_creating") : t("create")}
               </button>
-              <button type="button" className="ghost" onClick={onClose} disabled={busy}>Cancel</button>
+              <button type="button" className="ghost" onClick={onClose} disabled={busy}>{t("cancel")}</button>
             </div>
           </>
         ) : (
           <>
-            <h4>Your recovery code</h4>
+            <h4>{t("vault_code_title")}</h4>
             <div className="dish-info-scroll vault-form">
               <p className="small">
-                If you forget the password, this code is the only way back in — not even the server's admin can
-                open the folder without one of the two. Write it down or keep it in a password manager.
-                <b> It is shown only now.</b>
+                {t("vault_code_intro")}
+                <b> {t("vault_code_once")}</b>
               </p>
               <p className="vault-code">{made.code}</p>
-              <button type="button" className="ghost" onClick={() => navigator.clipboard?.writeText(made.code)}>Copy</button>
+              <button type="button" className="ghost" onClick={() => navigator.clipboard?.writeText(made.code)}>{t("vault_copy")}</button>
               <label className="check-row">
-                <input type="checkbox" checked={saved} onChange={(e) => setSaved(e.target.checked)} /> I have saved it
+                <input type="checkbox" checked={saved} onChange={(e) => setSaved(e.target.checked)} /> {t("vault_saved_it")}
               </label>
             </div>
             <div className="row-actions">
-              <button type="button" className="active" disabled={!saved} onClick={() => onCreated(made.path)}>Done</button>
+              <button type="button" className="active" disabled={!saved} onClick={() => onCreated(made.path)}>{t("done")}</button>
             </div>
           </>
         )}
@@ -190,6 +196,7 @@ export function VaultView({ path, files, upload, onChanged, incoming, onIncoming
   incoming?: PickedFile[];
   onIncomingTaken?: () => void;
 }) {
+  const { t, tn } = useT();
   const [vault, setVault] = useState<Vault | null>(() => keyFor(path));
   const [at, setAt] = useState(path);
   const [names, setNames] = useState<Record<string, string | null>>({});
@@ -227,7 +234,7 @@ export function VaultView({ path, files, upload, onChanged, incoming, onIncoming
   const run = async (what: () => Promise<unknown>, done?: string) => {
     setBusy(true); setNote(null);
     try { await what(); if (done) setNote({ text: done }); onChanged(); }
-    catch (e) { setNote({ text: message(e), bad: true }); }
+    catch (e) { setNote({ text: message(e, t), bad: true }); }
     finally { setBusy(false); }
   };
 
@@ -244,8 +251,7 @@ export function VaultView({ path, files, upload, onChanged, incoming, onIncoming
         shownPath: [title, ...crumbs.map((c) => names[c] ?? "…"), r.plainPath].join("/"),
       }));
       if (out.length) upload(out, into);
-      setNote({ text: `Encrypted ${out.length} file${out.length === 1 ? "" : "s"}, uploading` +
-                      (skipped ? ` — ${skipped} skipped, already here` : "") });
+      setNote({ text: tn("vault_encrypted", out.length) + (skipped ? ` — ${t("vault_skipped", { n: skipped })}` : "") });
     });
   };
 
@@ -266,7 +272,7 @@ export function VaultView({ path, files, upload, onChanged, incoming, onIncoming
         text: kind === "text" ? new TextDecoder().decode(plain) : undefined,
       });
     } catch (e) {
-      setNote({ text: message(e), bad: true });
+      setNote({ text: message(e, t), bad: true });
     } finally {
       setBusy(false);
     }
@@ -284,7 +290,7 @@ export function VaultView({ path, files, upload, onChanged, incoming, onIncoming
       Object.assign(document.createElement("a"), { href: url, download: name }).click();
       window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
     } catch (e) {
-      setNote({ text: message(e), bad: true });
+      setNote({ text: message(e, t), bad: true });
     } finally {
       setBusy(false);
     }
@@ -305,20 +311,20 @@ export function VaultView({ path, files, upload, onChanged, incoming, onIncoming
   }
 
   const newFolder = () => {
-    const name = window.prompt("New folder");
+    const name = window.prompt(t("vault_new_folder"));
     const v = use();
     if (!name?.trim() || !v) return;
-    if (taken.has(name.trim())) { setNote({ text: `${name.trim()} is already here`, bad: true }); return; }
+    if (taken.has(name.trim())) { setNote({ text: t("vault_already_here", { name: name.trim() }), bad: true }); return; }
     run(async () => api.prepMkdir(AREA, at, await v.encryptName(name.trim())));
   };
   const rename = (f: StagedFile, name: string) => {
-    const to = window.prompt("Rename to", name);
+    const to = window.prompt(t("vault_rename_to"), name);
     const v = use();
     if (!to?.trim() || to.trim() === name || !v) return;
     run(async () => api.prepRename(AREA, f.path, await v.encryptName(to.trim())));
   };
   const remove = (f: StagedFile, name: string) => {
-    if (!window.confirm(`Delete ${name}${f.kind === "folder" ? " and everything in it" : ""}, for good?`)) return;
+    if (!window.confirm(t(f.kind === "folder" ? "vault_delete_folder_ask" : "vault_delete_ask", { name }))) return;
     if (viewing?.path === f.path) setViewing(null);
     run(() => api.prepDelete(AREA, f.path));
   };
@@ -338,7 +344,7 @@ export function VaultView({ path, files, upload, onChanged, incoming, onIncoming
          }}>
       <div className="vault-head">
         <h2 title={path}>🔓 {title}</h2>
-        <button className="ghost" onClick={() => { unlocked.delete(path); setVault(null); setViewing(null); }}>Lock</button>
+        <button className="ghost" onClick={() => { unlocked.delete(path); setVault(null); setViewing(null); }}>{t("vault_lock")}</button>
       </div>
       <div className="vault-crumbs muted small">
         <button className="linkish" onClick={() => setAt(path)}>{title}</button>
@@ -349,15 +355,15 @@ export function VaultView({ path, files, upload, onChanged, incoming, onIncoming
       </div>
       <div className="vault-toolbar">
         <label className="button-like">
-          Upload files
+          {t("vault_upload")}
           <input type="file" multiple hidden onChange={(e) => {
             send(Array.from(e.target.files ?? []).map((file) => ({ file, relPath: file.name })), at);
             e.target.value = "";
           }} />
         </label>
-        <button className="ghost" onClick={newFolder} disabled={busy}>New folder</button>
-        <button className="ghost" onClick={() => setChanging(!changing)}>Change password</button>
-        {busy && <span className="muted small">Working…</span>}
+        <button className="ghost" onClick={newFolder} disabled={busy}>{t("vault_new_folder")}</button>
+        <button className="ghost" onClick={() => setChanging(!changing)}>{t("change_password")}</button>
+        {busy && <span className="muted small">{t("cf_working")}</span>}
       </div>
       {changing && <PasswordChange path={path} vault={vault} onDone={() => setChanging(false)} />}
       {note && <p className={(note.bad ? "error" : "muted") + " small"}>{note.text}</p>}
@@ -366,7 +372,7 @@ export function VaultView({ path, files, upload, onChanged, incoming, onIncoming
         {shown.map(({ f, name }) => (
           <li key={f.path} className={viewing?.path === f.path ? "active" : ""}>
             {name === undefined ? <span className="muted">…</span> : name === null ? (
-              <span className="error small" title={f.name}>does not decrypt</span>
+              <span className="error small" title={f.name}>{t("vault_no_decrypt")}</span>
             ) : f.kind === "folder" ? (
               <button className="linkish" onClick={() => { setAt(f.path); setViewing(null); }}>📁 {name}</button>
             ) : (
@@ -375,14 +381,14 @@ export function VaultView({ path, files, upload, onChanged, incoming, onIncoming
             {f.kind !== "folder" && <span className="muted small">{fmtSize(plainSize(f.size))}</span>}
             {name && (
               <span className="vault-acts">
-                {f.kind !== "folder" && <button className="ghost" disabled={busy} onClick={() => save(f, name)}>Save</button>}
-                <button className="ghost" disabled={busy} onClick={() => rename(f, name)}>Rename</button>
+                {f.kind !== "folder" && <button className="ghost" disabled={busy} onClick={() => save(f, name)}>{t("save")}</button>}
+                <button className="ghost" disabled={busy} onClick={() => rename(f, name)}>{t("vault_rename")}</button>
                 <button className="ghost danger" disabled={busy} onClick={() => remove(f, name)}>🗑</button>
               </span>
             )}
           </li>
         ))}
-        {!shown.length && <li className="muted small">Empty — drop files or folders here, or use Upload files.</li>}
+        {!shown.length && <li className="muted small">{t("vault_empty")}</li>}
       </ul>
 
       {/* Pinned under the list, so it stays in sight however long the list is. */}
@@ -390,14 +396,14 @@ export function VaultView({ path, files, upload, onChanged, incoming, onIncoming
         <div className="vault-preview">
           <div className="vault-head">
             <b title={viewing.name}>{viewing.name}</b>
-            <button className="ghost" onClick={() => setViewing(null)} title="Close">✕</button>
+            <button className="ghost" onClick={() => setViewing(null)} title={t("close")}>✕</button>
           </div>
           {viewing.kind === "image" && <img src={viewing.url} alt={viewing.name} />}
           {viewing.kind === "audio" && <audio src={viewing.url} controls autoPlay />}
           {viewing.kind === "video" && <video src={viewing.url} controls autoPlay />}
           {viewing.kind === "pdf" && <iframe src={viewing.url} title={viewing.name} />}
           {viewing.kind === "text" && <pre className="mv-filetext">{viewing.text}</pre>}
-          {viewing.kind === "none" && <p className="muted small">No preview for this kind of file — Save it to open it.</p>}
+          {viewing.kind === "none" && <p className="muted small">{t("vault_no_preview")}</p>}
         </div>
       )}
 
@@ -408,6 +414,7 @@ export function VaultView({ path, files, upload, onChanged, incoming, onIncoming
 function VaultUnlock({ path, title, waiting, onOpen }: {
   path: string; title: string; waiting: number; onOpen: (v: Vault) => void;
 }) {
+  const { t } = useT();
   const [secret, setSecret] = useState("");
   const [recovery, setRecovery] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -424,20 +431,20 @@ function VaultUnlock({ path, title, waiting, onOpen }: {
       const vault = await Vault.unlock(file, secret, recovery);
       if (recovery) setReset({ vault, file }); else onOpen(vault);
     } catch (e) {
-      setError(message(e));
+      setError(message(e, t));
       input.current?.select();
     } finally {
       setBusy(false);
     }
   };
   const setNew = async () => {
-    const bad = checkPassword(pw, again);
+    const bad = checkPassword(t, pw, again);
     if (bad || !reset) { setError(bad); return; }
     setBusy(true); setError(null);
     try {
       await api.prepSetVault(path, await reset.vault.withPassword(reset.file, pw));
       onOpen(reset.vault);
-    } catch (e) { setError(message(e)); } finally { setBusy(false); }
+    } catch (e) { setError(message(e, t)); } finally { setBusy(false); }
   };
 
   return (
@@ -445,18 +452,18 @@ function VaultUnlock({ path, title, waiting, onOpen }: {
       <h2 title={path}>🔐 {title}</h2>
       {reset ? (
         <form className="vault-form" onSubmit={(e) => { e.preventDefault(); setNew(); }}>
-          <p className="small">Recovery code accepted. Choose a new password.</p>
-          <label>New password <SecretInput value={pw} onChange={(e) => setPw(e.target.value)} autoFocus /></label>
-          <label>Again <SecretInput value={again} onChange={(e) => setAgain(e.target.value)} /></label>
-          <button className="active" disabled={busy}>{busy ? "Saving…" : "Set password and open"}</button>
+          <p className="small">{t("vault_code_ok")}</p>
+          <label>{t("password_new")} <SecretInput value={pw} onChange={(e) => setPw(e.target.value)} autoFocus /></label>
+          <label>{t("password_again")} <SecretInput value={again} onChange={(e) => setAgain(e.target.value)} /></label>
+          <button className="active" disabled={busy}>{busy ? t("saving") : t("vault_set_and_open")}</button>
         </form>
       ) : (
         <form className="vault-form" onSubmit={(e) => { e.preventDefault(); unlock(); }}>
-          <p className="muted small">Encrypted: the server cannot read it. Its password opens it here, in this page.</p>
+          <p className="muted small">{t("vault_locked_intro")}</p>
           {waiting > 0 && (
-            <p className="small">{waiting} file{waiting === 1 ? "" : "s"} waiting: unlock to encrypt and upload {waiting === 1 ? "it" : "them"}.</p>
+            <p className="small">{t(waiting === 1 ? "vault_waiting_one" : "vault_waiting_other", { n: waiting })}</p>
           )}
-          <label>{recovery ? "Recovery code" : "Password"}
+          <label>{recovery ? t("vault_recovery_code") : t("password")}
             {recovery ? (
               <input ref={input} type="text" value={secret} autoFocus autoComplete="off" spellCheck={false}
                      onChange={(e) => setSecret(e.target.value)} />
@@ -464,9 +471,9 @@ function VaultUnlock({ path, title, waiting, onOpen }: {
               <SecretInput inputRef={input} value={secret} autoFocus onChange={(e) => setSecret(e.target.value)} />
             )}
           </label>
-          <button className="active" disabled={busy || !secret}>{busy ? "Unlocking…" : "Unlock"}</button>
+          <button className="active" disabled={busy || !secret}>{busy ? t("vault_unlocking") : t("vault_unlock")}</button>
           <button type="button" className="linkish small" onClick={() => { setRecovery(!recovery); setSecret(""); setError(null); }}>
-            {recovery ? "Use the password" : "Forgot the password? Use the recovery code"}
+            {recovery ? t("vault_use_password") : t("vault_use_code")}
           </button>
         </form>
       )}
@@ -476,24 +483,25 @@ function VaultUnlock({ path, title, waiting, onOpen }: {
 }
 
 function PasswordChange({ path, vault, onDone }: { path: string; vault: Vault; onDone: () => void }) {
+  const { t } = useT();
   const [pw, setPw] = useState(""), [again, setAgain] = useState("");
   const [state, setState] = useState<{ text: string; bad?: boolean } | null>(null);
   const save = async () => {
-    const bad = checkPassword(pw, again);
+    const bad = checkPassword(t, pw, again);
     if (bad) { setState({ text: bad, bad: true }); return; }
-    setState({ text: "Saving…" });
+    setState({ text: t("saving") });
     try {
       await api.prepSetVault(path, await vault.withPassword(await api.prepVault(path), pw));
       onDone();
-    } catch (e) { setState({ text: message(e), bad: true }); }
+    } catch (e) { setState({ text: message(e, t), bad: true }); }
   };
   return (
     <form className="vault-form vault-box" onSubmit={(e) => { e.preventDefault(); save(); }}>
-      <label>New password <SecretInput value={pw} onChange={(e) => setPw(e.target.value)} autoFocus /></label>
-      <label>Again <SecretInput value={again} onChange={(e) => setAgain(e.target.value)} /></label>
+      <label>{t("password_new")} <SecretInput value={pw} onChange={(e) => setPw(e.target.value)} autoFocus /></label>
+      <label>{t("password_again")} <SecretInput value={again} onChange={(e) => setAgain(e.target.value)} /></label>
       <div className="vault-toolbar">
-        <button className="active">Save</button>
-        <button type="button" className="ghost" onClick={onDone}>Cancel</button>
+        <button className="active">{t("save")}</button>
+        <button type="button" className="ghost" onClick={onDone}>{t("cancel")}</button>
       </div>
       {state && <span className={(state.bad ? "error" : "muted") + " small"}>{state.text}</span>}
     </form>

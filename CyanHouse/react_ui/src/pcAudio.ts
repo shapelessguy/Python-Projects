@@ -10,6 +10,7 @@
  *  resamples it to the context's), scheduled right after the previous one,
  *  or LEAD_S from now after a gap; one that would end more than MAX_AHEAD_S
  *  from now is dropped, so delay can't build up. */
+import type { Key } from "./i18n";
 
 const LEAD_S = 0.08;
 const MAX_AHEAD_S = 0.3;
@@ -18,7 +19,7 @@ const MAX_AHEAD_S = 0.3;
 const RETRY_MS = [1000, 2000, 4000];
 
 export type PcAudioState =
-  | { on: false; error?: string }
+  | { on: false; error?: Key }  // a message of the dictionary
   | { on: true; connected: boolean };
 
 export class PcAudio {
@@ -42,7 +43,7 @@ export class PcAudio {
     this.connect();
   }
 
-  stop(error?: string) {
+  stop(error?: Key) {
     window.clearTimeout(this.retryTimer);
     const ws = this.ws;
     this.ws = null;
@@ -68,9 +69,9 @@ export class PcAudio {
     ws.onclose = (e) => {
       if (this.ws !== ws) return; // stopped, or replaced
       this.ws = null;
-      if (e.code === 1013) return this.stop("Audio Stream is off on the PC");
-      if (e.code === 1008) return this.stop("Not allowed to hear the PC");
-      if (this.retries >= RETRY_MS.length) return this.stop("Lost the PC audio");
+      if (e.code === 1013) return this.stop("controls_stream_off");
+      if (e.code === 1008) return this.stop("controls_not_allowed");
+      if (this.retries >= RETRY_MS.length) return this.stop("controls_audio_lost");
       this.onState({ on: true, connected: false });
       this.retryTimer = window.setTimeout(() => this.ctx && this.connect(), RETRY_MS[this.retries++]);
     };

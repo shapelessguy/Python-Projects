@@ -830,7 +830,7 @@ export const api = {
       try { text = frame.contentDocument?.body?.innerText ?? ""; } catch { /* not ours */ }
       let message = text;
       try { message = JSON.parse(text).detail ?? text; } catch { /* plain text */ }
-      onError(message ? `Download failed: ${message}` : "Download failed");
+      onError(message);
       frame.remove();
     };
     document.body.appendChild(frame);

@@ -2,10 +2,13 @@ import { useEffect, useMemo, useState } from "react";
 import createPlotlyComponent from "react-plotly.js/factory";
 import Plotly from "plotly.js-dist-min";
 import { api, City, ForecastResponse } from "../api";
+import { useT } from "../i18n";
 
 const Plot = createPlotlyComponent(Plotly);
 
-const WEEKDAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+type T = ReturnType<typeof useT>["t"];
+/** "Mon" -- in the UI's language. */
+const weekday = (d: Date, lang: string) => d.toLocaleDateString(lang, { weekday: "short" });
 
 /** "2026-09-13T14:00:00" -> local Date (no trailing Z => parsed as local). */
 const asDate = (iso: string) => new Date(iso);
@@ -13,18 +16,18 @@ const dayOf = (iso: string) => iso.slice(0, 10); // YYYY-MM-DD, no tz math
 const hourOf = (iso: string) => iso.slice(11, 13); // HH -- always on the hour, ":00" adds nothing
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(n, hi));
 
-function pillLabel(dayIdx: number, isoForDay: string): string {
-  if (dayIdx === 0) return "Today";
-  if (dayIdx === 1) return "Tomorrow";
-  return WEEKDAY[asDate(isoForDay).getDay()];
+function pillLabel(t: T, lang: string, dayIdx: number, isoForDay: string): string {
+  if (dayIdx === 0) return t("env_today");
+  if (dayIdx === 1) return t("env_tomorrow");
+  return weekday(asDate(isoForDay), lang);
 }
 
-function dayLabel(dayIdx: number, isoForDay: string): string {
+function dayLabel(t: T, lang: string, dayIdx: number, isoForDay: string): string {
   const d = asDate(isoForDay);
-  const wd = `${WEEKDAY[d.getDay()]} ${d.getDate()}/${d.getMonth() + 1}`;
-  if (dayIdx === 0) return `Today · ${wd}`;
-  if (dayIdx === 1) return `Tomorrow · ${wd}`;
-  return `${wd} · +${dayIdx}d`;
+  const wd = `${weekday(d, lang)} ${d.getDate()}/${d.getMonth() + 1}`;
+  if (dayIdx === 0) return `${t("env_today")} · ${wd}`;
+  if (dayIdx === 1) return `${t("env_tomorrow")} · ${wd}`;
+  return `${wd} · +${t("fc_days_short", { n: dayIdx })}`;
 }
 
 function minutesAgo(iso: string | null | undefined): number | null {
@@ -40,6 +43,7 @@ interface Props {
 }
 
 export function ForecastStrip({ allCities, selected, forecastVersion }: Props) {
+  const { t, lang } = useT();
   const [data, setData] = useState<ForecastResponse | null>(null);
   const [selectedDay, setSelectedDay] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -98,17 +102,17 @@ export function ForecastStrip({ allCities, selected, forecastVersion }: Props) {
   if (!keys.length)
     return (
       <section className="forecast-strip">
-        <h3>🌧 Precipitation forecast</h3>
-        <p className="muted">Select a city in the Historical tab to see its forecast.</p>
+        <h3>🌦 {t("fc_title")}</h3>
+        <p className="muted">{t("fc_select_city")}</p>
       </section>
     );
 
   if (!ready.length || maxDay < 0)
     return (
       <section className="forecast-strip">
-        <h3>🌧 Precipitation forecast</h3>
+        <h3>🌦 {t("fc_title")}</h3>
         <p className="muted">
-          {data ? "Loading forecast…" : "Forecast not cached yet."}{" "}
+          {data ? t("fc_loading") : t("fc_not_cached")}{" "}
           <button
             className="link"
             disabled={busy}
@@ -117,7 +121,7 @@ export function ForecastStrip({ allCities, selected, forecastVersion }: Props) {
               api.forecastRefresh().finally(() => setBusy(false));
             }}
           >
-            {busy ? "Fetching…" : "Fetch now"}
+            {busy ? t("fc_fetching") : t("fc_fetch_now")}
           </button>
         </p>
       </section>
@@ -162,10 +166,10 @@ export function ForecastStrip({ allCities, selected, forecastVersion }: Props) {
   const mins = minutesAgo(data!.issued_at[ready[0]]);
   const stale = mins != null && mins > 90;
   const issuedText =
-    mins == null ? "" : mins < 90 ? `issued ${mins} min ago` : `updated ${Math.round(mins / 60)} h ago`;
+    mins == null ? "" : mins < 90 ? t("fc_issued", { n: mins }) : t("fc_updated", { n: Math.round(mins / 60) });
 
-  const headline = totalMm >= 0.05 ? `${totalMm.toFixed(1)} mm expected` : "Dry";
-  const peakText = peakProb >= 0 ? ` · peak ${Math.round(peakProb)}% at ${peakHour}` : "";
+  const headline = totalMm >= 0.05 ? t("fc_expected", { mm: totalMm.toFixed(1) }) : t("fc_dry");
+  const peakText = peakProb >= 0 ? ` · ${t("fc_peak", { p: Math.round(peakProb), h: peakHour })}` : "";
 
   // Metric names render as a plain HTML label above each chart (see
   // .chart-title) instead of Plotly's own `title`, which shares the same
@@ -187,7 +191,7 @@ export function ForecastStrip({ allCities, selected, forecastVersion }: Props) {
   return (
     <section className="forecast-strip">
       <div className="fc-head">
-        <h3>🌧 Precipitation forecast</h3>
+        <h3>🌦 {t("fc_title")}</h3>
         <span className="muted small">
           {issuedText && <span className={stale ? "fc-stale" : ""}>{issuedText}</span>}
           <button
@@ -199,7 +203,7 @@ export function ForecastStrip({ allCities, selected, forecastVersion }: Props) {
               api.forecastRefresh().finally(() => setBusy(false));
             }}
           >
-            {busy ? "↻" : "↻ refresh"}
+            {busy ? "↻" : `↻ ${t("fc_refresh")}`}
           </button>
         </span>
       </div>
@@ -214,7 +218,7 @@ export function ForecastStrip({ allCities, selected, forecastVersion }: Props) {
                 className={day === i ? "active" : ""}
                 onClick={() => setSelectedDay(i)}
               >
-                {pillLabel(i, dayList[i])}
+                {pillLabel(t, lang, i, dayList[i])}
               </button>
             ))}
         </div>
@@ -228,11 +232,11 @@ export function ForecastStrip({ allCities, selected, forecastVersion }: Props) {
             onChange={(e) => setSelectedDay(+e.target.value)}
           />
           <div className="fc-ticks">
-            <span>Today</span>
-            <span>+{maxDay}d</span>
+            <span>{t("env_today")}</span>
+            <span>+{t("fc_days_short", { n: maxDay })}</span>
           </div>
         </div>
-        <strong className="fc-daylabel">{dayLabel(day, dayList[day])}</strong>
+        <strong className="fc-daylabel">{dayLabel(t, lang, day, dayList[day])}</strong>
       </div>
 
       <p className="fc-headline">
@@ -242,7 +246,7 @@ export function ForecastStrip({ allCities, selected, forecastVersion }: Props) {
 
       <div className="fc-charts">
         <div className="chart-block">
-          <div className="chart-title">Precipitation [mm/h]</div>
+          <div className="chart-title">{t("fc_precipitation")} [mm/h]</div>
           <Plot
             data={sliced.map((s) => ({
               x: s.hours,
@@ -258,7 +262,7 @@ export function ForecastStrip({ allCities, selected, forecastVersion }: Props) {
           />
         </div>
         <div className="chart-block">
-          <div className="chart-title">Probability of precipitation [%]</div>
+          <div className="chart-title">{t("fc_probability")} [%]</div>
           <Plot
             data={sliced.map((s) => ({
               x: s.hours,
@@ -277,7 +281,7 @@ export function ForecastStrip({ allCities, selected, forecastVersion }: Props) {
           />
         </div>
         <div className="chart-block">
-          <div className="chart-title">Temperature [°C]</div>
+          <div className="chart-title">{t("fc_temperature")} [°C]</div>
           <Plot
             data={sliced.map((s) => ({
               x: s.hours,
@@ -294,7 +298,7 @@ export function ForecastStrip({ allCities, selected, forecastVersion }: Props) {
           />
         </div>
         <div className="chart-block">
-          <div className="chart-title">Wind speed [km/h]</div>
+          <div className="chart-title">{t("fc_wind")} [km/h]</div>
           <Plot
             data={sliced.map((s) => ({
               x: s.hours,
@@ -311,7 +315,7 @@ export function ForecastStrip({ allCities, selected, forecastVersion }: Props) {
           />
         </div>
         <div className="chart-block">
-          <div className="chart-title">Cloud cover [%]</div>
+          <div className="chart-title">{t("fc_clouds")} [%]</div>
           <Plot
             data={sliced.map((s) => ({
               x: s.hours,
@@ -328,7 +332,7 @@ export function ForecastStrip({ allCities, selected, forecastVersion }: Props) {
           />
         </div>
         <div className="chart-block">
-          <div className="chart-title">Humidity [%]</div>
+          <div className="chart-title">{t("fc_humidity")} [%]</div>
           <Plot
             data={sliced.map((s) => ({
               x: s.hours,
@@ -347,10 +351,7 @@ export function ForecastStrip({ allCities, selected, forecastVersion }: Props) {
       </div>
 
       {anyDwd && (
-        <p className="muted small">
-          German cities: DWD (MOSMIX) for the first 72 h, Open-Meteo beyond. Other cities:
-          Open-Meteo (multi-model blend).
-        </p>
+        <p className="muted small">{t("fc_sources")}</p>
       )}
     </section>
   );

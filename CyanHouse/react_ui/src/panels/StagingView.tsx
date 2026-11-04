@@ -4,10 +4,11 @@ import { marked } from "marked";
 // Deliberately a file rather than a string in here: it is meant to be
 // written as prose and edited as prose. `?raw` hands it over as text and
 // Vite rebuilds when it changes.
-import { readCookie, writeCookie } from "../cookies";
 import { ACCESS_RANK, AccessLevel, api, FolderAccess, PrepPlan, RemuxJob, StagedFile, TmdbCandidate } from "../api";
 import { ACCESS_ICON, AccessBadge } from "./ShareDialog";
 import { isVideo } from "./ImageGallery";
+import { useBackToClose } from "../backClose";
+import { useT } from "../i18n";
 
 /** The right-hand panel for anything in a staging folder that isn't a film.
  *
@@ -24,6 +25,7 @@ export function FileView({ area, file, play, onEnded }: {
    *  per double-click, so a second one on the same file plays it again. */
   play?: { path: string } | null;
 }) {
+  const { t, lang } = useT();
   const [text, setText] = useState<{ text: string; encoding: string } | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -49,8 +51,8 @@ export function FileView({ area, file, play, onEnded }: {
     <div className="mv-fileview">
       <h2 title={file.path}>{file.name}</h2>
       <p className="muted small">
-        {file.folder || "(root)"} · {fmtSize(file.size)} · {file.kind}
-        {file.modified ? ` · modified ${new Date(file.modified * 1000).toLocaleString()}` : ""}
+        {file.folder || t("st_root")} · {fmtSize(file.size)} · {file.kind}
+        {file.modified ? ` · ${t("st_modified", { when: new Date(file.modified * 1000).toLocaleString(lang) })}` : ""}
         {text ? ` · ${text.encoding}` : ""}
       </p>
       {error && <p className="error small">{error}</p>}
@@ -59,10 +61,10 @@ export function FileView({ area, file, play, onEnded }: {
           (the server decides which kinds are safe to open). */}
       {area === ":documents" && (
         <p className="mv-fileactions">
-          <button onClick={() => window.open(api.prepRawUrl(area, file.path), "_blank", "noopener")}>Open</button>{" "}
+          <button onClick={() => window.open(api.prepRawUrl(area, file.path), "_blank", "noopener")}>{t("st_open")}</button>{" "}
           {/* Sent as an attachment, so the page stays where it is. */}
           <button className="ghost" onClick={() => { window.location.href = api.prepRawUrl(area, file.path, true); }}>
-            Download
+            {t("st_download")}
           </button>
         </p>
       )}
@@ -89,9 +91,9 @@ export function FileView({ area, file, play, onEnded }: {
           {/* Nothing to render, so say everything that can be said about it.
               A stray .sub or sample still reports a duration and streams. */}
           <dl>
-            <dt>type</dt><dd>{String(info.suffix || "—")} ({String(info.kind)})</dd>
-            <dt>size</dt><dd>{fmtSize(Number(info.size))}</dd>
-            {info.duration ? (<><dt>duration</dt><dd>{fmtDuration(Number(info.duration))}</dd></>) : null}
+            <dt>{t("st_type")}</dt><dd>{String(info.suffix || "—")} ({String(info.kind)})</dd>
+            <dt>{t("st_size")}</dt><dd>{fmtSize(Number(info.size))}</dd>
+            {info.duration ? (<><dt>{t("st_duration")}</dt><dd>{fmtDuration(Number(info.duration))}</dd></>) : null}
           </dl>
           {Array.isArray(info.streams) && info.streams.length > 0 && (
             <table className="mv-streams">
@@ -108,7 +110,7 @@ export function FileView({ area, file, play, onEnded }: {
         </div>
       )}
       {!file.readable && file.kind !== "image" && !video && !info && !error && (
-        <p className="muted small">Reading…</p>
+        <p className="muted small">{t("st_reading")}</p>
       )}
     </div>
   );
@@ -123,7 +125,7 @@ export function FileView({ area, file, play, onEnded }: {
  *  tab that is open.
  *
  *  The texts are templates in ./help, one per kind of folder and language
- *  (`<name>.en.md`, `<name>.it.md`): "movies" for the film library,
+ *  (`<name>.en.md`, `.it.md`, `.de.md`), shown in the app's language: "movies" for the film library,
  *  "workspace" for a folder with an inbox and an output, "output" for one
  *  with only an output. What makes each folder's text its own is its
  *  `description` in secrets.json's staging, filled in as
@@ -137,8 +139,6 @@ export function FileView({ area, file, play, onEnded }: {
  *  so the text only describes what they can actually do. */
 const HELP_FILES = import.meta.glob("./help/*.md", { query: "?raw", import: "default", eager: true }) as
   Record<string, string>;
-type HelpLang = "en" | "it";
-const HELP_LANG_COOKIE = "help_lang";
 
 export interface HelpContext {
   template: string;
@@ -148,7 +148,8 @@ export interface HelpContext {
   description?: Record<string, string>;
 }
 
-function helpSource(template: string, lang: HelpLang): string {
+/** A help page in the app's language, English where it has none. */
+function helpSource(template: string, lang: string): string {
   return HELP_FILES[`./help/${template}.${lang}.md`] ?? HELP_FILES[`./help/${template}.en.md`]
     ?? HELP_FILES[`./help/output.${lang}.md`] ?? "";
 }
@@ -161,12 +162,7 @@ function renderTemplate(src: string, { vars, flags }: Pick<HelpContext, "vars" |
 }
 
 export function MoviesHome({ help }: { help: HelpContext }) {
-  const [lang, setLangState] = useState<HelpLang>(
-    () => (readCookie(HELP_LANG_COOKIE) === "it" ? "it" : "en"));
-  const setLang = (l: HelpLang) => {
-    setLangState(l);
-    writeCookie(HELP_LANG_COOKIE, l);
-  };
+  const { lang } = useT();
   const key = JSON.stringify(help);
   const html = useMemo(() => {
     const d = help.description ?? {};
@@ -178,13 +174,6 @@ export function MoviesHome({ help }: { help: HelpContext }) {
   }, [key, lang]);
   return (
     <div className="mv-home">
-      <div className="mv-homelang">
-        {(["en", "it"] as const).map((l) => (
-          <button key={l} className={"ghost" + (lang === l ? " active" : "")} onClick={() => setLang(l)}>
-            {l.toUpperCase()}
-          </button>
-        ))}
-      </div>
       {/* eslint-disable-next-line react/no-danger */}
       <div className="markdown" dangerouslySetInnerHTML={{ __html: html }} />
     </div>
@@ -202,8 +191,10 @@ export function PrepIdentity({
   plan: PrepPlan;
   onPlan: (p: PrepPlan) => void;
 }) {
+  const { t } = useT();
   const [busy, setBusy] = useState("");
   const [candidates, setCandidates] = useState<TmdbCandidate[] | null>(null);
+  useBackToClose(() => setCandidates(null), !!candidates);
   const [suggested, setSuggested] = useState<number | null>(null);
   const [error, setError] = useState("");
 
@@ -213,7 +204,7 @@ export function PrepIdentity({
    *  the one decision here with no downstream check on it, so it is made by
    *  a person looking at the alternatives, not by a heuristic. */
   const lookup = async () => {
-    setBusy("Looking up…"); setError(""); setCandidates(null);
+    setBusy(t("st_looking_up")); setError(""); setCandidates(null);
     try {
       const r = await api.prepIdentify(plan.title, plan.year);
       setSuggested(r.confident && r.match ? r.match.id : null);
@@ -229,24 +220,24 @@ export function PrepIdentity({
 
   return (
     <div className="mv-prep">
-      <h3>Prepare</h3>
+      <h3>{t("st_prepare")}</h3>
       <div className="mv-prepname">
-        <input value={plan.title} placeholder="title"
+        <input value={plan.title} placeholder={t("st_title_ph")}
                onChange={(e) => onPlan({ ...plan, title: e.target.value, tmdb_id: null, target: "" })} />
-        <input className="mv-year" value={plan.year} placeholder="year"
+        <input className="mv-year" value={plan.year} placeholder={t("st_year_ph")}
                onChange={(e) => onPlan({ ...plan, year: e.target.value, tmdb_id: null, target: "" })} />
-        <button onClick={lookup} disabled={!!busy}>{busy || "Look up"}</button>
+        <button onClick={lookup} disabled={!!busy}>{busy || t("st_look_up")}</button>
       </div>
       <p className={"mv-prepstatus " + (identified ? "ok" : "bad")}>
         <span aria-hidden>{identified ? "✔" : "✘"}</span>
         {identified ? (
           <>
             → {plan.target}
-            <button className="ghost mv-clearname" title="Clear this match and search again"
+            <button className="ghost mv-clearname" title={t("st_clear_match")}
                     onClick={() => onPlan({ ...plan, tmdb_id: null, target: "" })}>✕</button>
           </>
         ) : (
-          <>Not identified — look it up before remuxing</>
+          <>{t("st_not_identified")}</>
         )}
       </p>
       {error && <p className="error small">{error}</p>}
@@ -254,12 +245,12 @@ export function PrepIdentity({
       {candidates && (
         <div className="modal-backdrop" onClick={() => setCandidates(null)}>
           <div className="modal mv-chooser" onClick={(e) => e.stopPropagation()}>
-            <h4>Which film is this?</h4>
+            <h4>{t("st_which_film")}</h4>
             <p className="muted small">
-              Searched “{plan.title}”{plan.year ? ` (${plan.year})` : ""} — most relevant first
+              {t("st_searched", { q: plan.title + (plan.year ? ` (${plan.year})` : "") })}
             </p>
             <ul>
-              {candidates.length === 0 && <li className="muted small">Nothing found.</li>}
+              {candidates.length === 0 && <li className="muted small">{t("st_nothing_found")}</li>}
               {candidates.map((c) => (
                 <li key={c.id}>
                   <button className={c.id === suggested ? "suggested" : ""} onClick={() => pick(c)}>
@@ -271,14 +262,14 @@ export function PrepIdentity({
                       {c.original_title && c.original_title !== c.title && (
                         <em>{c.original_title}</em>
                       )}
-                      <span className="muted small">{c.overview || "No description."}</span>
+                      <span className="muted small">{c.overview || t("st_no_description")}</span>
                     </span>
-                    {c.id === suggested && <span className="mv-suggested">best match</span>}
+                    {c.id === suggested && <span className="mv-suggested">{t("st_best_match")}</span>}
                   </button>
                 </li>
               ))}
             </ul>
-            <button className="ghost" onClick={() => setCandidates(null)}>Cancel</button>
+            <button className="ghost" onClick={() => setCandidates(null)}>{t("cancel")}</button>
           </div>
         </div>
       )}
@@ -304,11 +295,12 @@ export function PrepCommit({
   /** Something about the queue changed; the panel re-reads it. */
   onChanged: () => void;
 }) {
+  const { t } = useT();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
   const dropped = plan.tracks.filter(
-    (t) => t.type !== "video" && !t.cover_art && !t.language);
+    (tr) => tr.type !== "video" && !tr.cover_art && !tr.language);
   const identified = plan.tmdb_id != null && !!plan.target;
   const blocked = plan.conflicts.length > 0;
   const running = job?.state === "running";
@@ -326,11 +318,11 @@ export function PrepCommit({
   const step = running && (job!.steps ?? 0) > 1 && job!.step ? `${job!.step}/${job!.steps} · ` : "";
   const label = !running ? "" : step + (
     job!.phase === "generating"
-      ? `${job!.step_label} subtitles${job!.detail ? `: ${job!.detail}` : ""}`
+      ? t("st_subtitles", { label: job!.step_label ?? "" }) + (job!.detail ? `: ${job!.detail}` : "")
         + (job!.percent != null ? ` ${job!.percent}%` : "…")
-      : job!.phase === "verifying" ? "checking…"
-      : job!.phase === "tidying" ? "moving into place…"
-      : `${(job!.steps ?? 0) > 1 ? "remuxing " : ""}${job!.percent ?? 0}%`);
+      : job!.phase === "verifying" ? t("st_checking")
+      : job!.phase === "tidying" ? t("st_moving_place")
+      : `${(job!.steps ?? 0) > 1 ? `${t("st_remuxing")} ` : ""}${job!.percent ?? 0}%`);
   // Stopping is possible while generating subtitles or muxing: after that it
   // is moving files, and the server refuses to be interrupted there.
   const stoppable = running && ["generating", "muxing", ""].includes(job!.phase);
@@ -339,8 +331,8 @@ export function PrepCommit({
     <div className="mv-commit">
       {dropped.length > 0 && (
         <p className="muted small">
-          {dropped.length} track(s) without a language will be dropped:{" "}
-          {dropped.map((t) => t.label).join(", ")}
+          {t("st_dropped", { n: dropped.length })}{" "}
+          {dropped.map((tr) => tr.label).join(", ")}
         </p>
       )}
       {blocked && <p className="error small">{plan.conflicts.join("; ")}</p>}
@@ -357,29 +349,28 @@ export function PrepCommit({
           )}
           {queued && (
             <span className="mv-muxlabel muted">
-              queued — {job!.position === 1 ? "next" : `#${job!.position} in line`}
+              {job!.position === 1 ? t("st_queued_next") : t("st_queued_pos", { n: job!.position ?? 0 })}
             </span>
           )}
         </div>
         {running ? (
           <button className="mv-remux stop" disabled={busy || !stoppable || !allowed}
-                  title={stoppable ? "Stop this remux — the source is left as it was"
-                                   : "Finishing up — too late to stop"}
+                  title={stoppable ? t("st_stop_title") : t("st_too_late")}
                   onClick={() => act(() => api.prepRemoveJob(job!.id))}>
-            STOP
+            {t("st_stop")}
           </button>
         ) : queued ? (
           <button className="mv-remux" disabled={busy || !allowed}
-                  title="Take it out of the queue"
+                  title={t("st_unqueue_title")}
                   onClick={() => act(() => api.prepRemoveJob(job!.id))}>
-            UNQUEUE
+            {t("st_unqueue")}
           </button>
         ) : (
           <button
             className="mv-remux"
             onClick={() => act(() => api.prepExecute(area, plan))}
             disabled={!allowed || busy || blocked || !identified}
-            title={!allowed ? "Remuxing needs the publish permission" : ""}
+            title={!allowed ? t("st_remux_denied") : ""}
           >
             REMUX
           </button>
@@ -564,6 +555,7 @@ export function FileTree({
    *  which open full screen). */
   pickOnMove?: boolean;
 }) {
+  const { t } = useT();
   const roots = useMemo(() => buildTree(files), [files]);
   const q = query.trim().toLowerCase();
   const shown = useMemo(() => filterTree(roots, q), [roots, q]);
@@ -847,7 +839,7 @@ export function FileTree({
   /** Start naming a new folder inside `parent`, opening it so the row shows. */
   const startCreate = (parent: string) => {
     if (parent) setExpanded((prev) => new Set(prev).add(parent));
-    setCreating({ parent, value: "New folder" });
+    setCreating({ parent, value: t("vault_new_folder") });
     setMenu(null);
   };
 
@@ -1028,7 +1020,7 @@ export function FileTree({
               className={"mv-dot" + (picked.has(f.path) ? " on" : "")}
               role="checkbox"
               aria-checked={picked.has(f.path)}
-              title={picked.has(f.path) ? "Unselect" : "Select"}
+              title={picked.has(f.path) ? t("ig_unselect") : t("st_select")}
               onClick={(e) => { e.stopPropagation(); tick(f.path); }}
             />
           )}
@@ -1063,7 +1055,7 @@ export function FileTree({
           )}
           {marks?.[f.path] && <span className="mv-mark" title={marks[f.path]}>?</span>}
           {folder && (markCounts.get(f.path) ?? 0) > 0 && (
-            <span className="mv-mark" title="Songs in here left for you to check">
+            <span className="mv-mark" title={t("st_songs_to_check")}>
               {markCounts.get(f.path)} ?
             </span>
           )}
@@ -1098,34 +1090,34 @@ export function FileTree({
     >
       {shown.length > 0 && (
         <div className={"mv-node mv-selall" + (canEdit ? "" : " readonly")} onClick={canEdit ? toggleAll : undefined}
-             title={canEdit ? (allOn ? "Unselect everything" : "Select everything shown here") : undefined}>
+             title={canEdit ? (allOn ? t("st_unselect_everything") : t("st_select_everything")) : undefined}>
           {canEdit && <span className={"mv-dot" + (allOn ? " on" : "")} role="checkbox" aria-checked={allOn} />}
           <span className="mv-title">
-            {!canEdit ? (q ? "Shown" : "Total")
-              : allOn ? "Unselect all" : picked.size ? `Select all (${picked.size} selected)` : "Select all"}
+            {!canEdit ? (q ? t("st_shown") : t("st_total"))
+              : allOn ? t("st_unselect_all") : picked.size ? t("st_select_all_n", { n: picked.size }) : t("ig_select_all")}
           </span>
-          <span className="mv-size" title={picked.size ? "selected of shown" : "everything shown here"}>
-            {picked.size ? `${fmtSize(pickedSize)} of ${fmtSize(shownSize)}` : fmtSize(shownSize)}
+          <span className="mv-size" title={picked.size ? t("st_selected_of_shown") : t("st_everything_shown")}>
+            {picked.size ? t("st_size_of", { a: fmtSize(pickedSize), b: fmtSize(shownSize) }) : fmtSize(shownSize)}
           </span>
         </div>
       )}
       {createRow("", 0)}
       {shown.map((n) => row(n, 0))}
-      {!shown.length && !creating && <p className="muted small">{loading ? "Reading the library…" : "Nothing here."}</p>}
+      {!shown.length && !creating && <p className="muted small">{loading ? t("ml_reading") : t("st_nothing_here")}</p>}
 
       {menu && !menu.file && (
         <div className="mv-menu" style={{ left: menu.x, top: menu.y }}
              onClick={(e) => e.stopPropagation()}>
           <button
             disabled={!allows(null, "add")}
-            title={allows(null, "add") ? "" : "Changing these folders needs the publish permission"}
+            title={allows(null, "add") ? "" : t("st_needs_publish")}
             onClick={() => startCreate("")}
           >
-            New folder
+            {t("vault_new_folder")}
           </button>
           {onNewVault && (
             <button disabled={!allows(null, "add")} onClick={() => { onNewVault(""); setMenu(null); }}>
-              New encrypted folder…
+              {t("st_new_vault")}
             </button>
           )}
         </div>
@@ -1138,9 +1130,9 @@ export function FileTree({
         const roots = selectionRoots(picked);
         const many = picked.has(file.path) && roots.length > 1;
         const targets = many ? roots : [file.path];
-        const what = many ? `${targets.length} items` : file.name;
-        const locked = accessOf.size || rootLevel ? "Not yours to change" : "Changing these folders needs the publish permission";
-        const mayManage = (many ? targets.map((t) => files.find((x) => x.path === t) ?? null) : [file])
+        const what = many ? t("st_items", { n: targets.length }) : file.name;
+        const locked = accessOf.size || rootLevel ? t("st_not_yours") : t("st_needs_publish");
+        const mayManage = (many ? targets.map((p) => files.find((x) => x.path === p) ?? null) : [file])
           .every((x) => x !== null && allows(x, "manage"));
         const mayAdd = allows(file, "add");
         return (
@@ -1149,8 +1141,8 @@ export function FileTree({
             <div className="mv-menuhead" title={many ? targets.join("\n") : file.path}>{what}</div>
             {choosing ? (
               <>
-                <button className="mv-menuback" onClick={() => setChoosing(false)}>‹ Move {what} to…</button>
-                {destinations.length === 0 && <div className="mv-menunote">No other folders configured</div>}
+                <button className="mv-menuback" onClick={() => setChoosing(false)}>‹ {t("st_move_what", { what })}</button>
+                {destinations.length === 0 && <div className="mv-menunote">{t("st_no_destinations")}</div>}
                 {destinations.map((d) => (
                   <button key={d.key} onClick={() => { actions.moveTo(targets, d.key); setMenu(null); }}>
                     {d.label}
@@ -1160,7 +1152,7 @@ export function FileTree({
             ) : (
               <>
                 {!many && file.kind !== "folder" && (
-                  <button onClick={() => { onPick(file); setMenu(null); }}>Open</button>
+                  <button onClick={() => { onPick(file); setMenu(null); }}>{t("st_open")}</button>
                 )}
                 {!many && file.kind === "folder" && (
                   <button
@@ -1168,41 +1160,41 @@ export function FileTree({
                     title={mayAdd ? "" : locked}
                     onClick={() => startCreate(file.path)}
                   >
-                    New folder
+                    {t("vault_new_folder")}
                   </button>
                 )}
                 {!many && file.kind === "folder" && onNewVault && (
                   <button disabled={!mayAdd} title={mayAdd ? "" : locked}
                           onClick={() => { onNewVault(file.path); setMenu(null); }}>
-                    New encrypted folder…
+                    {t("st_new_vault")}
                   </button>
                 )}
                 {!many && file.access?.can_share && onShare && (
                   <button onClick={() => { onShare(file.path); setMenu(null); }}>
-                    Sharing… <span className="muted">{ACCESS_ICON[file.access.mode]}</span>
+                    {t("st_sharing")} <span className="muted">{ACCESS_ICON[file.access.mode]}</span>
                   </button>
                 )}
                 <button
                   disabled={!mayManage || many}
-                  title={!mayManage ? locked : many ? "Rename one at a time" : ""}
+                  title={!mayManage ? locked : many ? t("st_rename_one") : ""}
                   onClick={() => { setEditing({ path: file.path, value: file.name }); setMenu(null); }}
                 >
-                  Rename
+                  {t("vault_rename")}
                 </button>
                 <button
                   disabled={!mayManage}
                   title={mayManage ? "" : locked}
                   onClick={() => setChoosing(true)}
                 >
-                  Move to…
+                  {t("ig_move_to")}
                 </button>
                 <button onClick={() => { navigator.clipboard?.writeText(targets.join("\n")); setMenu(null); }}>
-                  Copy path{many ? "s" : ""}
+                  {t(many ? "st_copy_paths" : "st_copy_path")}
                 </button>
                 <button
                   className={"mv-remove" + (armed ? " armed" : "")}
                   disabled={!mayManage}
-                  title={mayManage ? "Deletes it — there is no undo" : locked}
+                  title={mayManage ? t("st_no_undo") : locked}
                   onClick={() => {
                     if (!armed) { setArmed(true); return; }
                     actions.remove(targets);
@@ -1210,12 +1202,12 @@ export function FileTree({
                   }}
                 >
                   {armed
-                    ? "Click again to confirm"
+                    ? t("st_click_confirm")
                     : many
-                      ? `Remove ${targets.length} items`
+                      ? t("st_remove_items", { n: targets.length })
                       : file.kind === "folder"
-                        ? `Remove all (${file.children ?? 0} item${file.children === 1 ? "" : "s"})`
-                        : "Remove file"}
+                        ? t("st_remove_all", { n: file.children ?? 0 })
+                        : t("st_remove_file")}
                 </button>
               </>
             )}

@@ -8,7 +8,8 @@ import { MoviesPanel } from "./panels/MoviesPanel";
 import { AlarmOverlay } from "./AlarmOverlay";
 import { useVisibility } from "./api";
 import { currentUsername, logout } from "./auth";
-import { PasswordDialog } from "./PasswordDialog";
+import { SettingsDialog } from "./SettingsDialog";
+import { Key, useT } from "./i18n";
 import { readCookie, writeCookie } from "./cookies";
 
 type PanelId = "controls" | "environment" | "personal" | "food" | "calendar" | "media";
@@ -16,15 +17,15 @@ type PanelId = "controls" | "environment" | "personal" | "food" | "calendar" | "
 // The first four icons end in an invisible U+FE0F: they are "text by
 // default" emoji, which desktop Linux otherwise draws as small monochrome
 // glyphs from a text font. The selector asks for the colour emoji.
-const PANELS: { id: PanelId; icon: string; label: string; render: () => JSX.Element }[] = [
-  { id: "controls", icon: "🎛️", label: "Controls", render: () => <ControlsPanel /> },
-  { id: "environment", icon: "🌦️", label: "Environment", render: () => <EnvironmentPanel /> },
-  { id: "personal", icon: "🗂️", label: "Personal", render: () => <PersonalPanel /> },
-  { id: "food", icon: "🍽️", label: "Food", render: () => <FoodPanel /> },
-  { id: "calendar", icon: "📅", label: "Calendar", render: () => <CalendarPanel /> },
+const PANELS: { id: PanelId; icon: string; label: Key; render: () => JSX.Element }[] = [
+  { id: "controls", icon: "🎛️", label: "panel_controls", render: () => <ControlsPanel /> },
+  { id: "environment", icon: "🌦️", label: "panel_environment", render: () => <EnvironmentPanel /> },
+  { id: "personal", icon: "🗂️", label: "panel_personal", render: () => <PersonalPanel /> },
+  { id: "food", icon: "🍽️", label: "panel_food", render: () => <FoodPanel /> },
+  { id: "calendar", icon: "📅", label: "panel_calendar", render: () => <CalendarPanel /> },
   // "media" is also its permission name in secrets.json's visibility lists
   // and the backend's require_panel ("movies" before, still accepted there).
-  { id: "media", icon: "🍿", label: "Media", render: () => <MoviesPanel /> },
+  { id: "media", icon: "🍿", label: "panel_media", render: () => <MoviesPanel /> },
 ];
 
 const LAST_SECTION_COOKIE = "last_section";
@@ -43,7 +44,8 @@ export default function App() {
     writeCookie(LAST_SECTION_COOKIE, id);
   };
   const username = currentUsername();
-  const [passwordOpen, setPasswordOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const { t } = useT();
 
   // Icons only once the full labels no longer fit in the bar. The bar
   // measures itself rather than trusting a breakpoint, because how much room
@@ -101,26 +103,26 @@ export default function App() {
             <button
               key={p.id}
               className={active && p.id === active.id ? "active" : ""}
-              title={compact ? p.label : undefined}
+              title={compact ? t(p.label) : undefined}
               onClick={() => setPanel(p.id)}
             >
               <span className="sw-icon">{p.icon}</span>
-              <span className="sw-label">{p.label}</span>
+              <span className="sw-label">{t(p.label)}</span>
             </button>
           ))}
           {username && (
             <span className="whoami">
               <span className="whoami-name">{username}</span>
               <span className="whoami-actions">
-                <button className="ghost icon-btn" onClick={() => setPasswordOpen(true)}
-                        title="Password" aria-label="Password">
+                <button className="ghost icon-btn" onClick={() => setSettingsOpen(true)}
+                        title={t("settings")} aria-label={t("settings")}>
                   <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
                        strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="8" cy="15" r="4" />
-                    <path d="M10.85 12.15 19 4M17 6l2 2M14.5 8.5l2 2" />
+                    <circle cx="12" cy="12" r="3" />
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
                   </svg>
                 </button>
-                <button className="ghost icon-btn" onClick={logout} title="Sign out" aria-label="Sign out">
+                <button className="ghost icon-btn" onClick={logout} title={t("sign_out")} aria-label={t("sign_out")}>
                   <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
                        strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12 3v9" />
@@ -132,14 +134,14 @@ export default function App() {
           )}
         </nav>
       </header>
-      {passwordOpen && <PasswordDialog onClose={() => setPasswordOpen(false)} />}
+      {settingsOpen && <SettingsDialog onClose={() => setSettingsOpen(false)} />}
       <main className="content">
         {!loaded ? (
-          <p className="muted">Loading…</p>
+          <p className="muted">{t("loading")}</p>
         ) : active ? (
           active.render()
         ) : (
-          <p className="muted">No panels available for this account.</p>
+          <p className="muted">{t("no_panels")}</p>
         )}
       </main>
       {/* Alarms are calendar events -- nothing to check if this user can't

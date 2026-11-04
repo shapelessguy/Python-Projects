@@ -4,6 +4,7 @@ import { HumidityGauge } from "./HumidityGauge";
 import { SegmentIcon } from "./SegmentIcon";
 import { TemperatureBar } from "./TemperatureBar";
 import { WindIcon } from "./WindIcon";
+import { Key, useT } from "../i18n";
 
 interface Props {
   city: string;
@@ -12,13 +13,13 @@ interface Props {
 }
 
 const hh = (iso: string) => iso.slice(11, 13); // always on the hour, ":00" adds nothing
-const dayShortLabel = (iso: string) => {
+const dayShortLabel = (iso: string, lang: string) => {
   const d = new Date(iso);
-  return `${d.toLocaleDateString(undefined, { weekday: "short" })} ${d.getDate()}`;
+  return `${d.toLocaleDateString(lang, { weekday: "short" })} ${d.getDate()}`;
 };
 
 // "today": each day cut into 4 six-hour parts (3 of the 2h segments apiece).
-const DAY_PARTS = ["Early morning", "Morning", "Afternoon", "Night"];
+const DAY_PARTS: Key[] = ["ov_early_morning", "ov_morning", "ov_afternoon", "ov_night"];
 const partOf = (iso: string) => Math.min(3, Math.floor(Number(iso.slice(11, 13)) / 6));
 
 // Every row -- data or header -- uses this same 6-column grid (see .ov-row),
@@ -57,6 +58,7 @@ function SegmentRow({ s, timeLabel }: { s: OverviewSegment; timeLabel: string })
 /** Column titles for the numbers -- same grid as SegmentRow, first 5 cells
  * left blank so the numbers cell lands in the same grid column. */
 function HeaderRow() {
+  const { t } = useT();
   return (
     <div className="ov-row ov-header-row">
       <span />
@@ -65,13 +67,13 @@ function HeaderRow() {
       <span />
       <span />
       <span className="ov-numbers ov-numbers-head">
-        <span>Solar</span>
-        <span>Cloud</span>
-        <span>Rain %</span>
-        <span>Rain</span>
-        <span>Temp</span>
-        <span>Humidity</span>
-        <span>Wind</span>
+        <span>{t("ov_solar")}</span>
+        <span>{t("ov_cloud")}</span>
+        <span>{t("ov_rain")} %</span>
+        <span>{t("ov_rain")}</span>
+        <span>{t("ov_temp")}</span>
+        <span>{t("ov_humidity")}</span>
+        <span>{t("ov_wind")}</span>
       </span>
     </div>
   );
@@ -89,6 +91,7 @@ function HeaderRow() {
  * (see the flex/grid chain in .ov-board / .ov-part / .ov-rows / .ov-row)
  * rather than scrolling. */
 export function OverviewBoard({ city, range, forecastVersion }: Props) {
+  const { t, lang } = useT();
   const [data, setData] = useState<OverviewResponse | null>(null);
 
   useEffect(() => {
@@ -106,9 +109,9 @@ export function OverviewBoard({ city, range, forecastVersion }: Props) {
     };
   }, [city, range, forecastVersion]);
 
-  if (!city) return <p className="muted">Pick a city above.</p>;
-  if (!data) return <p className="muted">Loading…</p>;
-  if (!data.segments.length) return <p className="muted">No forecast data yet.</p>;
+  if (!city) return <p className="muted">{t("ov_pick_city")}</p>;
+  if (!data) return <p className="muted">{t("loading")}</p>;
+  if (!data.segments.length) return <p className="muted">{t("ov_no_data")}</p>;
 
   if (range === "week") {
     return (
@@ -116,7 +119,7 @@ export function OverviewBoard({ city, range, forecastVersion }: Props) {
         <HeaderRow />
         <div className="ov-rows">
           {data.segments.map((s) => (
-            <SegmentRow key={s.start} s={s} timeLabel={dayShortLabel(s.start)} />
+            <SegmentRow key={s.start} s={s} timeLabel={dayShortLabel(s.start, lang)} />
           ))}
         </div>
       </div>
@@ -136,7 +139,7 @@ export function OverviewBoard({ city, range, forecastVersion }: Props) {
         if (!partSegs.length) return null;
         return (
           <div key={label} className="ov-part">
-            <span className="ov-part-label">{label}</span>
+            <span className="ov-part-label">{t(label)}</span>
             <div className="ov-rows">
               {partSegs.map((s) => (
                 <SegmentRow key={s.start} s={s} timeLabel={`${hh(s.start)}–${hh(s.end)}`} />

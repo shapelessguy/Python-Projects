@@ -4,6 +4,7 @@ import Plotly from "plotly.js-dist-min";
 import { api, City, EnvBootstrap, SeriesResponse, useVersionPoll, Variable } from "../api";
 import { ForecastStrip } from "./ForecastStrip";
 import { OverviewBoard } from "./OverviewBoard";
+import { Key, useT } from "../i18n";
 
 const Plot = createPlotlyComponent(Plotly);
 
@@ -14,6 +15,8 @@ const PRESETS: Record<string, number | null> = {
   "1Y": 365,
   MAX: null,
 };
+
+const RESAMPLE_KEYS: Record<string, Key> = { hourly: "env_hourly", daily: "env_daily", weekly: "env_weekly" };
 
 function shiftDays(iso: string, days: number): string {
   const d = new Date(iso + "T00:00:00");
@@ -102,6 +105,7 @@ function saveOverviewRange(r: OverviewRange): void {
 }
 
 export function EnvironmentPanel() {
+  const { t } = useT();
   const { weather, forecast } = useVersionPoll();
   const [boot, setBoot] = useState<EnvBootstrap | null>(null);
   const [cities, setCities] = useState<Set<string>>(loadCities);
@@ -223,7 +227,7 @@ export function EnvironmentPanel() {
     return g;
   }, [boot, vars]);
 
-  if (!boot) return <div className="panel"><p className="muted">Loading…</p></div>;
+  if (!boot) return <div className="panel"><p className="muted">{t("loading")}</p></div>;
 
   const cityByKey = Object.fromEntries(boot.cities.map((c) => [c.key, c])) as Record<string, City>;
 
@@ -231,13 +235,13 @@ export function EnvironmentPanel() {
     <div className="panel environment panel--column">
       <div className="env-tabs">
         <button className={tab === "overview" ? "active" : ""} onClick={() => changeTab("overview")}>
-          Overview
+          {t("env_overview")}
         </button>
         <button className={tab === "forecast" ? "active" : ""} onClick={() => changeTab("forecast")}>
-          Forecast
+          {t("env_forecast")}
         </button>
         <button className={tab === "historical" ? "active" : ""} onClick={() => changeTab("historical")}>
-          Historical
+          {t("env_historical")}
         </button>
       </div>
 
@@ -260,25 +264,25 @@ export function EnvironmentPanel() {
                 className={overviewRange === "today" ? "active" : ""}
                 onClick={() => changeOverviewRange("today")}
               >
-                Today
+                {t("env_today")}
               </button>
               <button
                 className={overviewRange === "tomorrow" ? "active" : ""}
                 onClick={() => changeOverviewRange("tomorrow")}
               >
-                Tomorrow
+                {t("env_tomorrow")}
               </button>
               <button
                 className={overviewRange === "in2days" ? "active" : ""}
                 onClick={() => changeOverviewRange("in2days")}
               >
-                In 2 days
+                {t("env_in_2_days")}
               </button>
               <button
                 className={overviewRange === "week" ? "active" : ""}
                 onClick={() => changeOverviewRange("week")}
               >
-                2 weeks
+                {t("env_2_weeks")}
               </button>
             </div>
           </div>
@@ -289,7 +293,7 @@ export function EnvironmentPanel() {
       {tab === "historical" && (
       <aside className="env-controls">
         <section>
-          <h3>Cities</h3>
+          <h3>{t("env_cities")}</h3>
           {boot.cities.map((c) => (
             <label key={c.key} className="check">
               <input
@@ -309,7 +313,7 @@ export function EnvironmentPanel() {
         </section>
 
         <section>
-          <h3>Date range</h3>
+          <h3>{t("env_date_range")}</h3>
           <div className="presets">
             {Object.keys(PRESETS).map((label) => (
               <button
@@ -346,16 +350,16 @@ export function EnvironmentPanel() {
         </section>
 
         <section>
-          <h3>Resample</h3>
+          <h3>{t("env_resample")}</h3>
           <select value={resample} onChange={(e) => setResample(e.target.value)}>
-            <option value="hourly">Hourly (raw)</option>
-            <option value="daily">Daily mean</option>
-            <option value="weekly">Weekly mean</option>
+            <option value="hourly">{t("env_hourly")}</option>
+            <option value="daily">{t("env_daily")}</option>
+            <option value="weekly">{t("env_weekly")}</option>
           </select>
         </section>
 
         <section>
-          <h3>Variables</h3>
+          <h3>{t("env_variables")}</h3>
           {Object.entries(groupBy(boot.variables)).map(([group, list]) => (
             <details key={group} open>
               <summary>{group}</summary>
@@ -384,7 +388,7 @@ export function EnvironmentPanel() {
           setRefreshing(true);
           api.refresh().then(applyBoot).finally(() => setRefreshing(false));
         }}>
-          {refreshing ? "Refreshing…" : "↻ Fetch latest weather"}
+          {refreshing ? t("env_refreshing") : t("env_fetch_latest")}
         </button>
       </aside>
       )}
@@ -400,9 +404,9 @@ export function EnvironmentPanel() {
           <h1>
             {[...cities].map((k) => cityByKey[k]?.flag + " " + cityByKey[k]?.city_name).join(" · ")}
           </h1>
-          <p className="muted">{start} → {end} · {resample}</p>
+          <p className="muted">{start} → {end} · {t(RESAMPLE_KEYS[resample] ?? "env_hourly")}</p>
 
-          {!series && <p className="muted">Pick at least one city and variable.</p>}
+          {!series && <p className="muted">{t("env_pick")}</p>}
           {series &&
             Object.entries(groups).map(([group, list]) => (
               <div key={group} className="chart-group">

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api, ControlsInfo, follow } from "../api";
 import { PcAudio, PcAudioState } from "../pcAudio";
+import { Key, useT } from "../i18n";
 import {
   ControlItem,
   ControlMode,
@@ -29,7 +30,13 @@ function loadMode(): ControlMode {
   return "ALL";
 }
 
+const MODE_KEYS: Record<ControlMode, Key> = {
+  ALL: "controls_mode_all", GROW: "controls_mode_grow", AUDIO: "controls_mode_audio",
+  PC: "controls_mode_pc", VOICES: "controls_mode_voices",
+};
+
 export function ControlsPanel() {
+  const { t } = useT();
   const [mode, setModeState] = useState<ControlMode>(loadMode);
   const setMode = (m: ControlMode) => {
     setModeState(m);
@@ -122,7 +129,7 @@ export function ControlsPanel() {
       }
       flash(extra ? `${it.label}: ${Object.values(extra)[0]}` : `✓ ${it.label}`);
     } catch {
-      flash(`✕ ${it.label} failed`);
+      flash(t("controls_failed", { label: it.label }));
     } finally {
       if (it.slider) draggingVol.current = false;
     }
@@ -165,12 +172,12 @@ export function ControlsPanel() {
   const volumeCard = (
     <div className="ctl-slider">
       <label>
-        {VOLUME_ITEM.icon} OS Volume{device ? `: ${device}` : ""} · {Math.round(vol * 100)}%
+        {VOLUME_ITEM.icon} {t("controls_os_volume")}{device ? `: ${device}` : ""} · {Math.round(vol * 100)}%
       </label>
       <div className="ctl-slider-row">
         <button
           className="ctl-nudge"
-          aria-label="volume down"
+          aria-label={t("controls_volume_down")}
           {...hold("VOLUME_DOWN")}
         >
           −
@@ -190,7 +197,7 @@ export function ControlsPanel() {
         />
         <button
           className="ctl-nudge"
-          aria-label="volume up"
+          aria-label={t("controls_volume_up")}
           {...hold("VOLUME_UP")}
         >
           +
@@ -203,14 +210,14 @@ export function ControlsPanel() {
           disabled={!pcAudio.on && managerUp !== true}
           onClick={togglePcAudio}
         >
-          🎧 PC audio {pcAudio.on ? "on" : "off"}
+          🎧 {t(pcAudio.on ? "controls_pc_audio_on" : "controls_pc_audio_off")}
         </button>
         <span className="muted small">
           {managerUp === false
-            ? "CyanManager is down"
+            ? t("controls_manager_down")
             : pcAudio.on
-              ? pcAudio.connected ? "" : "Connecting…"
-              : pcAudio.error ?? ""}
+              ? pcAudio.connected ? "" : t("connecting")
+              : pcAudio.error ? t(pcAudio.error) : ""}
         </span>
       </div>
     </div>
@@ -226,8 +233,8 @@ export function ControlsPanel() {
           <button
             key={m}
             className={m === mode ? "active" : ""}
-            title={m}
-            aria-label={m}
+            title={t(MODE_KEYS[m])}
+            aria-label={t(MODE_KEYS[m])}
             onClick={() => setMode(m === mode ? "ALL" : m)}
           >
             {MODE_ICON[m]}
@@ -274,7 +281,7 @@ export function ControlsPanel() {
               </span>
               <span className="ctl-lbl">
                 {it.label}
-                {active ? " (active)" : ""}
+                {active ? ` (${t("controls_active")})` : ""}
               </span>
             </button>
           );
@@ -286,7 +293,7 @@ export function ControlsPanel() {
             </button>
           ))}
       </div>
-      {mode === "VOICES" && voices.length === 0 && <p className="muted small">No voices available</p>}
+      {mode === "VOICES" && voices.length === 0 && <p className="muted small">{t("controls_no_voices")}</p>}
     </div>
   );
 }
