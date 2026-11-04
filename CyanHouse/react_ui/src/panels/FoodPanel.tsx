@@ -1195,6 +1195,8 @@ function IngredientsEditor({
     return [...shown].sort((a, b) => a.localeCompare(b));
   }, [dishes, lang]);
   const [newUnit, setNewUnit] = useState(() => !yieldUnits.includes(shownUnit));
+  // Its field is focused only when "New unit…" is picked, not on opening.
+  const [unitPicked, setUnitPicked] = useState(false);
   // A row with no amount has no unit yet; grams until one is picked.
   const [rows, setRows] = useState<IngredientRow[]>(
     () => initial.rows.map((r) => ({ ...r, name: shown.get(r.name) ?? r.name, unit: r.quantity.trim() ? r.unit : "g" })));
@@ -1311,7 +1313,7 @@ function IngredientsEditor({
             {newUnit ? (
               <span className="dish-form-newcat">
                 <input value={unit} onChange={(e) => setUnit(lang === "de" ? e.target.value : lower(e.target.value))}
-                       placeholder={t("food_unit_placeholder")} autoFocus={yieldUnits.length > 0}
+                       placeholder={t("food_unit_placeholder")} autoFocus={unitPicked}
                        aria-label={t("food_unit")} className={tried && yieldBad.unit ? "invalid" : ""} />
                 {yieldUnits.length > 0 && (
                   <button type="button" className="ghost" title={t("cancel")}
@@ -1323,7 +1325,7 @@ function IngredientsEditor({
             ) : (
               <select value={unit} aria-label={t("food_unit")} className={tried && yieldBad.unit ? "invalid" : ""}
                       onChange={(e) => {
-                        if (e.target.value === "\0new") { setNewUnit(true); setUnit(""); } else setUnit(e.target.value);
+                        if (e.target.value === "\0new") { setNewUnit(true); setUnitPicked(true); setUnit(""); } else setUnit(e.target.value);
                       }}>
                 {yieldUnits.map((u) => <option key={u} value={u}>{u}</option>)}
                 <option value={"\0new"}>{t("food_unit_new")}</option>
@@ -1627,7 +1629,8 @@ function DishForm({
 
         <label>
           {t("name")}
-          <input value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+          {/* Focused for a new dish only: opening one to edit pops no keyboard. */}
+          <input value={name} onChange={(e) => setName(e.target.value)} autoFocus={!dish} />
         </label>
 
         <label>
