@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { api, MusicSong } from "../api";
 import { useT } from "../i18n";
 import { inShell, NativeMusic, send, useNative } from "../native";
+import { useNarrow } from "../narrow";
+import { VolumePop } from "./VolumePop";
 
 /** The Music tab's player: one bar along the bottom of the library, like a
  *  music app's — what is playing on the left, the controls in the middle,
@@ -140,6 +142,11 @@ export function MusicPlayerBar({ song, play, list, hasPrev, hasNext, onPrev, onN
   const title = song?.title ?? (mine ? phone!.title : "");
   const artist = song?.artist ?? (mine ? phone!.artist : "");
   const loaded = !!song || mine;
+  const narrow = useNarrow();
+  const changeVolume = (v: number) => {
+    setVolume(v);
+    try { localStorage.setItem("music.volume", String(v)); } catch { /* ignore */ }
+  };
   return (
     <div className={"mp-bar" + (loaded ? "" : " empty")}>
       {song && !inShell && (
@@ -175,6 +182,9 @@ export function MusicPlayerBar({ song, play, list, hasPrev, hasNext, onPrev, onN
             {playing ? "❚❚" : "▶"}
           </button>
           <button className="ghost" disabled={!hasNext} title={tr("mp_next")} onClick={onNext}>⏭</button>
+          {/* On a phone the volume is a button at the end of this row, and
+              the row with the details goes (styles.css). */}
+          {narrow && !inShell && <VolumePop value={volume} onChange={changeVolume} title={tr("mp_volume")} />}
         </div>
         <div className="mp-seek">
           <span className="mp-time">{mmss(shown)}</span>
@@ -200,10 +210,7 @@ export function MusicPlayerBar({ song, play, list, hasPrev, hasNext, onPrev, onN
         {!inShell && <label className="mp-volume" title={tr("mp_volume")}>
           🔊
           <input type="range" min={0} max={1} step={0.01} value={volume}
-                 onChange={(e) => {
-                   setVolume(+e.target.value);
-                   try { localStorage.setItem("music.volume", e.target.value); } catch { /* ignore */ }
-                 }} />
+                 onChange={(e) => changeVolume(+e.target.value)} />
         </label>}
       </div>
     </div>

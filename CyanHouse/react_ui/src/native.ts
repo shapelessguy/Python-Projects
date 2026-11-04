@@ -35,6 +35,13 @@ if (channel) {
   channel.postMessage(JSON.stringify({ t: "hello" }));
 }
 
+/** Done with the shell's latest `type` (a one-off request, like "open"):
+ *  neither this page nor a reload of it acts on it again. */
+export function forget(type: string) {
+  last.delete(type);
+  send(`${type}.done`);
+}
+
 export function send(t: string, body: object = {}) {
   channel?.postMessage(JSON.stringify({ ...body, t }));
 }

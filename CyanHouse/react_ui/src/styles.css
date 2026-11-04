@@ -1022,7 +1022,7 @@ html.alarm-window, html.alarm-window body { background: transparent; }
    both buttons get a full-width row of their own, finger-sized. */
 html.alarm-window .alarm-actions { flex: 1 1 100%; margin-left: 0; gap: 8px; }
 html.alarm-window .alarm-actions > * { flex: 1 1 0; min-width: 0; min-height: 52px; font-size: 1.05rem; }
-@media (max-width: 600px) {
+@media (max-width: 600px), (max-height: 500px) {
   .alarm-actions { flex: 1 1 100%; margin-left: 0; gap: 8px; }
   .alarm-actions > * { flex: 1 1 0; min-width: 0; min-height: 52px; font-size: 1.05rem; }
 }
@@ -1359,6 +1359,7 @@ button.glyph-btn:disabled { opacity: 0.2; }
   gap: 8px;
   padding: 12px 14px;
 }
+.mv-filmbody { flex: 0 0 auto; display: flex; flex-direction: column; gap: 8px; }
 .mv-filmopts { display: flex; gap: 10px; flex-wrap: wrap; }
 .mv-filmopts label { display: flex; flex-direction: column; gap: 3px; flex: 1 1 160px; min-width: 0; }
 .mv-filmopts label:first-child { flex: 0 0 120px; }
@@ -1956,6 +1957,21 @@ select.mv-preplang:invalid, select.mv-preplang[data-empty="true"] { color: var(-
 .mv-fsbar.shown { opacity: 1; pointer-events: auto; }
 .mv-fsscrub { flex: 1 1 auto; min-width: 0; }
 .mv-fsbar .mv-volume { margin-left: 0; }
+/* The phone's volume: a button, and a small upright slider above it. */
+.mv-volpop { position: relative; flex: 0 0 auto; display: inline-flex; align-self: stretch; }
+.mv-volpop > button { width: 40px; padding: 0; }
+.mv-volpanel {
+  position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); z-index: 5;
+  display: flex; justify-content: center;
+  padding: 10px 0; width: 40px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+}
+/* Upright, loud at the top. */
+.mv-volpanel input[type="range"] {
+  writing-mode: vertical-lr; direction: rtl;
+  width: 24px; height: 120px; margin: 0;
+}
 /* The picture's own states: a play button when a film is ready, a turning
  * ring while the file is read or the transcode fills its buffer. */
 .mv-bigplay {
@@ -2058,7 +2074,7 @@ select.mv-preplang:invalid, select.mv-preplang[data-empty="true"] { color: var(-
 .cf-choice label.active { border-color: var(--accent); }
 .cf-actions { display: flex; justify-content: flex-end; gap: 8px; }
 .cf-apply { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
-@media (max-width: 600px) {
+@media (max-width: 600px), (max-height: 500px) {
   .cf-row { grid-template-columns: 1fr; }
 }
 /* The Music tab as a library (react_ui/src/panels/MusicLibrary.tsx): album
@@ -2355,7 +2371,7 @@ select.mv-preplang:invalid, select.mv-preplang[data-empty="true"] { color: var(-
 .iv-menu button.armed { background: #6b2b2b; color: #fff; }
 .iv-nav.prev { left: 16px; }
 .iv-nav.next { right: 16px; }
-@media (max-width: 600px) {
+@media (max-width: 600px), (max-height: 500px) {
   .iv-img { max-width: 100vw; max-height: calc(100vh - 120px); border-radius: 0; }
   .iv-nav { display: none; }   /* swipe instead */
   .ig-scroll { padding: 4px 10px 16px; }
@@ -2578,10 +2594,11 @@ label.button-like {
 }
 .iv-posternote { color: #fff; font-size: 0.8rem; }
 /* ── phone ───────────────────────────────────────────────── */
-/* One width threshold for the whole app (narrow.ts uses the same 600px for
- * what CSS can't rearrange, like the calendar's day agenda). Last in the
+/* One threshold for the whole app: under 600px wide, or 500px tall (a
+ * phone held sideways). narrow.ts uses the same for what CSS can't
+ * rearrange, like the calendar's day agenda. Last in the
  * file so it outranks the equally specific desktop rules above it. */
-@media (max-width: 600px) {
+@media (max-width: 600px), (max-height: 500px) {
   /* Anything still too wide is cut off here rather than widening the page:
    * a phone browser grows its layout viewport to fit the widest content,
    * which zooms everything out and pushes fixed dialogs off the right edge. */
@@ -2667,11 +2684,39 @@ label.button-like {
   .mv-search > input.mv-searchslide:focus { outline: none; border-color: var(--accent); }
   /* The player fills the phone's screen: the height-based size above it
    * comes out tiny on a phone. */
-  .modal-backdrop.mv-filmback { padding: 8px; }
-  .modal.mv-filmdialog { width: calc(100vw - 16px); max-width: none; max-height: calc(100dvh - 16px); padding: 10px; }
   .mv-transport { gap: 4px; }
   .mv-transport button { width: 40px; }
-  .mv-transport .size-pop { margin-left: auto; }
+  /* Quality, audio and subtitles: a gear button the size of its
+   * neighbours, the list's own (invisible) box over it taking the tap. It
+   * pushes the volume and full screen to the right. */
+  .mv-trackpick {
+    position: relative; flex: 0 0 auto; margin-left: auto;
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 40px; align-self: stretch;
+    border: 1px solid var(--line); border-radius: 6px; background: var(--panel-2);
+  }
+  .mv-trackpick select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; }
+  .mv-trackpick:has(select:disabled) { opacity: 0.45; }
+  .mv-transport > .mv-volpop { margin-left: auto; }
+  .mv-transport > .mv-trackpick + .mv-volpop { margin-left: 0; }
+  /* The film's window on a phone: a window across the screen's width,
+   * as tall as what it holds -- or the whole screen when that would leave
+   * less than a fifth of it (FilmDialog sets .full). Its title and ✕ on
+   * top, over the picture; no codec / size line under the title. */
+  .modal-backdrop.mv-filmback { padding: 8px; }
+  .modal.mv-filmdialog {
+    width: 100%; max-width: 100%; min-width: 0; max-height: calc(100dvh - 16px);
+    padding: 8px 10px;
+  }
+  .modal-backdrop.mv-filmback:has(> .full) { padding: 0; align-items: stretch; }
+  .modal.mv-filmdialog.full {
+    height: 100dvh; max-height: 100dvh;
+    border: 0; border-radius: 0;
+    padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+  }
+  html:has(.mv-filmdialog), html:has(.mv-filmdialog) body { overflow: hidden; }
+  .mv-filmdialog .mv-meta, .mv-sheet .mv-meta { order: -1; }
+  .mv-filmdialog .mv-meta p:not(:has(.error)), .mv-sheet .mv-meta p:not(:has(.error)) { display: none; }
   .mv-searchbtn, .size-pop-btn { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 28px; padding: 0; }
   /* With the search folded to its button, the view icons (and the disk)
    * still sit against the right, as they do beside the open box. */
@@ -2708,6 +2753,20 @@ label.button-like {
   .mv-bulk .mv-bulkclear { flex: 0 0 auto; }
   /* No "open the original in a new tab" on a phone: the app has no tabs. */
   .iv-original { display: none; }
+  /* The music bar: no details row (album, format, size) and no volume
+   * slider -- the volume is a button at the right end of the buttons,
+   * which stay centred (the empty first column balances it). */
+  .mp-side { display: none; }
+  .mp-buttons { display: grid; grid-template-columns: 1fr auto auto auto 1fr; width: 100%; }
+  .mp-buttons .mv-volpop { justify-self: end; }
+  /* Sideways, a full-width 16:9 picture is taller than the screen: it
+   * takes the height left over by its title, seek bar and buttons instead
+   * (not in full screen, where it has the whole screen). */
+  @media (max-height: 500px) {
+    .mv-filmdialog .mv-stage:not(:fullscreen), .mv-sheet .mv-stage:not(:fullscreen) {
+      height: calc(100dvh - 140px); width: auto; max-width: 100%; align-self: center;
+    }
+  }
 
   /* Weather overview: the toolbar wraps, the humidity tube goes (its % stays)
    * and every column may shrink -- a bare 1fr never goes below its content,

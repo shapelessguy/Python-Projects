@@ -150,7 +150,9 @@ class MusicService : MediaSessionService() {
                         it.buildUpon().setUri(it.requestMetadata.mediaUri).build()
                     }.toMutableList())
             })
-            .setSessionActivity(PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java),
+            // The notification opens the app on the Media panel's Music tab.
+            .setSessionActivity(PendingIntent.getActivity(this, 0,
+                Intent(this, MainActivity::class.java).putExtra(MainActivity.OPEN, "music"),
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT))
             .build()
     }

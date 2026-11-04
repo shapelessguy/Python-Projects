@@ -46,6 +46,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import org.json.JSONObject
 
 /** The whole app: a WebView on https://PUBLIC_HOST/ui/, every connection of
  *  it through RouteProxy, which takes the LAN way whenever Route says so.
@@ -60,6 +61,12 @@ import kotlinx.coroutines.launch
  *  The little chip in the corner is for testing: LAN or NET, the tunnels
  *  open each way; tap to decide the route again, long-press to reload. */
 class MainActivity : ComponentActivity() {
+    companion object {
+        /** An intent extra: where in the page to go ("music": the Media
+         *  panel's Music tab, from the music notification). */
+        const val OPEN = "open"
+    }
+
     private lateinit var web: WebView
     private lateinit var chip: TextView
     private lateinit var root: FrameLayout
@@ -153,6 +160,8 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+
+        if (savedInstanceState == null) openFrom(intent)
 
         val restored = savedInstanceState?.let { web.restoreState(it) } != null
         WebSetup.proxyThen(this) {
@@ -285,6 +294,18 @@ class MainActivity : ComponentActivity() {
         if (!Settings.canDrawOverlays(this)) {
             runCatching { startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, me)) }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        openFrom(intent)
+    }
+
+    /** Tell the page where to go; kept by Bridge until the page says it
+     *  went, so a page still loading gets it too. */
+    private fun openFrom(intent: Intent?) {
+        val to = intent?.getStringExtra(OPEN) ?: return
+        Bridge.emit("open", JSONObject().put("to", to).put("at", System.currentTimeMillis()))
     }
 
     override fun onSaveInstanceState(outState: Bundle) {

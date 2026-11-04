@@ -13,6 +13,8 @@ import { CreateVaultDialog, VaultDrop, VaultView } from "./VaultView";
 import { MusicPlayerBar } from "./MusicPlayerBar";
 import { MusicIdentify } from "./MusicPrep";
 import { SizeSlider } from "./SizeSlider";
+import { VolumePop } from "./VolumePop";
+import { forget, useNative } from "../native";
 import { useNarrow } from "../narrow";
 import { useDragScroll } from "../dragScroll";
 import { Icon } from "./icons";
@@ -609,6 +611,16 @@ export function MoviesPanel() {
     setPicked(new Set()); setPickedArea(""); setBulkTo("");
   };
 
+  // The phone's music notification tapped (App brought this panel up): the
+  // Music tab, once the tabs are known.
+  const opening = useNative<{ to: string }>("open");
+  useEffect(() => {
+    if (opening?.to !== "music" || !groups.some((g) => g.key === ":music")) return;
+    switchTab(":music");
+    forget("open");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [opening, groups]);
+
   // Who may change what — the same rule as may_change / may_move in
   // api/routers/prep.py, which is what actually enforces it; this only keeps
   // the panel from offering what the server would refuse.
@@ -957,6 +969,17 @@ export function MoviesPanel() {
     album_artist: "", album: "", track: 0, disc: 1, year: "", seconds: 0, size: f.size,
   });
 
+  /** What a film opened from a file list is called. In the film library
+   *  always its film's folder (the library's first level, as the covers
+   *  call it); elsewhere its folder when that holds just this one video,
+   *  otherwise (a season, a collection, loose) its own name. */
+  const filmTitle = (f: StagedFile, area: string, files: StagedFile[]) => {
+    if (area === MOVIES_KEY && f.folder) return f.folder.split("/")[0];
+    const name = f.folder.split("/").pop();
+    const videos = files.filter((x) => x.kind === "video" && x.folder === f.folder).length;
+    return name && videos <= 1 ? name : f.name.replace(/\.[^.]+$/, "");
+  };
+
   const pickFile = (f: StagedFile, area: string) => {
     // The Images tab shows pictures (and its playable videos and sound) full screen,
     // stepping through the folder the picture is in.
@@ -980,7 +1003,7 @@ export function MoviesPanel() {
       if (selected?.id === f.movie_id) return;   // already open (the id carries the area)
       setSource(area);
       setViewFile(null);
-      pick({ id: f.movie_id, title: f.name, file: f.name, size: f.size }, area);
+      pick({ id: f.movie_id, title: filmTitle(f, area, listings[area] ?? []), file: f.name, size: f.size }, area);
     } else {
       if (viewFile?.path === f.path && source === area) return;   // already showing
       stop();
@@ -1210,7 +1233,8 @@ export function MoviesPanel() {
    *  play/pause is held back briefly and cancelled if the pair arrives —
    *  otherwise every double click would also toggle playback. */
   const stageClick = () => {
-    if (!playing) return;
+    // Not on a touch screen: a tap there is too easily a stray one.
+    if (!playing || matchMedia("(pointer: coarse)").matches) return;
     window.clearTimeout(clickTimer.current);
     clickTimer.current = window.setTimeout(() => togglePlay(), 220);
   };
@@ -1479,11 +1503,15 @@ export function MoviesPanel() {
               onKeyUp={(e) => SEEK_KEYS.has(e.key) && seek(+(e.target as HTMLInputElement).value)}
             />
             <span className="mv-time">{fmt(shown)} / {fmt(duration)}</span>
+            {narrow ? (
+              <VolumePop value={volume} onChange={changeVolume} title={tr("mp_volume")} onUse={wakeOverlay} />
+            ) : (
             <label className="mv-volume" title={tr("mp_volume")}>
               🔊
               <input type="range" min={0} max={1} step={0.01} value={volume}
                      onChange={(e) => changeVolume(+e.target.value)} />
             </label>
+            )}
             <button className="ghost" onClick={toggleFullscreen} title={tr("mv_leave_fullscreen")}>⛶</button>
           </div>
         )}
@@ -1557,11 +1585,57 @@ export function MoviesPanel() {
               arrows beside it in most fonts. */}
           <span className="mv-stopicon" aria-hidden />
         </button>
+        {narrow && tab === MOVIES_KEY && (() => {
+          // A phone's film window has no room for three labelled boxes: a
+          // gear button opening one list, quality, audio and subtitles in
+          // groups, the current ones ticked. The list is the button: an
+          // invisible <select> over the icon, so a tap opens the phone's
+          // own picker.
+          const heights = info?.heights ?? [360, 720, 1080];
+          const qLabel = (h: number) => (h === 0 ? tr("mv_original") : `${h}p`);
+          const tick = (on: boolean, label: string) => (on ? "✓ " : "\u2003") + label;
+          const subs = info?.subtitles ?? [];
+          const summary = [
+            qLabel(height),
+            info?.audio.find((t) => t.id === audio)?.label,
+            sub === null ? tr("mv_off") : subs.find((t) => t.id === sub)?.label,
+          ].filter(Boolean).join(" · ");
+          return (
+            <span className="mv-trackpick" title={`${tr("mv_quality")} · ${tr("controls_mode_audio")} · ${tr("mv_subtitles")}: ${summary}`}>
+            <Icon name="settings" size={18} className="" />
+            <select
+              aria-label={`${tr("mv_quality")} · ${tr("controls_mode_audio")} · ${tr("mv_subtitles")}`}
+              value=""
+              disabled={!info}
+              onChange={(e) => {
+                const v = e.target.value;
+                const n = v.slice(2) === "" ? null : +v.slice(2);
+                if (v[0] === "q") { if (playing) play({ height: n! }); else setHeight(n!); }
+                if (v[0] === "a") { if (playing) play({ audio: n! }); else setAudio(n!); }
+                if (v[0] === "s") { if (playing) play({ sub: n }); else setSub(n); }
+              }}
+            >
+              <option value="" disabled hidden>{summary}</option>
+              <optgroup label={tr("mv_quality")}>
+                {heights.map((h) => <option key={h} value={`q:${h}`}>{tick(height === h, qLabel(h))}</option>)}
+              </optgroup>
+              {!!info?.audio.length && (
+                <optgroup label={tr("controls_mode_audio")}>
+                  {info.audio.map((t) => <option key={t.key} value={`a:${t.id}`}>{tick(audio === t.id, t.label)}</option>)}
+                </optgroup>
+              )}
+              <optgroup label={tr("mv_subtitles")}>
+                <option value="s:">{tick(sub === null, tr("mv_off"))}</option>
+                {subs.map((t) => <option key={t.key} value={`s:${t.id}`}>{tick(sub === t.id, t.label)}</option>)}
+              </optgroup>
+            </select>
+            </span>
+          );
+        })()}
         {narrow ? (
           // A phone has no room for the slider in this row: a speaker
           // button that opens it.
-          <SizeSlider min={0} max={1} step={0.01} value={volume} title={tr("mp_volume")} onChange={changeVolume}
-                      icon={<span aria-hidden>🔊</span>} />
+          <VolumePop value={volume} onChange={changeVolume} title={tr("mp_volume")} />
         ) : (
         <label className="mv-volume" title={tr("mp_volume")}>
           🔊
@@ -2215,8 +2289,9 @@ export function MoviesPanel() {
         <FilmDialog onClose={closeFilm}>
           {filmCore}
           {/* Only which picture, which audio, which subtitle — nothing here
-              changes the file, so no delays, uploads or languages. */}
-          <div className="mv-filmopts">
+              changes the file, so no delays, uploads or languages. On a
+              phone they are one list in the buttons' row instead. */}
+          {!narrow && <div className="mv-filmopts">
             <label>
               <span className="muted small">{tr("mv_quality")}</span>
               <select value={height} disabled={!info}
@@ -2245,7 +2320,7 @@ export function MoviesPanel() {
                 {(info?.subtitles ?? []).map((t) => <option key={t.key} value={t.id}>{t.label}</option>)}
               </select>
             </label>
-          </div>
+          </div>}
         </FilmDialog>
       )}
       {newVaultIn !== null && (
@@ -2342,10 +2417,24 @@ function FilmDialog({ onClose, children }: { onClose: () => void; children: Reac
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
   }, [onClose]);
+  // On a phone the window takes the whole screen once what it holds would
+  // fill more than 80% of its height anyway; with more room to spare than
+  // that it stays a window (styles.css, `.full`).
+  const body = useRef<HTMLDivElement>(null);
+  const [full, setFull] = useState(false);
+  useEffect(() => {
+    const el = body.current;
+    if (!el) return;
+    const measure = () => setFull(el.offsetHeight + 24 > window.innerHeight * 0.8);
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    window.addEventListener("resize", measure);
+    return () => { ro.disconnect(); window.removeEventListener("resize", measure); };
+  }, []);
   return (
     <div className="modal-backdrop mv-filmback" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="modal mv-filmdialog" role="dialog" aria-modal>
-        {children}
+      <div className={"modal mv-filmdialog" + (full ? " full" : "")} role="dialog" aria-modal>
+        <div className="mv-filmbody" ref={body}>{children}</div>
       </div>
     </div>
   );

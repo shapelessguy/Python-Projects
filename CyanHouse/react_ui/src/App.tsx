@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ControlsPanel } from "./panels/ControlsPanel";
 import { EnvironmentPanel } from "./panels/EnvironmentPanel";
 import { PersonalPanel } from "./panels/PersonalPanel";
@@ -7,7 +7,7 @@ import { CalendarPanel } from "./panels/CalendarPanel";
 import { MoviesPanel } from "./panels/MoviesPanel";
 import { AlarmOverlay } from "./AlarmOverlay";
 import { WeatherPopup } from "./WeatherPopup";
-import { inShell } from "./native";
+import { inShell, useNative } from "./native";
 import { useVisibility } from "./api";
 import { currentUsername, logout } from "./auth";
 import { SettingsDialog } from "./SettingsDialog";
@@ -45,6 +45,13 @@ export default function App() {
     setPanelState(id);
     writeCookie(LAST_SECTION_COOKIE, id);
   };
+  // The phone's music notification tapped: to the Media panel, whose Music
+  // tab the panel itself opens (and then forgets the request).
+  const opening = useNative<{ to: string }>("open");
+  useEffect(() => {
+    if (opening?.to === "music") setPanel("media");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [opening]);
   const username = currentUsername();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const { t } = useT();

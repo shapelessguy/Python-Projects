@@ -51,6 +51,8 @@ object Bridge {
                 "alarms.changed" -> AlarmService.lookAgain()
                 "settings" -> AlarmService.settings(app, m)
                 "weather.seen" -> AlarmService.weatherSeen()
+                // The page went where "open" said: not again on its next load.
+                "open.done" -> last.remove("open")
                 else -> Log.w(TAG, "unknown command: ${message.data}")
             }
         }
