@@ -217,6 +217,8 @@ function loadView(): ViewMode {
 }
 
 const VISIBLE_CALENDARS_KEY = "calendar.visibleCalendars";
+// The calendar the last new event went into: the next one starts there.
+const LAST_CALENDAR_KEY = "calendar.lastCalendar";
 
 /** Which of the user's calendars to actually render events from. Unknown
  *  ids (a calendar deleted elsewhere) are dropped; if nothing was ever
@@ -399,7 +401,13 @@ export function CalendarPanel() {
       })
       .catch((e) => setError(String(e)));
   };
-  const defaultCalendarId = calendars.find((c) => c.level === "owner")?.id ?? calendars[0]?.id ?? 0;
+  const [lastCalendarId, setLastCalendarId] = useState<number | null>(() => {
+    try { return Number(localStorage.getItem(LAST_CALENDAR_KEY)) || null; } catch { return null; }
+  });
+  // The last one used, while it is still there and may take events.
+  const defaultCalendarId =
+    calendars.find((c) => c.id === lastCalendarId && c.level !== "see")?.id ??
+    calendars.find((c) => c.level === "owner")?.id ?? calendars[0]?.id ?? 0;
 
   const days = useMemo(
     () => (view === "month" ? monthGrid(anchor.slice(0, 7)) : weekDays(anchor)),
@@ -475,7 +483,15 @@ export function CalendarPanel() {
       ...(draft.id && nowRecurring !== draft.origRecurring ? { alarm_ack: "" } : {}),
     };
     const req = draft.id ? api.patchEvent(draft.id, body) : api.createEvent(body);
-    req.then(() => { load(); setDraft(null); }).catch((e) => setError(String(e)));
+    const { id, calendar_id } = draft;
+    req.then(() => {
+      load();
+      setDraft(null);
+      if (!id) {
+        setLastCalendarId(calendar_id);
+        try { localStorage.setItem(LAST_CALENDAR_KEY, String(calendar_id)); } catch { /* ignore */ }
+      }
+    }).catch((e) => setError(String(e)));
   };
 
   // For a plain event these are the same thing; for a recurring one,
@@ -736,7 +752,8 @@ export function CalendarPanel() {
                   value={draft.description}
                   onChange={(e) => setDraft({ ...draft, description: e.target.value })}
                   onBlur={() => setDescEditing(false)}
-                  autoFocus
+                  // Focused when tapped open, not when a new event starts with it open.
+                  autoFocus={!!draft.id}
                 />
               ) : (
                 <div
