@@ -2676,6 +2676,38 @@ label.button-like {
   /* With the search folded to its button, the view icons (and the disk)
    * still sit against the right, as they do beside the open box. */
   .mv-search .mv-viewpick { margin-left: auto; }
+  /* One scrollbar: the stacked layout above lets the whole body scroll,
+   * the tree scrolling inside it made two. Here the right-hand column is
+   * gone (below), so the tree alone fills the height and scrolls. */
+  .mv-body { overflow: hidden; }
+  .mv-library { min-height: 0; }
+  /* The staging tabs' right-hand column, only while a file or film is
+   * open: a page of its own over the whole screen, Back (or its ‹ / ✕)
+   * returning to the folders. Under dialogs (100), which open from it. */
+  .mv-player.mv-sheet {
+    position: fixed; inset: 0; z-index: 95;
+    width: 100%; max-width: none;
+    border: 0; border-radius: 0;
+    padding: 8px 10px calc(10px + env(safe-area-inset-bottom));
+    overflow-y: auto; overscroll-behavior: contain;
+  }
+  html:has(.mv-sheet), html:has(.mv-sheet) body { overflow: hidden; }
+  .mv-sheetback {
+    flex: 0 0 auto; align-self: flex-start; max-width: 100%;
+    min-height: 40px; padding: 4px 6px; font-size: 0.95rem;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .mv-sheet .mv-close { min-width: 40px; min-height: 40px; }
+  /* A selection's actions in rows a thumb can hit: the count with Clear,
+   * then where to move it, then the rest, each button sharing its row. */
+  .mv-bulk { flex-wrap: wrap; gap: 6px; }
+  .mv-bulkcount { flex: 1 1 50%; font-size: 0.85rem; }
+  .mv-bulk button, .mv-bulk select { min-height: 40px; font-size: 0.85rem; }
+  .mv-bulk select { flex: 1 1 60%; }
+  .mv-bulk button { flex: 1 1 28%; padding: 4px 6px; }
+  .mv-bulk .mv-bulkclear { flex: 0 0 auto; }
+  /* No "open the original in a new tab" on a phone: the app has no tabs. */
+  .iv-original { display: none; }
 
   /* Weather overview: the toolbar wraps, the humidity tube goes (its % stays)
    * and every column may shrink -- a bare 1fr never goes below its content,

@@ -5,6 +5,7 @@ import android.annotation.SuppressLint
 import android.app.DownloadManager
 import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Color
@@ -17,6 +18,7 @@ import android.os.PowerManager
 import android.provider.Settings
 import android.util.Log
 import android.view.Gravity
+import android.view.View
 import android.view.ViewGroup
 import android.webkit.CookieManager
 import android.webkit.URLUtil
@@ -35,6 +37,8 @@ import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
 import androidx.lifecycle.Lifecycle
@@ -58,6 +62,7 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
     private lateinit var web: WebView
     private lateinit var chip: TextView
+    private lateinit var root: FrameLayout
     private var fileCallback: ValueCallback<Array<Uri>>? = null
 
     private val pickFiles = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { res ->
@@ -104,7 +109,7 @@ class MainActivity : ComponentActivity() {
             setOnLongClickListener { web.reload(); true }
         }
 
-        val root = FrameLayout(this).apply {
+        root = FrameLayout(this).apply {
             setBackgroundColor(Color.BLACK)
             addView(web, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
             addView(chip, FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -117,9 +122,16 @@ class MainActivity : ComponentActivity() {
         }
         setContentView(root)
 
+        // Back leaves full screen first, then asks the page (backClose.ts:
+        // it closes its newest overlay and says true), and only then puts
+        // the app away -- to the back, as Android does with a launcher's app,
+        // so it comes back as it was.
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                if (web.canGoBack()) web.goBack() else { isEnabled = false; onBackPressedDispatcher.onBackPressed() }
+                customCallback?.let { it.onCustomViewHidden(); leaveFullScreen(); return }
+                web.evaluateJavascript("window.cyanBack ? window.cyanBack() : false") { handled ->
+                    if (handled != "true") moveTaskToBack(true)
+                }
             }
         })
 
@@ -193,7 +205,40 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /** What the page put full screen (a film's stage), shown over everything
+     *  until the page leaves full screen or Back is pressed. Without these
+     *  the WebView took the element away and showed it nowhere. */
+    private var customView: View? = null
+    private var customCallback: WebChromeClient.CustomViewCallback? = null
+
+    /** Back to the page. Twice is harmless: Back calls it, and the WebView
+     *  may report the same exit again. */
+    private fun leaveFullScreen() {
+        val view = customView ?: return
+        root.removeView(view)
+        customView = null
+        customCallback = null
+        WindowCompat.getInsetsController(window, window.decorView).show(WindowInsetsCompat.Type.systemBars())
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+    }
+
     private inner class ShellChrome : WebChromeClient() {
+        override fun onShowCustomView(view: View, callback: CustomViewCallback) {
+            if (customView != null) { callback.onCustomViewHidden(); return }
+            customView = view
+            customCallback = callback
+            view.setBackgroundColor(Color.BLACK)
+            root.addView(view, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+            WindowCompat.getInsetsController(window, window.decorView).apply {
+                systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                hide(WindowInsetsCompat.Type.systemBars())
+            }
+            // A film is wide: sideways, either way round.
+            requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+        }
+
+        override fun onHideCustomView() = leaveFullScreen()
+
         override fun onShowFileChooser(view: WebView, callback: ValueCallback<Array<Uri>>, params: FileChooserParams): Boolean {
             fileCallback?.onReceiveValue(null)
             fileCallback = callback

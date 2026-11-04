@@ -17,7 +17,7 @@ import { useNarrow } from "../narrow";
 import { useDragScroll } from "../dragScroll";
 import { Icon } from "./icons";
 import { ConflictDialog, Clash } from "./ConflictDialog";
-import { useBackToClose } from "../backClose";
+import { BackStep, useBackToClose } from "../backClose";
 import { Key, useT } from "../i18n";
 import { serverText } from "../serverText";
 
@@ -1400,6 +1400,13 @@ export function MoviesPanel() {
 
   const closeFilm = () => { stop(); setSelected(null); setInfo(null); setPrepNote(""); };
 
+  /** On a phone the staging tabs' right-hand column is a full-screen page
+   *  of its own, there only while a file or film is open; Back closes it. */
+  const sideColumn = tab !== ":music" && tab !== ":images" && tab !== MOVIES_KEY && tab !== INTRO;
+  const sheet = narrow && sideColumn && !!(viewFile || selected);
+  const closeSheet = () => { closeFilm(); setViewFile(null); };
+  useBackToClose(closeSheet, sheet);
+
   /** The picture, its title and its controls — in the right-hand column on
    *  the staging tabs, in a window of its own on the film library. */
   const filmCore = (
@@ -1975,7 +1982,7 @@ export function MoviesPanel() {
             >
               {armedDelete ? tr("ig_delete_n_confirm", { n: selectionRoots(picked).length }) : tr("mv_delete")}
             </button>
-            <button className="ghost" onClick={() => setPicked(new Set())}>{tr("mv_clear")}</button>
+            <button className="ghost mv-bulkclear" onClick={() => setPicked(new Set())}>{tr("mv_clear")}</button>
           </div>
         )}
 
@@ -2091,10 +2098,17 @@ export function MoviesPanel() {
           film opens in a window in the middle (FilmDialog below) — nor has
           the Music tab, which plays in its own bar, nor the Images tab, which
           opens pictures full screen. */}
-      {tab !== ":music" && tab !== ":images" && tab !== MOVIES_KEY && (
+      {sideColumn && (!narrow || sheet) && (
       <aside
-        className="mv-player"
+        className={"mv-player" + (sheet ? " mv-sheet" : "")}
       >
+        {/* The film has its own ✕ in its title row; a file's page gets a
+            way back to the folder it is in (its name is in the page below). */}
+        {sheet && viewFile && (
+          <button className="ghost mv-sheetback" title={tr("close")} onClick={closeSheet}>
+            ‹ {viewFile.folder.split("/").pop() || tr("st_root")}
+          </button>
+        )}
         {viewFile?.kind === "vault" ? (
           <VaultView
             path={viewFile.path}
@@ -2284,6 +2298,10 @@ export function MoviesPanel() {
           }}
         />
       )}
+      {/* Back climbs out of the gallery's folders one at a time. */}
+      {tab === ":images" && galleryFolder.split("/").filter(Boolean).map((_, i, parts) => (
+        <BackStep key={parts.slice(0, i + 1).join("/")} onBack={() => setGalleryFolder(parts.slice(0, i).join("/"))} />
+      ))}
       {conflicts && (
         <ConflictDialog
           clashes={conflicts}

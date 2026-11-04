@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useBackToClose } from "../backClose";
 import { ACCESS_RANK, api, FolderAccess, StagedFile } from "../api";
 import { AccessBadge } from "./ShareDialog";
 import { useT } from "../i18n";
@@ -697,6 +698,7 @@ export function ImageViewer({ area, list, index, onIndex, onClose, mayDelete, on
   onPoster?: (file: StagedFile, jpeg: Blob) => Promise<void>;
 }) {
   const { t } = useT();
+  useBackToClose(onClose);
   const file = list[index];
   const [loaded, setLoaded] = useState(false);
   const [touch, setTouch] = useState<number | null>(null);
@@ -780,7 +782,7 @@ export function ImageViewer({ area, list, index, onIndex, onClose, mayDelete, on
         <span className="iv-meta">
           {file.folder || t("ig_pictures")} · {fmtSize(file.size)} · {index + 1} / {list.length}
         </span>
-        <a className="iv-btn" href={api.prepRawUrl(area, file.path)} target="_blank" rel="noreferrer"
+        <a className="iv-btn iv-original" href={api.prepRawUrl(area, file.path)} target="_blank" rel="noreferrer"
            title={t("ig_open_original")}>↗</a>
         <button className="iv-btn" onClick={onClose} title={t("ig_close_esc")}>✕</button>
       </div>
