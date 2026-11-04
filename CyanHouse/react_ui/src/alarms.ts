@@ -7,6 +7,7 @@
 // open.
 import { useEffect, useMemo, useState } from "react";
 import { api, CalendarEvent, useVersionPoll } from "./api";
+import { send } from "./native";
 
 export interface DueAlarm {
   key: string; // "<id>@<occurrence start_date>" -- stable identity for this occurrence
@@ -107,12 +108,13 @@ export function useDueAlarms(enabled: boolean) {
 
   // Both actions round-trip through patchEvent, whose reply already carries
   // the fresh month snapshot -- applying that directly keeps every client in
-  // sync without waiting for its next version-poll tick.
+  // sync without waiting for its next version-poll tick. The Android shell,
+  // ringing meanwhile, is told to look again (native.ts).
   const snooze = (a: DueAlarm, minutes: number) =>
     api.patchEvent(a.id, {
       alarm_snooze_occurrence: a.start_date,
       alarm_snooze_until: Date.now() + minutes * 60_000,
-    }).then((res) => setEvents(res.events));
+    }).then((res) => { setEvents(res.events); send("alarms.changed"); });
 
   const dismiss = (a: DueAlarm) =>
     api.patchEvent(a.id, {
@@ -120,7 +122,7 @@ export function useDueAlarms(enabled: boolean) {
       // Nothing left to snooze once it's permanently acknowledged.
       alarm_snooze_occurrence: null,
       alarm_snooze_until: null,
-    }).then((res) => setEvents(res.events));
+    }).then((res) => { setEvents(res.events); send("alarms.changed"); });
 
   return { due, snooze, dismiss };
 }

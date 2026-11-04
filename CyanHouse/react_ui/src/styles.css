@@ -2675,3 +2675,16 @@ label.button-like {
   padding: 14px 12px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 .size-pop-panel input[type="range"] { display: block; width: 100%; }
+/* The Controls panel's MOUSE tab (panels/MousePad.tsx). */
+.mouse { display: flex; flex-direction: column; gap: 8px; }
+.mouse-row { display: flex; gap: 6px; }
+.mouse-row button { flex: 1 1 0; padding: 8px 6px; font-size: 16px; }
+.mouse-area { display: flex; gap: 6px; height: 55vh; min-height: 220px; }
+.mouse-pad, .mouse-strip {
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px;
+  touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+}
+.mouse-pad { flex: 1 1 auto; }
+.mouse-strip { flex: none; width: 40px; display: flex; align-items: center; justify-content: center; color: var(--muted); }
+/* Off screen but focusable: it only holds the phone's keyboard up. */
+.mouse-typing { position: fixed; left: -1000px; bottom: 0; width: 10px; height: 10px; opacity: 0; }

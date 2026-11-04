@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { api, ControlsInfo, follow } from "../api";
 import { PcAudio, PcAudioState } from "../pcAudio";
 import { Key, useT } from "../i18n";
+import { inShell, NativePcAudio, send, useNative } from "../native";
+import { MousePad } from "./MousePad";
 import {
   ControlItem,
   ControlMode,
@@ -68,7 +70,7 @@ const BUTTON_KEYS: Record<string, Key> = {
 
 const MODE_KEYS: Record<ControlMode, Key> = {
   ALL: "controls_mode_all", GROW: "controls_mode_grow", AUDIO: "controls_mode_audio",
-  PC: "controls_mode_pc", VOICES: "controls_mode_voices",
+  PC: "controls_mode_pc", VOICES: "controls_mode_voices", MOUSE: "controls_mode_mouse",
 };
 
 export function ControlsPanel() {
@@ -117,11 +119,20 @@ export function ControlsPanel() {
   }, []);
 
   // "PC audio": the PC's sound played here (pcAudio.ts), for as long as the
-  // panel is open.
-  const [pcAudio, setPcAudio] = useState<PcAudioState>({ on: false });
+  // panel is open. In the Android shell the phone plays it instead, on with
+  // the screen off until turned off here or in its notification.
+  const [webPcAudio, setPcAudio] = useState<PcAudioState>({ on: false });
+  const phonePcAudio = useNative<NativePcAudio>("pcaudio");
+  const pcAudio: PcAudioState = !inShell ? webPcAudio
+    : phonePcAudio?.on ? { on: true, connected: phonePcAudio.connected }
+    : { on: false, error: (phonePcAudio?.error ?? undefined) as Key | undefined };
   const player = useRef<PcAudio>();
   useEffect(() => () => player.current?.stop(), []);
   const togglePcAudio = () => {
+    if (inShell) {
+      send("pcaudio", { on: !pcAudio.on });
+      return;
+    }
     if (pcAudio.on) {
       player.current?.stop();
       return;
@@ -174,7 +185,7 @@ export function ControlsPanel() {
     }
   };
 
-  const items = mode === "ALL" ? allItems() : mode === "VOICES" ? [] : MODE_CONFIGS[mode];
+  const items = mode === "ALL" ? allItems() : mode === "VOICES" || mode === "MOUSE" ? [] : MODE_CONFIGS[mode];
   // Rows at/after each separator shift down one grid row per separator to make room for it.
   const sepRows = (mode === "ALL" ? undefined : SEPARATOR_BEFORE_ROW[mode]) ?? [];
   const gridRowOf = (row: number) => row + 1 + sepRows.filter((s) => s <= row).length;
@@ -333,6 +344,7 @@ export function ControlsPanel() {
           ))}
       </div>
       {mode === "VOICES" && voices.length === 0 && <p className="muted small">{t("controls_no_voices")}</p>}
+      {mode === "MOUSE" && <MousePad managerUp={managerUp} />}
     </div>
   );
 }

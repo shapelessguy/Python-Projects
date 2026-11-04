@@ -1,15 +1,20 @@
 package com.cyanhouse.shell
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.app.DownloadManager
 import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.Environment
+import android.os.PowerManager
+import android.provider.Settings
 import android.util.Log
 import android.view.Gravity
 import android.view.ViewGroup
@@ -46,6 +51,11 @@ import kotlinx.coroutines.launch
  *  The page never knows: same origin, same cookie, same relative URLs as
  *  in a browser.
  *
+ *  What the page cannot do in a WebView, the phone does for it (Bridge):
+ *  music and PC audio that go on with the screen off, calendar alarms that
+ *  ring with the app closed (AlarmService, which brings this up over the
+ *  lock screen; the page's own alarm window snoozes or closes them).
+ *
  *  The little chip in the corner is for testing: LAN or NET, the tunnels
  *  open each way; tap to decide the route again, long-press to reload. */
 class MainActivity : ComponentActivity() {
@@ -78,6 +88,11 @@ class MainActivity : ComponentActivity() {
             }
         }
         CookieManager.getInstance().setAcceptCookie(true)
+        Net.init()
+        Bridge.attach(web, this)
+        AlarmService.start(this)
+        askPermissions()
+        showForAlarm(intent)
 
         chip = TextView(this).apply {
             setTextColor(Color.WHITE)
@@ -115,6 +130,10 @@ class MainActivity : ComponentActivity() {
         Route.start(this)
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.CREATED) {
+                // Over the lock screen only while an alarm rings.
+                launch {
+                    AlarmService.ringing.collect { if (!it) { setShowWhenLocked(false); setTurnScreenOn(false) } }
+                }
                 launch {
                     Route.onLan.collect { lan ->
                         chip.text = if (lan) "LAN" else "NET"
@@ -228,6 +247,38 @@ class MainActivity : ComponentActivity() {
             .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, name)
         getSystemService(DownloadManager::class.java).enqueue(req)
         Toast.makeText(this, "Downloading $name", Toast.LENGTH_SHORT).show()
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        showForAlarm(intent)
+    }
+
+    /** Brought up by AlarmService: over the lock screen, waking it. */
+    private fun showForAlarm(intent: Intent?) {
+        if (intent?.getBooleanExtra(AlarmService.EXTRA_ALARM, false) != true || !AlarmService.ringing.value) return
+        setShowWhenLocked(true)
+        setTurnScreenOn(true)
+    }
+
+    /** What alarms need: notifications; and, asked once, to keep running in
+     *  the background (battery) and to draw over other apps, which is what
+     *  lets AlarmService bring this up while another app is in front. */
+    private fun askPermissions() {
+        if (Build.VERSION.SDK_INT >= 33 &&
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 0)
+        }
+        val prefs = getSharedPreferences("shell", MODE_PRIVATE)
+        if (prefs.getBoolean("asked_alarm_permissions", false)) return
+        prefs.edit().putBoolean("asked_alarm_permissions", true).apply()
+        val me = Uri.parse("package:$packageName")
+        if (!getSystemService(PowerManager::class.java).isIgnoringBatteryOptimizations(packageName)) {
+            runCatching { startActivity(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, me)) }
+        }
+        if (!Settings.canDrawOverlays(this)) {
+            runCatching { startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, me)) }
+        }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {

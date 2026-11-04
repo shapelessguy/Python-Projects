@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api, MusicSong } from "../api";
 import { useT } from "../i18n";
+import { inShell, NativeMusic, send, useNative } from "../native";
 
 /** The Music tab's player: one bar along the bottom of the library, like a
  *  music app's — what is playing on the left, the controls in the middle,
@@ -8,20 +9,56 @@ import { useT } from "../i18n";
  *
  *  `song` is what is loaded; `play` changes (a new object) whenever it
  *  should start playing rather than just be loaded. Previous / next walk the
- *  album or list it was started from — the panel owns that list. */
-export function MusicPlayerBar({ song, play, hasPrev, hasNext, onPrev, onNext }: {
+ *  album or list it was started from — the panel owns that list.
+ *
+ *  In the Android shell the phone plays instead (native.ts): a play request
+ *  hands it the whole list, so it goes on to the next song with the screen
+ *  off, and its notification's buttons work. The bar shows what the phone
+ *  says, and follows it (`onPick`) when it moves on to another song. */
+export function MusicPlayerBar({ song, play, list, hasPrev, hasNext, onPrev, onNext, onPick }: {
   song: MusicSong | null;
   play: object | null;
+  list: MusicSong[];
   hasPrev: boolean;
   hasNext: boolean;
   onPrev: () => void;
   onNext: () => void;
+  onPick: (index: number) => void;
 }) {
   const { t: tr } = useT();
   const audio = useRef<HTMLAudioElement | null>(null);
-  const [playing, setPlaying] = useState(false);
-  const [time, setTime] = useState(0);
-  const [length, setLength] = useState(0);
+  const [localPlaying, setPlaying] = useState(false);
+  const [localTime, setTime] = useState(0);
+  const [localLength, setLength] = useState(0);
+  const phone = useNative<NativeMusic>("music");
+  // The phone has this song loaded (or, with none picked here, whatever it has).
+  const mine = inShell && !!phone?.key && (!song || phone.key === song.path);
+  const playing = inShell ? mine && phone!.playing : localPlaying;
+  const time = inShell ? (mine ? phone!.time : 0) : localTime;
+  const length = inShell ? (mine && phone!.length ? phone!.length : song?.seconds ?? 0) : localLength;
+  const seek = (s: number) => {
+    if (inShell) send("music.seek", { s });
+    else if (audio.current) audio.current.currentTime = s;
+  };
+  const playHere = () => {
+    const index = song ? list.findIndex((x) => x.path === song.path) : -1;
+    const queue = index >= 0 ? list : song ? [song] : [];
+    if (!queue.length) return;
+    send("music.play", {
+      index: Math.max(index, 0),
+      items: queue.map((x) => ({
+        key: x.path, url: api.prepRawUrl(":music", x.path), title: x.title, artist: x.artist,
+        art: x.folder ? api.musicArtUrl(x.folder, 480) : "",
+      })),
+    });
+  };
+  // The phone went on to another song of the list: the bar (and the
+  // panel's list) follow.
+  useEffect(() => {
+    if (!inShell || !phone?.key || phone.key === song?.path) return;
+    const i = list.findIndex((x) => x.path === phone.key);
+    if (i >= 0) onPick(i);
+  }, [phone?.key]);
   const [scrub, setScrub] = useState<number | null>(null);
   const [volume, setVolume] = useState(() => {
     try { return Number(localStorage.getItem("music.volume") ?? 1); } catch { return 1; }
@@ -42,7 +79,7 @@ export function MusicPlayerBar({ song, play, hasPrev, hasNext, onPrev, onNext }:
   commitScrub.current = () => {
     if (!scrubbing.current) return;
     scrubbing.current = false;
-    if (audio.current && scrub !== null) audio.current.currentTime = scrub;
+    if (scrub !== null) seek(scrub);
     setScrub(null);
   };
   useEffect(() => {
@@ -61,10 +98,15 @@ export function MusicPlayerBar({ song, play, hasPrev, hasNext, onPrev, onNext }:
   useEffect(() => {
     if (!play || play === handled.current) return;
     handled.current = play;
-    audio.current?.play().catch(() => {});
+    if (inShell) playHere();
+    else audio.current?.play().catch(() => {});
   }, [play]);
 
   const toggle = () => {
+    if (inShell) {
+      if (mine) send("music.toggle"); else playHere();
+      return;
+    }
     const a = audio.current;
     if (!a || !song) return;
     if (a.paused) a.play().catch(() => {}); else a.pause();
@@ -94,9 +136,13 @@ export function MusicPlayerBar({ song, play, hasPrev, hasNext, onPrev, onNext }:
   });
 
   const shown = scrub ?? time;
+  // Nothing picked here, and the phone playing something: that is shown.
+  const title = song?.title ?? (mine ? phone!.title : "");
+  const artist = song?.artist ?? (mine ? phone!.artist : "");
+  const loaded = !!song || mine;
   return (
-    <div className={"mp-bar" + (song ? "" : " empty")}>
-      {song && (
+    <div className={"mp-bar" + (loaded ? "" : " empty")}>
+      {song && !inShell && (
         <audio
           ref={audio}
           src={api.prepRawUrl(":music", song.path)}
@@ -116,17 +162,16 @@ export function MusicPlayerBar({ song, play, hasPrev, hasNext, onPrev, onNext }:
                                 onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} />}
         </span>
         <span className="mp-names">
-          <span className="mp-title">{song ? song.title : tr("mp_nothing")}</span>
-          <span className="mp-artist">{song ? song.artist : tr("mp_hint")}</span>
+          <span className="mp-title">{loaded ? title : tr("mp_nothing")}</span>
+          <span className="mp-artist">{loaded ? artist : tr("mp_hint")}</span>
         </span>
       </div>
 
       <div className="mp-controls">
         <div className="mp-buttons">
-          <button className="ghost" disabled={!song} title={tr("mp_prev")}
-                  onClick={() => (audio.current && audio.current.currentTime > 3 || !hasPrev
-                    ? audio.current && (audio.current.currentTime = 0) : onPrev())}>⏮</button>
-          <button className="mp-play" disabled={!song} title={tr("mp_play_pause")} onClick={toggle}>
+          <button className="ghost" disabled={!loaded} title={tr("mp_prev")}
+                  onClick={() => (time > 3 || !hasPrev ? seek(0) : onPrev())}>⏮</button>
+          <button className="mp-play" disabled={!loaded} title={tr("mp_play_pause")} onClick={toggle}>
             {playing ? "❚❚" : "▶"}
           </button>
           <button className="ghost" disabled={!hasNext} title={tr("mp_next")} onClick={onNext}>⏭</button>
@@ -134,12 +179,12 @@ export function MusicPlayerBar({ song, play, hasPrev, hasNext, onPrev, onNext }:
         <div className="mp-seek">
           <span className="mp-time">{mmss(shown)}</span>
           <input
-            type="range" min={0} max={Math.max(1, length)} step={0.5} value={shown} disabled={!song}
+            type="range" min={0} max={Math.max(1, length)} step={0.5} value={shown} disabled={!loaded}
             onPointerDown={() => { scrubbing.current = true; }}
             onChange={(e) => {
               // Arrow keys seek straight away; a drag waits for the release.
               if (scrubbing.current) setScrub(+e.target.value);
-              else if (audio.current) audio.current.currentTime = +e.target.value;
+              else seek(+e.target.value);
             }}
           />
           <span className="mp-time">{mmss(length)}</span>
@@ -151,14 +196,15 @@ export function MusicPlayerBar({ song, play, hasPrev, hasNext, onPrev, onNext }:
           {song && [song.album, song.year, song.path.split(".").pop()?.toUpperCase(),
                     song.size ? `${(song.size / 1e6).toFixed(1)} MB` : ""].filter(Boolean).join(" · ")}
         </span>
-        <label className="mp-volume" title={tr("mp_volume")}>
+        {/* On the phone, its own volume keys. */}
+        {!inShell && <label className="mp-volume" title={tr("mp_volume")}>
           🔊
           <input type="range" min={0} max={1} step={0.01} value={volume}
                  onChange={(e) => {
                    setVolume(+e.target.value);
                    try { localStorage.setItem("music.volume", e.target.value); } catch { /* ignore */ }
                  }} />
-        </label>
+        </label>}
       </div>
     </div>
   );

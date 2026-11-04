@@ -18,14 +18,16 @@ export interface ControlItem {
 
 // VOICES is different from the rest: no static catalogue in MODE_CONFIGS -- its
 // buttons are whatever voices CyanManager reports, polled while the mode is open.
-export type ControlMode = "ALL" | "GROW" | "AUDIO" | "PC" | "VOICES";
-export const MODES: ControlMode[] = ["ALL", "GROW", "AUDIO", "PC", "VOICES"];
+// MOUSE has none either: it is the PC's touchpad (panels/MousePad.tsx).
+export type ControlMode = "ALL" | "GROW" | "AUDIO" | "PC" | "VOICES" | "MOUSE";
+export const MODES: ControlMode[] = ["ALL", "GROW", "AUDIO", "PC", "VOICES", "MOUSE"];
 export const MODE_ICON: Record<ControlMode, string> = {
   ALL: "▦",
   GROW: "🌱",
   AUDIO: "🔊",
   PC: "💻",
   VOICES: "🗣",
+  MOUSE: "🖱",
 };
 
 /** Separator lines are drawn above these rows in that mode's grid. */
@@ -41,7 +43,7 @@ const GREEN = "#46a758";
 const MAGENTA = "#e93d82";
 const BLUE = "#4c9be8";
 
-export const MODE_CONFIGS: Record<Exclude<ControlMode, "ALL" | "VOICES">, ControlItem[]> = {
+export const MODE_CONFIGS: Record<Exclude<ControlMode, "ALL" | "VOICES" | "MOUSE">, ControlItem[]> = {
   GROW: [
     { label: "UV OFF", icon: "⚫", topic: "lights", command: "off", room: true, row: 0, col: 0 },
     { label: "UV AUTO", icon: "🔵", topic: "lights", command: "auto", room: true, row: 0, col: 1, tint: CYAN },

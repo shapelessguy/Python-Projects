@@ -2071,6 +2071,7 @@ export function MoviesPanel() {
           <MusicPlayerBar
             song={nowSong}
             play={nowPlay}
+            list={nowList.list}
             hasPrev={nowList.index > 0}
             hasNext={nowList.index < nowList.list.length - 1}
             onPrev={() => {
@@ -2081,6 +2082,7 @@ export function MoviesPanel() {
               const i = nowList.index + 1;
               if (i < nowList.list.length) openSong(nowList.list[i], true, nowList.list, i);
             }}
+            onPick={(i) => openSong(nowList.list[i], false, nowList.list, i)}
           />
         )}
       </section>

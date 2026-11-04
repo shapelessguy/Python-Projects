@@ -1,7 +1,8 @@
 # CyanShell (android_wrapper)
 
-A test shell: a WebView on `https://PUBLIC_HOST/ui/`, nothing else. It
-installs next to the real app (`com.cyanhouse.shell`, not `com.diary`).
+A WebView on `https://PUBLIC_HOST/ui/`, plus the few things a page can't
+do on a phone (below). It installs next to the old app
+(`com.cyanhouse.shell`, not `com.diary`).
 
 How the LAN way works without the page knowing:
 
@@ -16,6 +17,24 @@ How the LAN way works without the page knowing:
   are unchanged. If the LAN address fails, the internet one is tried.
 - When the route flips, the tunnels that went the old way are closed; the
   page's requests and WebSockets reconnect the new way.
+
+What the page can't do in a WebView, the phone does (the page only asks,
+through `CyanNative`, see `react_ui/src/native.ts` and `Bridge.kt`):
+
+- **Music** (`Music.kt`): the Music tab hands the whole list to a media3
+  player in a service, so it goes on with the screen off, with its
+  notification, lock-screen and headset controls. The bar shows its state.
+- **PC audio** (`PcAudio.kt`): the Controls toggle plays the PC's sound in a
+  service (wake + Wi-Fi locks), on with the screen off; Stop in its
+  notification.
+- **Alarms** (`AlarmService.kt`): always on, started at boot. A due calendar
+  alarm rings here and brings the app up over the lock screen, where the
+  page's own alarm window snoozes or closes it. Needs "display over other
+  apps" (asked once) to come up while another app is in front.
+
+The services talk to the server like the page does (`Net.kt`): through
+RouteProxy, with the page's login cookie. The mouse is just the page
+(Controls → 🖱), its WebSocket going the LAN way like everything else.
 
 The chip bottom-left shows LAN / NET. Tap: decide again and show why, plus
 the open tunnels each way. Long-press: reload.

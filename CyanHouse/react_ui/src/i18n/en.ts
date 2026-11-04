@@ -49,6 +49,12 @@ export const en = {
   controls_mode_audio: "Audio",
   controls_mode_pc: "PC",
   controls_mode_voices: "Voices",
+  controls_mode_mouse: "Mouse",
+  mouse_right: "Right",
+  mouse_keyboard: "Keyboard",
+  mouse_window_left: "Move window left",
+  mouse_maximize: "Maximize / restore window",
+  mouse_window_right: "Move window right",
 
   // the rest
   language: "Language",

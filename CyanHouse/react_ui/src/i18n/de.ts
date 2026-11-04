@@ -47,6 +47,12 @@ export const de: Dict = {
   controls_mode_audio: "Audio",
   controls_mode_pc: "PC",
   controls_mode_voices: "Stimmen",
+  controls_mode_mouse: "Maus",
+  mouse_right: "Rechts",
+  mouse_keyboard: "Tastatur",
+  mouse_window_left: "Fenster nach links",
+  mouse_maximize: "Fenster maximieren / wiederherstellen",
+  mouse_window_right: "Fenster nach rechts",
 
   // the rest
   language: "Sprache",
