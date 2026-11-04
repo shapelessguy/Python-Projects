@@ -8,6 +8,7 @@ import { ACCESS_RANK, AccessLevel, api, FolderAccess, PrepPlan, RemuxJob, Staged
 import { ACCESS_ICON, AccessBadge } from "./ShareDialog";
 import { isVideo } from "./ImageGallery";
 import { useBackToClose } from "../backClose";
+import { useNarrow } from "../narrow";
 import { useT } from "../i18n";
 import { serverText } from "../serverText";
 
@@ -623,6 +624,7 @@ export function FileTree({
   // A folder being named before it exists: an input row inside `parent`.
   const [creating, setCreating] = useState<{ parent: string; value: string } | null>(null);
   const [dropOn, setDropOn] = useState<string | null>(null);
+  const narrow = useNarrow();
 
   useEffect(() => {
     if (!menu) return;
@@ -631,10 +633,15 @@ export function FileTree({
     const close = () => setMenu(null);
     const key = (e: KeyboardEvent) => e.key === "Escape" && setMenu(null);
     window.addEventListener("click", close);
+    // A right click anywhere -- another pane's tree included, which opens
+    // its own menu -- closes this one. Capturing, so on this tree's own rows
+    // it goes first and the new menu replaces the old.
+    window.addEventListener("contextmenu", close, true);
     window.addEventListener("scroll", close, true);
     window.addEventListener("keydown", key);
     return () => {
       window.removeEventListener("click", close);
+      window.removeEventListener("contextmenu", close, true);
       window.removeEventListener("scroll", close, true);
       window.removeEventListener("keydown", key);
     };
@@ -1009,6 +1016,8 @@ export function FileTree({
             e.preventDefault();
             // Not the background's menu too, which the tree would open next.
             e.stopPropagation();
+            // No menu on a phone: a long press there is the start of a drag.
+            if (narrow) return;
             setMenu({ x: e.clientX, y: e.clientY, file: f });
           }}
         >
@@ -1086,6 +1095,7 @@ export function FileTree({
       onDrop={(e) => drop(e, "")}
       onContextMenu={(e) => {
         e.preventDefault();
+        if (narrow) return;
         setMenu({ x: e.clientX, y: e.clientY, file: null });
       }}
     >

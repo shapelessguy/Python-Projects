@@ -18,6 +18,7 @@ import { forget, useNative } from "../native";
 import { useNarrow } from "../narrow";
 import { useDragScroll } from "../dragScroll";
 import { Icon } from "./icons";
+import { IconPick } from "./IconPick";
 import { ConflictDialog, Clash } from "./ConflictDialog";
 import { BackStep, useBackToClose } from "../backClose";
 import { Key, useT } from "../i18n";
@@ -356,6 +357,20 @@ export function MoviesPanel() {
   const narrow = useNarrow();
   const [searchOpen, setSearchOpen] = useState(false);
   const tabStripRef = useRef<HTMLDivElement>(null);
+  // On a phone the tabs are a list that slides down from a button naming
+  // the current one; picking a tab, a tap elsewhere or Back puts it away.
+  const [tabMenu, setTabMenu] = useState(false);
+  const sourcesRef = useRef<HTMLDivElement>(null);
+  useBackToClose(() => setTabMenu(false), tabMenu);
+  useEffect(() => {
+    if (!tabMenu) return;
+    const down = (e: PointerEvent) => {
+      if (!sourcesRef.current?.contains(e.target as Node)) setTabMenu(false);
+    };
+    document.addEventListener("pointerdown", down);
+    return () => document.removeEventListener("pointerdown", down);
+  }, [tabMenu]);
+  useEffect(() => { if (!narrow) setTabMenu(false); }, [narrow]);
   useDragScroll(tabStripRef);
   const [coverSize, setCoverSizeState] = useState(() => {
     const n = Number(readCookie(COVER_COOKIE));
@@ -490,9 +505,12 @@ export function MoviesPanel() {
   // here?" is a question you ask in front of the folder. Refetched on the
   // same signal the listing uses, so a delete or a remux moves the number.
   // For a pair it is the inbox's disk — where the next download lands.
+  // The film library's covers list no folder, but it is one: its disk all
+  // the same.
+  const spaceArea = panes[0]?.key ?? (tab === MOVIES_KEY ? MOVIES_KEY : "");
   useEffect(() => {
     let alive = true;
-    api.prepSpace(panes[0]?.key ?? "")
+    api.prepSpace(spaceArea)
       // Only replaced when something in it changed, so an unchanged answer
       // does not even re-render.
       .then((r) => alive && setSpace((cur) =>
@@ -500,7 +518,7 @@ export function MoviesPanel() {
           && cur.free === r.free && cur.total === r.total ? cur : r))
       .catch(() => alive && setSpace(null));
     return () => { alive = false; };
-  }, [paneKeys, prepVersion]);
+  }, [spaceArea, prepVersion]);
 
   // Asked for whenever the folders change — queueing, starting and finishing
   // a remux all bump that counter, so a remux queued from another browser
@@ -1664,16 +1682,99 @@ export function MoviesPanel() {
     </>
   );
 
+  // The search button, the size slider, the view icons and the disk: in
+  // the search row on a wide screen, in the tab row on a phone.
+  const searchBtn = (
+    <button className={"ghost mv-searchbtn" + (searchOpen || query ? " active" : "")} title={tr("search")} aria-label={tr("search")}
+            // Keeps the box's focus, whose blur would otherwise close it
+            // before this click could: a second tap on an empty search closes it.
+            onPointerDown={(e) => e.preventDefault()}
+            onClick={() => setSearchOpen(!(searchOpen && !query))}>
+      <Icon name="search" size={14} className="" />
+    </button>
+  );
+  const sizeCtl = (() => {
+    const size = tab === ":images" && imagesView === "gallery"
+      ? { min: THUMB_MIN, max: THUMB_MAX, step: 10, value: thumbSize, set: setThumbSize, title: tr("mv_picture_size") }
+      : (tab === MOVIES_KEY && view === "grid") || (tab === ":music" && musicView === "artists")
+        ? { min: COVER_MIN, max: COVER_MAX, step: 5, value: coverSize, set: setCoverSize, title: tr("mv_cover_size") }
+        : null;
+    return size && (
+      <SizeSlider className="mv-coversize" min={size.min} max={size.max} step={size.step}
+                  value={size.value} title={size.title} onChange={size.set} />
+    );
+  })();
+  const viewChoices = (tab === ":music"
+    ? ([["artists", "ml_artists", musicView, setMusicView], ["songs", "mv_songs", musicView, setMusicView],
+        ["folders", "ig_folders", musicView, setMusicView]] as const)
+    : tab === ":images"
+      ? ([["gallery", "mv_gallery", imagesView, setImagesView], ["folders", "ig_folders", imagesView, setImagesView]] as const)
+      : tab === MOVIES_KEY
+        ? ([["grid", "mv_covers", view, setView], ["list", "ig_folders", view, setView]] as const)
+        : []);
+  // On a phone the views are one button opening a list of them.
+  const viewPick = (
+    <span className="mv-viewpick">
+      {narrow ? viewChoices.length > 0 && (
+        <IconPick
+          choices={viewChoices.map(([v, label]) => ({
+            key: v, label: tr(label as Key), icon: <ViewIcon name={v === "list" ? "folders" : v} />,
+          }))}
+          value={viewChoices[0][2]}
+          onChange={(v) => (viewChoices[0][3] as (x: string) => void)(v)}
+        />
+      ) : viewChoices.map(([v, label, current, set]) => (
+        <button key={v} className={"ghost" + (current === v ? " active" : "")} title={tr(label as Key)}
+                onClick={() => (set as (x: string) => void)(v)}>
+          <ViewIcon name={v === "list" ? "folders" : v} />
+        </button>
+      ))}
+    </span>
+  );
+  const diskRing = (
+    <span
+      className="mv-space"
+      title={space ? `${space.path}\n` + tr("mv_disk_title", { mount: space.mount, name: space.name, free: fmtSize(space.free), total: fmtSize(space.total) }) : undefined}
+    >
+      {space && (
+        <>
+          <DiskRing used={space.total ? 1 - space.free / space.total : 0} />
+          <span className="mv-spacetext">
+            <b>{space.name}</b>
+            <small>{tr("mv_free_of", { free: fmtSize(space.free), total: fmtSize(space.total) })}</small>
+          </span>
+        </>
+      )}
+    </span>
+  );
+  /** On a phone the row of controls under the tabs is only the search box,
+   *  and only while it is open (or holds a search). */
+  const searching = !narrow || searchOpen || !!query;
+
   return (
     <div className="panel movies">
       {/* One tab per library, one per staging area — an area's tab opens
           its inbox and its output together, one above the other — then
           the torrent client. Spans the whole panel, above both columns,
           so the torrent client gets the full width when it is open. */}
-      <div className="mv-sources">
+      <div className="mv-sources" ref={sourcesRef}>
+        {narrow && (() => {
+          const ext = EXTERNAL.find((x) => x.key === external);
+          const g = groups.find((x) => x.key === tab);
+          return (
+            <button className={"mv-tabcurrent" + (tabMenu ? " open" : "")} aria-expanded={tabMenu}
+                    onClick={() => setTabMenu(!tabMenu)}>
+              {ext ? <TabFace icon={ext.icon} label={tr(ext.label)} />
+                : g ? <TabFace icon={TAB_ICONS[g.key] ?? g.icon} label={g.label} />
+                : tr("panel_media")}
+              <span className="mv-tabcaret" aria-hidden>▾</span>
+            </button>
+          );
+        })()}
         {/* Just a wrapper on a wide screen (display: contents); on a phone
-            the tabs scroll sideways in it while the queue stays put. */}
-        <div className="mv-tabstrip" ref={tabStripRef}>
+            the list the button above opens, closed again by any pick in it. */}
+        <div className={"mv-tabstrip" + (narrow && tabMenu ? " open" : "")} ref={tabStripRef}
+             onClick={(e) => { if ((e.target as HTMLElement).closest("button:not(:disabled)")) setTabMenu(false); }}>
         {groups.map((g, i) => {
           const target = tabTarget(g);
           const ready = !!(g.todo?.ready || g.done?.ready);
@@ -1723,6 +1824,12 @@ export function MoviesPanel() {
           </button>
         ))}
         </div>
+        {/* A phone's tab row: search next to the tab, then as much room as
+            there is, the view icons, and at the far right the queue and
+            the disk, always there. */}
+        {narrow && tab !== INTRO && !external && searchBtn}
+        {narrow && <span className="mv-rowgap" />}
+        {narrow && tab !== INTRO && !external && <>{sizeCtl}{viewPick}<span className="mv-srcsep" aria-hidden /></>}
         {/* The remux queue, at the far end of the tab row: visible from
             every tab whatever is selected, because it is happening on
             the server regardless. The running one is shown outright; the
@@ -1795,6 +1902,7 @@ export function MoviesPanel() {
             </div>
           )}
         </div>
+        {narrow && diskRing}
       </div>
       <div className="mv-body" hidden={!!external}>
       {tab === INTRO ? (
@@ -1802,12 +1910,8 @@ export function MoviesPanel() {
                     onOpen={switchTab} onExternal={setExternal} />
       ) : (<>
       <section className="mv-library">
+        {searching && (
         <div className="mv-search">
-          {narrow && !searchOpen && !query ? (
-            <button className="ghost mv-searchbtn" title={tr("search")} aria-label={tr("search")} onClick={() => setSearchOpen(true)}>
-              <Icon name="search" size={14} className="" />
-            </button>
-          ) : (
           <input
             className={narrow ? "mv-searchslide" : undefined}
             autoFocus={narrow}
@@ -1818,54 +1922,14 @@ export function MoviesPanel() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
-          )}
           {/* The size slider, the view icons and the disk, in that order,
               held against the right: the disk is a fixed width and Folders
               is the last icon everywhere, so moving between tabs and views
               moves none of them — only the search box gives way to the
               slider when a view has something to size. */}
-          {(() => {
-            const size = tab === ":images" && imagesView === "gallery"
-              ? { min: THUMB_MIN, max: THUMB_MAX, step: 10, value: thumbSize, set: setThumbSize, title: tr("mv_picture_size") }
-              : (tab === MOVIES_KEY && view === "grid") || (tab === ":music" && musicView === "artists")
-                ? { min: COVER_MIN, max: COVER_MAX, step: 5, value: coverSize, set: setCoverSize, title: tr("mv_cover_size") }
-                : null;
-            return size && (
-              <SizeSlider className="mv-coversize" min={size.min} max={size.max} step={size.step}
-                          value={size.value} title={size.title} onChange={size.set} />
-            );
-          })()}
-          <span className="mv-viewpick">
-            {(tab === ":music"
-              ? ([["artists", "ml_artists", musicView, setMusicView], ["songs", "mv_songs", musicView, setMusicView],
-                  ["folders", "ig_folders", musicView, setMusicView]] as const)
-              : tab === ":images"
-                ? ([["gallery", "mv_gallery", imagesView, setImagesView], ["folders", "ig_folders", imagesView, setImagesView]] as const)
-                : tab === MOVIES_KEY
-                  ? ([["grid", "mv_covers", view, setView], ["list", "ig_folders", view, setView]] as const)
-                  : []
-            ).map(([v, label, current, set]) => (
-              <button key={v} className={"ghost" + (current === v ? " active" : "")} title={tr(label as Key)}
-                      onClick={() => (set as (x: string) => void)(v)}>
-                <ViewIcon name={v === "list" ? "folders" : v} />
-              </button>
-            ))}
-          </span>
-          <span
-            className="mv-space"
-            title={space ? `${space.path}\n` + tr("mv_disk_title", { mount: space.mount, name: space.name, free: fmtSize(space.free), total: fmtSize(space.total) }) : undefined}
-          >
-            {space && (
-              <>
-                <DiskRing used={space.total ? 1 - space.free / space.total : 0} />
-                <span className="mv-spacetext">
-                  <b>{space.name}</b>
-                  <small>{tr("mv_free_of", { free: fmtSize(space.free), total: fmtSize(space.total) })}</small>
-                </span>
-              </>
-            )}
-          </span>
+          {!narrow && <>{sizeCtl}{viewPick}{diskRing}</>}
         </div>
+        )}
         {/* The film library's own error (api.movies): only on its tab. */}
         {listError && tab === MOVIES_KEY && <p className="error small">{listError}</p>}
         {treeNote && (
@@ -2005,7 +2069,7 @@ export function MoviesPanel() {
         {canEditArea(pickedArea) && picked.size > 0 && (
           <div className="mv-bulk">
             <span className="mv-bulkcount">
-              {tr("ig_selected", { n: selectionRoots(picked).length })}{panes.length > 1 ? ` ${tr("ig_in", { name: sources.find((x) => x.key === pickedArea)?.short ?? "" })}` : ""}
+              {tr("ig_selected", { n: selectionRoots(picked).length })}{panes.length > 1 && !narrow ? ` ${tr("ig_in", { name: sources.find((x) => x.key === pickedArea)?.short ?? "" })}` : ""}
             </span>
             <select value={bulkTo} onChange={(e) => setBulkTo(e.target.value)} disabled={!!bulkBusy}>
               <option value="">{tr("mv_move_to_option")}</option>
@@ -2018,13 +2082,14 @@ export function MoviesPanel() {
             </select>
             <button
               disabled={!bulkTo || !!bulkBusy}
+              title={tr("mv_move")}
               onClick={() => {
                 const target = sources.find((x) => x.key === bulkTo);
                 if (target) moveMany(pickedArea, selectionRoots(picked), target.key, "", labelOf(target.key));
                 setBulkTo("");
               }}
             >
-              {bulkBusy || tr("mv_move")}
+              {bulkBusy || <Icon name="moveTo" size={16} className="" />}
             </button>
             <button
               disabled={!!bulkBusy}
@@ -2032,7 +2097,7 @@ export function MoviesPanel() {
                 ? tr("mv_save_one") : tr("mv_save_zip")}
               onClick={() => api.prepDownload(pickedArea, selectionRoots(picked), (m) => say(m, true))}
             >
-              {tr("mv_download")}
+              <Icon name="download" size={16} className="" />
             </button>
             {(() => {
               const flacs = [...picked].filter((p) => p.toLowerCase().endsWith(".flac"));
@@ -2044,19 +2109,21 @@ export function MoviesPanel() {
                     : tr("mv_convert_select")}
                   onClick={() => convertMp3(pickedArea, flacs)}
                 >
-                  → MP3{flacs.length ? ` (${flacs.length})` : ""}
+                  <Icon name="music" size={16} className="" />{flacs.length ? <small>{flacs.length}</small> : null}
                 </button>
               );
             })()}
             <button
               className={"mv-bulkdel" + (armedDelete ? " armed" : "")}
               disabled={!!bulkBusy}
-              title={tr("mv_delete_no_undo")}
+              title={armedDelete ? tr("ig_delete_n_confirm", { n: selectionRoots(picked).length }) : tr("mv_delete_no_undo")}
               onClick={() => (armedDelete ? deletePaths(pickedArea, selectionRoots(picked)) : setArmedDelete(true))}
             >
-              {armedDelete ? tr("ig_delete_n_confirm", { n: selectionRoots(picked).length }) : tr("mv_delete")}
+              <Icon name="trash" size={16} className="" />{armedDelete && <small>{selectionRoots(picked).length}?</small>}
             </button>
-            <button className="ghost mv-bulkclear" onClick={() => setPicked(new Set())}>{tr("mv_clear")}</button>
+            <button className="ghost mv-bulkclear" title={tr("mv_clear")} onClick={() => setPicked(new Set())}>
+              <Icon name="close" size={16} className="" />
+            </button>
           </div>
         )}
 
@@ -2610,19 +2677,22 @@ function TrackTable({
 
 /** The view pickers' icons: one line drawing each, in the text colour, so
  *  they match whatever font the buttons are in. */
+// Line icons, each in a colour of its own (a view is told at a glance).
+const VIEW_ICONS: Record<string, { color: string; path: React.ReactNode }> = {
+  grid: { color: "#e5a54b", path: <><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" />
+    <rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></> },
+  gallery: { color: "#6cc4a1", path: <><rect x="3" y="4" width="18" height="16" rx="2" /><circle cx="9" cy="10" r="1.8" />
+    <path d="M21 16l-5-5-8 9" /></> },
+  folders: { color: "#e8c24a", path: <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /> },
+  artists: { color: "#c084fc", path: <><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7" /></> },
+  songs: { color: "#5fa8f0", path: <><path d="M9 18V5l11-2v13" /><circle cx="6.5" cy="18" r="2.5" /><circle cx="17.5" cy="16" r="2.5" /></> },
+};
+
 function ViewIcon({ name }: { name: string }) {
-  const paths: Record<string, React.ReactNode> = {
-    grid: <><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" />
-      <rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></>,
-    gallery: <><rect x="3" y="4" width="18" height="16" rx="2" /><circle cx="9" cy="10" r="1.8" />
-      <path d="M21 16l-5-5-8 9" /></>,
-    folders: <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />,
-    artists: <><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7" /></>,
-    songs: <><path d="M9 18V5l11-2v13" /><circle cx="6.5" cy="18" r="2.5" /><circle cx="17.5" cy="16" r="2.5" /></>,
-  };
+  const v = VIEW_ICONS[name];
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-         strokeLinecap="round" strokeLinejoin="round" aria-hidden>{paths[name]}</svg>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={v?.color ?? "currentColor"} strokeWidth="2"
+         strokeLinecap="round" strokeLinejoin="round" aria-hidden>{v?.path}</svg>
   );
 }
 

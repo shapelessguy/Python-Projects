@@ -3,6 +3,8 @@ import createPlotlyComponent from "react-plotly.js/factory";
 import Plotly from "plotly.js-dist-min";
 import { api, City, ForecastResponse } from "../api";
 import { useT } from "../i18n";
+import { useNarrow } from "../narrow";
+import { ChartPager, PagedChart } from "./ChartPager";
 
 const Plot = createPlotlyComponent(Plotly);
 
@@ -47,6 +49,7 @@ export function ForecastStrip({ allCities, selected, forecastVersion }: Props) {
   const [data, setData] = useState<ForecastResponse | null>(null);
   const [selectedDay, setSelectedDay] = useState(0);
   const [busy, setBusy] = useState(false);
+  const narrow = useNarrow();
 
   const cityByKey = useMemo(
     () => Object.fromEntries(allCities.map((c) => [c.key, c])) as Record<string, City>,
@@ -102,7 +105,7 @@ export function ForecastStrip({ allCities, selected, forecastVersion }: Props) {
   if (!keys.length)
     return (
       <section className="forecast-strip">
-        <h3>🌦 {t("fc_title")}</h3>
+        <h3>🌦️ {t("fc_title")}</h3>
         <p className="muted">{t("fc_select_city")}</p>
       </section>
     );
@@ -110,7 +113,7 @@ export function ForecastStrip({ allCities, selected, forecastVersion }: Props) {
   if (!ready.length || maxDay < 0)
     return (
       <section className="forecast-strip">
-        <h3>🌦 {t("fc_title")}</h3>
+        <h3>🌦️ {t("fc_title")}</h3>
         <p className="muted">
           {data ? t("fc_loading") : t("fc_not_cached")}{" "}
           <button
@@ -188,11 +191,50 @@ export function ForecastStrip({ allCities, selected, forecastVersion }: Props) {
     bargap: 0.15,
   };
 
+  const line = (y: (s: (typeof sliced)[number]) => (number | null)[]) =>
+    sliced.map((s) => ({
+      x: s.hours,
+      y: y(s),
+      type: "scatter" as const,
+      mode: "lines" as const,
+      name: s.city?.city_name ?? s.key,
+      line: { width: 1.5, color: s.city?.color },
+    }));
+  const pct = { ...baseLayout, yaxis: { ...baseLayout.yaxis, range: [0, 100] } };
+  const charts: PagedChart[] = [
+    {
+      key: "mm",
+      title: `${t("fc_precipitation")} [mm/h]`,
+      data: sliced.map((s) => ({
+        x: s.hours,
+        y: s.mm,
+        type: "bar" as const,
+        name: s.city?.city_name ?? s.key,
+        marker: { color: s.city?.color },
+      })),
+      layout: baseLayout,
+    },
+    {
+      key: "prob",
+      title: `${t("fc_probability")} [%]`,
+      data: line((s) => s.prob).map((d) => ({
+        ...d,
+        fill: ready.length === 1 ? ("tozeroy" as const) : ("none" as const),
+        fillcolor: "rgba(76,155,232,0.15)",
+      })),
+      layout: pct,
+    },
+    { key: "temp", title: `${t("fc_temperature")} [°C]`, data: line((s) => s.temp), layout: baseLayout },
+    { key: "wind", title: `${t("fc_wind")} [km/h]`, data: line((s) => s.wind), layout: baseLayout },
+    { key: "clouds", title: `${t("fc_clouds")} [%]`, data: line((s) => s.clouds), layout: pct },
+    { key: "humidity", title: `${t("fc_humidity")} [%]`, data: line((s) => s.humidity), layout: pct },
+  ];
+
   return (
     <section className="forecast-strip">
       <div className="fc-head">
-        <h3>🌦 {t("fc_title")}</h3>
-        <span className="muted small">
+        <h3>🌦️ {t("fc_title")}</h3>
+        <span className="muted small fc-issued">
           {issuedText && <span className={stale ? "fc-stale" : ""}>{issuedText}</span>}
           <button
             className="link"
@@ -244,114 +286,22 @@ export function ForecastStrip({ allCities, selected, forecastVersion }: Props) {
         {peakText}
       </p>
 
-      <div className="fc-charts">
-        <div className="chart-block">
-          <div className="chart-title">{t("fc_precipitation")} [mm/h]</div>
-          <Plot
-            data={sliced.map((s) => ({
-              x: s.hours,
-              y: s.mm,
-              type: "bar" as const,
-              name: s.city?.city_name ?? s.key,
-              marker: { color: s.city?.color },
-            }))}
-            layout={baseLayout}
-            config={{ displayModeBar: false }}
-            style={{ width: "100%" }}
-            useResizeHandler
-          />
+      {narrow ? (
+        <ChartPager charts={charts} />
+      ) : (
+        <div className="fc-charts">
+          {charts.map((c) => (
+            <div key={c.key} className="chart-block">
+              <div className="chart-title">{c.title}</div>
+              <Plot data={c.data} layout={c.layout} config={{ displayModeBar: false }}
+                    style={{ width: "100%" }} useResizeHandler />
+            </div>
+          ))}
         </div>
-        <div className="chart-block">
-          <div className="chart-title">{t("fc_probability")} [%]</div>
-          <Plot
-            data={sliced.map((s) => ({
-              x: s.hours,
-              y: s.prob,
-              type: "scatter" as const,
-              mode: "lines" as const,
-              name: s.city?.city_name ?? s.key,
-              line: { width: 1.5, color: s.city?.color },
-              fill: ready.length === 1 ? ("tozeroy" as const) : ("none" as const),
-              fillcolor: "rgba(76,155,232,0.15)",
-            }))}
-            layout={{ ...baseLayout, yaxis: { ...baseLayout.yaxis, range: [0, 100] } }}
-            config={{ displayModeBar: false }}
-            style={{ width: "100%" }}
-            useResizeHandler
-          />
-        </div>
-        <div className="chart-block">
-          <div className="chart-title">{t("fc_temperature")} [°C]</div>
-          <Plot
-            data={sliced.map((s) => ({
-              x: s.hours,
-              y: s.temp,
-              type: "scatter" as const,
-              mode: "lines" as const,
-              name: s.city?.city_name ?? s.key,
-              line: { width: 1.5, color: s.city?.color },
-            }))}
-            layout={baseLayout}
-            config={{ displayModeBar: false }}
-            style={{ width: "100%" }}
-            useResizeHandler
-          />
-        </div>
-        <div className="chart-block">
-          <div className="chart-title">{t("fc_wind")} [km/h]</div>
-          <Plot
-            data={sliced.map((s) => ({
-              x: s.hours,
-              y: s.wind,
-              type: "scatter" as const,
-              mode: "lines" as const,
-              name: s.city?.city_name ?? s.key,
-              line: { width: 1.5, color: s.city?.color },
-            }))}
-            layout={baseLayout}
-            config={{ displayModeBar: false }}
-            style={{ width: "100%" }}
-            useResizeHandler
-          />
-        </div>
-        <div className="chart-block">
-          <div className="chart-title">{t("fc_clouds")} [%]</div>
-          <Plot
-            data={sliced.map((s) => ({
-              x: s.hours,
-              y: s.clouds,
-              type: "scatter" as const,
-              mode: "lines" as const,
-              name: s.city?.city_name ?? s.key,
-              line: { width: 1.5, color: s.city?.color },
-            }))}
-            layout={{ ...baseLayout, yaxis: { ...baseLayout.yaxis, range: [0, 100] } }}
-            config={{ displayModeBar: false }}
-            style={{ width: "100%" }}
-            useResizeHandler
-          />
-        </div>
-        <div className="chart-block">
-          <div className="chart-title">{t("fc_humidity")} [%]</div>
-          <Plot
-            data={sliced.map((s) => ({
-              x: s.hours,
-              y: s.humidity,
-              type: "scatter" as const,
-              mode: "lines" as const,
-              name: s.city?.city_name ?? s.key,
-              line: { width: 1.5, color: s.city?.color },
-            }))}
-            layout={{ ...baseLayout, yaxis: { ...baseLayout.yaxis, range: [0, 100] } }}
-            config={{ displayModeBar: false }}
-            style={{ width: "100%" }}
-            useResizeHandler
-          />
-        </div>
-      </div>
+      )}
 
       {anyDwd && (
-        <p className="muted small">{t("fc_sources")}</p>
+        <p className="muted small fc-sources">{t("fc_sources")}</p>
       )}
     </section>
   );

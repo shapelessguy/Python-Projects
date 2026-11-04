@@ -4,6 +4,7 @@ import { useT } from "../i18n";
 import { inShell, NativeMusic, send, useNative } from "../native";
 import { useNarrow } from "../narrow";
 import { VolumePop } from "./VolumePop";
+import { Icon } from "./icons";
 
 /** The Music tab's player: one bar along the bottom of the library, like a
  *  music app's — what is playing on the left, the controls in the middle,
@@ -177,11 +178,11 @@ export function MusicPlayerBar({ song, play, list, hasPrev, hasNext, onPrev, onN
       <div className="mp-controls">
         <div className="mp-buttons">
           <button className="ghost" disabled={!loaded} title={tr("mp_prev")}
-                  onClick={() => (time > 3 || !hasPrev ? seek(0) : onPrev())}>⏮</button>
+                  onClick={() => (time > 3 || !hasPrev ? seek(0) : onPrev())}><Icon name="prev" size={16} className="" /></button>
           <button className="mp-play" disabled={!loaded} title={tr("mp_play_pause")} onClick={toggle}>
-            {playing ? "❚❚" : "▶"}
+            <Icon name={playing ? "pause" : "play"} size={20} className="" />
           </button>
-          <button className="ghost" disabled={!hasNext} title={tr("mp_next")} onClick={onNext}>⏭</button>
+          <button className="ghost" disabled={!hasNext} title={tr("mp_next")} onClick={onNext}><Icon name="next" size={16} className="" /></button>
           {/* On a phone the volume is a button at the end of this row, and
               the row with the details goes (styles.css). */}
           {narrow && !inShell && <VolumePop value={volume} onChange={changeVolume} title={tr("mp_volume")} />}

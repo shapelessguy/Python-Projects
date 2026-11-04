@@ -606,10 +606,8 @@ export function CalendarPanel() {
           </div>
         </div>
 
-        {/* The phone month view sizes itself (grid + agenda) and the page
-            scrolls, instead of squeezing both into the measured height. */}
         <div
-          className="cal-body" ref={bodyRef} style={phoneMonth ? undefined : { height: bodyHeight }}
+          className="cal-body" ref={bodyRef} style={{ height: bodyHeight }}
           onTouchStart={(e) => { touchAt.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; }}
           onTouchEnd={(e) => {
             if (touchAt.current === null) return;

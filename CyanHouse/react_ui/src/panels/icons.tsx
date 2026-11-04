@@ -4,7 +4,7 @@
 
 export type IconName = "today" | "month" | "week" | "calendars" | "reorder" | "columns" | "search"
   | "mouse" | "pcSound" | "keyboard" | "left" | "right" | "winLeft" | "winRight" | "maximize" | "scroll"
-  | "settings";
+  | "settings" | "prev" | "next" | "play" | "pause" | "moveTo" | "download" | "music" | "trash" | "close";
 
 const PATHS: Record<IconName, JSX.Element> = {
   today: <><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="2.5" fill="currentColor" /></>,
@@ -24,6 +24,17 @@ const PATHS: Record<IconName, JSX.Element> = {
   winRight: <><path d="M20 4v16" /><path d="M4 12h11M10 7l5 5-5 5" /></>,
   maximize: <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />,
   scroll: <path d="M12 3v18M8 7l4-4 4 4M8 17l4 4 4-4" />,
+  // The player's: filled, and centred on the box's middle by their weight
+  // (a font's ⏮ ▶ ⏭ sit off-centre in their own glyph boxes).
+  prev: <><path d="M6.5 6v12" /><path d="M18 6.5 9.5 12l8.5 5.5Z" fill="currentColor" /></>,
+  next: <><path d="M17.5 6v12" /><path d="M6 6.5l8.5 5.5L6 17.5Z" fill="currentColor" /></>,
+  play: <path d="M8.5 5.5v13l10-6.5Z" fill="currentColor" />,
+  pause: <path d="M9 6.5v11M15 6.5v11" strokeWidth="3.2" />,
+  moveTo: <><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" /><path d="M9 13h7M13 10l3 3-3 3" /></>,
+  download: <path d="M12 4v11M7 10l5 5 5-5M5 20h14" />,
+  music: <><path d="M9 18V5l11-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="17" cy="16" r="3" /></>,
+  trash: <path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6" />,
+  close: <path d="M6 6l12 12M18 6 6 18" />,
   settings: <><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></>,
 };
 

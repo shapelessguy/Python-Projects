@@ -5,6 +5,11 @@ import { api, City, EnvBootstrap, SeriesResponse, useVersionPoll, Variable } fro
 import { ForecastStrip } from "./ForecastStrip";
 import { OverviewBoard } from "./OverviewBoard";
 import { isKey, Key, useT } from "../i18n";
+import { useBackToClose } from "../backClose";
+import { Icon } from "./icons";
+import { ChartPager } from "./ChartPager";
+import { MenuTab, TabMenu } from "./TabMenu";
+import { useNarrow } from "../narrow";
 
 const Plot = createPlotlyComponent(Plotly);
 
@@ -127,7 +132,7 @@ function saveOverviewRange(r: OverviewRange): void {
 }
 
 export function EnvironmentPanel() {
-  const { t } = useT();
+  const { t, lang } = useT();
   const { weather, forecast } = useVersionPoll();
   const [boot, setBoot] = useState<EnvBootstrap | null>(null);
   const [cities, setCities] = useState<Set<string>>(loadCities);
@@ -140,6 +145,11 @@ export function EnvironmentPanel() {
   const [refreshing, setRefreshing] = useState(false);
   const [seriesNonce, setSeriesNonce] = useState(0);
   const [tab, setTab] = useState<Tab>(loadTab);
+  // Under 800px the controls column is hidden; the gear by the city opens
+  // it over the whole screen instead.
+  const [controlsOpen, setControlsOpen] = useState(false);
+  const narrow = useNarrow();
+  useBackToClose(() => setControlsOpen(false), controlsOpen);
   const appliedWeather = useRef(0);
 
   const changeTab = (t: Tab) => {
@@ -237,47 +247,69 @@ export function EnvironmentPanel() {
 
   if (!boot) return <div className="panel"><p className="muted">{t("loading")}</p></div>;
 
+  const envTabs: MenuTab<Tab>[] = [
+    { key: "overview", icon: "🌤️", label: t("env_overview") },
+    { key: "forecast", icon: "🌦️", label: t("env_forecast") },
+    { key: "historical", icon: "📈", label: t("env_historical") },
+  ];
   const cityByKey = Object.fromEntries(boot.cities.map((c) => [c.key, c])) as Record<string, City>;
+  const chartData = (v: Variable) =>
+    [...cities]
+      .filter((ck) => Array.isArray(series!.series[ck]?.[v.key]))
+      .map((ck) => ({
+        x: series!.series[ck].index as string[],
+        y: series!.series[ck][v.key] as (number | null)[],
+        type: "scatter" as const,
+        mode: "lines" as const,
+        name: cityByKey[ck]?.city_name ?? ck,
+        line: { width: 1.5, color: cityByKey[ck]?.color },
+      }));
+  const chartLayout = {
+    height: 220,
+    margin: { l: 44, r: 12, t: 32, b: 30 },
+    paper_bgcolor: "rgba(0,0,0,0)",
+    plot_bgcolor: "rgba(0,0,0,0)",
+    font: { color: "#bbb" },
+    xaxis: { gridcolor: "#333" },
+    yaxis: { gridcolor: "#333" },
+    showlegend: true,
+    legend: { orientation: "h" as const, x: 1, xanchor: "right" as const, y: 1.18 },
+  };
 
   return (
     <div className="panel environment panel--column">
       <div className="env-tabs">
-        <button className={tab === "overview" ? "active" : ""} onClick={() => changeTab("overview")}>
-          {t("env_overview")}
-        </button>
-        <button className={tab === "forecast" ? "active" : ""} onClick={() => changeTab("forecast")}>
-          {t("env_forecast")}
-        </button>
-        <button className={tab === "historical" ? "active" : ""} onClick={() => changeTab("historical")}>
-          {t("env_historical")}
-        </button>
+        {narrow ? (
+          <TabMenu tabs={envTabs} value={tab} onChange={changeTab} />
+        ) : envTabs.map((x) => (
+          <button key={x.key} className={tab === x.key ? "active" : ""} onClick={() => changeTab(x.key)}>
+            <span className="tm-icon" aria-hidden>{x.icon}</span>
+            {x.label}
+          </button>
+        ))}
+        {tab !== "overview" && (
+          <CityPicker cities={boot.cities} selected={cities} onToggle={(key, on) =>
+            changeCities((s) => {
+              const n = new Set(s);
+              on ? n.add(key) : n.delete(key);
+              return n;
+            })
+          } />
+        )}
       </div>
 
       <div className="env-tab-body">
       {tab === "overview" && <OverviewView cities={boot.cities} />}
 
       {tab === "historical" && (
-      <aside className="env-controls">
-        <section>
-          <h3>{t("env_cities")}</h3>
-          {boot.cities.map((c) => (
-            <label key={c.key} className="check">
-              <input
-                type="checkbox"
-                checked={cities.has(c.key)}
-                onChange={(e) =>
-                  changeCities((s) => {
-                    const n = new Set(s);
-                    e.target.checked ? n.add(c.key) : n.delete(c.key);
-                    return n;
-                  })
-                }
-              />
-              <span style={{ color: c.color }}>{c.flag} {c.city_name}</span>
-            </label>
-          ))}
-        </section>
-
+      <aside className={"env-controls" + (controlsOpen ? " env-controls--open" : "")}>
+        <div className="env-controls-head">
+          <span>{t("settings")}</span>
+          <button className="env-controls-close" onClick={() => setControlsOpen(false)}
+                  title={t("close")} aria-label={t("close")}>
+            <Icon name="close" size={18} className="" />
+          </button>
+        </div>
         <section>
           <h3>{t("env_date_range")}</h3>
           <div className="presets">
@@ -367,13 +399,29 @@ export function EnvironmentPanel() {
 
       {tab === "historical" && (
         <div className="env-charts">
-          <h1>
-            {[...cities].map((k) => cityByKey[k]?.flag + " " + cityByKey[k]?.city_name).join(" · ")}
-          </h1>
-          <p className="muted">{start} → {end} · {t(RESAMPLE_KEYS[resample] ?? "env_hourly")}</p>
+          <div className="env-title">
+            <h1>
+              {t("env_historical")} {shortDate(start, lang)} – {shortDate(end, lang)}
+            </h1>
+            <button className="env-controls-btn" onClick={() => setControlsOpen(true)}
+                    title={t("settings")} aria-label={t("settings")}>
+              <Icon name="settings" size={20} className="" />
+            </button>
+          </div>
+          <p className="muted env-range">{t(RESAMPLE_KEYS[resample] ?? "env_hourly")}</p>
 
           {!series && <p className="muted">{t("env_pick")}</p>}
-          {series &&
+          {series && narrow && (
+            <ChartPager
+              charts={Object.values(groups).flat().map((v) => ({
+                key: v.key,
+                title: v.label + (v.unit ? ` [${v.unit}]` : ""),
+                data: chartData(v),
+                layout: chartLayout,
+              }))}
+            />
+          )}
+          {series && !narrow &&
             Object.entries(groups).map(([group, list]) => (
               <div key={group} className="chart-group">
                 <h3>{group}</h3>
@@ -384,27 +432,8 @@ export function EnvironmentPanel() {
                       {v.unit ? ` [${v.unit}]` : ""}
                     </div>
                     <Plot
-                      data={[...cities]
-                        .filter((ck) => Array.isArray(series.series[ck]?.[v.key]))
-                        .map((ck) => ({
-                          x: series.series[ck].index as string[],
-                          y: series.series[ck][v.key] as (number | null)[],
-                          type: "scatter",
-                          mode: "lines",
-                          name: cityByKey[ck]?.city_name ?? ck,
-                          line: { width: 1.5, color: cityByKey[ck]?.color },
-                        }))}
-                      layout={{
-                        height: 220,
-                        margin: { l: 44, r: 12, t: 32, b: 30 },
-                        paper_bgcolor: "rgba(0,0,0,0)",
-                        plot_bgcolor: "rgba(0,0,0,0)",
-                        font: { color: "#bbb" },
-                        xaxis: { gridcolor: "#333" },
-                        yaxis: { gridcolor: "#333" },
-                        showlegend: true,
-                        legend: { orientation: "h", x: 1, xanchor: "right", y: 1.18 },
-                      }}
+                      data={chartData(v)}
+                      layout={chartLayout}
                       config={{ displayModeBar: false }}
                       style={{ width: "100%" }}
                       useResizeHandler
@@ -416,6 +445,50 @@ export function EnvironmentPanel() {
         </div>
       )}
       </div>
+    </div>
+  );
+}
+
+/** "2025-11-03" -> "03/11/25", in the UI's language. */
+function shortDate(iso: string, lang: string): string {
+  if (!iso) return "";
+  return new Date(iso + "T00:00:00").toLocaleDateString(lang, { day: "2-digit", month: "2-digit", year: "2-digit" });
+}
+
+/** The cities shown (forecast and history): a button with their flags, and
+ *  under it a small list to tick them on and off. A tap elsewhere or Back
+ *  puts it away. */
+function CityPicker({ cities, selected, onToggle }: {
+  cities: City[]; selected: Set<string>; onToggle: (key: string, on: boolean) => void;
+}) {
+  const { t } = useT();
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  useBackToClose(() => setOpen(false), open);
+  useEffect(() => {
+    if (!open) return;
+    const down = (e: PointerEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener("pointerdown", down);
+    return () => document.removeEventListener("pointerdown", down);
+  }, [open]);
+  const flags = cities.filter((c) => selected.has(c.key)).map((c) => c.flag).join(" ");
+  return (
+    <div className="env-citypick" ref={box}>
+      <button className={open ? "active" : ""} onClick={() => setOpen(!open)}
+              title={t("env_cities")} aria-label={t("env_cities")}>
+        {flags || t("env_cities")} ▾
+      </button>
+      {open && (
+        <div className="env-citypop">
+          {cities.map((c) => (
+            <label key={c.key} className="check">
+              <input type="checkbox" checked={selected.has(c.key)}
+                     onChange={(e) => onToggle(c.key, e.target.checked)} />
+              <span style={{ color: c.color }}>{c.flag} {c.city_name}</span>
+            </label>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
