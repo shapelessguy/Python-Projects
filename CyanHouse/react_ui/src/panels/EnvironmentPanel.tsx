@@ -4,7 +4,7 @@ import Plotly from "plotly.js-dist-min";
 import { api, City, EnvBootstrap, SeriesResponse, useVersionPoll, Variable } from "../api";
 import { ForecastStrip } from "./ForecastStrip";
 import { OverviewBoard } from "./OverviewBoard";
-import { Key, useT } from "../i18n";
+import { isKey, Key, useT } from "../i18n";
 
 const Plot = createPlotlyComponent(Plotly);
 
@@ -15,6 +15,28 @@ const PRESETS: Record<string, number | null> = {
   "1Y": 365,
   MAX: null,
 };
+
+// The server names its variables and groups in English; they are said again
+// here by key, and one the dictionaries do not know yet keeps its own text.
+const GROUP_KEYS: Record<string, Key> = {
+  "🌡 Temperature & Humidity": "wg_temp",
+  "☁ Cloudiness & Sun": "wg_cloud",
+  "🌬 Pressure": "wg_pressure",
+  "🌧 Precipitation": "wg_precip",
+  "🌱 Soil Temperature": "wg_soil",
+  "☀ Solar Radiation": "wg_solar",
+  "💨 Wind": "wg_wind",
+  "Other": "wg_other",
+};
+function localVariable(v: Variable, t: ReturnType<typeof useT>["t"], has: (k: string) => k is Key): Variable {
+  const label = `wv_${v.key}`, about = `wvd_${v.key}`;
+  return {
+    ...v,
+    label: has(label) ? t(label) : v.label,
+    description: has(about) ? t(about) : v.description,
+    group: v.group in GROUP_KEYS ? t(GROUP_KEYS[v.group]) : v.group,
+  };
+}
 
 const RESAMPLE_KEYS: Record<string, Key> = { hourly: "env_hourly", daily: "env_daily", weekly: "env_weekly" };
 
@@ -219,13 +241,17 @@ export function EnvironmentPanel() {
     return () => ctrl.abort();
   }, [cities, vars, start, end, resample, seriesNonce]);
 
+  const variables = useMemo(
+    () => (boot?.variables ?? []).map((v) => localVariable(v, t, isKey)),
+    [boot, t],
+  );
   const groups = useMemo(() => {
     const g: Record<string, Variable[]> = {};
-    for (const v of boot?.variables ?? []) {
+    for (const v of variables) {
       if (vars.has(v.key)) (g[v.group] ||= []).push(v);
     }
     return g;
-  }, [boot, vars]);
+  }, [variables, vars]);
 
   if (!boot) return <div className="panel"><p className="muted">{t("loading")}</p></div>;
 
@@ -360,7 +386,7 @@ export function EnvironmentPanel() {
 
         <section>
           <h3>{t("env_variables")}</h3>
-          {Object.entries(groupBy(boot.variables)).map(([group, list]) => (
+          {Object.entries(groupBy(variables)).map(([group, list]) => (
             <details key={group} open>
               <summary>{group}</summary>
               {list.map((v) => (

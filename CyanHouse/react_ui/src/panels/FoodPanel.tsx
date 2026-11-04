@@ -895,11 +895,9 @@ function rowError(r: IngredientRow): Key | null {
   return null;
 }
 
-/** What the server said, from a failed foodApi call ("409 Conflict — {"detail": ...}"). */
+/** What the server said, from a failed foodApi call (already translated). */
 function serverMessage(e: unknown): string {
-  const text = String(e);
-  const body = text.slice(text.indexOf("— ") + 2);
-  try { return JSON.parse(body).detail ?? text; } catch { return text; }
+  return e instanceof Error ? e.message : String(e);
 }
 
 type T = ReturnType<typeof useT>["t"];

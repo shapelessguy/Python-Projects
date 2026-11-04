@@ -1,6 +1,8 @@
 // Food service client — self-contained module. The only shared touch-points
 // are the auth 401 hook and the version poll (see ../api.ts `food` field).
 import { onAuthFailed } from "../auth";
+import { translate } from "../i18n";
+import { ApiError, apiError } from "../serverText";
 
 export interface Dish {
   id: number;
@@ -173,9 +175,9 @@ export interface DishInput {
 async function j<T>(r: Response): Promise<T> {
   if (r.status === 401) {
     onAuthFailed();
-    throw new Error("401 — not signed in");
+    throw new ApiError(401, translate("srv_ui_not_signed_in"));
   }
-  if (!r.ok) throw new Error(`${r.status} ${r.statusText} — ${await r.text()}`);
+  if (!r.ok) throw await apiError(r);
   return r.json() as Promise<T>;
 }
 

@@ -30,6 +30,42 @@ function loadMode(): ControlMode {
   return "ALL";
 }
 
+/** The buttons' labels, by their English one in controls.ts (which stays
+ *  their id: the ALL view de-duplicates by it). */
+const BUTTON_KEYS: Record<string, Key> = {
+  "UV OFF": "ctlbtn_uv_off",
+  "UV AUTO": "ctlbtn_uv_auto",
+  "UV ON": "ctlbtn_uv_on",
+  "Power": "ctlbtn_power",
+  "Top RGB": "ctlbtn_top_rgb",
+  "Heart": "ctlbtn_heart",
+  "Bright -": "ctlbtn_bright_minus",
+  "Bright +": "ctlbtn_bright_plus",
+  "Col Loop": "ctlbtn_col_loop",
+  "Fan OFF": "ctlbtn_fan_off",
+  "Fan Swing": "ctlbtn_fan_swing",
+  "Fan ON": "ctlbtn_fan_on",
+  "Fan Mode": "ctlbtn_fan_mode",
+  "PHONES": "ctlbtn_phones",
+  "Speaker": "ctlbtn_speaker",
+  "HW Vol -": "ctlbtn_hw_vol_minus",
+  "AUDIO PWR": "ctlbtn_audio_pwr",
+  "HW Vol +": "ctlbtn_hw_vol_plus",
+  "Prev": "ctlbtn_prev",
+  "PLAY": "ctlbtn_play",
+  "Next": "ctlbtn_next",
+  "Screens ON": "ctlbtn_screens_on",
+  "Startup": "ctlbtn_startup",
+  "TV ON/OFF": "ctlbtn_tv_on_off",
+  "Screens OFF": "ctlbtn_screens_off",
+  "Win Snap": "ctlbtn_win_snap",
+  "TV OK": "ctlbtn_tv_ok",
+  "Strips OFF": "ctlbtn_strips_off",
+  "Strips ON": "ctlbtn_strips_on",
+  "Mouse OFF": "ctlbtn_mouse_off",
+  "Mouse ON": "ctlbtn_mouse_on",
+};
+
 const MODE_KEYS: Record<ControlMode, Key> = {
   ALL: "controls_mode_all", GROW: "controls_mode_grow", AUDIO: "controls_mode_audio",
   PC: "controls_mode_pc", VOICES: "controls_mode_voices",
@@ -37,6 +73,9 @@ const MODE_KEYS: Record<ControlMode, Key> = {
 
 export function ControlsPanel() {
   const { t } = useT();
+  const name = (it: ControlItem) =>
+    it === VOLUME_ITEM || it.command === VOLUME_ITEM.command ? t("controls_os_volume")
+      : it.label in BUTTON_KEYS ? t(BUTTON_KEYS[it.label]) : it.label;
   const [mode, setModeState] = useState<ControlMode>(loadMode);
   const setMode = (m: ControlMode) => {
     setModeState(m);
@@ -127,9 +166,9 @@ export function ControlsPanel() {
       if (res && (res.volume != null || res.device != null)) {
         setInfo((p) => ({ ...p, ...res }));
       }
-      flash(extra ? `${it.label}: ${Object.values(extra)[0]}` : `✓ ${it.label}`);
+      flash(extra ? `${name(it)}: ${Object.values(extra)[0]}` : `✓ ${name(it)}`);
     } catch {
-      flash(t("controls_failed", { label: it.label }));
+      flash(t("controls_failed", { label: name(it) }));
     } finally {
       if (it.slider) draggingVol.current = false;
     }
@@ -280,7 +319,7 @@ export function ControlsPanel() {
                 {it.icon}
               </span>
               <span className="ctl-lbl">
-                {it.label}
+                {name(it)}
                 {active ? ` (${t("controls_active")})` : ""}
               </span>
             </button>

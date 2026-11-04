@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 import * as tus from "tus-js-client";
+import { responseText } from "./serverText";
 
 /** Uploading files and whole folders into a browsable folder, resumably.
  *
@@ -192,7 +193,10 @@ export function useUploads(onFinished: () => void) {
         }
         // Kept in `pending` on purpose: retry needs it, and it is the only
         // thing standing between a failed 40 GB upload and doing it again.
-        patch(id, { status: "error", error: String(error).replace(/^Error:\s*/, "") });
+        patch(id, {
+          status: "error",
+          error: response ? responseText(response.getStatus(), response.getBody() ?? "") : String(error).replace(/^Error:\s*/, ""),
+        });
         done(id);
       },
       onSuccess: () => {

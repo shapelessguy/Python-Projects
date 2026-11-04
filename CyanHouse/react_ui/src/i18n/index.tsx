@@ -49,6 +49,18 @@ function subscribe(l: () => void) {
   return () => listeners.delete(l);
 }
 
+/** Whether `k` is a string the dictionaries have. */
+export const isKey = (k: string): k is Key => k in en;
+
+/** The string `key` of `dict` with its {placeholders} filled in. */
+const fill = (dict: Dict, key: Key, vars?: Record<string, string | number>) =>
+  (dict[key] ?? en[key]).replace(/\{(\w+)\}/g, (m, v) => (vars && v in vars ? String(vars[v]) : m));
+
+/** t() outside React (api.ts, uploads...): in the language picked right now. */
+export function translate(key: Key, vars?: Record<string, string | number>): string {
+  return fill(LANGUAGES.find((l) => l.code === current)?.dict ?? en, key, vars);
+}
+
 export function useLanguage(): string {
   return useSyncExternalStore(subscribe, () => current);
 }
@@ -59,8 +71,7 @@ export function useT() {
   const lang = useLanguage();
   const dict = LANGUAGES.find((l) => l.code === lang)?.dict ?? en;
   const t = useCallback(
-    (key: Key, vars?: Record<string, string | number>) =>
-      (dict[key] ?? en[key]).replace(/\{(\w+)\}/g, (m, v) => (vars && v in vars ? String(vars[v]) : m)),
+    (key: Key, vars?: Record<string, string | number>) => fill(dict, key, vars),
     [dict],
   );
   const tn = useCallback(

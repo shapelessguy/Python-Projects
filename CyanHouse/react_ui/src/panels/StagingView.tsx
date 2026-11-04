@@ -9,6 +9,7 @@ import { ACCESS_ICON, AccessBadge } from "./ShareDialog";
 import { isVideo } from "./ImageGallery";
 import { useBackToClose } from "../backClose";
 import { useT } from "../i18n";
+import { serverText } from "../serverText";
 
 /** The right-hand panel for anything in a staging folder that isn't a film.
  *
@@ -318,7 +319,7 @@ export function PrepCommit({
   const step = running && (job!.steps ?? 0) > 1 && job!.step ? `${job!.step}/${job!.steps} · ` : "";
   const label = !running ? "" : step + (
     job!.phase === "generating"
-      ? t("st_subtitles", { label: job!.step_label ?? "" }) + (job!.detail ? `: ${job!.detail}` : "")
+      ? t("st_subtitles", { label: job!.step_label ?? "" }) + (job!.detail ? `: ${serverText(job!.detail)}` : "")
         + (job!.percent != null ? ` ${job!.percent}%` : "…")
       : job!.phase === "verifying" ? t("st_checking")
       : job!.phase === "tidying" ? t("st_moving_place")

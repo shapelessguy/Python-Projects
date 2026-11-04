@@ -19,6 +19,7 @@ import { Icon } from "./icons";
 import { ConflictDialog, Clash } from "./ConflictDialog";
 import { useBackToClose } from "../backClose";
 import { Key, useT } from "../i18n";
+import { serverText } from "../serverText";
 
 /** The stream is a transcode piped into a fragmented MP4: no byte ranges, no
  *  index, so the browser can't seek it and `video.duration` is meaningless.
@@ -690,7 +691,7 @@ export function MoviesPanel() {
       await flushSaves();
       const r = await api.prepRemuxAll(area);
       loadJobs();
-      const left = r.skipped.map((x) => `${x.folder} (${x.reason.replace(`${x.folder}: `, "")})`);
+      const left = r.skipped.map((x) => `${x.folder} (${serverText(x.reason.replace(`${x.folder}: `, ""))})`);
       say(tn("mv_queued", r.queued.length) +
           (left.length ? `. ${tr("mv_not_queued", { list: left.join("; ") })}` : ""),
           r.queued.length === 0 && left.length > 0);
@@ -704,7 +705,7 @@ export function MoviesPanel() {
       const r = await api.prepConvertMp3(area, paths);
       loadJobs();
       const n = r.queued[0]?.steps ?? 0;
-      const left = r.skipped.map((x) => `${x.folder} (${x.reason})`);
+      const left = r.skipped.map((x) => `${x.folder} (${serverText(x.reason)})`);
       say((n ? tn("mv_converting", n) : tr("mv_nothing_convert")) +
           (left.length ? `. ${tr("mv_left_out", { list: left.join("; ") })}` : ""), n === 0);
       if (n) setPicked(new Set());
@@ -758,7 +759,7 @@ export function MoviesPanel() {
   const failedCount = jobs.filter((j) => j.state === "failed").length;
   const phaseText = (j: RemuxJob) =>
     ((j.steps ?? 0) > 1 && j.step ? `${j.step}/${j.steps} · ` : "") + (
-      j.phase === "generating" ? tr("st_subtitles", { label: j.step_label ?? "" }) + (j.detail ? `: ${j.detail}` : "")
+      j.phase === "generating" ? tr("st_subtitles", { label: j.step_label ?? "" }) + (j.detail ? `: ${serverText(j.detail)}` : "")
         : j.kind === "convert" ? tr("mv_to_mp3", { name: j.step_label || j.target })
         : j.phase === "verifying" ? tr("mv_checking", { name: j.target })
         : j.phase === "tidying" ? tr("mv_moving", { name: j.target })
@@ -1677,7 +1678,7 @@ export function MoviesPanel() {
               {jobs.length === 0 && <p className="muted small mv-queueempty">{tr("mv_nothing_queued")}</p>}
               <ul>
                 {jobs.map((j) => (
-                  <li key={j.id} className={"mv-qrow " + j.state} title={j.error || j.output || j.folder}>
+                  <li key={j.id} className={"mv-qrow " + j.state} title={serverText(j.error) || j.output || j.folder}>
                     <span className="mv-qstate" aria-hidden>
                       {j.state === "running" ? <span className="mv-ring" />
                         : j.state === "queued" ? `#${j.position}`
@@ -1689,7 +1690,7 @@ export function MoviesPanel() {
                         {j.state === "running" ? phaseText(j)
                           : j.state === "queued" ? `${labelOf(j.area)} · ${j.folder}`
                           : j.state === "done" ? (j.finished && j.started ? tr("mv_done_in", { s: Math.round(j.finished - j.started) }) : tr("mv_done"))
-                          : j.state === "failed" ? j.error
+                          : j.state === "failed" ? serverText(j.error)
                           : tr("mv_stopped")}
                       </span>
                       {j.state === "running" && (
@@ -1948,7 +1949,7 @@ export function MoviesPanel() {
               disabled={!!bulkBusy}
               title={selectionRoots(picked).length === 1 && !listings[pickedArea]?.find((f) => f.path === selectionRoots(picked)[0] && f.kind === "folder")
                 ? tr("mv_save_one") : tr("mv_save_zip")}
-              onClick={() => api.prepDownload(pickedArea, selectionRoots(picked), (m) => say(m ? tr("mv_download_failed_detail", { message: m }) : tr("mv_download_failed"), true))}
+              onClick={() => api.prepDownload(pickedArea, selectionRoots(picked), (m) => say(m, true))}
             >
               {tr("mv_download")}
             </button>

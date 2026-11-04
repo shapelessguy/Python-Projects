@@ -1,6 +1,8 @@
 import type { VaultFile } from "./vault";
 import { useEffect, useState } from "react";
 import { onAuthFailed } from "./auth";
+import { translate } from "./i18n";
+import { ApiError, apiError, serverText } from "./serverText";
 
 export type ColType = "number" | "text" | "bool" | "enum";
 
@@ -115,9 +117,9 @@ export interface ControlsInfo {
 async function j<T>(r: Response): Promise<T> {
   if (r.status === 401) {
     onAuthFailed();
-    throw new Error("401 — not signed in");
+    throw new ApiError(401, translate("srv_ui_not_signed_in"));
   }
-  if (!r.ok) throw new Error(`${r.status} ${r.statusText} — ${await r.text()}`);
+  if (!r.ok) throw await apiError(r);
   return r.json() as Promise<T>;
 }
 
@@ -125,9 +127,9 @@ async function j<T>(r: Response): Promise<T> {
 async function bytesOf(r: Response): Promise<Uint8Array<ArrayBuffer>> {
   if (r.status === 401) {
     onAuthFailed();
-    throw new Error("401 — not signed in");
+    throw new ApiError(401, translate("srv_ui_not_signed_in"));
   }
-  if (!r.ok) throw new Error(`${r.status} ${r.statusText} — ${await r.text()}`);
+  if (!r.ok) throw await apiError(r);
   return new Uint8Array(await r.arrayBuffer());
 }
 
@@ -830,7 +832,9 @@ export const api = {
       try { text = frame.contentDocument?.body?.innerText ?? ""; } catch { /* not ours */ }
       let message = text;
       try { message = JSON.parse(text).detail ?? text; } catch { /* plain text */ }
-      onError(message);
+      onError(message.trim()
+        ? translate("srv_ui_download_failed_detail", { message: serverText(message) })
+        : translate("srv_ui_download_failed"));
       frame.remove();
     };
     document.body.appendChild(frame);
