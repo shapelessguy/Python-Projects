@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { AccessMode, AccessRule, api, Calendar, FolderAccess } from "../api";
 import { Key, useT } from "../i18n";
+import { Icon, IconName } from "./icons";
 
 /** How an album's visibility shows next to its name, everywhere it is drawn
  *  (the gallery's cards and path, the folder tree). */
@@ -106,11 +107,11 @@ export function ShareDialog({ area, path, onClose, onSaved }: {
   };
 
   const others = users.filter((u) => u !== owner);
-  const option = (m: AccessMode | null, icon: string, title: string, sub: string) => (
+  const option = (m: AccessMode | null, icon: string, title: string, sub?: string) => (
     <label className={"sd-option" + (mode === m ? " on" : "")}>
       <input type="radio" name="sd-mode" checked={mode === m} onChange={() => setMode(m)} />
       <span className="sd-icon" aria-hidden>{icon}</span>
-      <span className="sd-text"><b>{title}</b><small>{sub}</small></span>
+      <span className="sd-text"><b>{title}</b>{sub && <small>{sub}</small>}</span>
     </label>
   );
 
@@ -123,35 +124,15 @@ export function ShareDialog({ area, path, onClose, onSaved }: {
         </header>
         <div className="sd-options">
           {option("shared", ACCESS_ICON.shared, t("share_shared"), t("share_shared_desc"))}
-          {option("private", ACCESS_ICON.private, t("share_private"), owner ? t("share_only", { name: owner }) : t("share_only_admins"))}
+          {option("private", ACCESS_ICON.private, t("share_private"))}
           {nested && option(null, "↰", t("share_inherit"),
             inherited && inherited.from !== path
               ? t("share_now", { mode: t(MODE_KEYS[inherited.mode]) }) + (inherited.from ? ` ${t("share_from", { name: inherited.from.split("/").pop() ?? "" })}` : "")
               : t("share_follows"))}
         </div>
         {mode === "shared" && others.length > 0 && (
-          <div className="sd-people">
-            <div className="sd-peoplehead">{t("share_who")}</div>
-            {others.map((u) => {
-              const level = people[u] ?? "";
-              return (
-                <div key={u} className="sd-person">
-                  <span>{u}</span>
-                  <select value={level} onChange={(e) => {
-                    const v = e.target.value as Level | "";
-                    setPeople((p) => {
-                      const next = { ...p };
-                      if (v) next[u] = v; else delete next[u];
-                      return next;
-                    });
-                  }}>
-                    <option value="">{t("share_no_access")}</option>
-                    {(["see", "add", "manage"] as Level[]).map((l) => <option key={l} value={l}>{t(levelText(area)[l])}</option>)}
-                  </select>
-                </div>
-              );
-            })}
-          </div>
+          <People others={others} people={people} setPeople={setPeople}
+                  levels={(["see", "add", "manage"] as Level[]).map((l) => [l, t(levelText(area)[l]), LEVEL_ICON[l]])} />
         )}
         {error && <p className="error small">{error}</p>}
         <footer className="sd-foot">
@@ -206,11 +187,11 @@ export function CalendarShareDialog({ calendar, onClose, onSaved }: {
   };
 
   const others = users.filter((u) => u !== calendar.owner);
-  const option = (m: "shared" | "private", icon: string, title: string, sub: string) => (
+  const option = (m: "shared" | "private", icon: string, title: string, sub?: string) => (
     <label className={"sd-option" + (mode === m ? " on" : "")}>
       <input type="radio" name="sd-cal-mode" checked={mode === m} onChange={() => setMode(m)} />
       <span className="sd-icon" aria-hidden>{icon}</span>
-      <span className="sd-text"><b>{title}</b><small>{sub}</small></span>
+      <span className="sd-text"><b>{title}</b>{sub && <small>{sub}</small>}</span>
     </label>
   );
   return (
@@ -222,34 +203,75 @@ export function CalendarShareDialog({ calendar, onClose, onSaved }: {
         </header>
         <div className="sd-options">
           {option("shared", ACCESS_ICON.shared, t("share_shared"), t("share_shared_desc"))}
-          {option("private", ACCESS_ICON.private, t("share_private"), t("share_only", { name: calendar.owner }))}
+          {option("private", ACCESS_ICON.private, t("share_private"))}
         </div>
         {mode === "shared" && others.length > 0 && (
-          <div className="sd-people">
-            <div className="sd-peoplehead">{t("share_who")}</div>
-            {others.map((u) => (
-              <div key={u} className="sd-person">
-                <span>{u}</span>
-                <select value={people[u] ?? ""} onChange={(e) => {
-                  const v = e.target.value as CalLevel | "";
-                  setPeople((p) => {
-                    const next = { ...p };
-                    if (v) next[u] = v; else delete next[u];
-                    return next;
-                  });
-                }}>
-                  <option value="">{t("share_no_access")}</option>
-                  {(["see", "edit", "manage"] as CalLevel[]).map((l) => <option key={l} value={l}>{t(CAL_LEVEL_TEXT[l])}</option>)}
-                </select>
-              </div>
-            ))}
-          </div>
+          <People others={others} people={people} setPeople={setPeople}
+                  levels={(["see", "edit", "manage"] as CalLevel[]).map((l) => [l, t(CAL_LEVEL_TEXT[l]), LEVEL_ICON[l]])} />
         )}
         {error && <p className="error small">{error}</p>}
         <footer className="sd-foot">
           <button className="ghost" onClick={onClose}>{t("cancel")}</button>
           <button onClick={save} disabled={busy}>{busy ? t("saving") : t("save")}</button>
         </footer>
+      </div>
+    </div>
+  );
+}
+
+const LEVEL_ICON: Record<"" | Level | CalLevel, IconName> = { "": "block", see: "eye", add: "plus", edit: "edit", manage: "settings" };
+
+/** Who may do what, a row per person: no access or a level, as a row of
+ *  icons (their names in the legend under them), so every row lines up.
+ *  The first row, everyone, gives one level to all at once -- lit when all
+ *  have the same one, none lit when they differ; the people scroll under it. */
+function People<L extends string>({ others, people, setPeople, levels }: {
+  others: string[];
+  people: Record<string, L>;
+  setPeople: (p: Record<string, L>) => void;
+  levels: [L, string, IconName][];
+}) {
+  const { t } = useT();
+  const choices: ["" | L, string, IconName][] = [["", t("share_no_access"), LEVEL_ICON[""]], ...levels];
+  const first = people[others[0]] ?? "";
+  const common = others.every((u) => (people[u] ?? "") === first) ? first : null;
+  const pick = (value: "" | L | null, onPick: (v: "" | L) => void) => (
+    <span className="sd-levels" role="radiogroup">
+      {choices.map(([v, text, icon]) => (
+        <button key={v} type="button" role="radio" aria-checked={value === v} title={text} aria-label={text}
+                className={"ghost sd-level" + (value === v ? " on" : "")} onClick={() => onPick(v)}>
+          <Icon name={icon} size={16} className="" />
+        </button>
+      ))}
+    </span>
+  );
+  return (
+    <div className="sd-people">
+      <div className="sd-peoplehead">{t("share_who")}</div>
+      <div className="sd-grid sd-all">
+        <span className="sd-name sd-everyone">{t("share_everyone")}</span>
+        {pick(common, (v) => {
+          const next: Record<string, L> = {};
+          if (v) for (const u of others) next[u] = v;
+          setPeople(next);
+        })}
+      </div>
+      <div className="sd-grid sd-list">
+        {others.map((u) => (
+          <Fragment key={u}>
+            <span className="sd-name" title={u}>{u}</span>
+            {pick(people[u] ?? "", (v) => {
+              const next = { ...people };
+              if (v) next[u] = v; else delete next[u];
+              setPeople(next);
+            })}
+          </Fragment>
+        ))}
+      </div>
+      <div className="sd-legend muted small">
+        {choices.map(([v, text, icon]) => (
+          <span key={v}><Icon name={icon} size={12} className="" /> {text}</span>
+        ))}
       </div>
     </div>
   );

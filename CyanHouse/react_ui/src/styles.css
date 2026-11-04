@@ -1488,7 +1488,7 @@ button.glyph-btn:disabled { opacity: 0.2; }
 .mv-pane { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; gap: 3px; }
 .mv-panehead {
   flex: 0 0 auto;
-  display: flex; align-items: baseline; gap: 8px;
+  display: flex; align-items: center; gap: 8px;
   padding: 0 4px;
   font-size: 0.7rem;
   min-width: 0;
@@ -2494,7 +2494,9 @@ select.mv-preplang:invalid, select.mv-preplang[data-empty="true"] { color: var(-
   background: rgba(0, 0, 0, 0.55); padding: 16px;
 }
 .sd-box {
-  width: min(460px, 100%); max-height: calc(100vh - 32px); overflow-y: auto;
+  /* Never scrolls itself: the people's list (.sd-list) is what gives way
+   * when it does not fit, and scrolls -- one scrollbar, not two. */
+  width: min(460px, 100%); max-height: calc(100dvh - 32px); overflow: hidden;
   background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5); padding: 18px 18px 14px;
   display: flex; flex-direction: column; gap: 14px;
@@ -2510,8 +2512,26 @@ select.mv-preplang:invalid, select.mv-preplang[data-empty="true"] { color: var(-
 .sd-icon { font-size: 1.15rem; width: 1.4em; text-align: center; }
 .sd-text { display: flex; flex-direction: column; }
 .sd-text small { color: var(--muted); }
+.sd-box > * { flex-shrink: 0; }
+.sd-box > .sd-people { flex-shrink: 1; min-height: 0; }
 .sd-people { display: flex; flex-direction: column; gap: 4px; }
+.sd-people > * { flex-shrink: 0; }
+.sd-people > .sd-list { flex-shrink: 1; min-height: 72px; }
 .sd-peoplehead { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+/* A name, and its levels as a row of icons: every row's icons in the same
+ * columns, "everyone" above the people with a line under it. */
+.sd-grid { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 10px; }
+.sd-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sd-everyone { font-style: italic; color: var(--muted); }
+/* Both reserve the scrollbar's room, so the icons stay in one column
+ * whether the list scrolls or not. */
+.sd-all { padding-bottom: 6px; border-bottom: 1px solid var(--line); overflow: hidden; scrollbar-gutter: stable; }
+.sd-list { padding-top: 6px; max-height: min(240px, 40dvh); overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
+.sd-levels { display: inline-flex; gap: 2px; }
+.sd-level { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 30px; padding: 0; color: var(--muted); border-color: transparent; }
+.sd-level.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.sd-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 6px; }
+.sd-legend span { display: inline-flex; align-items: center; gap: 4px; }
 .sd-person { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 3px 0; }
 .sd-foot { display: flex; justify-content: flex-end; gap: 8px; }
 
@@ -2579,6 +2599,17 @@ label.button-like {
   display: inline-flex; align-items: center; padding: 5px 12px; border-radius: 6px; cursor: pointer;
   background: var(--accent); color: #fff; font-size: 0.85rem; line-height: 1.4;
 }
+/* The phone's upload button (icons.tsx, UploadButton): a label, for its
+ * file input, drawn as the buttons around it. */
+.upload-pick {
+  display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto;
+  cursor: pointer; box-sizing: border-box;
+  background: var(--panel-2); color: var(--text);
+  border: 1px solid var(--line); border-radius: 6px; padding: 0 8px;
+}
+.upload-pick:hover { border-color: #3a414f; }
+.mv-panehead .upload-pick { align-self: center; height: 20px; }
+.mv-sources .upload-pick { width: 34px; height: 34px; padding: 0; background: transparent; }
 /* Vault passwords: text fields drawn as dots, so the browser doesn't offer
    to save them (VaultView.tsx, SecretInput). */
 .vault-secret { -webkit-text-security: disc; }

@@ -1,8 +1,8 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { api, MOVIES_KEY, MovieInfo, MovieItem, MovieTrack, MovieSource, MusicAuto, MusicSong, PrepPlan, RemuxJob, StagedFile } from "../api";
+import { ACCESS_RANK, api, MOVIES_KEY, MovieInfo, MovieItem, MovieTrack, MovieSource, MusicAuto, MusicSong, PrepPlan, RemuxJob, StagedFile } from "../api";
 import { FileView, FileTree, MoviesHome, PrepIdentity, PrepCommit, DRAG_TYPE, draggedArea, fmtSize, selectionRoots } from "./StagingView";
 import { useVersionPoll, useVisibility } from "../api";
-import { entriesFrom, walkEntries, useUploads } from "../uploads";
+import { entriesFrom, walkEntries, useUploads, PickedFile } from "../uploads";
 import { readCookie, writeCookie } from "../cookies";
 import { currentUsername } from "../auth";
 import { CoverBook } from "./CoverBook";
@@ -17,7 +17,7 @@ import { VolumePop } from "./VolumePop";
 import { forget, useNative } from "../native";
 import { useNarrow } from "../narrow";
 import { useDragScroll } from "../dragScroll";
-import { Icon } from "./icons";
+import { Icon, UploadButton } from "./icons";
 import { IconPick } from "./IconPick";
 import { ConflictDialog, Clash } from "./ConflictDialog";
 import { BackStep, useBackToClose } from "../backClose";
@@ -834,7 +834,14 @@ export function MoviesPanel() {
    *  area they come *from* separately, because the two panes of a pair are
    *  two folders and dragging between them is the whole point of showing
    *  them together. */
-  const actionsFor = (area: string) => ({
+  const actionsFor = (area: string) => {
+  const send = (found: PickedFile[], to: string) => {
+    if (!found.length) { say(tr("mv_nothing_usable"), true); return; }
+    uploads.add(found, area, to);
+    const bytes = found.reduce((n, p) => n + p.file.size, 0);
+    say(`${tn("mv_uploading_files", found.length)} (${fmtSize(bytes)}) → ${labelOf(area)}${to ? " / " + to : ""}`);
+  };
+  return {
     move: (paths: string[], to: string, fromArea: string) =>
       moveMany(fromArea, paths, area, to,
                fromArea === area ? (to || "the top level") : `${labelOf(area)}${to ? " / " + to : ""}`),
@@ -851,12 +858,12 @@ export function MoviesPanel() {
       // drop handler returns, and an entry taken from it afterwards is null.
       const entries = entriesFrom(dt);
       setTreeNote(null);
-      walkEntries(entries, dt).then((found) => {
-        if (!found.length) { say(tr("mv_nothing_usable"), true); return; }
-        uploads.add(found, area, to);
-        const bytes = found.reduce((n, p) => n + p.file.size, 0);
-        say(`${tn("mv_uploading_files", found.length)} (${fmtSize(bytes)}) → ${labelOf(area)}${to ? " / " + to : ""}`);
-      }).catch((e) => failed(e));
+      walkEntries(entries, dt).then((found) => send(found, to)).catch((e) => failed(e));
+    },
+    /** Files picked rather than dropped (the phone's way in). */
+    uploadFiles: (files: File[], to: string) => {
+      setTreeNote(null);
+      send(files.map((file) => ({ file, relPath: file.name })), to);
     },
     remove: (paths: string[]) => deletePaths(area, paths),
     mkdir: async (parent: string, name: string) => {
@@ -869,7 +876,8 @@ export function MoviesPanel() {
     },
     moveTo: (paths: string[], toArea: string) =>
       moveMany(area, paths, toArea, "", labelOf(toArea)),
-  });
+  };
+  };
 
   /** Where a right-click in `area` can send things: every other folder that
    *  exists, or — without the publish permission — the other half of the
@@ -1684,6 +1692,23 @@ export function MoviesPanel() {
 
   // The search button, the size slider, the view icons and the disk: in
   // the search row on a wide screen, in the tab row on a phone.
+  // A phone cannot drop files in, so it picks them: a one-folder tab gets
+  // the button here, into its top level -- or, in the gallery, the album
+  // open, where this user may add to it. A staging area's two folders have
+  // one each, by TO PROCESS and DONE.
+  const uploadTarget = ((): string | null => {
+    if (panes.length !== 1 || !canEditArea(panes[0].key)) return null;
+    if (tab === ":music" && musicView !== "folders") return null;
+    if (tab === ":images" && imagesView === "gallery" && galleryFolder) {
+      const a = (listings[":images"] ?? []).find((f) => f.kind === "folder" && f.path === galleryFolder)?.access;
+      return a && ACCESS_RANK[a.level] >= ACCESS_RANK.add ? galleryFolder : null;
+    }
+    return "";
+  })();
+  const toolUpload = uploadTarget !== null && (
+    <UploadButton title={tr("vault_upload")}
+                  onFiles={(files) => actionsFor(panes[0].key).uploadFiles(files, uploadTarget)} />
+  );
   const searchBtn = (
     <button className={"ghost mv-searchbtn" + (searchOpen || query ? " active" : "")} title={tr("search")} aria-label={tr("search")}
             // Keeps the box's focus, whose blur would otherwise close it
@@ -1829,7 +1854,7 @@ export function MoviesPanel() {
             the disk, always there. */}
         {narrow && tab !== INTRO && !external && searchBtn}
         {narrow && <span className="mv-rowgap" />}
-        {narrow && tab !== INTRO && !external && <>{sizeCtl}{viewPick}<span className="mv-srcsep" aria-hidden /></>}
+        {narrow && tab !== INTRO && !external && <>{sizeCtl}{viewPick}{toolUpload}<span className="mv-srcsep" aria-hidden /></>}
         {/* The remux queue, at the far end of the tab row: visible from
             every tab whatever is selected, because it is happening on
             the server regardless. The running one is shown outright; the
@@ -1968,9 +1993,15 @@ export function MoviesPanel() {
           <div className="mv-panes" onClick={clearOnEmpty}>
             {panes.map((pane) => (
               <div className={"mv-pane " + pane.role} key={pane.key}>
-                {panes.length > 1 && (
+                {(panes.length > 1 || (narrow && canEditArea(pane.key))) && (
                   <div className="mv-panehead" title={pane.path}>
-                    <span className="mv-panerole">{pane.role === "todo" ? "to process" : "done"}</span>
+                    {panes.length > 1 && <span className="mv-panerole">{pane.role === "todo" ? "to process" : "done"}</span>}
+                    {/* A phone cannot drop files in: it picks them, into the
+                        folder's top level (which the tree's root access allows). */}
+                    {narrow && canEditArea(pane.key) && (
+                      <UploadButton title={tr("vault_upload")}
+                                    onFiles={(files) => actionsFor(pane.key).uploadFiles(files, "")} />
+                    )}
                     <span className="mv-panepath">{pane.path}</span>
                     {pane.kind === "inbox" && pane.type === "music" && (() => {
                       const a = musicAuto[pane.key];
