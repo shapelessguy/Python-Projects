@@ -1993,11 +1993,12 @@ export function MoviesPanel() {
           <div className="mv-panes" onClick={clearOnEmpty}>
             {panes.map((pane) => (
               <div className={"mv-pane " + pane.role} key={pane.key}>
-                {(panes.length > 1 || (narrow && canEditArea(pane.key))) && (
+                {panes.length > 1 && (
                   <div className="mv-panehead" title={pane.path}>
-                    {panes.length > 1 && <span className="mv-panerole">{pane.role === "todo" ? "to process" : "done"}</span>}
+                    <span className="mv-panerole">{pane.role === "todo" ? "to process" : "done"}</span>
                     {/* A phone cannot drop files in: it picks them, into the
-                        folder's top level (which the tree's root access allows). */}
+                        folder's top level. A one-folder tab has the button in
+                        the tab row instead (toolUpload). */}
                     {narrow && canEditArea(pane.key) && (
                       <UploadButton title={tr("vault_upload")}
                                     onFiles={(files) => actionsFor(pane.key).uploadFiles(files, "")} />
