@@ -1131,6 +1131,9 @@ button.glyph-btn:disabled { opacity: 0.2; }
 .ingredients-top input { flex: 1 1 auto; min-width: 0; }
 .ingredients-top input.yield-qty { flex: 0 0 4.5em; text-align: center; }
 .ingredients-top > span { white-space: nowrap; }
+/* The yield unit: a list of the ones in use, or a new one typed. */
+.ingredients-top select, .ingredients-top .dish-form-newcat { flex: 1 1 auto; min-width: 0; }
+.ingredients-top select.invalid { border-color: var(--accent) !important; }
 .ingredients-rows { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
 .ingredients-row { display: grid; grid-template-columns: minmax(0, 1fr) 4.5em 3.6em auto; gap: 6px; align-items: center; }
 .ingredients-row.catalog-row { grid-template-columns: 2fr 1fr 1fr auto; }

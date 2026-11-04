@@ -454,6 +454,7 @@ export function FoodPanel() {
           // ends, so what it brought is what is edited.
           key={`${editingIngredients.id}-${data.dishes.find((d) => d.id === editingIngredients.id)?.import.state ?? ""}`}
           dish={data.dishes.find((d) => d.id === editingIngredients.id) ?? editingIngredients}
+          dishes={data.dishes}
           onRetryImport={(id) => foodApi.importRecipe(id).then((d) => { apply(d); setWatching(id); })
             .catch((e) => setError(serverMessage(e)))}
           catalog={data.ingredients ?? []}
@@ -1135,6 +1136,7 @@ function IngredientCatalog({ items, units, dishes, onOpenDish, onChanged, onClos
  *  the dish is saved. Each amount is in any unit of `units`. */
 function IngredientsEditor({
   dish,
+  dishes,
   catalog,
   units,
   onCancel,
@@ -1142,6 +1144,7 @@ function IngredientsEditor({
   onRetryImport,
 }: {
   dish: Dish;
+  dishes: Dish[]; // all of them: the yield units already in use
   catalog: CatalogIngredient[];
   units: UnitDef[];
   onRetryImport: (dishId: number) => void;
@@ -1168,6 +1171,14 @@ function IngredientsEditor({
   // English one unless it is changed (then it is translated on save).
   const shownUnit = useMemo(() => yieldUnit(dish, lang), [dish, lang]);
   const [unit, setUnit] = useState(shownUnit);
+  // A yield unit some dish already has is picked; typing one is only for a
+  // new one (or a dish with none yet). Shown in the UI's language.
+  const yieldUnits = useMemo(() => {
+    const shown = new Set<string>();
+    for (const d of dishes) { const u = yieldUnit(d, lang); if (u) shown.add(u); }
+    return [...shown].sort((a, b) => a.localeCompare(b));
+  }, [dishes, lang]);
+  const [newUnit, setNewUnit] = useState(() => !yieldUnits.includes(shownUnit));
   // A row with no amount has no unit yet; grams until one is picked.
   const [rows, setRows] = useState<IngredientRow[]>(
     () => initial.rows.map((r) => ({ ...r, name: shown.get(r.name) ?? r.name, unit: r.quantity.trim() ? r.unit : "g" })));
@@ -1281,9 +1292,27 @@ function IngredientsEditor({
             <span className="muted small">{t("food_serves")}</span>
             <input value={quantity} onChange={(e) => setQuantity(e.target.value)} placeholder={t("food_quantity_placeholder")}
                    aria-label={t("food_quantity")} className={"yield-qty" + (tried && yieldBad.quantity ? " invalid" : "")} />
-            <input value={unit} onChange={(e) => setUnit(lang === "de" ? e.target.value : lower(e.target.value))}
-                   placeholder={t("food_unit_placeholder")}
-                   aria-label={t("food_unit")} className={tried && yieldBad.unit ? "invalid" : ""} />
+            {newUnit ? (
+              <span className="dish-form-newcat">
+                <input value={unit} onChange={(e) => setUnit(lang === "de" ? e.target.value : lower(e.target.value))}
+                       placeholder={t("food_unit_placeholder")} autoFocus={yieldUnits.length > 0}
+                       aria-label={t("food_unit")} className={tried && yieldBad.unit ? "invalid" : ""} />
+                {yieldUnits.length > 0 && (
+                  <button type="button" className="ghost" title={t("cancel")}
+                          onClick={() => { setNewUnit(false); setUnit(yieldUnits.includes(shownUnit) ? shownUnit : yieldUnits[0]); }}>
+                    ✕
+                  </button>
+                )}
+              </span>
+            ) : (
+              <select value={unit} aria-label={t("food_unit")} className={tried && yieldBad.unit ? "invalid" : ""}
+                      onChange={(e) => {
+                        if (e.target.value === "\0new") { setNewUnit(true); setUnit(""); } else setUnit(e.target.value);
+                      }}>
+                {yieldUnits.map((u) => <option key={u} value={u}>{u}</option>)}
+                <option value={"\0new"}>{t("food_unit_new")}</option>
+              </select>
+            )}
           </div>
           <datalist id="food-ingredient-names">
             {catalog.map((c) => <option key={c.name} value={ingredientName(c, lang)} />)}

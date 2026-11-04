@@ -144,6 +144,7 @@ export const en = {
   food_unit: "Unit",
   food_quantity_placeholder: "e.g. 4",
   food_unit_placeholder: "e.g. persons",
+  food_unit_new: "New unit…",
   food_serves: "Serves",
   food_name_placeholder: "name",
   food_name_invalid: "Ingredient names are just words, no numbers or symbols.",

@@ -136,6 +136,7 @@ export const it: Dict = {
   food_unit: "Unità",
   food_quantity_placeholder: "es. 4",
   food_unit_placeholder: "es. persone",
+  food_unit_new: "Nuova unità…",
   food_serves: "Dosi per",
   food_name_placeholder: "nome",
   food_name_invalid: "I nomi degli ingredienti sono solo parole, senza numeri o simboli.",

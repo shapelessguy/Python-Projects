@@ -331,6 +331,14 @@ def _migrate(conn: sqlite3.Connection) -> None:
     if conn.execute("PRAGMA user_version").fetchone()[0] < 1:
         _migrate_photo_marks(conn)
         conn.execute("PRAGMA user_version = 1")
+    if conn.execute("PRAGMA user_version").fetchone()[0] < 2:
+        # Yield units from before they were kept in English (Italian in the
+        # English column), and synonyms that read the same in every other
+        # language ("porzioni", "Portionen") -- one of each, so the list of
+        # the ones in use has no doubles. Their translations stay right.
+        for was, now in (("persone", "persons"), ("porzioni", "servings"), ("portions", "servings")):
+            conn.execute("UPDATE food_dishes SET yield_unit = ? WHERE yield_unit = ?", (now, was))
+        conn.execute("PRAGMA user_version = 2")
     if "html" in {r["name"] for r in conn.execute("PRAGMA table_info(food_recipe_pages)")}:
         # Its first version kept each page's whole HTML. Pages are fetched
         # again when picked again, so the old ones just go.
@@ -909,6 +917,28 @@ def _find_category(conn: sqlite3.Connection, text: str, lang: str) -> str | None
     r = conn.execute("SELECT category FROM food_category_names WHERE lang = ? AND lower(name) = ?",
                      (lang, low)).fetchone()
     return r["category"] if r else None
+
+
+def _find_yield_unit(conn: sqlite3.Connection, text: str, lang: str) -> dict[str, str] | None:
+    """The yield unit `text` names that a dish already has -- its English, or
+    its name in `lang`, either case -- in every language that has it
+    (lang -> text, "en" its English); None for one no dish has."""
+    low = text.lower()
+    r = conn.execute("SELECT yield_unit FROM food_dishes WHERE lower(yield_unit) = ? AND yield_unit != ''",
+                     (low,)).fetchone()
+    if r is None:
+        r = conn.execute(
+            "SELECT d.yield_unit FROM food_translations t JOIN food_dishes d ON d.id = t.dish_id "
+            "WHERE t.field = 'yield_unit' AND t.lang = ? AND lower(t.text) = ? AND d.yield_unit != ''",
+            (lang, low)).fetchone()
+    if r is None:
+        return None
+    out = {"en": r["yield_unit"]}
+    for t in conn.execute(
+        "SELECT t.lang, t.text FROM food_translations t JOIN food_dishes d ON d.id = t.dish_id "
+        "WHERE t.field = 'yield_unit' AND d.yield_unit = ?", (r["yield_unit"],)):
+        out.setdefault(t["lang"], t["text"])
+    return out
 
 
 def _name_category(conn: sqlite3.Connection, category: str, texts: dict[str, str]) -> None:
@@ -1543,6 +1573,7 @@ def update_dish(user: str, dish_id: int, patch: dict) -> dict:
     # joins the list -- alongside the translations.
     ingredients: dict | None | bool = False
     unknown: list[str] = []
+    unit_texts: dict[str, str] | None = None  # a new yield unit, lang -> text
     if patch.get("ingredients") is not None:
         with connect() as conn:
             r = conn.execute("SELECT yield_qty, yield_unit FROM food_dishes WHERE id = ?", (dish_id,)).fetchone()
@@ -1561,13 +1592,17 @@ def update_dish(user: str, dish_id: int, patch: dict) -> dict:
                     raise ValueError("invalid ingredients: " + "; ".join(errors))
                 unknown = [n for n in ingredients["ingredients"] if n not in listed]
                 # The yield's unit as written in `lang`: English stored, the
-                # other languages translated -- unless it is the one shown.
+                # other languages translated -- unless it is the one shown,
+                # or another dish's (its languages taken, no model asked).
                 typed_unit, units = ingredients["unit"], current["yield_unit"]
                 if typed_unit == units.get(lang):
                     ingredients["unit"] = r["yield_unit"]
                 elif typed_unit != r["yield_unit"]:
-                    jobs["yield_unit"] = ("yield_unit", lang, units.get(lang, ""), typed_unit,
-                                          {k: v for k, v in units.items() if k != lang})
+                    with connect() as conn:
+                        unit_texts = _find_yield_unit(conn, typed_unit, lang)
+                    if unit_texts is None:
+                        jobs["yield_unit"] = ("yield_unit", lang, units.get(lang, ""), typed_unit,
+                                              {k: v for k, v in units.items() if k != lang})
     from api.services import food_import  # it imports this module
     with ThreadPoolExecutor(max_workers=1) as pool:
         resolving = pool.submit(food_import.resolve_names, unknown) if unknown else None
@@ -1584,8 +1619,9 @@ def update_dish(user: str, dish_id: int, patch: dict) -> dict:
                 raise ValueError(f'"{n}" could not be checked against the ingredient list -- try saving again')
     full = {k: {lang: jobs[k][3], **v} for k, v in done.items()}
     if "yield_unit" in full:
-        full["yield_unit"]["en"] = full["yield_unit"]["en"].lower()
-        ingredients["unit"] = full["yield_unit"]["en"]
+        unit_texts = {**full["yield_unit"], "en": full["yield_unit"]["en"].lower()}
+    if unit_texts is not None:
+        ingredients["unit"] = unit_texts["en"]
     instructions: dict[str, str] | None = full.get("instructions", plain.get("instructions"))
     with connect() as conn:
         row = conn.execute(
@@ -1634,8 +1670,8 @@ def update_dish(user: str, dish_id: int, patch: dict) -> dict:
                 _forget_image(row["image"])
         if ingredients is not False:
             _set_dish_ingredients(conn, dish_id, ingredients)
-            if "yield_unit" in full:
-                _set_translations(conn, dish_id, "yield_unit", full["yield_unit"])
+            if unit_texts is not None:
+                _set_translations(conn, dish_id, "yield_unit", unit_texts)
             shared["ingredients"] = True
             for typed, res in resolved.items():
                 iid = _ingredient_id(conn, res["name"])
