@@ -107,6 +107,7 @@ class MainActivity : ComponentActivity() {
             textSize = 11f
             setPadding(18, 6, 18, 6)
             alpha = 0.75f
+            visibility = View.GONE   // testing chip, hidden; set VISIBLE to bring it back
             background = GradientDrawable().apply { cornerRadius = 40f; setColor(Color.DKGRAY) }
             setOnClickListener {
                 Route.recheck(this@MainActivity)
