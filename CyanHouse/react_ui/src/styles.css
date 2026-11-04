@@ -597,16 +597,17 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
   gap: 12px;
 }
 .dish-grid[hidden] { display: none; }
-.cat-loading { margin: 0 0 10px; }
-.cat-loading-label { display: block; margin-bottom: 4px; }
-.cat-loading-track {
-  height: 4px; border-radius: 3px; overflow: hidden;
+/* Loading, at the right of the row it belongs to (the panel's heading, a
+   category's): a thin bar, nothing pushed down. Indeterminate: a slice
+   running across. */
+.load-bar {
+  display: block; flex: 0 0 auto; width: min(160px, 30%); height: 4px; margin-left: auto;
+  align-self: center; border-radius: 3px; overflow: hidden;
   background: var(--panel-2); border: 1px solid var(--line);
 }
-.cat-loading-fill {
-  height: 100%; background: var(--accent);
-  transition: width 0.18s ease;
-}
+.load-bar-fill { display: block; height: 100%; background: var(--accent); transition: width 0.18s ease; }
+.load-bar.indeterminate .load-bar-fill { width: 35%; animation: load-bar-run 1.1s ease-in-out infinite; }
+@keyframes load-bar-run { from { transform: translateX(-100%); } to { transform: translateX(290%); } }
 .dish-card {
   display: flex; flex-direction: column;
   background: var(--panel); border: 1px solid var(--line);

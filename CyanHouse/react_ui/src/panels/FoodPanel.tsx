@@ -171,6 +171,16 @@ export function FoodPanel() {
     (cat: string) => setImgLoaded((s) => (s.has(cat) ? s : new Set(s).add(cat))),
     [],
   );
+  // Each open category's images loaded so far, of how many: a bar at the
+  // right of its heading until they all are.
+  const [imgProgress, setImgProgress] = useState<Record<string, [number, number]>>({});
+  const reportProgress = useCallback(
+    (cat: string, done: number, total: number) => setImgProgress((p) => {
+      const was = p[cat];
+      return was && was[0] === done && was[1] === total ? p : { ...p, [cat]: [done, total] };
+    }),
+    [],
+  );
   const appliedVersion = useRef(-1);
   const seenFood = useRef(0);
 
@@ -302,10 +312,19 @@ export function FoodPanel() {
         <p className="error">{error}</p>
       </div>
     );
+  // Loading: the heading as it will be, a bar running at its right -- the
+  // page doesn't jump when the dishes come.
   if (!data)
     return (
-      <div className="panel">
-        <p className="muted">{t("loading")}</p>
+      <div className="panel food">
+        <div className="food-main">
+          <div className="food-head">
+            <h2>{t("food_dishes")}</h2>
+            <div className="load-bar indeterminate" role="progressbar" aria-label={t("loading")} title={t("loading")}>
+              <div className="load-bar-fill" />
+            </div>
+          </div>
+        </div>
       </div>
     );
 
@@ -373,6 +392,8 @@ export function FoodPanel() {
         {groups.map((cat) => {
           const dishes = byCategory(cat).sort((a, b) => b.rating - a.rating);
           const isOpen = expanded.has(cat);
+          const progress = imgProgress[cat];
+          const loadingImgs = isOpen && !imgLoaded.has(cat) && progress && progress[1] > 0 && progress[0] < progress[1];
           return (
             <section className="food-group" key={cat || "-"}>
               <h3
@@ -382,6 +403,12 @@ export function FoodPanel() {
                 <span className="chevron">{isOpen ? "▾" : "▸"}</span>
                 {cat ? data.category_tr?.[cat]?.[lang] || cat : t("food_uncategorised")}
                 <span className="muted"> ({dishes.length})</span>
+                {loadingImgs && (
+                  <span className="load-bar" role="progressbar" aria-valuemin={0} aria-valuemax={progress[1]}
+                        aria-valuenow={progress[0]} title={t("food_loading_images", { done: progress[0], total: progress[1] })}>
+                    <span className="load-bar-fill" style={{ width: `${(progress[0] / progress[1]) * 100}%` }} />
+                  </span>
+                )}
               </h3>
               {everOpened.has(cat) && (
                 <CategoryGrid
@@ -389,6 +416,7 @@ export function FoodPanel() {
                   collapsed={!isOpen}
                   loaded={imgLoaded.has(cat)}
                   onAllLoaded={() => markLoaded(cat)}
+                  onProgress={(done, total) => reportProgress(cat, done, total)}
                   onEdit={setEditing}
                   onRate={(id, rating) => mutate(foodApi.patch(id, { rating }))}
                   onEditIngredients={setEditingIngredients}
@@ -628,15 +656,17 @@ function QuantityStepper({
   );
 }
 
-/** One category's cards + a progress bar shown until every image in it has
- *  loaded (or errored). Once done it calls `onAllLoaded` and the parent stops
- *  passing `loaded={false}`, so re-opening the category is bar-free. Stays
- *  mounted while collapsed so images are never re-fetched. */
+/** One category's cards, telling how many of their images have loaded (or
+ *  errored) -- the parent's bar by its heading -- until they all have. Once
+ *  done it calls `onAllLoaded` and the parent stops passing `loaded={false}`,
+ *  so re-opening the category is bar-free. Stays mounted while collapsed so
+ *  images are never re-fetched. */
 function CategoryGrid({
   dishes,
   collapsed,
   loaded,
   onAllLoaded,
+  onProgress,
   onEdit,
   onRate,
   onEditIngredients,
@@ -649,6 +679,7 @@ function CategoryGrid({
   collapsed: boolean;
   loaded: boolean;
   onAllLoaded: () => void;
+  onProgress: (done: number, total: number) => void;
   onEdit: (d: Dish) => void;
   onRate: (id: number, rating: number) => void;
   onEditIngredients: (d: Dish) => void;
@@ -657,7 +688,6 @@ function CategoryGrid({
   selection: Set<number>;
   onToggleSelect: (id: number) => void;
 }) {
-  const { t } = useT();
   const total = dishes.filter((d) => d.image).length;
   const settled = useRef<Set<number>>(new Set());
   const [done, setDone] = useState(0);
@@ -665,6 +695,7 @@ function CategoryGrid({
   useEffect(() => {
     if (!loaded && done >= total) onAllLoaded();
   }, [loaded, done, total, onAllLoaded]);
+  useEffect(() => { if (!loaded) onProgress(done, total); }, [loaded, done, total]);  // eslint-disable-line react-hooks/exhaustive-deps
 
   const onImgSettled = (id: number) => {
     if (settled.current.has(id)) return;
@@ -672,23 +703,8 @@ function CategoryGrid({
     setDone((n) => n + 1);
   };
 
-  const showBar = !collapsed && !loaded && total > 0 && done < total;
-
   return (
     <>
-      {showBar && (
-        <div className="cat-loading" role="progressbar" aria-valuemin={0} aria-valuemax={total} aria-valuenow={done}>
-          <span className="cat-loading-label muted small">
-            {t("food_loading_images", { done, total })}
-          </span>
-          <div className="cat-loading-track">
-            <div
-              className="cat-loading-fill"
-              style={{ width: `${(done / total) * 100}%` }}
-            />
-          </div>
-        </div>
-      )}
       <div className="dish-grid" hidden={collapsed}>
         {dishes.map((d) => (
           <DishCard
