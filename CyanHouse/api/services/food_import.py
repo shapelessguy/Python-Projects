@@ -143,6 +143,8 @@ def _save(dish_id: int, url: str, facts: dict, ingredients: dict | None,
             for f in set(json.loads(row["photos"] or "{}").values()) - set((photos or {}).values()):
                 food._forget_image(f)
         if ingredients is not None:
+            # A yield unit new to the dish loses its translations: the
+            # worker gives it new ones.
             food._set_dish_ingredients(conn, dish_id, ingredients["data"])
             for ing_name, names in ingredients["new_names"].items():
                 food.name_ingredient(conn, food._ingredient_id(conn, ing_name), names)
@@ -151,6 +153,8 @@ def _save(dish_id: int, url: str, facts: dict, ingredients: dict | None,
                 [(alias, food._ingredient_id(conn, ing_name)) for alias, ing_name in ingredients["aliases"].items()
                  if alias])
         food._bump_all(conn)
+    if ingredients is not None:
+        food._spawn_translations_processing()
 
 
 # ── facts ────────────────────────────────────────────────────────────────

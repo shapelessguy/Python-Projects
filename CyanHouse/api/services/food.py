@@ -519,6 +519,8 @@ def snapshot(conn: sqlite3.Connection, user: str) -> dict:
          "instructions": r["instructions"],
          "instructions_tr": translated.get((r["id"], "instructions"), {}),
          "ingredients": _ingredients_text(r["yield_qty"], r["yield_unit"], lines.get(r["id"], [])),
+         # The yield's unit (English in `ingredients`) in the other languages.
+         "yield_unit_tr": translated.get((r["id"], "yield_unit"), {}),
          "facts": _facts(r),
          "photos": json.loads(r["photos"] or "{}"),
          # The recipe import: its state, and whether the linked recipe is
@@ -670,7 +672,7 @@ def _openrouter(messages: list[dict], **extra) -> dict:
 # food_translations / food_category_names rows. Must match the web client's
 # LANGUAGES (react_ui/src/i18n).
 LANGUAGES = {"en": "english", "it": "italian", "de": "german"}
-_TRANSLATED_FIELDS = ("name", "instructions")  # food_dishes columns
+_TRANSLATED_FIELDS = ("name", "instructions", "yield_unit")  # food_dishes columns
 
 # A recipe's photos in its text, N a photo's number (a dish's `photos`):
 # "{{photo:N}}" is the photo itself, shown where it stands -- on a line of
@@ -717,6 +719,10 @@ _TRANSLATE_KINDS = {
                    "Here that rule comes before copying the edit: a plural, a spelling, an accent or "
                    "a word order changed is never copied into the other languages, and every name "
                    "stays singular."),
+    "yield_unit": ("what a recipe's yield counts, the word after its number (\"4 persons\")",
+                   "Plural, as after a number above one; the word that language's recipes use "
+                   "(\"persons\", \"persone\", \"Personen\"; \"pieces\", \"pezzi\", \"Stück\"). "
+                   "English and Italian lowercase, German nouns capitalised."),
     "category": ("the name of a category of dishes in a recipe collection",
                  "A name used as it is in that language (Pasta, Risotti) stays exactly as it is."),
 }
@@ -1104,6 +1110,11 @@ def _set_dish_ingredients(conn: sqlite3.Connection, dish_id: int, data: dict | N
     valid), or clear them; a name not in the list joins it."""
     conn.execute("DELETE FROM food_dish_ingredients WHERE dish_id = ?", (dish_id,))
     data = data or {"quantity": "", "unit": "", "ingredients": {}}
+    was = conn.execute("SELECT yield_unit FROM food_dishes WHERE id = ?", (dish_id,)).fetchone()
+    if was is not None and was["yield_unit"] != str(data["unit"]):
+        # Its translations were of the old one: the caller sets the new
+        # ones, or the translation worker fills them in.
+        conn.execute("DELETE FROM food_translations WHERE dish_id = ? AND field = 'yield_unit'", (dish_id,))
     conn.execute("UPDATE food_dishes SET yield_qty = ?, yield_unit = ? WHERE id = ?",
                  (str(data["quantity"]), str(data["unit"]), dish_id))
     for pos, (name, e) in enumerate(data["ingredients"].items()):
@@ -1134,9 +1145,10 @@ def _validate_ingredients_json(text: str, name_re: re.Pattern = _LOWER_WORD_RE) 
     errors: list[str] = []
     if not _PLAIN_NUMBER_RE.match(str(quantity)):
         errors.append('"quantity" must be a plain number (e.g. "4"), no units or text')
-    # The yield's unit, in the language it was written in ("persone").
-    if not isinstance(unit, str) or not _TYPED_NAME_RE.match(unit) or unit != unit.lower():
-        errors.append('"unit" must be lowercase word(s), e.g. "persons"')
+    # The yield's unit, in the language it was written in ("persone",
+    # "Personen"); update_dish keeps it in English, the others translations.
+    if not isinstance(unit, str) or not _TYPED_NAME_RE.match(unit):
+        errors.append('"unit" must be word(s), e.g. "persons"')
     if not isinstance(ingredients, dict) or not ingredients:
         errors.append('"ingredients" must be a non-empty JSON object')
         return None, errors  # nothing left that can be checked
@@ -1548,6 +1560,14 @@ def update_dish(user: str, dish_id: int, patch: dict) -> dict:
                 if errors:
                     raise ValueError("invalid ingredients: " + "; ".join(errors))
                 unknown = [n for n in ingredients["ingredients"] if n not in listed]
+                # The yield's unit as written in `lang`: English stored, the
+                # other languages translated -- unless it is the one shown.
+                typed_unit, units = ingredients["unit"], current["yield_unit"]
+                if typed_unit == units.get(lang):
+                    ingredients["unit"] = r["yield_unit"]
+                elif typed_unit != r["yield_unit"]:
+                    jobs["yield_unit"] = ("yield_unit", lang, units.get(lang, ""), typed_unit,
+                                          {k: v for k, v in units.items() if k != lang})
     from api.services import food_import  # it imports this module
     with ThreadPoolExecutor(max_workers=1) as pool:
         resolving = pool.submit(food_import.resolve_names, unknown) if unknown else None
@@ -1563,6 +1583,9 @@ def update_dish(user: str, dish_id: int, patch: dict) -> dict:
             if not _LOWER_WORD_RE.match(n):
                 raise ValueError(f'"{n}" could not be checked against the ingredient list -- try saving again')
     full = {k: {lang: jobs[k][3], **v} for k, v in done.items()}
+    if "yield_unit" in full:
+        full["yield_unit"]["en"] = full["yield_unit"]["en"].lower()
+        ingredients["unit"] = full["yield_unit"]["en"]
     instructions: dict[str, str] | None = full.get("instructions", plain.get("instructions"))
     with connect() as conn:
         row = conn.execute(
@@ -1611,6 +1634,8 @@ def update_dish(user: str, dish_id: int, patch: dict) -> dict:
                 _forget_image(row["image"])
         if ingredients is not False:
             _set_dish_ingredients(conn, dish_id, ingredients)
+            if "yield_unit" in full:
+                _set_translations(conn, dish_id, "yield_unit", full["yield_unit"])
             shared["ingredients"] = True
             for typed, res in resolved.items():
                 iid = _ingredient_id(conn, res["name"])

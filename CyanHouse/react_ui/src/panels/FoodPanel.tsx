@@ -50,6 +50,9 @@ const ingredientName = (c: CatalogIngredient, lang: string) => (lang !== "en" &&
 
 /** A dish's name in the UI's language, English until it has one. */
 const dishName = (d: Dish, lang: string) => d.name_tr?.[lang] || d.name;
+/** What a dish's yield counts ("persone"), in `lang` -- English until it has it. */
+const yieldUnit = (d: Dish, lang: string) =>
+  (lang !== "en" && d.yield_unit_tr?.[lang]) || parseIngredients(d.ingredients).unit;
 
 /** Renders LLM-generated markdown as HTML. The source text ultimately comes
  *  from a scraped third-party webpage via an LLM prompt, so it's untrusted —
@@ -570,7 +573,7 @@ function GroceryPanel({
       </div>
       <div className="grocery-items">
         {entries.map(({ dish, qty }) => {
-          const unit = parseIngredients(dish.ingredients).unit;
+          const unit = yieldUnit(dish, lang);
           return (
             <div className="grocery-item" key={dish.id}>
               <span className="grocery-item-name">{dishName(dish, lang)}</span>
@@ -1161,7 +1164,10 @@ function IngredientsEditor({
   const shownIns = (lang !== "en" && dish.instructions_tr?.[lang]) || dish.instructions;
   const initial = useMemo(() => parseIngredients(dish.ingredients), [dish.ingredients]);
   const [quantity, setQuantity] = useState(initial.quantity);
-  const [unit, setUnit] = useState(initial.unit);
+  // The yield's unit as shown, in the UI's language; sent back as the
+  // English one unless it is changed (then it is translated on save).
+  const shownUnit = useMemo(() => yieldUnit(dish, lang), [dish, lang]);
+  const [unit, setUnit] = useState(shownUnit);
   // A row with no amount has no unit yet; grams until one is picked.
   const [rows, setRows] = useState<IngredientRow[]>(
     () => initial.rows.map((r) => ({ ...r, name: shown.get(r.name) ?? r.name, unit: r.quantity.trim() ? r.unit : "g" })));
@@ -1180,11 +1186,11 @@ function IngredientsEditor({
   // A save was tried with something missing or wrong: it is marked red.
   const [tried, setTried] = useState(false);
   // The yield is needed once there are ingredients: a number, and what it
-  // counts in lowercase words ("persone").
+  // counts in words ("persone", "Personen").
   const hasRows = rows.some((r) => r.name.trim());
   const yieldBad = {
     quantity: hasRows && !PLAIN_NUMBER_RE.test(quantity.trim()),
-    unit: hasRows && !/^\p{Ll}+(?:[ '’-]\p{Ll}+)*$/u.test(unit.trim()),
+    unit: hasRows && !/^\p{L}+(?:[ '’-]\p{L}+)*$/u.test(unit.trim()),
   };
   const [error, setError] = useState<string | null>(null);
 
@@ -1207,7 +1213,7 @@ function IngredientsEditor({
     // No rows left -> clear the field entirely (an empty {} would fail the
     // backend's "non-empty object" check, and isn't what "cleared" means).
     const payload = Object.keys(ingredients).length
-      ? JSON.stringify({ quantity: quantity.trim(), unit: unit.trim(), ingredients })
+      ? JSON.stringify({ quantity: quantity.trim(), unit: unit.trim() === shownUnit ? initial.unit : unit.trim(), ingredients })
       : "";
     return payload;
   };
@@ -1218,7 +1224,7 @@ function IngredientsEditor({
     setError(null);
     const payload = build(rows);
     const body: Partial<DishInput> = {};
-    if (payload !== unchanged || quantity !== initial.quantity || unit !== initial.unit) {
+    if (payload !== unchanged || quantity !== initial.quantity || unit !== shownUnit) {
       // The backend's own checks (_validate_ingredients_json), made here:
       // what's missing or wrong is marked red, said in one line.
       const named = rows.filter((r) => r.name.trim());
@@ -1234,6 +1240,7 @@ function IngredientsEditor({
         return;
       }
       body.ingredients = payload;
+      body.lang = lang; // the yield's unit is written in it
     }
     if (insText !== shownIns) {
       body.instructions = insText;
@@ -1249,7 +1256,8 @@ function IngredientsEditor({
       .then(onSaved)
       .catch((e) => setError(serverMessage(e)))
       .finally(() => { setSaving(false); setTranslating(false); setChecking(false); });
-    setTranslating(body.instructions !== undefined && body.instructions.trim() !== "");
+    setTranslating((body.instructions !== undefined && body.instructions.trim() !== "")
+      || (body.ingredients !== undefined && unit.trim() !== shownUnit));
     setChecking(body.ingredients !== undefined && rows.some((r) => r.name.trim() && !known.has(r.name.trim())));
   };
 
@@ -1273,7 +1281,8 @@ function IngredientsEditor({
             <span className="muted small">{t("food_serves")}</span>
             <input value={quantity} onChange={(e) => setQuantity(e.target.value)} placeholder={t("food_quantity_placeholder")}
                    aria-label={t("food_quantity")} className={"yield-qty" + (tried && yieldBad.quantity ? " invalid" : "")} />
-            <input value={unit} onChange={(e) => setUnit(lower(e.target.value))} placeholder={t("food_unit_placeholder")}
+            <input value={unit} onChange={(e) => setUnit(lang === "de" ? e.target.value : lower(e.target.value))}
+                   placeholder={t("food_unit_placeholder")}
                    aria-label={t("food_unit")} className={tried && yieldBad.unit ? "invalid" : ""} />
           </div>
           <datalist id="food-ingredient-names">

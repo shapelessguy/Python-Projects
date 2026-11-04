@@ -17,6 +17,9 @@ export interface Dish {
   instructions: string;
   instructions_tr?: Record<string, string>;
   ingredients: string;
+  /** The yield's unit ("persons", in English in `ingredients`) in the
+   *  other languages that have it (lang -> text). */
+  yield_unit_tr?: Record<string, string>;
   /** Its facts, filled by the recipe import, editable (null: not known). */
   facts: DishFacts;
   /** The instructions' photos: "N" -> stored image file, for {{photo:N}}. */
