@@ -12,6 +12,8 @@ services:
       - ./docker/html:/usr/share/nginx/html:ro
       - ./docker/certbot/www:/var/www/certbot:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
+      # Lansi's GUI, as `npm run build` leaves it (~/Documents/Lansi/chat-ui/dist)
+      - ../../Lansi/chat-ui/dist:/srv/lansi:ro
 
   certbot:
     image: certbot/certbot:latest
