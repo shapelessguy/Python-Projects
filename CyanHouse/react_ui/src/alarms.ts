@@ -69,6 +69,8 @@ function latestDueOccurrencePerEvent(events: CalendarEvent[], now: number): Cale
 export function useDueAlarms(enabled: boolean) {
   const { calendar } = useVersionPoll();
   const [events, setEvents] = useState<CalendarEvent[]>([]);
+  // Whether `events` holds an answer yet: "nothing due" means something only then.
+  const [fetched, setFetched] = useState(false);
   const [now, setNow] = useState(() => Date.now());
 
   // The actual "loop every second" -- recomputes `due` below even when
@@ -90,7 +92,7 @@ export function useDueAlarms(enabled: boolean) {
     if (!enabled) return;
     let alive = true;
     api.calendarMonth(month)
-      .then((res) => { if (alive) setEvents(res.events); })
+      .then((res) => { if (alive) { setEvents(res.events); setFetched(true); } })
       .catch(() => { /* transient -- keep last known events, retry next trigger */ });
     return () => { alive = false; };
   }, [enabled, month, calendar]);
@@ -124,5 +126,5 @@ export function useDueAlarms(enabled: boolean) {
       alarm_snooze_until: null,
     }).then((res) => { setEvents(res.events); send("alarms.changed"); });
 
-  return { due, snooze, dismiss };
+  return { due, fetched, snooze, dismiss };
 }

@@ -40,9 +40,6 @@ import androidx.core.view.updatePadding
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import androidx.webkit.ProxyConfig
-import androidx.webkit.ProxyController
-import androidx.webkit.WebViewFeature
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
@@ -53,8 +50,8 @@ import kotlinx.coroutines.launch
  *
  *  What the page cannot do in a WebView, the phone does for it (Bridge):
  *  music and PC audio that go on with the screen off, calendar alarms that
- *  ring with the app closed (AlarmService, which brings this up over the
- *  lock screen; the page's own alarm window snoozes or closes them).
+ *  ring with the app closed (AlarmService; they come up in a window of
+ *  their own, AlarmActivity, never in this one).
  *
  *  The little chip in the corner is for testing: LAN or NET, the tunnels
  *  open each way; tap to decide the route again, long-press to reload. */
@@ -92,7 +89,6 @@ class MainActivity : ComponentActivity() {
         Bridge.attach(web, this)
         AlarmService.start(this)
         askPermissions()
-        showForAlarm(intent)
 
         chip = TextView(this).apply {
             setTextColor(Color.WHITE)
@@ -130,10 +126,6 @@ class MainActivity : ComponentActivity() {
         Route.start(this)
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.CREATED) {
-                // Over the lock screen only while an alarm rings.
-                launch {
-                    AlarmService.ringing.collect { if (!it) { setShowWhenLocked(false); setTurnScreenOn(false) } }
-                }
                 launch {
                     Route.onLan.collect { lan ->
                         chip.text = if (lan) "LAN" else "NET"
@@ -151,7 +143,7 @@ class MainActivity : ComponentActivity() {
         }
 
         val restored = savedInstanceState?.let { web.restoreState(it) } != null
-        startProxyThen {
+        WebSetup.proxyThen(this) {
             // Not before the first decision: a load started the internet way
             // would be cut when the route turns out to be LAN.
             if (!restored) lifecycleScope.launch {
@@ -169,28 +161,9 @@ class MainActivity : ComponentActivity() {
     private var askedAgain = false
     private var errorThisLoad = false
 
-    /** Point every WebView of the app at RouteProxy, then go on. */
-    private fun startProxyThen(then: () -> Unit) {
-        if (!WebViewFeature.isFeatureSupported(WebViewFeature.PROXY_OVERRIDE)) {
-            Toast.makeText(this, "This WebView cannot take a proxy: update Android System WebView. Going without the LAN way.", Toast.LENGTH_LONG).show()
-            then()
-            return
-        }
-        val port = RouteProxy.start()
-        val config = ProxyConfig.Builder()
-            .addProxyRule("127.0.0.1:$port")
-            .build()
-        ProxyController.getInstance().setProxyOverride(config, mainExecutor) {
-            Log.i("Shell", "WebView proxied through 127.0.0.1:$port")
-            then()
-        }
-    }
-
-    private val assets by lazy { AssetCache(this, RouteProxy.start()) }
-
     private inner class ShellClient : WebViewClient() {
         override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? =
-            assets.intercept(request)
+            WebSetup.assets(this@MainActivity).intercept(request)
 
         // The server's pages stay inside; links elsewhere open in the browser.
         override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
@@ -249,21 +222,9 @@ class MainActivity : ComponentActivity() {
         Toast.makeText(this, "Downloading $name", Toast.LENGTH_SHORT).show()
     }
 
-    override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent)
-        showForAlarm(intent)
-    }
-
-    /** Brought up by AlarmService: over the lock screen, waking it. */
-    private fun showForAlarm(intent: Intent?) {
-        if (intent?.getBooleanExtra(AlarmService.EXTRA_ALARM, false) != true || !AlarmService.ringing.value) return
-        setShowWhenLocked(true)
-        setTurnScreenOn(true)
-    }
-
     /** What alarms need: notifications; and, asked once, to keep running in
      *  the background (battery) and to draw over other apps, which is what
-     *  lets AlarmService bring this up while another app is in front. */
+     *  lets AlarmService bring its alarm window up while another app is in front. */
     private fun askPermissions() {
         if (Build.VERSION.SDK_INT >= 33 &&
             checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {

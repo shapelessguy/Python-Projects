@@ -1002,13 +1002,19 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
 .alarm-backdrop { z-index: 200; }
 .modal.alarm-modal { width: min(420px, 92vw); max-height: 80vh; display: flex; flex-direction: column; }
 .alarm-list { overflow-y: auto; min-height: 0; display: flex; flex-direction: column; gap: 8px; overscroll-behavior: contain; }
+/* The buttons go under the title when both don't fit (a phone), instead of
+   squeezing the title and calendar name to nothing. */
 .alarm-row {
-  display: flex; align-items: center; gap: 10px;
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px;
   padding: 8px 10px; background: var(--panel-2);
   border: 1px solid var(--line); border-radius: 8px;
 }
 .alarm-dot { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; }
-.alarm-info { flex: 1 1 auto; min-width: 0; }
+.alarm-info { flex: 1 1 140px; min-width: 0; }
+.alarm-actions { margin-left: auto; }
+/* The Android shell's alarm window (/ui/?alarm): the page is see-through,
+   the app or lock screen behind shows under the backdrop. */
+html.alarm-window, html.alarm-window body { background: transparent; }
 .alarm-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .alarm-actions { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
 .alarm-actions select { font-size: 0.78rem; }

@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { DueAlarm, useDueAlarms } from "./alarms";
+import { useVisibility } from "./api";
 import { Key, useT } from "./i18n";
+import { send } from "./native";
 
 const SNOOZE_OPTIONS: { minutes: number; label: Key; n: number }[] = [
   { minutes: 5, label: "alarm_minutes", n: 5 },
@@ -48,11 +50,14 @@ function AlarmRow({
  *  up no matter which panel is open. Deliberately has no backdrop-click /
  *  Escape dismissal -- the only ways off an alarm are its own buttons.
  *  `enabled` should reflect whether the calendar panel is actually visible
- *  to this user -- see useDueAlarms. */
-export function AlarmOverlay({ enabled }: { enabled: boolean }) {
+ *  to this user -- see useDueAlarms. `onNone`: called whenever the events
+ *  are in and nothing is due (the Android shell's alarm window closes then). */
+export function AlarmOverlay({ enabled, onNone }: { enabled: boolean; onNone?: () => void }) {
   const { t } = useT();
-  const { due, snooze, dismiss } = useDueAlarms(enabled);
+  const { due, fetched, snooze, dismiss } = useDueAlarms(enabled);
   const [error, setError] = useState<string | null>(null);
+  const none = fetched && due.length === 0;
+  useEffect(() => { if (none) onNone?.(); }, [none]);
   if (due.length === 0) return null;
   return (
     <div className="modal-backdrop alarm-backdrop">
@@ -73,3 +78,20 @@ export function AlarmOverlay({ enabled }: { enabled: boolean }) {
     </div>
   );
 }
+
+/** The whole page at /ui/?alarm: the Android shell's alarm window
+ *  (AlarmActivity), see-through, over whatever app or lock screen is
+ *  there -- only the alarm, not the app. Ringing is the shell's; this only
+ *  snoozes and closes, and tells the shell when nothing is due any more. */
+export function AlarmWindow() {
+  const { visible, loaded } = useVisibility();
+  return (
+    <AlarmOverlay
+      enabled={loaded && (visible === null || visible.includes("calendar"))}
+      onNone={() => send("alarm.none")}
+    />
+  );
+}
+
+/** Whether this page is the shell's alarm window (/ui/?alarm). */
+export const isAlarmWindow = new URLSearchParams(window.location.search).has("alarm");

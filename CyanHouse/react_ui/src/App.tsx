@@ -7,7 +7,7 @@ import { CalendarPanel } from "./panels/CalendarPanel";
 import { MoviesPanel } from "./panels/MoviesPanel";
 import { AlarmOverlay } from "./AlarmOverlay";
 import { WeatherPopup } from "./WeatherPopup";
-import { PhoneSettings, useNative } from "./native";
+import { inShell } from "./native";
 import { useVisibility } from "./api";
 import { currentUsername, logout } from "./auth";
 import { SettingsDialog } from "./SettingsDialog";
@@ -40,7 +40,6 @@ function loadLastPanel(): PanelId {
 
 export default function App() {
   const { visible: visiblePanelIds, loaded } = useVisibility();
-  const phone = useNative<PhoneSettings>("settings");
   const [panel, setPanelState] = useState<PanelId>(loadLastPanel);
   const setPanel = (id: PanelId) => {
     setPanelState(id);
@@ -149,8 +148,10 @@ export default function App() {
       </main>
       {/* Alarms are calendar events -- nothing to check if this user can't
           see the calendar panel at all, and fetching anyway would just be a
-          request the backend 403s for no visible reason. */}
-      <AlarmOverlay enabled={loaded && phone?.alarms !== false
+          request the backend 403s for no visible reason. In the Android
+          shell they are its own: it rings and opens its alarm window
+          (/ui/?alarm), so the app itself never comes up for one. */}
+      <AlarmOverlay enabled={loaded && !inShell
                              && (visiblePanelIds === null || visiblePanelIds.includes("calendar"))} />
       <WeatherPopup enabled={loaded && (visiblePanelIds === null || visiblePanelIds.includes("environment"))} />
     </div>

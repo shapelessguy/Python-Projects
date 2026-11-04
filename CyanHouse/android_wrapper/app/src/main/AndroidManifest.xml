@@ -33,6 +33,21 @@
             </intent-filter>
         </activity>
 
+        <!-- The alarm window: only the alarm, over whatever is on screen or
+             the lock screen (AlarmActivity.kt). A task of its own, so the
+             app never comes up with it and closing it goes back to what
+             was there. -->
+        <activity
+            android:name=".AlarmActivity"
+            android:exported="false"
+            android:launchMode="singleInstance"
+            android:taskAffinity="com.cyanhouse.shell.alarm"
+            android:excludeFromRecents="true"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:theme="@style/Theme.CyanShell.Alarm"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation|uiMode" />
+
         <!-- Calendar alarms with the app closed (AlarmService.kt). -->
         <service
             android:name=".AlarmService"

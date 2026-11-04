@@ -42,12 +42,12 @@ import java.time.ZoneId
  *  elsewhere; at once when the page says it made one) and checks them for
  *  a due alarm every second, by the same rules as react_ui's alarms.ts.
  *
- *  A due alarm rings here, and brings the app up -- over the lock screen,
- *  waking it -- where the page's own alarm window (AlarmOverlay.tsx) is
- *  what snoozes or closes it. Brought up straight away when the app may
- *  draw over others (that permission also lets it start from the
+ *  A due alarm rings here, and brings up the alarm window (AlarmActivity:
+ *  only the alarm, over whatever is on screen or the lock screen, waking
+ *  it), whose page snoozes or closes it. Brought up straight away when the
+ *  app may draw over others (that permission also lets it start from the
  *  background); otherwise by a full-screen notification, which the system
- *  turns into the app with the screen off and shows as a banner with it on.
+ *  turns into the window with the screen off and shows as a banner with it on.
  *
  *  Also the morning glance: once a day, from [WEATHER_AT], the page is
  *  asked for its weather popup (WeatherPopup.tsx, the "weather" state) and
@@ -62,11 +62,10 @@ class AlarmService : Service() {
         private const val NOTIF_ALARM = 2
         private const val IDLE_FETCH_MS = 2 * 60 * 1000L
         private const val RINGING_FETCH_MS = 2 * 1000L
-        const val EXTRA_ALARM = "alarm"
         private val WEATHER_AT: LocalTime = LocalTime.of(7, 0)
 
         private val _ringing = MutableStateFlow(false)
-        /** Whether an alarm is ringing now: the app shows over the lock screen meanwhile. */
+        /** Whether an alarm is ringing now: the alarm window is up meanwhile. */
         val ringing: StateFlow<Boolean> = _ringing
 
         @Volatile private var fetchNow = false
@@ -222,9 +221,7 @@ class AlarmService : Service() {
         }
         if (_ringing.value) return
         _ringing.value = true
-        val open = Intent(this, MainActivity::class.java)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            .putExtra(EXTRA_ALARM, true)
+        val open = Intent(this, AlarmActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         val pending = PendingIntent.getActivity(this, 1, open, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
         getSystemService(NotificationManager::class.java).notify(NOTIF_ALARM,
             NotificationCompat.Builder(this, CHANNEL_ALARM)
