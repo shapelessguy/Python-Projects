@@ -267,7 +267,23 @@ button.link {
 }
 button.link:hover { color: var(--text); }
 /* ── controls (CC) ───────────────────────────────────────── */
-.controls { flex-direction: column; align-items: stretch; gap: 10px; width: 100%; }
+.controls { flex-direction: column; align-items: stretch; gap: 10px; width: 100%; height: 100%; }
+.controls > * { flex: none; }
+.controls > .ctl-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+.controls > .ctl-body.fill { overflow: hidden; }
+.ctl-head { display: flex; flex-direction: column; gap: 10px; }
+/* A phone held sideways: the volume card and the tabs make a left column,
+   what they show fills the right (the mouse's arrow / keyboard / right-click
+   row goes under the left column). */
+@media (orientation: landscape) and (max-height: 500px) {
+  .panel.controls { display: grid; grid-template-columns: minmax(220px, 34%) 1fr; grid-template-rows: auto 1fr; gap: 8px 12px; }
+  .controls > .ctl-head { grid-column: 1; grid-row: 1; min-width: 0; }
+  .controls > .ctl-body { grid-column: 2; grid-row: 1 / 3; }
+  .controls > .ctl-body.fill, .controls .mouse { display: contents; }
+  .controls .mouse-main { grid-column: 2; grid-row: 1 / 3; }
+  .controls .mouse-keys { grid-column: 1; grid-row: 2; align-self: end; }
+}
+.ctl-modes button svg { vertical-align: middle; }
 .ctl-modes { display: flex; gap: 4px; }
 .ctl-modes button { flex: 1 1 0; padding: 5px 6px; font-size: 18px; line-height: 1.2; }
 .ctl-status { margin: 0; min-height: 1.2em; }
@@ -280,9 +296,11 @@ button.link:hover { color: var(--text); }
   align-items: stretch;
 }
 .ctl-grid.all { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+/* Shrinks with the space left (rows between 52 and 88 px, see ControlsPanel). */
+.controls .ctl-grid { flex: 0 1 auto; min-height: 0; grid-auto-rows: minmax(52px, 88px); }
 .ctl-btn {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 6px; padding: 14px 8px; min-height: 88px;
+  gap: 4px; padding: 6px 8px; min-height: 0; overflow: hidden;
   background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px;
   color: var(--text); cursor: pointer; text-align: center;
 }
@@ -309,13 +327,28 @@ button.link:hover { color: var(--text); }
 }
 .ctl-nudge:hover { border-color: #3a414f; }
 .ctl-nudge:active { background: var(--panel-2); }
-.ctl-audio-row { display: flex; align-items: center; gap: 10px; }
+.ctl-audio-cell { display: flex; min-height: 0; }
+/* The AUDIO grid's middle cell: the PC's sound on this device, a round
+   toggle rather than a button like the others. */
 .ctl-audio {
-  flex: none; padding: 4px 10px; font-size: 12px; border-radius: 6px;
-  background: var(--panel); border: 1px solid var(--line); color: var(--text);
+  flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 3px; padding: 4px; background: none; border: none; color: var(--text); cursor: pointer;
 }
-.ctl-audio.on { border-color: var(--accent); color: var(--accent); }
-.ctl-audio:disabled { opacity: 0.5; }
+.ctl-audio-dot {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  width: 40px; height: 40px; border-radius: 50%;
+  background: var(--panel-2); border: 1px solid var(--line); color: var(--muted);
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+}
+.ctl-audio:hover .ctl-audio-dot { border-color: #3a414f; }
+.ctl-audio.on .ctl-audio-dot {
+  background: var(--accent); border-color: var(--accent); color: #fff;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+.ctl-audio .ctl-lbl { font-size: 12px; line-height: 1.2; }
+.ctl-audio.on .ctl-lbl { color: var(--accent); }
+.ctl-audio-status { font-size: 11px; line-height: 1.2; min-height: 1.2em; }
+.ctl-audio:disabled { opacity: 0.5; cursor: default; }
 .ctl-sep { width: 100%; margin: 2px 0; border: 0; border-top: 1px solid var(--line); }
 /* ── personal ────────────────────────────────────────────── */
 .personal { align-items: stretch; }
@@ -2659,7 +2692,8 @@ label.button-like {
   }
   .cal-week-gutter, .cal-hour-labels { flex-basis: 34px; }
 }
-.cal-agenda { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+.cal-agenda { display: flex; flex-direction: column; gap: 6px; }
+.modal.cal-agenda { width: min(460px, 100%); }
 .cal-agenda-head { display: flex; align-items: center; justify-content: space-between; font-weight: 600; }
 .cal-agenda .cal-agenda-event { font-size: 0.9rem; padding: 8px 10px; white-space: normal; }
 .cal-agenda-time { color: var(--muted); margin-right: 8px; font-variant-numeric: tabular-nums; }
@@ -2676,15 +2710,21 @@ label.button-like {
 }
 .size-pop-panel input[type="range"] { display: block; width: 100%; }
 /* The Controls panel's MOUSE tab (panels/MousePad.tsx). */
-.mouse { display: flex; flex-direction: column; gap: 8px; }
-.mouse-row { display: flex; gap: 6px; }
-.mouse-row button { flex: 1 1 0; padding: 8px 6px; font-size: 16px; }
-.mouse-area { display: flex; gap: 6px; height: 55vh; min-height: 220px; }
+.mouse { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
+.mouse-main { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
+.mouse-row { display: flex; gap: 6px; flex: none; }
+.mouse-row button { flex: 1 1 0; height: 40px; padding: 0 6px; font-size: 15px;
+  display: inline-flex; align-items: center; justify-content: center; }
+.mouse-area { flex: 1 1 auto; min-height: 120px; display: flex; gap: 6px; }
 .mouse-pad, .mouse-strip {
   background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px;
   touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
 }
 .mouse-pad { flex: 1 1 auto; }
 .mouse-strip { flex: none; width: 40px; display: flex; align-items: center; justify-content: center; color: var(--muted); }
-/* Off screen but focusable: it only holds the phone's keyboard up. */
-.mouse-typing { position: fixed; left: -1000px; bottom: 0; width: 10px; height: 10px; opacity: 0; }
+/* Invisible but on screen (a field off screen may not get the keyboard):
+   it only holds the phone's keyboard up and takes what is typed. */
+.mouse-typing { position: fixed; left: 0; bottom: 0; width: 1px; height: 1px; padding: 0; border: 0;
+  opacity: 0; pointer-events: none; resize: none; }
+/* The Android shell's morning weather popup (WeatherPopup.tsx). */
+.modal.weather-popup { width: min(96vw, 900px); max-height: 92vh; overflow: auto; display: flex; flex-direction: column; gap: 10px; }

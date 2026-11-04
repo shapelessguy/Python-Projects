@@ -48,6 +48,8 @@ export const de: Dict = {
   controls_mode_pc: "PC",
   controls_mode_voices: "Stimmen",
   controls_mode_mouse: "Maus",
+  phone_alarms: "Kalenderalarme klingeln auf diesem Handy",
+  phone_weather: "Wetterübersicht um 07:00",
   mouse_right: "Rechts",
   mouse_keyboard: "Tastatur",
   mouse_window_left: "Fenster nach links",

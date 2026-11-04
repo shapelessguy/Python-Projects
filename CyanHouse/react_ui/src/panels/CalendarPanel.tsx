@@ -274,10 +274,14 @@ export function CalendarPanel() {
   };
   const [anchor, setAnchor] = useState(TODAY);
   // Phone month view: the cells are too narrow for titles, so they only show
-  // colour bars, and tapping one picks the day listed below the grid.
+  // colour bars, and tapping one opens that day's events in a window (a
+  // double click does the same at any width).
   const narrow = useNarrow();
   const phoneMonth = narrow && view === "month";
   const [selectedDay, setSelectedDay] = useState(TODAY);
+  const [dayOpen, setDayOpen] = useState(false);
+  useBackToClose(() => setDayOpen(false), dayOpen);
+  const openDay = (date: string) => { setSelectedDay(date); setDayOpen(true); };
   // A sideways swipe over the grid does what ◀/▶ do -- the same deliberate
   // swipe as the cover pages (CoverBook): far enough, and clearly more
   // across than up or down.
@@ -618,7 +622,8 @@ export function CalendarPanel() {
                         (isWeekend(date) ? " weekend" : "") +
                         (phoneMonth && date === agendaDay ? " selected" : "")
                       }
-                      onClick={phoneMonth ? () => setSelectedDay(date) : undefined}
+                      onClick={phoneMonth ? () => openDay(date) : undefined}
+                      onDoubleClick={phoneMonth ? undefined : (e) => e.target === e.currentTarget && openDay(date)}
                     >
                       <div className="cal-day-head">
                         <span className="cal-daynum">{Number(date.slice(8))}</span>
@@ -646,37 +651,6 @@ export function CalendarPanel() {
                   );
                 })}
               </div>
-              {phoneMonth && (
-                <div className="cal-agenda">
-                  <div className="cal-agenda-head">
-                    <span>
-                      {new Date(agendaDay + "T00:00:00").toLocaleDateString(lang, {
-                        weekday: "long", day: "numeric", month: "long",
-                      })}
-                    </span>
-                    <button className="ghost" onClick={() => { setDraft(blankDraft(agendaDay, defaultCalendarId)); setDescEditing(true); }}>
-                      {t("cal_add")}
-                    </button>
-                  </div>
-                  {(eventsByDate[agendaDay] ?? []).length === 0 && <p className="muted small">{t("cal_no_events")}</p>}
-                  {(eventsByDate[agendaDay] ?? []).map((e) => (
-                    <button
-                      key={e.id}
-                      className="cal-event cal-agenda-event"
-                      style={{ borderLeftColor: e.calendar_color }}
-                      onClick={() => { setDraft(draftFromEvent(e)); setDescEditing(false); }}
-                    >
-                      <span className="cal-agenda-time">
-                        {e.all_day || !e.start_time ? t("cal_all_day") : e.start_time}
-                      </span>
-                      {e.recurring ? "↻ " : ""}
-                      {e.alarm ? "🔔 " : ""}
-                      {e.title}
-                      {!e.mine && <span className="muted"> · {e.owner}</span>}
-                    </button>
-                  ))}
-                </div>
-              )}
             </>
           ) : (
             <WeekGrid
@@ -688,6 +662,40 @@ export function CalendarPanel() {
           )}
         </div>
       </div>
+
+      {dayOpen && (
+        <div className="modal-backdrop" onClick={() => setDayOpen(false)}>
+          <div className="modal cal-agenda" onClick={(e) => e.stopPropagation()}>
+            <div className="cal-agenda-head">
+              <span>
+                {new Date(selectedDay + "T00:00:00").toLocaleDateString(lang, {
+                  weekday: "long", day: "numeric", month: "long",
+                })}
+              </span>
+              <button className="ghost" onClick={() => { setDraft(blankDraft(selectedDay, defaultCalendarId)); setDescEditing(true); }}>
+                {t("cal_add")}
+              </button>
+            </div>
+            {(eventsByDate[selectedDay] ?? []).length === 0 && <p className="muted small">{t("cal_no_events")}</p>}
+            {(eventsByDate[selectedDay] ?? []).map((e) => (
+              <button
+                key={e.id}
+                className="cal-event cal-agenda-event"
+                style={{ borderLeftColor: e.calendar_color }}
+                onClick={() => { setDraft(draftFromEvent(e)); setDescEditing(false); }}
+              >
+                <span className="cal-agenda-time">
+                  {e.all_day || !e.start_time ? t("cal_all_day") : e.start_time}
+                </span>
+                {e.recurring ? "↻ " : ""}
+                {e.alarm ? "🔔 " : ""}
+                {e.title}
+                {!e.mine && <span className="muted"> · {e.owner}</span>}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {draft && (() => {
         // Anyone can edit/delete an event on the shared calendar, not just

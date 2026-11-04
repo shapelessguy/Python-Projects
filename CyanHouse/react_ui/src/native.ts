@@ -65,6 +65,14 @@ export interface NativeMusic {
   length: number;
 }
 
+/** The phone's own settings (the shell's AlarmService): whether calendar
+ *  alarms ring on it, whether the weather overview comes up at 07:00. */
+export interface PhoneSettings {
+  type: "settings";
+  alarms: boolean;
+  weather: boolean;
+}
+
 /** The phone's PC-audio player (the shell's PcAudioService). */
 export interface NativePcAudio {
   type: "pcaudio";

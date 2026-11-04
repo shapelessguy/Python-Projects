@@ -47,7 +47,12 @@ import java.time.ZoneId
  *  what snoozes or closes it. Brought up straight away when the app may
  *  draw over others (that permission also lets it start from the
  *  background); otherwise by a full-screen notification, which the system
- *  turns into the app with the screen off and shows as a banner with it on. */
+ *  turns into the app with the screen off and shows as a banner with it on.
+ *
+ *  Also the morning glance: once a day, from [WEATHER_AT], the page is
+ *  asked for its weather popup (WeatherPopup.tsx, the "weather" state) and
+ *  the app brought up -- behind the lock screen, there once it is unlocked.
+ *  Both can be turned off on the phone (the page's Settings, "settings"). */
 class AlarmService : Service() {
     companion object {
         private const val TAG = "AlarmService"
@@ -58,6 +63,7 @@ class AlarmService : Service() {
         private const val IDLE_FETCH_MS = 2 * 60 * 1000L
         private const val RINGING_FETCH_MS = 2 * 1000L
         const val EXTRA_ALARM = "alarm"
+        private val WEATHER_AT: LocalTime = LocalTime.of(7, 0)
 
         private val _ringing = MutableStateFlow(false)
         /** Whether an alarm is ringing now: the app shows over the lock screen meanwhile. */
@@ -71,6 +77,26 @@ class AlarmService : Service() {
 
         /** Fetch again now: the page snoozed or closed an alarm. */
         fun lookAgain() { fetchNow = true }
+
+        private fun prefs(context: Context) = context.getSharedPreferences("shell", Context.MODE_PRIVATE)
+
+        /** The page's Settings changed `alarms` and/or `weather`. */
+        fun settings(context: Context, change: JSONObject) {
+            val edit = prefs(context).edit()
+            for (key in listOf("alarms", "weather")) if (change.has(key)) edit.putBoolean(key, change.getBoolean(key))
+            edit.apply()
+            emitSettings(context)
+        }
+
+        private fun emitSettings(context: Context) {
+            val p = prefs(context)
+            Bridge.emit("settings", JSONObject().put("alarms", p.getBoolean("alarms", true)).put("weather", p.getBoolean("weather", true)))
+        }
+
+        /** The page closed its weather popup. */
+        fun weatherSeen() {
+            Bridge.emit("weather", JSONObject().put("show", false))
+        }
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -98,6 +124,9 @@ class AlarmService : Service() {
         wakeLock = getSystemService(PowerManager::class.java)
             .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "cyanshell:alarms")
             .apply { setReferenceCounted(false); acquire() }
+        emitSettings(this)
+        // Not on the day the app is installed, whatever the time.
+        prefs(this).run { if (!contains("weather_day")) edit().putString("weather_day", LocalDate.now().toString()).apply() }
         scope.launch { loop() }
     }
 
@@ -121,8 +150,8 @@ class AlarmService : Service() {
                 fetchedAt = now
                 fetch()
             }
-            val due = due(events, System.currentTimeMillis())
-            withContext(Dispatchers.Main) { ring(due) }
+            val due = if (prefs(this).getBoolean("alarms", true)) due(events, System.currentTimeMillis()) else emptyList()
+            withContext(Dispatchers.Main) { ring(due); weather() }
             delay(1000)
         }
     }
@@ -167,6 +196,19 @@ class AlarmService : Service() {
     }
 
     private fun JSONObject.str(key: String): String? = if (isNull(key)) null else optString(key)
+
+    /** From WEATHER_AT, once a day (marked when shown, not when closed, so
+     *  a restart cannot show it twice). Main thread. */
+    private fun weather() {
+        val p = prefs(this)
+        val today = LocalDate.now().toString()
+        if (!p.getBoolean("weather", true) || p.getString("weather_day", "") == today || LocalTime.now() < WEATHER_AT) return
+        p.edit().putString("weather_day", today).apply()
+        Bridge.emit("weather", JSONObject().put("show", true))
+        if (Settings.canDrawOverlays(this)) {
+            runCatching { startActivity(Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+        }
+    }
 
     /** Ring for `due`, or stop when it is empty. Main thread. */
     private fun ring(due: List<String>) {

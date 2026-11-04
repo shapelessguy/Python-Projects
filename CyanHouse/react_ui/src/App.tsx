@@ -6,6 +6,8 @@ import { FoodPanel } from "./panels/FoodPanel";
 import { CalendarPanel } from "./panels/CalendarPanel";
 import { MoviesPanel } from "./panels/MoviesPanel";
 import { AlarmOverlay } from "./AlarmOverlay";
+import { WeatherPopup } from "./WeatherPopup";
+import { PhoneSettings, useNative } from "./native";
 import { useVisibility } from "./api";
 import { currentUsername, logout } from "./auth";
 import { SettingsDialog } from "./SettingsDialog";
@@ -38,6 +40,7 @@ function loadLastPanel(): PanelId {
 
 export default function App() {
   const { visible: visiblePanelIds, loaded } = useVisibility();
+  const phone = useNative<PhoneSettings>("settings");
   const [panel, setPanelState] = useState<PanelId>(loadLastPanel);
   const setPanel = (id: PanelId) => {
     setPanelState(id);
@@ -74,7 +77,7 @@ export default function App() {
   // Both of these own their own scrolling: the environment charts and the
   // media library are each taller than the viewport, and only that column --
   // not the page -- should get a scrollbar.
-  const fixedHeight = active?.id === "environment" || active?.id === "media";
+  const fixedHeight = active?.id === "environment" || active?.id === "media" || active?.id === "controls";
 
   useLayoutEffect(() => {
     const nav = navRef.current;
@@ -147,7 +150,9 @@ export default function App() {
       {/* Alarms are calendar events -- nothing to check if this user can't
           see the calendar panel at all, and fetching anyway would just be a
           request the backend 403s for no visible reason. */}
-      <AlarmOverlay enabled={loaded && (visiblePanelIds === null || visiblePanelIds.includes("calendar"))} />
+      <AlarmOverlay enabled={loaded && phone?.alarms !== false
+                             && (visiblePanelIds === null || visiblePanelIds.includes("calendar"))} />
+      <WeatherPopup enabled={loaded && (visiblePanelIds === null || visiblePanelIds.includes("environment"))} />
     </div>
   );
 }

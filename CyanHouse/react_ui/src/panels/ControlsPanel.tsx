@@ -4,6 +4,7 @@ import { PcAudio, PcAudioState } from "../pcAudio";
 import { Key, useT } from "../i18n";
 import { inShell, NativePcAudio, send, useNative } from "../native";
 import { MousePad } from "./MousePad";
+import { Icon } from "./icons";
 import {
   ControlItem,
   ControlMode,
@@ -21,6 +22,7 @@ const INFO_POLL_MS = 1000;
 const NUDGE_DELAY_MS = 1000;
 const NUDGE_REPEAT_MS = 250;
 const MODE_KEY = "cc.mode";
+const ROW_SIZE = "minmax(52px, 88px)";
 
 function loadMode(): ControlMode {
   try {
@@ -189,6 +191,13 @@ export function ControlsPanel() {
   // Rows at/after each separator shift down one grid row per separator to make room for it.
   const sepRows = (mode === "ALL" ? undefined : SEPARATOR_BEFORE_ROW[mode]) ?? [];
   const gridRowOf = (row: number) => row + 1 + sepRows.filter((s) => s <= row).length;
+  // Per-mode views: each row of buttons between ROW_MIN and ROW_MAX high,
+  // so they shrink to fit the screen before it has to scroll; a separator's
+  // row only as high as its line.
+  const sepGridRows = new Set(sepRows.map((s) => s + 1 + sepRows.filter((o) => o < s).length));
+  const rowCount = items.reduce((m, it) => Math.max(m, it.row ?? 0), -1) + 1;
+  const templateRows = mode === "ALL" || rowCount === 0 ? undefined
+    : Array.from({ length: gridRowOf(rowCount - 1) }, (_, i) => (sepGridRows.has(i + 1) ? "auto" : ROW_SIZE)).join(" ");
   const device = info.device ?? "";
   const vol = info.volume ?? 0;
 
@@ -253,28 +262,14 @@ export function ControlsPanel() {
           +
         </button>
       </div>
-      <div className="ctl-audio-row">
-        <button
-          className={"ctl-audio" + (pcAudio.on ? " on" : "")}
-          aria-pressed={pcAudio.on}
-          disabled={!pcAudio.on && managerUp !== true}
-          onClick={togglePcAudio}
-        >
-          🎧 {t(pcAudio.on ? "controls_pc_audio_on" : "controls_pc_audio_off")}
-        </button>
-        <span className="muted small">
-          {managerUp === false
-            ? t("controls_manager_down")
-            : pcAudio.on
-              ? pcAudio.connected ? "" : t("connecting")
-              : pcAudio.error ? t(pcAudio.error) : ""}
-        </span>
-      </div>
     </div>
   );
 
   return (
     <div className="panel controls">
+      {/* The volume card and the tabs: on top, or the left column of a
+          phone held sideways (styles.css). */}
+      <div className="ctl-head">
       {volumeCard}
       <div className="ctl-modes">
         {/* One icon tab per mode. No ALL tab: ALL is simply "nothing selected" --
@@ -287,13 +282,17 @@ export function ControlsPanel() {
             aria-label={t(MODE_KEYS[m])}
             onClick={() => setMode(m === mode ? "ALL" : m)}
           >
-            {MODE_ICON[m]}
+            {m === "MOUSE" ? <Icon name="mouse" size={20} className="" /> : MODE_ICON[m]}
           </button>
         ))}
       </div>
-      <p className="muted small ctl-status">{status || " "}</p>
+      {mode !== "MOUSE" && <p className="muted small ctl-status">{status || " "}</p>}
+      </div>
 
-      <div className={"ctl-grid" + (mode === "ALL" ? " all" : "")}>
+      {/* Below the volume card and the tabs, which stay put: what scrolls,
+          or, for the mouse, what fills the rest of the screen. */}
+      <div className={"ctl-body" + (mode === "MOUSE" ? " fill" : "")}>
+      <div className={"ctl-grid" + (mode === "ALL" ? " all" : "")} style={{ gridTemplateRows: templateRows }}>
         {sepRows.map((s) => (
           <hr
             key={s}
@@ -336,6 +335,27 @@ export function ControlsPanel() {
             </button>
           );
         })}
+        {/* The PC's sound on this device: in the AUDIO grid's empty cell. */}
+        {mode === "AUDIO" && (
+          <div style={{ gridRow: gridRowOf(0), gridColumn: 2 }} className="ctl-audio-cell">
+            <button
+              className={"ctl-audio" + (pcAudio.on ? " on" : "")}
+              aria-pressed={pcAudio.on}
+              disabled={!pcAudio.on && managerUp !== true}
+              onClick={togglePcAudio}
+            >
+              <span className="ctl-audio-dot"><Icon name="pcSound" size={22} className="" /></span>
+              <span className="ctl-lbl">{t(pcAudio.on ? "controls_pc_audio_on" : "controls_pc_audio_off")}</span>
+              <span className="ctl-audio-status muted">
+                {managerUp === false
+                  ? t("controls_manager_down")
+                  : pcAudio.on
+                    ? pcAudio.connected ? "" : t("connecting")
+                    : pcAudio.error ? t(pcAudio.error) : ""}
+              </span>
+            </button>
+          </div>
+        )}
         {mode === "VOICES" &&
           voices.map((name) => (
             <button key={name} className="ctl-btn voice" onClick={() => playVoice(name)}>
@@ -345,6 +365,7 @@ export function ControlsPanel() {
       </div>
       {mode === "VOICES" && voices.length === 0 && <p className="muted small">{t("controls_no_voices")}</p>}
       {mode === "MOUSE" && <MousePad managerUp={managerUp} />}
+      </div>
     </div>
   );
 }

@@ -42,6 +42,8 @@ object Bridge {
                 "music.seek" -> Music.seek(app, m.optDouble("s"))
                 "pcaudio" -> if (m.optBoolean("on")) PcAudio.start(app) else PcAudio.stop(app)
                 "alarms.changed" -> AlarmService.lookAgain()
+                "settings" -> AlarmService.settings(app, m)
+                "weather.seen" -> AlarmService.weatherSeen()
                 else -> Log.w(TAG, "unknown command: ${message.data}")
             }
         }

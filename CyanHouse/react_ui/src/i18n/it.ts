@@ -48,6 +48,8 @@ export const it: Dict = {
   controls_mode_pc: "PC",
   controls_mode_voices: "Voci",
   controls_mode_mouse: "Mouse",
+  phone_alarms: "Gli allarmi del calendario suonano su questo telefono",
+  phone_weather: "Panoramica meteo alle 07:00",
   mouse_right: "Destro",
   mouse_keyboard: "Tastiera",
   mouse_window_left: "Sposta la finestra a sinistra",

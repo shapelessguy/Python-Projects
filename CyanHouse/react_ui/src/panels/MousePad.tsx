@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useT } from "../i18n";
+import { Icon } from "./icons";
 
-/** Drag pixels to PC pixels. */
+/** Drag to PC pixels, per *screen* pixel of the drag, as in the old app:
+ *  a CSS pixel is devicePixelRatio of them (about 3 on a phone). */
 const SENSITIVITY = 2;
 /** Further than this, a touch on the pad is a drag rather than a click. */
 const SLOP_PX = 8;
@@ -74,8 +76,9 @@ export function MousePad({ managerUp }: { managerUp: boolean | null }) {
       if (!p || p.id !== e.pointerId) return;
       if (!p.drag && Math.hypot(e.clientX - p.x0, e.clientY - p.y0) > SLOP_PX) p.drag = true;
       if (p.drag) {
-        const dx = Math.round((e.clientX - p.x) * SENSITIVITY);
-        const dy = Math.round((e.clientY - p.y) * SENSITIVITY);
+        const k = SENSITIVITY * window.devicePixelRatio;
+        const dx = Math.round((e.clientX - p.x) * k);
+        const dy = Math.round((e.clientY - p.y) * k);
         if (dx || dy) send({ t: "move", dx, dy });
       }
       p.x = e.clientX;
@@ -105,23 +108,32 @@ export function MousePad({ managerUp }: { managerUp: boolean | null }) {
     onPointerCancel: () => { lastY.current = null; },
   };
 
-  // Typing: a hidden field keeps the phone's keyboard up; what changes in
-  // it goes to the PC as text inserted and characters deleted. A word the
-  // keyboard is still composing goes once it is done: emptying the field
-  // under it would break it.
-  const typed = (f: HTMLTextAreaElement) => {
+  // Typing: a hidden field keeps the phone's keyboard up; every change in
+  // it goes to the PC at once, as text inserted and characters deleted
+  // against what the PC was last told (`told`). A phone keyboard composes
+  // whole words (each letter replacing the word so far, a correction
+  // swapping it): the field is only emptied back to PAD between words, as
+  // emptying it under a word being composed breaks it.
+  const told = useRef(PAD);
+  const typed = (f: HTMLTextAreaElement, composing: boolean) => {
     const now = f.value;
+    const was = told.current;
     let same = 0;
-    while (same < PAD.length && same < now.length && PAD[same] === now[same]) same++;
+    while (same < was.length && same < now.length && was[same] === now[same]) same++;
     const insert = now.slice(same);
-    const del = PAD.length - same;
+    const del = was.length - same;
     if (insert || del) send({ t: "text", insert, delete: del });
-    f.value = PAD;
+    told.current = now;
+    if (!composing) {
+      f.value = PAD;
+      told.current = PAD;
+    }
   };
   const startTyping = () => {
     const f = typing.current;
     if (!f) return;
     f.value = PAD;
+    told.current = PAD;
     f.focus();
     f.setSelectionRange(PAD.length, PAD.length);
   };
@@ -131,24 +143,28 @@ export function MousePad({ managerUp }: { managerUp: boolean | null }) {
   }
   return (
     <div className="mouse">
+      <div className="mouse-main">
       <div className="mouse-row">
-        <button title={t("mouse_window_left")} onClick={() => send({ t: "window", action: "move_left" })}>⇤</button>
-        <button title={t("mouse_maximize")} onClick={() => send({ t: "window", action: "toggle_maximize" })}>⛶</button>
-        <button title={t("mouse_window_right")} onClick={() => send({ t: "window", action: "move_right" })}>⇥</button>
+        <button title={t("mouse_window_left")} onClick={() => send({ t: "window", action: "move_left" })}><Icon name="winLeft" size={20} className="" /></button>
+        <button title={t("mouse_maximize")} onClick={() => send({ t: "window", action: "toggle_maximize" })}><Icon name="maximize" size={20} className="" /></button>
+        <button title={t("mouse_window_right")} onClick={() => send({ t: "window", action: "move_right" })}><Icon name="winRight" size={20} className="" /></button>
       </div>
       <div className="mouse-area">
         <div className="mouse-pad" {...pad} />
-        <div className="mouse-strip" {...strip}>⇕</div>
+        <div className="mouse-strip" {...strip}><Icon name="scroll" size={20} className="" /></div>
       </div>
-      <div className="mouse-row">
-        <button onClick={() => send({ t: "key", key: "left" })}>←</button>
-        <button onClick={() => send({ t: "key", key: "right" })}>→</button>
-        <button title={t("mouse_keyboard")} onClick={startTyping}>⌨</button>
+      </div>
+      {/* Under the pad; on a phone held sideways, at the bottom of the left
+          column, under the volume card and the tabs. */}
+      <div className="mouse-row mouse-keys">
+        <button onClick={() => send({ t: "key", key: "left" })}><Icon name="left" size={20} className="" /></button>
+        <button onClick={() => send({ t: "key", key: "right" })}><Icon name="right" size={20} className="" /></button>
+        <button title={t("mouse_keyboard")} onClick={startTyping}><Icon name="keyboard" size={20} className="" /></button>
         <button onClick={() => send({ t: "click", btn: "right" })}>{t("mouse_right")}</button>
       </div>
       <textarea ref={typing} className="mouse-typing" defaultValue={PAD}
-                onInput={(e) => !(e.nativeEvent as InputEvent).isComposing && typed(e.currentTarget)}
-                onCompositionEnd={(e) => typed(e.currentTarget)}
+                onInput={(e) => typed(e.currentTarget, (e.nativeEvent as InputEvent).isComposing)}
+                onCompositionEnd={(e) => typed(e.currentTarget, false)}
                 autoCapitalize="off" autoCorrect="off" spellCheck={false} aria-label={t("mouse_keyboard")} />
     </div>
   );

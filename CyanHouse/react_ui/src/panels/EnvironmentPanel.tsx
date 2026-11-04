@@ -140,23 +140,11 @@ export function EnvironmentPanel() {
   const [refreshing, setRefreshing] = useState(false);
   const [seriesNonce, setSeriesNonce] = useState(0);
   const [tab, setTab] = useState<Tab>(loadTab);
-  const [overviewCity, setOverviewCity] = useState<string>(loadOverviewCity);
-  const [overviewRange, setOverviewRange] = useState<OverviewRange>(loadOverviewRange);
   const appliedWeather = useRef(0);
 
   const changeTab = (t: Tab) => {
     setTab(t);
     saveTab(t);
-  };
-
-  const changeOverviewCity = (key: string) => {
-    setOverviewCity(key);
-    saveOverviewCity(key);
-  };
-
-  const changeOverviewRange = (r: OverviewRange) => {
-    setOverviewRange(r);
-    saveOverviewRange(r);
   };
 
   const changeCities = (updater: (prev: Set<string>) => Set<string>) => {
@@ -180,12 +168,6 @@ export function EnvironmentPanel() {
     setVars((prev) =>
       prev.size ? prev : new Set(b.variables.filter((v) => v.default).map((v) => v.key)),
     );
-    setOverviewCity((prev) => {
-      if (prev && b.cities.some((c) => c.key === prev)) return prev;
-      const next = (b.cities.find((c) => c.default) ?? b.cities[0])?.key ?? "";
-      saveOverviewCity(next);
-      return next;
-    });
     if (b.max_date) {
       if (preset && preset in PRESETS) {
         // Re-anchor the active preset to the (possibly new) data range so a
@@ -272,49 +254,7 @@ export function EnvironmentPanel() {
       </div>
 
       <div className="env-tab-body">
-      {tab === "overview" && (
-        <div className="env-charts env-charts--fit">
-          <div className="overview-toolbar">
-            <select
-              value={overviewCity}
-              onChange={(e) => changeOverviewCity(e.target.value)}
-            >
-              {boot.cities.map((c) => (
-                <option key={c.key} value={c.key}>
-                  {c.flag} {c.city_name}
-                </option>
-              ))}
-            </select>
-            <div className="presets">
-              <button
-                className={overviewRange === "today" ? "active" : ""}
-                onClick={() => changeOverviewRange("today")}
-              >
-                {t("env_today")}
-              </button>
-              <button
-                className={overviewRange === "tomorrow" ? "active" : ""}
-                onClick={() => changeOverviewRange("tomorrow")}
-              >
-                {t("env_tomorrow")}
-              </button>
-              <button
-                className={overviewRange === "in2days" ? "active" : ""}
-                onClick={() => changeOverviewRange("in2days")}
-              >
-                {t("env_in_2_days")}
-              </button>
-              <button
-                className={overviewRange === "week" ? "active" : ""}
-                onClick={() => changeOverviewRange("week")}
-              >
-                {t("env_2_weeks")}
-              </button>
-            </div>
-          </div>
-          <OverviewBoard city={overviewCity} range={overviewRange} forecastVersion={forecast} />
-        </div>
-      )}
+      {tab === "overview" && <OverviewView cities={boot.cities} />}
 
       {tab === "historical" && (
       <aside className="env-controls">
@@ -484,4 +424,68 @@ function groupBy(vars: Variable[]): Record<string, Variable[]> {
   const g: Record<string, Variable[]> = {};
   for (const v of vars) (g[v.group] ||= []).push(v);
   return g;
+}
+
+/** The Overview tab: the forecast board of one city, over a range, both
+ *  remembered on this device. Also the Android shell's morning popup
+ *  (WeatherPopup.tsx). */
+export function OverviewView({ cities }: { cities: City[] }) {
+  const { t } = useT();
+  const { forecast } = useVersionPoll();
+  const [saved, setCity] = useState<string>(loadOverviewCity);
+  const [range, setRange] = useState<OverviewRange>(loadOverviewRange);
+  // The remembered city, while there is one by that name; else the default.
+  const city = cities.some((c) => c.key === saved) ? saved
+    : (cities.find((c) => c.default) ?? cities[0])?.key ?? "";
+  const changeCity = (key: string) => {
+    setCity(key);
+    saveOverviewCity(key);
+  };
+  const changeRange = (r: OverviewRange) => {
+    setRange(r);
+    saveOverviewRange(r);
+  };
+  return (
+    <div className="env-charts env-charts--fit">
+      <div className="overview-toolbar">
+        <select
+          value={city}
+          onChange={(e) => changeCity(e.target.value)}
+        >
+          {cities.map((c) => (
+            <option key={c.key} value={c.key}>
+              {c.flag} {c.city_name}
+            </option>
+          ))}
+        </select>
+        <div className="presets">
+          <button
+            className={range === "today" ? "active" : ""}
+            onClick={() => changeRange("today")}
+          >
+            {t("env_today")}
+          </button>
+          <button
+            className={range === "tomorrow" ? "active" : ""}
+            onClick={() => changeRange("tomorrow")}
+          >
+            {t("env_tomorrow")}
+          </button>
+          <button
+            className={range === "in2days" ? "active" : ""}
+            onClick={() => changeRange("in2days")}
+          >
+            {t("env_in_2_days")}
+          </button>
+          <button
+            className={range === "week" ? "active" : ""}
+            onClick={() => changeRange("week")}
+          >
+            {t("env_2_weeks")}
+          </button>
+        </div>
+      </div>
+      <OverviewBoard city={city} range={range} forecastVersion={forecast} />
+    </div>
+  );
 }

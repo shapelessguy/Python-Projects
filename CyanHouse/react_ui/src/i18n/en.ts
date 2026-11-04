@@ -50,6 +50,8 @@ export const en = {
   controls_mode_pc: "PC",
   controls_mode_voices: "Voices",
   controls_mode_mouse: "Mouse",
+  phone_alarms: "Calendar alarms ring on this phone",
+  phone_weather: "Weather overview at 07:00",
   mouse_right: "Right",
   mouse_keyboard: "Keyboard",
   mouse_window_left: "Move window left",
