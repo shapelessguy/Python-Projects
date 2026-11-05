@@ -7,7 +7,7 @@ import { dirname, resolve } from "node:path";
 // Ports come from the project root (one dir up), read directly so this works
 // regardless of where `npm run dev` is invoked from. config.json is the one
 // place every part of the stack reads its config from (api/config.py and
-// android_ui/app/build.gradle.kts both do the same) -- .env is only still
+// android_wrapper/app/build.gradle.kts both do the same) -- .env is only still
 // honoured for anyone who kept one from before that consolidation.
 function loadRoot(): Record<string, string> {
   const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");

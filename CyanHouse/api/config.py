@@ -240,7 +240,7 @@ CONTROLS_FN_HOST = os.environ.get("CONTROLS_FN_HOST", "").strip()  # e.g. LAN IP
 CONTROLS_FN_PORT = os.environ.get("CONTROLS_FN_PORT", "").strip()
 CONTROLS_FN_URL = f"http://{CONTROLS_FN_HOST}:{CONTROLS_FN_PORT}" if CONTROLS_FN_HOST else ""
 # CyanManager's mouse/keyboard WebSocket, served by the fn service itself: the
-# Android app's Mouse section reaches it through /api/controls/mouse.
+# Mouse section (panels/MousePad.tsx) reaches it through /api/controls/mouse.
 MOUSE_WS_URL = f"ws://{CONTROLS_FN_HOST}:{CONTROLS_FN_PORT}/ws" if CONTROLS_FN_HOST else ""
 # Its audio WebSocket (the PC's sound, as PCM): the Controls "PC audio"
 # players reach it through /api/controls/audio.

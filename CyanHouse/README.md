@@ -1,7 +1,7 @@
 # Cyan House
 
 Client/server rebuild of the old Streamlit dashboard. A FastAPI REST backend
-serves both the React web UI and (later) an Android app.
+serves the React web UI, which the Android wrapper (android_wrapper/) shows in a WebView.
 
 ```
 <project root>/       (folder name doesn't matter — nothing imports it by name)
@@ -13,7 +13,7 @@ serves both the React web UI and (later) an Android app.
     routers/          controls.py, environment.py, forecast.py, personal.py, food.py, movies.py
     seed/             schema.json, units.json, entries.csv, food.json + food_images/
   react_ui/         Vite + React + TypeScript frontend (Plotly charts)
-  android_ui/       Jetpack Compose Android client for the same API (see its README)
+  android_wrapper/  Android app: the web UI in a WebView
   utilities/ variables/ monitor_md.py   weather (history) download package
   forecast/         DWD + Open-Meteo precipitation forecast fetch + hourly cache
 ```
@@ -86,7 +86,7 @@ the same password logs in there. Five wrong passwords in 15 minutes pause passwo
 for that user; the token keeps working.
 
 The React UI has a sign-in screen and keeps the credential in the `diary_auth`
-cookie; the Android app keeps it in EncryptedSharedPreferences. `/` (the SPA) and
+cookie (the Android wrapper is the same page, so the same cookie). `/` (the SPA) and
 `/docs` stay open; the SPA's own API calls carry the cookie.
 
 **Per-user data.** The **Personal** diary is fully partitioned by username —

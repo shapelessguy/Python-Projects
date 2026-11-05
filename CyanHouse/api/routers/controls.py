@@ -14,7 +14,7 @@ users too (CyanManager/api_auth.py).
     POST /api/controls/voices/{name} ->  {CONTROLS_FN_URL}/voices/{name}/play
     GET  /api/controls/info          ->  {CONTROLS_FN_URL}/info
     GET  /api/controls/users         ->  who the fn service lets in (users())
-    WS   /api/controls/mouse         ->  {MOUSE_WS_URL}  (the Android app's Mouse section)
+    WS   /api/controls/mouse         ->  {MOUSE_WS_URL}  (the Controls panel's Mouse section)
     WS   /api/controls/audio         ->  {AUDIO_WS_URL}  (the "PC audio" players, downstream only)
 
 Contract picked up by ``api/main.py`` auto-discovery: only `router` and

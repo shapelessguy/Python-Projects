@@ -11,10 +11,9 @@ import java.net.InetAddress
 import java.net.UnknownHostException
 import java.util.concurrent.TimeUnit
 
-/** Lookups of the LAN name, as android_ui's net/LanDns.kt does them: the
- *  phone's own DNS first; when the router refuses it (a FRITZ!Box's DNS
- *  rebind protection), dns.google over HTTPS; failing both, the last
- *  address found, kept on the phone. Every other name goes to the system.
+/** Lookups of the LAN name: the phone's own DNS first; when the router
+ *  refuses it (a FRITZ!Box's DNS rebind protection), dns.google over
+ *  HTTPS; failing both, the last address found, kept on the phone. Every other name goes to the system.
  *
  *  Used both by Route's probe and by RouteProxy, so the WebView's LAN
  *  connections never depend on the router answering for the name. The

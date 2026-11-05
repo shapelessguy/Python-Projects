@@ -132,7 +132,7 @@ http {
             proxy_set_header X-Forwarded-Proto $scheme;
         }
 
-        # The Android app's Mouse section: a WebSocket, relayed on to
+        # The Controls panel's Mouse section: a WebSocket, relayed on to
         # CyanManager (api/routers/controls.py). nginx only passes the
         # upgrade on when asked to, and the default 60s proxy_read_timeout
         # would drop a socket left idle between touches (the app pings every

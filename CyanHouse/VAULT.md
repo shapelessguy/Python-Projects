@@ -2,8 +2,8 @@
 
 An encrypted folder of the Documents library is a *vault*. The server stores
 it and serves it, but never holds anything that decrypts it: every key is
-derived and used in the browser (`react_ui/src/vault.ts`) or the app
-(`android_ui/.../net/Vault.kt`). The two implement exactly this document.
+derived and used in the browser (`react_ui/src/vault.ts`), which implements
+exactly this document.
 
 All binary values in JSON are base64 (standard alphabet, with padding).
 AES-GCM is AES-256 with a 12-byte nonce and a 16-byte tag appended to the

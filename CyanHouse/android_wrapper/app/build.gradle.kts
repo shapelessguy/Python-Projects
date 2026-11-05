@@ -5,7 +5,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
 }
 
-// Both names come from the project-root config.json, like android_ui's.
+// Both names come from the project-root config.json.
 @Suppress("UNCHECKED_CAST")
 val config: Map<String, Any?> = run {
     val f = rootProject.file("../config.json")
