@@ -96,6 +96,24 @@ async def patch_dish(dish_id: int, body: DishPatch, user: str = Depends(require_
         raise HTTPException(502, f"could not update dish: {e}")
 
 
+class CategoryRename(BaseModel):
+    name: str = Field(min_length=1)
+    lang: str = "en"  # the language it is written in
+
+
+@router.patch("/categories/{category_id}")
+async def rename_category(category_id: int, body: CategoryRename, user: str = Depends(require_user)):
+    """Rename a category in one language; the others follow (translated)."""
+    try:
+        return await run_in_threadpool(food.rename_category, user, category_id, body.name, body.lang)
+    except KeyError:
+        raise HTTPException(404, f"no category {category_id}")
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    except food.TranslationError as e:
+        raise HTTPException(502, str(e))
+
+
 @router.post("/dishes/{dish_id}/import")
 async def import_recipe(dish_id: int, user: str = Depends(require_user)):
     """Import (again) the recipe the dish links to: its ingredients,
@@ -108,12 +126,29 @@ async def import_recipe(dish_id: int, user: str = Depends(require_user)):
         raise HTTPException(422, str(e))
 
 
+class SplitIn(BaseModel):
+    keep: list[int]  # the sub-recipes picked, by their place in import.parts
+
+
+@router.post("/dishes/{dish_id}/import/split")
+async def choose_split(dish_id: int, body: SplitIn, user: str = Depends(require_user)):
+    """Go on with an import waiting on which of its sub-recipes become dishes."""
+    try:
+        return await run_in_threadpool(food.choose_split, user, dish_id, body.keep)
+    except KeyError:
+        raise HTTPException(404, f"no dish {dish_id}")
+    except ValueError as e:
+        raise HTTPException(409, str(e))
+
+
 @router.delete("/dishes/{dish_id}")
 async def delete_dish(dish_id: int, user: str = Depends(require_user)):
     try:
         return await run_in_threadpool(food.delete_dish, user, dish_id)
     except KeyError:
         raise HTTPException(404, f"no dish {dish_id}")
+    except ValueError as e:  # other dishes use it
+        raise HTTPException(409, str(e))
 
 
 # ── the ingredient list ────────────────────────────────────────────────────

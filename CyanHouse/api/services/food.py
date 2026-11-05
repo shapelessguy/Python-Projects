@@ -13,6 +13,7 @@ already carries what the UI should render."""
 import base64
 import ipaddress
 import html
+import itertools
 import json
 import math
 import mimetypes
@@ -54,7 +55,7 @@ _SCHEMA = """
 CREATE TABLE IF NOT EXISTS food_dishes (
     id       INTEGER PRIMARY KEY AUTOINCREMENT,
     name     TEXT NOT NULL,
-    category TEXT NOT NULL DEFAULT '',
+    category_id INTEGER,  -- food_categories; NULL: none
     image    TEXT NOT NULL DEFAULT '',
     url      TEXT NOT NULL DEFAULT '',
     instructions TEXT NOT NULL DEFAULT '',
@@ -125,6 +126,18 @@ CREATE TABLE IF NOT EXISTS food_dish_ingredients (
     PRIMARY KEY (dish_id, ingredient_id)
 );
 CREATE INDEX IF NOT EXISTS idx_food_dish_ingredients_ing ON food_dish_ingredients(ingredient_id);
+-- Another dish a dish uses as one of its ingredients (the pizza dough of a
+-- pizza), by how much of it, in grams -- how many of its recipes that is
+-- follows from what one weighs (dish_grams), whatever its yield says.
+-- position is in the same order as the dish's food_dish_ingredients rows.
+CREATE TABLE IF NOT EXISTS food_dish_components (
+    dish_id      INTEGER NOT NULL,
+    component_id INTEGER NOT NULL,
+    position     INTEGER NOT NULL DEFAULT 0,
+    quantity     TEXT NOT NULL,
+    PRIMARY KEY (dish_id, component_id)
+);
+CREATE INDEX IF NOT EXISTS idx_food_dish_components_comp ON food_dish_components(component_id);
 -- A dish's text in the languages other than English (LANGUAGES); field is
 -- the food_dishes column it translates.
 CREATE TABLE IF NOT EXISTS food_translations (
@@ -134,12 +147,18 @@ CREATE TABLE IF NOT EXISTS food_translations (
     text    TEXT NOT NULL DEFAULT '',
     PRIMARY KEY (dish_id, field, lang)
 );
+-- The categories, in the order they are listed; name is the English one.
+CREATE TABLE IF NOT EXISTS food_categories (
+    id       INTEGER PRIMARY KEY AUTOINCREMENT,
+    name     TEXT NOT NULL,
+    position INTEGER NOT NULL DEFAULT 0
+);
 -- A category's name in the languages other than English (its own name).
 CREATE TABLE IF NOT EXISTS food_category_names (
-    category TEXT NOT NULL,
-    lang     TEXT NOT NULL,
-    name     TEXT NOT NULL,
-    PRIMARY KEY (category, lang)
+    category_id INTEGER NOT NULL,
+    lang        TEXT NOT NULL,
+    name        TEXT NOT NULL,
+    PRIMARY KEY (category_id, lang)
 );
 -- A recipe page as fetched: every JSON-LD block in it, and its preparation
 -- -- both JSON arrays, the steps each {"text", "images": [{"steps", "url"}]}
@@ -328,6 +347,11 @@ def _migrate(conn: sqlite3.Connection) -> None:
         if col in cols:
             conn.execute(f"ALTER TABLE food_dishes DROP COLUMN {col}")
     _migrate_ingredients(conn, cols)
+    if "category" in cols:
+        _migrate_categories(conn)
+    elif not conn.execute("SELECT 1 FROM food_categories LIMIT 1").fetchone():
+        conn.executemany("INSERT INTO food_categories (name, position) VALUES (?, ?)",
+                         [(c, i) for i, c in enumerate(DEFAULT_CATEGORIES)])
     if conn.execute("PRAGMA user_version").fetchone()[0] < 1:
         _migrate_photo_marks(conn)
         conn.execute("PRAGMA user_version = 1")
@@ -339,6 +363,17 @@ def _migrate(conn: sqlite3.Connection) -> None:
         for was, now in (("persone", "persons"), ("porzioni", "servings"), ("portions", "servings")):
             conn.execute("UPDATE food_dishes SET yield_unit = ? WHERE yield_unit = ?", (now, was))
         conn.execute("PRAGMA user_version = 2")
+    if conn.execute("PRAGMA user_version").fetchone()[0] < 3:
+        # The dishes a dish uses were by how much of them in their yield's
+        # unit, which meant something else once that changed: grams now.
+        weights = _weights(conn, own_only=True)
+        for r in conn.execute("SELECT c.dish_id, c.component_id, c.quantity, d.yield_qty FROM food_dish_components c "
+                              "JOIN food_dishes d ON d.id = c.component_id").fetchall():
+            w = weights.get(r["component_id"])
+            if w and _PLAIN_NUMBER_RE.match(r["yield_qty"]) and float(r["yield_qty"]) > 0:
+                conn.execute("UPDATE food_dish_components SET quantity = ? WHERE dish_id = ? AND component_id = ?",
+                             (_fmt_qty(float(r["quantity"]) / float(r["yield_qty"]) * w), r["dish_id"], r["component_id"]))
+        conn.execute("PRAGMA user_version = 3")
     if "html" in {r["name"] for r in conn.execute("PRAGMA table_info(food_recipe_pages)")}:
         # Its first version kept each page's whole HTML. Pages are fetched
         # again when picked again, so the old ones just go.
@@ -347,6 +382,29 @@ def _migrate(conn: sqlite3.Connection) -> None:
                      "json_ld TEXT NOT NULL DEFAULT '[]', fetched_at TEXT NOT NULL)")
     if "site_facts" not in {r["name"] for r in conn.execute("PRAGMA table_info(food_recipe_pages)")}:
         conn.execute("ALTER TABLE food_recipe_pages ADD COLUMN site_facts TEXT NOT NULL DEFAULT '{}'")
+
+
+def _migrate_categories(conn: sqlite3.Connection) -> None:
+    """Categories from when they were known by their English name
+    (food_dishes.category, food_category_names.category): food_categories
+    rows now, by id -- the default ones, then the others dishes were in, as
+    they were listed. Names of a category neither of those is go. The
+    INSERTs first: they open the transaction the DDL after them is part of."""
+    names = list(DEFAULT_CATEGORIES)
+    for (c,) in conn.execute("SELECT DISTINCT category FROM food_dishes WHERE category != '' ORDER BY category"):
+        if c not in names:
+            names.append(c)
+    ids = {n: conn.execute("INSERT INTO food_categories (name, position) VALUES (?, ?)", (n, pos)).lastrowid
+           for pos, n in enumerate(names)}
+    conn.execute("ALTER TABLE food_dishes ADD COLUMN category_id INTEGER")
+    conn.executemany("UPDATE food_dishes SET category_id = ? WHERE category = ?", [(i, n) for n, i in ids.items()])
+    conn.execute("ALTER TABLE food_dishes DROP COLUMN category")
+    old = conn.execute("SELECT category, lang, name FROM food_category_names").fetchall()
+    conn.execute("DROP TABLE food_category_names")
+    conn.execute("CREATE TABLE food_category_names (category_id INTEGER NOT NULL, lang TEXT NOT NULL, "
+                 "name TEXT NOT NULL, PRIMARY KEY (category_id, lang))")
+    conn.executemany("INSERT INTO food_category_names (category_id, lang, name) VALUES (?, ?, ?)",
+                     [(ids[r["category"]], r["lang"], r["name"]) for r in old if r["category"] in ids])
 
 
 def _migrate_ingredients(conn: sqlite3.Connection, dish_cols: set[str]) -> None:
@@ -432,11 +490,12 @@ def init_db() -> None:
             _seed(conn)
         _seed_missing_ratings(conn)
         # Recipe imports a restart cut short (the nightly reboot, a reload):
-        # nothing of them was saved yet, so they start over.
-        interrupted = [r["id"] for r in conn.execute(
-            "SELECT id FROM food_dishes WHERE json_extract(import_state, '$.state') = 'running'")]
-        for dish_id in interrupted:
-            _start_import(conn, dish_id)
+        # nothing of them was saved yet, so they start over -- from the
+        # sub-recipes picked, when that was where they were.
+        interrupted = [(r["id"], json.loads(r["import_state"])) for r in conn.execute(
+            "SELECT id, import_state FROM food_dishes WHERE json_extract(import_state, '$.state') = 'running'")]
+        for dish_id, st in interrupted:
+            _start_import(conn, dish_id, {k: st[k] for k in ("plan", "keep") if k in st})
     _spawn_translations_processing()  # pick up anything left over from before a restart
     threading.Thread(target=_make_missing_small, daemon=True).start()
 
@@ -492,9 +551,10 @@ def _seed(conn: sqlite3.Connection) -> None:
                 shutil.copyfile(seed_imgs / image, dst)
         else:
             image = ""
+        cat = r.get("category", "").strip()
         cur = conn.execute(
-            "INSERT INTO food_dishes(name, category, image, position) VALUES(?,?,?,?)",
-            (r["name"].strip(), r.get("category", "").strip(), image, r.get("position", pos)),
+            "INSERT INTO food_dishes(name, category_id, image, position) VALUES(?,?,?,?)",
+            (r["name"].strip(), _category_named(conn, {"en": cat}) if cat else None, image, r.get("position", pos)),
         )
         rating = int(r.get("rating", 0) or 0)
         if rating:
@@ -508,46 +568,55 @@ def _seed(conn: sqlite3.Connection) -> None:
 def snapshot(conn: sqlite3.Connection, user: str) -> dict:
     lines: dict[int, list] = {}
     for r in conn.execute(
-        "SELECT di.dish_id, i.name, di.quantity, di.unit FROM food_dish_ingredients di "
+        "SELECT di.dish_id, i.name, di.quantity, di.unit, di.position FROM food_dish_ingredients di "
         "JOIN food_ingredients i ON i.id = di.ingredient_id ORDER BY di.dish_id, di.position"
     ):
         lines.setdefault(r["dish_id"], []).append(r)
+    comps: dict[int, list] = {}
+    for r in conn.execute("SELECT dish_id, component_id, quantity, position FROM food_dish_components"):
+        comps.setdefault(r["dish_id"], []).append(r)
+    weights = _weights(conn)
     translated: dict[tuple[int, str], dict[str, str]] = {}
     for r in conn.execute("SELECT dish_id, field, lang, text FROM food_translations"):
         translated.setdefault((r["dish_id"], r["field"]), {})[r["lang"]] = r["text"]
-    category_tr: dict[str, dict[str, str]] = {}
-    for r in conn.execute("SELECT category, lang, name FROM food_category_names"):
-        category_tr.setdefault(r["category"], {})[r["lang"]] = r["name"]
+    category_tr: dict[int, dict[str, str]] = {}
+    for r in conn.execute("SELECT category_id, lang, name FROM food_category_names"):
+        category_tr.setdefault(r["category_id"], {})[r["lang"]] = r["name"]
     dishes = [
         # name / instructions are the English; *_tr the other languages
         # that have them.
         {"id": r["id"], "name": r["name"], "name_tr": translated.get((r["id"], "name"), {}),
-         "category": r["category"],
+         "category_id": r["category_id"],
          "image": r["image"], "url": r["url"],
          "instructions": r["instructions"],
          "instructions_tr": translated.get((r["id"], "instructions"), {}),
-         "ingredients": _ingredients_text(r["yield_qty"], r["yield_unit"], lines.get(r["id"], [])),
+         "ingredients": _ingredients_text(r["yield_qty"], r["yield_unit"], lines.get(r["id"], []),
+                                          comps.get(r["id"], [])),
          # The yield's unit (English in `ingredients`) in the other languages.
          "yield_unit_tr": translated.get((r["id"], "yield_unit"), {}),
+         # What one recipe of it weighs, in grams (dish_grams); None when
+         # nothing of it is in weight -- then no other dish can use it.
+         "weight_g": weights.get(r["id"]),
          "facts": _facts(r),
          "photos": json.loads(r["photos"] or "{}"),
          # The recipe import: its state, and whether the linked recipe is
          # the one imported.
-         "import": {**json.loads(r["import_state"] or "{}"),
+         "import": {**{k: v for k, v in json.loads(r["import_state"] or "{}").items() if k not in ("plan", "keep")},
                     "imported": bool(r["url"]) and r["url"] == r["import_url"]},
          "rating": r["rating"]}
         for r in conn.execute(
             "SELECT d.*, COALESCE(rt.rating, 0) AS rating "
             "FROM food_dishes d "
             "LEFT JOIN food_ratings rt ON rt.dish_id = d.id AND rt.username = ? "
-            "ORDER BY d.category, d.position, d.id",
+            "ORDER BY d.category_id, d.position, d.id",
             (user,),
         )
     ]
     return {
         "dishes": dishes,
-        "categories": _categories(conn),
-        "category_tr": category_tr,  # category -> lang -> its name there
+        # name is the English; tr the other languages that have it.
+        "categories": [{"id": c["id"], "name": c["name"], "tr": category_tr.get(c["id"], {})}
+                       for c in _categories(conn)],
         # The ingredient list (food_ingredients) -- ships with the dishes, so
         # a correction reaches the clients on the same poll.
         "ingredients": _catalog_rows(conn),
@@ -898,25 +967,32 @@ def name_ingredient(conn: sqlite3.Connection, ingredient_id: int, names: dict[st
          for lang, n in names.items() if lang != "en" and n.strip()])
 
 
-def _categories(conn: sqlite3.Connection) -> list[str]:
-    """Every category: the default ones, then the others dishes are in."""
-    out = list(DEFAULT_CATEGORIES)
-    for (c,) in conn.execute("SELECT DISTINCT category FROM food_dishes WHERE category != '' ORDER BY category"):
-        if c not in out:
-            out.append(c)
-    return out
+def _categories(conn: sqlite3.Connection) -> list[sqlite3.Row]:
+    """Every category (id, name: its English one), in the order listed."""
+    return conn.execute("SELECT id, name FROM food_categories ORDER BY position, id").fetchall()
 
 
-def _find_category(conn: sqlite3.Connection, text: str, lang: str) -> str | None:
+def _category_names(conn: sqlite3.Connection, category_id: int) -> dict[str, str]:
+    """A category's name in every language that has one (lang -> name); {}
+    for none."""
+    row = conn.execute("SELECT name FROM food_categories WHERE id = ?", (category_id,)).fetchone()
+    if row is None:
+        return {}
+    names = {r["lang"]: r["name"] for r in conn.execute(
+        "SELECT lang, name FROM food_category_names WHERE category_id = ?", (category_id,))}
+    return {"en": row["name"], **names}
+
+
+def _find_category(conn: sqlite3.Connection, text: str, lang: str) -> int | None:
     """The category `text` names -- its English name, or its name in `lang`,
     either case -- or None for a new one."""
     low = text.lower()
     for c in _categories(conn):
-        if c.lower() == low:
-            return c
-    r = conn.execute("SELECT category FROM food_category_names WHERE lang = ? AND lower(name) = ?",
+        if c["name"].lower() == low:
+            return c["id"]
+    r = conn.execute("SELECT category_id FROM food_category_names WHERE lang = ? AND lower(name) = ?",
                      (lang, low)).fetchone()
-    return r["category"] if r else None
+    return r["category_id"] if r else None
 
 
 def _find_yield_unit(conn: sqlite3.Connection, text: str, lang: str) -> dict[str, str] | None:
@@ -941,10 +1017,10 @@ def _find_yield_unit(conn: sqlite3.Connection, text: str, lang: str) -> dict[str
     return out
 
 
-def _name_category(conn: sqlite3.Connection, category: str, texts: dict[str, str]) -> None:
+def _name_category(conn: sqlite3.Connection, category_id: int, texts: dict[str, str]) -> None:
     """A category's names in the other languages; one it has keeps it."""
-    conn.executemany("INSERT OR IGNORE INTO food_category_names (category, lang, name) VALUES (?, ?, ?)",
-                     [(category, lang, text) for lang, text in texts.items() if lang != "en" and text])
+    conn.executemany("INSERT OR IGNORE INTO food_category_names (category_id, lang, name) VALUES (?, ?, ?)",
+                     [(category_id, lang, text) for lang, text in texts.items() if lang != "en" and text])
 
 
 def _prepare_texts(conn_texts: dict, lang: str, patch: dict) -> tuple[dict, dict]:
@@ -983,7 +1059,7 @@ _TRANSLATE_BATCH = 4  # translations the background worker asks for at once
 def _pending_translations(conn: sqlite3.Connection, skip: set) -> list[tuple]:
     """Texts missing a language -- the generated instructions, and names and
     categories from before translations -- as (key, English text): key is
-    ("dish", id, field), ("category", name) or ("ingredient", id)."""
+    ("dish", id, field), ("category", id) or ("ingredient", id)."""
     n = len(LANGUAGES) - 1
     jobs = []
     for field in _TRANSLATED_FIELDS:
@@ -994,11 +1070,11 @@ def _pending_translations(conn: sqlite3.Connection, skip: set) -> list[tuple]:
         ):
             if ("dish", r["id"], field) not in skip:
                 jobs.append((("dish", r["id"], field), r["text"]))
-    named = {r["category"]: r["n"] for r in conn.execute(
-        "SELECT category, COUNT(*) AS n FROM food_category_names GROUP BY category")}
+    named = {r["category_id"]: r["n"] for r in conn.execute(
+        "SELECT category_id, COUNT(*) AS n FROM food_category_names GROUP BY category_id")}
     for c in _categories(conn):
-        if named.get(c, 0) < n and ("category", c) not in skip:
-            jobs.append((("category", c), c))
+        if named.get(c["id"], 0) < n and ("category", c["id"]) not in skip:
+            jobs.append((("category", c["id"]), c["name"]))
     for r in conn.execute(
         "SELECT id, name FROM food_ingredients i WHERE "
         "(SELECT COUNT(*) FROM food_ingredient_names x WHERE x.ingredient_id = i.id) < ? ORDER BY id", (n,),
@@ -1032,7 +1108,8 @@ def _process_pending_translations() -> None:
                         failed.add(key)
                         continue
                     if key[0] == "category":
-                        _name_category(conn, key[1], out)
+                        if _category_names(conn, key[1]).get("en") == text:  # not renamed meanwhile
+                            _name_category(conn, key[1], out)
                         continue
                     if key[0] == "ingredient":
                         name_ingredient(conn, key[1], out, replace=False)
@@ -1112,21 +1189,45 @@ def _conversions(conn: sqlite3.Connection) -> dict[int, list[dict]]:
 # Clients get and send them as canonical JSON text:
 #   {"quantity": "<number>", "unit": "<lowercase word>",
 #    "ingredients": {"<lowercase singular name>":
-#                     {"quantity": "<number-or-empty>", "unit": "<a unit of UNITS>"}, ...}}
+#                     {"quantity": "<number-or-empty>", "unit": "<a unit of UNITS>"}, ...},
+#    "dishes": {"<dish id>": {"quantity": "<grams>", "position": <int>}, ...}}
 # ("quantity"/"unit" at the top are the recipe's yield, "4" "persons"). Each
 # ingredient's quantity/unit are separate fields so clients can edit them as
-# two plain fields with no parsing of their own. Stored as the dish's yield
-# columns and its food_dish_ingredients rows.
+# two plain fields with no parsing of their own. "dishes" (optional; always
+# there in what clients get) are the other dishes it uses, by how many
+# grams of each; "position" is the line's place among
+# all of them, the ingredients filling the other places in their order.
+# Stored as the dish's yield columns, its food_dish_ingredients rows and its
+# food_dish_components rows.
 _LOWER_WORD_RE = re.compile(r"^[a-z]+(?: [a-z]+)*$")
 _PLAIN_NUMBER_RE = re.compile(r"^\d+(?:\.\d+)?$")
 
 
-def _ingredients_text(yield_qty: str, yield_unit: str, lines) -> str:
-    """A dish's ingredients as the clients get them; "" for none."""
-    if not lines:
+def _ingredients_text(yield_qty: str, yield_unit: str, lines, comps=()) -> str:
+    """A dish's ingredients as the clients get them; "" for none. `lines`
+    and `comps` are its rows of food_dish_ingredients / food_dish_components."""
+    if not lines and not comps:
         return ""
+    order = sorted([(r["position"], False, r) for r in lines] + [(r["position"], True, r) for r in comps],
+                   key=lambda x: (x[0], x[1]))
     return json.dumps({"quantity": yield_qty, "unit": yield_unit,
-                       "ingredients": {r["name"]: {"quantity": r["quantity"], "unit": r["unit"]} for r in lines}})
+                       "ingredients": {r["name"]: {"quantity": r["quantity"], "unit": r["unit"]}
+                                       for _, is_dish, r in order if not is_dish},
+                       "dishes": {str(r["component_id"]): {"quantity": r["quantity"], "position": n}
+                                  for n, (_, is_dish, r) in enumerate(order) if is_dish}})
+
+
+def _dish_ingredients_text(conn: sqlite3.Connection, dish_id: int) -> str:
+    """One dish's _ingredients_text."""
+    r = conn.execute("SELECT yield_qty, yield_unit FROM food_dishes WHERE id = ?", (dish_id,)).fetchone()
+    lines = conn.execute(
+        "SELECT i.name, di.quantity, di.unit, di.position FROM food_dish_ingredients di "
+        "JOIN food_ingredients i ON i.id = di.ingredient_id WHERE di.dish_id = ? ORDER BY di.position",
+        (dish_id,),
+    ).fetchall()
+    comps = conn.execute("SELECT component_id, quantity, position FROM food_dish_components WHERE dish_id = ?",
+                         (dish_id,)).fetchall()
+    return _ingredients_text(r["yield_qty"], r["yield_unit"], lines, comps)
 
 
 def _ingredient_id(conn: sqlite3.Connection, name: str) -> int:
@@ -1137,9 +1238,17 @@ def _ingredient_id(conn: sqlite3.Connection, name: str) -> int:
 
 def _set_dish_ingredients(conn: sqlite3.Connection, dish_id: int, data: dict | None) -> None:
     """Replace a dish's ingredients with `data` (the JSON shape above, already
-    valid), or clear them; a name not in the list joins it."""
+    valid), or clear them; a name not in the list joins it. Without "dishes"
+    (a recipe import) the dishes it uses stay as they are."""
     conn.execute("DELETE FROM food_dish_ingredients WHERE dish_id = ?", (dish_id,))
-    data = data or {"quantity": "", "unit": "", "ingredients": {}}
+    data = data or {"quantity": "", "unit": "", "ingredients": {}, "dishes": {}}
+    if "dishes" in data:
+        conn.execute("DELETE FROM food_dish_components WHERE dish_id = ?", (dish_id,))
+        conn.executemany(
+            "INSERT INTO food_dish_components (dish_id, component_id, position, quantity) VALUES (?, ?, ?, ?)",
+            [(dish_id, int(cid), e["position"], e["quantity"]) for cid, e in data["dishes"].items()])
+    taken = {r[0] for r in conn.execute("SELECT position FROM food_dish_components WHERE dish_id = ?", (dish_id,))}
+    free = (n for n in itertools.count() if n not in taken)
     was = conn.execute("SELECT yield_unit FROM food_dishes WHERE id = ?", (dish_id,)).fetchone()
     if was is not None and was["yield_unit"] != str(data["unit"]):
         # Its translations were of the old one: the caller sets the new
@@ -1147,7 +1256,7 @@ def _set_dish_ingredients(conn: sqlite3.Connection, dish_id: int, data: dict | N
         conn.execute("DELETE FROM food_translations WHERE dish_id = ? AND field = 'yield_unit'", (dish_id,))
     conn.execute("UPDATE food_dishes SET yield_qty = ?, yield_unit = ? WHERE id = ?",
                  (str(data["quantity"]), str(data["unit"]), dish_id))
-    for pos, (name, e) in enumerate(data["ingredients"].items()):
+    for pos, (name, e) in zip(free, data["ingredients"].items()):
         conn.execute("INSERT INTO food_dish_ingredients (dish_id, ingredient_id, position, quantity, unit) "
                      "VALUES (?, ?, ?, ?, ?)", (dish_id, _ingredient_id(conn, name), pos, e["quantity"], e["unit"]))
 
@@ -1169,9 +1278,11 @@ def _validate_ingredients_json(text: str, name_re: re.Pattern = _LOWER_WORD_RE) 
         data = json.loads(text)
     except Exception as e:
         return None, [f"not valid JSON ({e})"]
-    if not isinstance(data, dict) or set(data.keys()) != {"quantity", "unit", "ingredients"}:
-        return None, ['top-level value must be a JSON object with exactly the keys "quantity", "unit", "ingredients"']
+    if not isinstance(data, dict) or set(data.keys()) - {"dishes"} != {"quantity", "unit", "ingredients"}:
+        return None, ['top-level value must be a JSON object with exactly the keys "quantity", "unit", '
+                      '"ingredients" (and optionally "dishes")']
     quantity, unit, ingredients = data.get("quantity"), data.get("unit"), data.get("ingredients")
+    dishes = data.get("dishes", {})
     errors: list[str] = []
     if not _PLAIN_NUMBER_RE.match(str(quantity)):
         errors.append('"quantity" must be a plain number (e.g. "4"), no units or text')
@@ -1179,9 +1290,26 @@ def _validate_ingredients_json(text: str, name_re: re.Pattern = _LOWER_WORD_RE) 
     # "Personen"); update_dish keeps it in English, the others translations.
     if not isinstance(unit, str) or not _TYPED_NAME_RE.match(unit):
         errors.append('"unit" must be word(s), e.g. "persons"')
-    if not isinstance(ingredients, dict) or not ingredients:
+    if not isinstance(dishes, dict):
+        errors.append('"dishes" must be a JSON object')
+        return None, errors
+    if not isinstance(ingredients, dict) or not (ingredients or dishes):
         errors.append('"ingredients" must be a non-empty JSON object')
         return None, errors  # nothing left that can be checked
+    places = set()
+    for did, entry in dishes.items():
+        if not did.isdigit():
+            errors.append(f'dish "{did}" must be a dish id')
+        if not isinstance(entry, dict) or set(entry.keys()) != {"quantity", "position"}:
+            errors.append(f'dish "{did}" must be an object with exactly "quantity" and "position"')
+            continue
+        d_qty, d_pos = entry["quantity"], entry["position"]
+        if not isinstance(d_qty, str) or not _PLAIN_NUMBER_RE.match(d_qty) or float(d_qty) <= 0:
+            errors.append(f'dish "{did}" quantity "{d_qty}" must be its grams, a plain number above 0')
+        if (not isinstance(d_pos, int) or isinstance(d_pos, bool) or not 0 <= d_pos < len(ingredients) + len(dishes)
+                or d_pos in places):
+            errors.append(f'dish "{did}" position {d_pos!r} must be its own place in the list')
+        places.add(d_pos)
     for name, entry in ingredients.items():
         if not isinstance(name, str) or not name_re.match(str(name)):
             errors.append(f'ingredient name "{name}" must be lowercase singular word(s), e.g. "onion"')
@@ -1489,13 +1617,22 @@ def _set_rating(conn: sqlite3.Connection, dish_id: int, user: str, rating: int) 
     )
 
 
-def _category_named(conn: sqlite3.Connection, names: dict[str, str]) -> str:
+def _category_named(conn: sqlite3.Connection, names: dict[str, str]) -> int:
     """The category a new name (lang -> text, translated) makes, by its
-    English name -- one already there when that is it -- with its names in
-    the other languages."""
-    category = _find_category(conn, names["en"], "en") or names["en"]
-    _name_category(conn, category, names)
-    return category
+    English name -- one already there when that is it, else a new one, last
+    -- with its names in the other languages; its id."""
+    category_id = _find_category(conn, names["en"], "en")
+    if category_id is None:
+        category_id = conn.execute(
+            "INSERT INTO food_categories (name, position) "
+            "VALUES (?, (SELECT COALESCE(MAX(position), -1) + 1 FROM food_categories))", (names["en"],)).lastrowid
+    _name_category(conn, category_id, names)
+    return category_id
+
+
+def _picked_category(conn: sqlite3.Connection, picked: str) -> int | None:
+    """The category _choose_category picked, by its English name."""
+    return _find_category(conn, picked, "en") if picked else None
 
 
 def create_dish(user: str, name: str, category: str, rating, image_url: str | None,
@@ -1510,8 +1647,8 @@ def create_dish(user: str, name: str, category: str, rating, image_url: str | No
     category = (category or "").strip()
     url = (url or "").strip()
     with connect() as conn:
-        found = _find_category(conn, category, lang) if category else ""
-        categories = _categories(conn)
+        found = _find_category(conn, category, lang) if category else 0
+        categories = [c["name"] for c in _categories(conn)]
     jobs = {"name": ("name", lang, "", name, {})}
     if found is None:
         jobs["category"] = ("category", lang, "", category, {})
@@ -1523,13 +1660,13 @@ def create_dish(user: str, name: str, category: str, rating, image_url: str | No
     with connect() as conn:
         if found is None:
             found = _category_named(conn, full["category"])
-        found = found or picked
+        found = found or _picked_category(conn, picked)
         pos = conn.execute(
-            "SELECT COALESCE(MAX(position), -1) + 1 FROM food_dishes WHERE category = ?",
+            "SELECT COALESCE(MAX(position), -1) + 1 FROM food_dishes WHERE category_id IS ?",
             (found,),
         ).fetchone()[0]
         cur = conn.execute(
-            "INSERT INTO food_dishes(name, category, image, url, position) VALUES(?,?,?,?,?)",
+            "INSERT INTO food_dishes(name, category_id, image, url, position) VALUES(?,?,?,?,?)",
             (full["name"]["en"], found, image, url, pos),
         )
         dish_id = cur.lastrowid
@@ -1554,14 +1691,14 @@ def update_dish(user: str, dish_id: int, patch: dict) -> dict:
     cat_text = str(patch.get("category") or "").strip()
     with connect() as conn:
         current = {f: _texts(conn, dish_id, f) for f in _TRANSLATED_FIELDS}
-        found = _find_category(conn, cat_text, lang) if cat_text else ""
-        before = conn.execute("SELECT category, url FROM food_dishes WHERE id = ?", (dish_id,)).fetchone()
-        categories = _categories(conn)
+        found = _find_category(conn, cat_text, lang) if cat_text else 0
+        before = conn.execute("SELECT category_id, url FROM food_dishes WHERE id = ?", (dish_id,)).fetchone()
+        categories = [c["name"] for c in _categories(conn)]
     jobs, plain = _prepare_texts({**current, "category_found": found}, lang, patch)
     # A dish this save would leave without a category -- cleared, or never
     # given one -- gets one of the existing ones chosen for it.
     pick = None
-    if (patch.get("category") is not None and not cat_text) or (patch.get("category") is None and not before["category"]):
+    if (patch.get("category") is not None and not cat_text) or (patch.get("category") is None and not before["category_id"]):
         dish_name = str(patch.get("name") or "").strip() or current["name"].get("en", "")
         dish_url = str(patch["url"]).strip() if patch.get("url") is not None else before["url"]
         pick = lambda: _choose_category(dish_name, dish_url, categories)  # noqa: E731
@@ -1577,19 +1714,20 @@ def update_dish(user: str, dish_id: int, patch: dict) -> dict:
     if patch.get("ingredients") is not None:
         with connect() as conn:
             r = conn.execute("SELECT yield_qty, yield_unit FROM food_dishes WHERE id = ?", (dish_id,)).fetchone()
-            lines = conn.execute(
-                "SELECT i.name, di.quantity, di.unit FROM food_dish_ingredients di "
-                "JOIN food_ingredients i ON i.id = di.ingredient_id WHERE di.dish_id = ? ORDER BY di.position",
-                (dish_id,),
-            ).fetchall()
+            if r is None:
+                raise KeyError(dish_id)
+            was = _dish_ingredients_text(conn, dish_id)
             listed = {x["name"] for x in conn.execute("SELECT name FROM food_ingredients")}
         ing = str(patch["ingredients"]).strip()
-        if ing != _ingredients_text(r["yield_qty"], r["yield_unit"], lines):
+        if ing != was:
             ingredients = None
             if ing:
                 ingredients, errors = _validate_ingredients_json(ing, _TYPED_NAME_RE)
                 if errors:
                     raise ValueError("invalid ingredients: " + "; ".join(errors))
+                ingredients.setdefault("dishes", {})
+                with connect() as conn:
+                    _check_components(conn, dish_id, [int(d) for d in ingredients["dishes"]])
                 unknown = [n for n in ingredients["ingredients"] if n not in listed]
                 # The yield's unit as written in `lang`: English stored, the
                 # other languages translated -- unless it is the one shown,
@@ -1640,9 +1778,12 @@ def update_dish(user: str, dish_id: int, patch: dict) -> dict:
             shared["name"] = full["name"]["en"]
             _set_translations(conn, dish_id, "name", full["name"])
         if patch.get("category") is not None or picked:
-            cat = _category_named(conn, full["category"]) if "category" in full else (found or picked)
-            if cat != row["category"]:
-                shared["category"] = cat
+            if "category" in full:
+                cat = _category_named(conn, full["category"])
+            else:
+                cat = found or _picked_category(conn, picked)
+            if cat != row["category_id"]:
+                shared["category_id"] = cat
         if patch.get("url") is not None:
             u = str(patch["url"]).strip()
             if u != row["url"]:
@@ -1669,6 +1810,8 @@ def update_dish(user: str, dish_id: int, patch: dict) -> dict:
             if "image" in shared:
                 _forget_image(row["image"])
         if ingredients is not False:
+            if ingredients:
+                _check_components(conn, dish_id, [int(d) for d in ingredients["dishes"]])  # again, in the transaction
             _set_dish_ingredients(conn, dish_id, ingredients)
             if unit_texts is not None:
                 _set_translations(conn, dish_id, "yield_unit", unit_texts)
@@ -1698,6 +1841,55 @@ def update_dish(user: str, dish_id: int, patch: dict) -> dict:
         return snapshot(conn, user)
 
 
+def _check_components(conn: sqlite3.Connection, dish_id: int, used: list[int]) -> None:
+    """Refuse dishes `dish_id` cannot use: missing ones, ones whose weight
+    can't be told (what grams of them are), and ones that use it themselves,
+    however far down -- a dish would end up made out of itself."""
+    names = {r["id"]: r for r in conn.execute("SELECT id, name, yield_qty FROM food_dishes")}
+    weights = _weights(conn)
+    uses: dict[int, list[int]] = {}
+    for r in conn.execute("SELECT dish_id, component_id FROM food_dish_components"):
+        uses.setdefault(r["dish_id"], []).append(r["component_id"])
+    for cid in used:
+        c = names.get(cid)
+        if c is None:
+            raise ValueError(f"there is no dish {cid} any more")
+        if not weights.get(cid):
+            raise ValueError(f'nothing of "{c["name"]}" is in weight -- give its ingredients in grams, or conversions')
+        seen, todo = set(), [cid]
+        while todo:
+            d = todo.pop()
+            if d == dish_id:
+                raise ValueError("a dish cannot be one of its own ingredients" if cid == dish_id else
+                                 f'"{c["name"]}" already uses this dish, so this one cannot use it')
+            if d not in seen:
+                seen.add(d)
+                todo.extend(uses.get(d, []))
+
+
+def usable_components(conn: sqlite3.Connection, dish_id: int) -> set[int]:
+    """The dishes `dish_id` may use (_check_components's rules)."""
+    weights = _weights(conn)
+    uses: dict[int, list[int]] = {}
+    for r in conn.execute("SELECT dish_id, component_id FROM food_dish_components"):
+        uses.setdefault(r["dish_id"], []).append(r["component_id"])
+
+    def reaches(d: int, seen: set) -> bool:
+        return d == dish_id or (d not in seen and (seen.add(d) or any(reaches(c, seen) for c in uses.get(d, []))))
+    return {d for d, w in weights.items() if w and not reaches(d, set())}
+
+
+def _set_components(conn: sqlite3.Connection, dish_id: int, comps: dict[int, str]) -> None:
+    """Replace the dishes `dish_id` uses with `comps` (id -> how much),
+    after its ingredients."""
+    conn.execute("DELETE FROM food_dish_components WHERE dish_id = ?", (dish_id,))
+    start = conn.execute("SELECT COALESCE(MAX(position), -1) + 1 FROM food_dish_ingredients WHERE dish_id = ?",
+                         (dish_id,)).fetchone()[0]
+    conn.executemany(
+        "INSERT INTO food_dish_components (dish_id, component_id, position, quantity) VALUES (?, ?, ?, ?)",
+        [(dish_id, cid, start + n, qty) for n, (cid, qty) in enumerate(comps.items())])
+
+
 def _merge_lines(items: list[tuple[str, dict]]) -> tuple[dict, list[str]]:
     """A dish's ingredient lines (name, {"quantity", "unit"}) with two of one
     name made one: added up when both have an amount, of one kind of unit."""
@@ -1716,11 +1908,13 @@ def _merge_lines(items: list[tuple[str, dict]]) -> tuple[dict, list[str]]:
     return out, errors
 
 
-def _start_import(conn: sqlite3.Connection, dish_id: int) -> None:
+def _start_import(conn: sqlite3.Connection, dish_id: int, resume: dict | None = None) -> None:
     """Mark the dish's recipe import running and start it; it runs on its own
-    thread once this transaction is committed (food_import.py)."""
+    thread once this transaction is committed (food_import.py). `resume`:
+    the sub-recipes it found and which were picked ({"plan", "keep"}) -- it
+    goes on from there."""
     conn.execute("UPDATE food_dishes SET import_state = ? WHERE id = ?",
-                 (json.dumps({"state": "running", "stage": "queued"}), dish_id))
+                 (json.dumps({"state": "running", "stage": "queued", **(resume or {})}), dish_id))
     from api.services import food_import  # it imports this module
     food_import.start_after_commit(dish_id)
 
@@ -1739,6 +1933,77 @@ def import_recipe(user: str, dish_id: int) -> dict:
         return snapshot(conn, user)
 
 
+def choose_split(user: str, dish_id: int, keep: list[int]) -> dict:
+    """Go on with an import waiting on its sub-recipes (food_import, the
+    splitting stage): `keep` the ones picked, by their place in its
+    "parts"; none picked keeps the recipe one dish."""
+    with connect() as conn:
+        row = conn.execute("SELECT import_state FROM food_dishes WHERE id = ?", (dish_id,)).fetchone()
+        if row is None:
+            raise KeyError(dish_id)
+        st = json.loads(row["import_state"] or "{}")
+        if st.get("state") != "choosing":
+            raise ValueError("the import is not waiting for a choice")
+        if any(not 0 <= k < len(st["parts"]) for k in keep):
+            raise ValueError("no such sub-recipe")
+        _start_import(conn, dish_id, {"plan": st["plan"], "keep": sorted(set(keep))})
+        _bump_all(conn)
+        return snapshot(conn, user)
+
+
+def _merge_category(conn: sqlite3.Connection, src: int, dst: int) -> None:
+    """Category `src` joins `dst`: its dishes go there, it goes."""
+    print(f"[food] category {src} merged into {dst}")
+    conn.execute("UPDATE food_dishes SET category_id = ? WHERE category_id = ?", (dst, src))
+    conn.execute("DELETE FROM food_category_names WHERE category_id = ?", (src,))
+    conn.execute("DELETE FROM food_categories WHERE id = ?", (src,))
+
+
+def rename_category(user: str, category_id: int, name: str, lang: str = "en") -> dict:
+    """Rename a category to `name`, written in `lang`.
+
+    The model is given all its names before and the edit, and changes the
+    other languages' only as the edit requires -- outside the transaction,
+    it takes seconds; nothing is renamed if it fails. Its dishes have it by
+    id, so they stay as they are -- unless another category is called that
+    already: then the two become one. Raises KeyError, ValueError,
+    TranslationError."""
+    if lang not in LANGUAGES:
+        raise ValueError(f"no language {lang!r}")
+    target = " ".join((name or "").split())
+    if not target:
+        raise ValueError("a category needs a name")
+    with connect() as conn:
+        names = _category_names(conn, category_id)
+        if not names:
+            raise KeyError(category_id)
+        if target == names.get(lang, names["en"]):
+            return snapshot(conn, user)
+        other = _find_category(conn, target, lang)
+        if other is not None and other != category_id:
+            _merge_category(conn, category_id, other)
+            _bump_all(conn)
+            return snapshot(conn, user)
+    current = {k: v for k, v in names.items() if k != lang}
+    out = {lang: target, **_translate("category", lang, names.get(lang, ""), target, current)}
+    out = {k: " ".join(_unquoted(v).split()) for k, v in out.items()}
+    with connect() as conn:
+        if not _category_names(conn, category_id):
+            raise KeyError(category_id)
+        en = out.get("en") or names["en"]
+        other = _find_category(conn, en, "en")
+        if other is not None and other != category_id:
+            _merge_category(conn, category_id, other)
+        else:
+            print(f"[food] category {category_id} renamed in {lang}: {names} -> {out}")
+            conn.execute("UPDATE food_categories SET name = ? WHERE id = ?", (en, category_id))
+            conn.executemany(
+                "INSERT OR REPLACE INTO food_category_names (category_id, lang, name) VALUES (?, ?, ?)",
+                [(category_id, k, v) for k, v in out.items() if k != "en" and v])
+        _bump_all(conn)
+        return snapshot(conn, user)
+
+
 def delete_dish(user: str, dish_id: int) -> dict:
     with connect() as conn:
         row = conn.execute(
@@ -1746,10 +2011,17 @@ def delete_dish(user: str, dish_id: int) -> dict:
         ).fetchone()
         if row is None:
             raise KeyError(dish_id)
+        users = [r["name"] for r in conn.execute(
+            "SELECT d.name FROM food_dish_components c JOIN food_dishes d ON d.id = c.dish_id "
+            "WHERE c.component_id = ? ORDER BY d.name", (dish_id,))]
+        if users:
+            raise ValueError("it is an ingredient of " + ", ".join(f'"{n}"' for n in users)
+                             + " -- take it out of them first")
         for f in set(json.loads(row["photos"] or "{}").values()):
             _forget_image(f)
         conn.execute("DELETE FROM food_ratings WHERE dish_id = ?", (dish_id,))
         conn.execute("DELETE FROM food_dish_ingredients WHERE dish_id = ?", (dish_id,))
+        conn.execute("DELETE FROM food_dish_components WHERE dish_id = ?", (dish_id,))
         conn.execute("DELETE FROM food_translations WHERE dish_id = ?", (dish_id,))
         conn.execute("DELETE FROM food_dishes WHERE id = ?", (dish_id,))
         _bump_all(conn)
@@ -1971,9 +2243,66 @@ def _readable(macro: str, base: float) -> dict:
     return {"amount": _fmt_qty(base / 1000), "unit": big} if base >= 1000 else {"amount": _fmt_qty(base), "unit": small}
 
 
+def _weights(conn: sqlite3.Connection, own_only: bool = False) -> dict[int, float | None]:
+    """What one recipe of every dish weighs, in grams: its lines that are in
+    mass or convert to it, and the grams of the dishes it uses (unless
+    `own_only`). None for one with nothing in weight."""
+    convs = _conversions(conn)
+    rates: dict[int, dict] = {}
+    out: dict[int, float] = {r["id"]: 0.0 for r in conn.execute("SELECT id FROM food_dishes")}
+    for r in conn.execute("SELECT dish_id, ingredient_id, quantity, unit FROM food_dish_ingredients WHERE quantity != ''"):
+        if r["unit"] in UNITS and r["dish_id"] in out:
+            if r["ingredient_id"] not in rates:
+                rates[r["ingredient_id"]] = _rates(convs.get(r["ingredient_id"], []))
+            out[r["dish_id"]] += _convert(float(r["quantity"]), r["unit"], "g", rates[r["ingredient_id"]]) or 0
+    if not own_only:
+        for r in conn.execute("SELECT dish_id, quantity FROM food_dish_components"):
+            if r["dish_id"] in out:
+                out[r["dish_id"]] += float(r["quantity"])
+    return {d: (w or None) for d, w in out.items()}
+
+
+def dish_grams(conn: sqlite3.Connection, dish_id: int) -> float | None:
+    """What one recipe of a dish weighs, in grams (_weights)."""
+    return _weights(conn).get(dish_id)
+
+
+def _made(conn: sqlite3.Connection, items: dict[int, float]):
+    """How much of every dish is made for `items` (dish id -> how much, in
+    its yield's unit), the dishes they use included, and a function giving
+    how many times its recipe a dish's amount is."""
+    yields = {r["id"]: r["yield_qty"] for r in conn.execute("SELECT id, yield_qty FROM food_dishes")}
+    weights = _weights(conn)
+    uses: dict[int, list] = {}
+    for r in conn.execute("SELECT dish_id, component_id, quantity FROM food_dish_components"):
+        uses.setdefault(r["dish_id"], []).append((r["component_id"], float(r["quantity"])))
+
+    def scale_of(dish_id: int, amount: float) -> float:
+        base = yields.get(dish_id, "")
+        return amount / float(base) if _PLAIN_NUMBER_RE.match(base) and float(base) > 0 else 1
+
+    def amount_of(dish_id: int, recipes: float) -> float:
+        base = yields.get(dish_id, "")
+        return recipes * float(base) if _PLAIN_NUMBER_RE.match(base) and float(base) > 0 else recipes
+
+    # A dish used by grams is that many of its recipes (one, when its weight
+    # can't be told). A loop is refused on save; the depth only guards
+    # against one.
+    made: dict[int, float] = {}
+    todo = [(d, a, 0) for d, a in items.items()]
+    while todo:
+        d, a, depth = todo.pop()
+        made[d] = made.get(d, 0) + a
+        if depth < 20:
+            todo.extend((c, amount_of(c, g * scale_of(d, a) / weights[c] if weights.get(c) else scale_of(d, a)),
+                         depth + 1) for c, g in uses.get(d, []))
+    return made, scale_of
+
+
 def grocery(items: dict[int, float]) -> list[dict]:
     """The shopping list for `items` (dish id -> how much of it is made, in
-    its yield's unit): every ingredient of those dishes, scaled and added up.
+    its yield's unit): every ingredient of those dishes, scaled and added up
+    -- and of the dishes they use, as much of each as they take.
     Each ingredient is totalled in mass when any of its lines is in mass or
     converts to it, else in volume the same way, else in pieces; a line that
     can't get there is totalled the same way on its own, next to it ("200 g +
@@ -1981,18 +2310,16 @@ def grocery(items: dict[int, float]) -> list[dict]:
     if not items:
         return []
     with connect() as conn:
-        marks = ",".join("?" * len(items))
-        yields = {r["id"]: r["yield_qty"] for r in conn.execute(
-            f"SELECT id, yield_qty FROM food_dishes WHERE id IN ({marks})", tuple(items))}
+        made, scale_of = _made(conn, items)
+        marks = ",".join("?" * len(made))
         rows = conn.execute(
             "SELECT di.dish_id, di.ingredient_id, i.name, di.quantity, di.unit FROM food_dish_ingredients di "
-            f"JOIN food_ingredients i ON i.id = di.ingredient_id WHERE di.dish_id IN ({marks})", tuple(items),
+            f"JOIN food_ingredients i ON i.id = di.ingredient_id WHERE di.dish_id IN ({marks})", tuple(made),
         ).fetchall()
         convs = _conversions(conn)
     acc: dict[int, dict] = {}
     for r in rows:
-        base_qty = yields.get(r["dish_id"], "")
-        scale = items[r["dish_id"]] / float(base_qty) if _PLAIN_NUMBER_RE.match(base_qty) and float(base_qty) > 0 else 1
+        scale = scale_of(r["dish_id"], made[r["dish_id"]])
         a = acc.setdefault(r["ingredient_id"], {"name": r["name"], "lines": [], "approximate": False})
         if not r["quantity"] or r["unit"] not in UNITS:
             a["approximate"] = True

@@ -7,6 +7,11 @@ One job a dish, on its own thread, its stage in food_dishes.import_state for
 the clients to show:
 
   fetching     the page fetched again, and kept (food.fetch_recipe_page)
+  splitting    the recipe looked at for sub-recipes (LLM, save_split): a
+               cheesecake's topping, a lasagne's ragù. When it has some it
+               waits ("choosing") for who imported it to pick which become
+               dishes of their own (food.choose_split); each one picked is
+               then read and translated like the rest, and the dish uses it
   reading      at once: the preparation cleaned of what isn't preparation
                (LLM, save_preparation), and the ingredient lines turned into
                ingredients of the list (LLM, save_ingredients)
@@ -17,7 +22,7 @@ the clients to show:
   done / failed
 
 What succeeds is saved even when another part fails -- "failed" lists what
-did -- and Retry runs it all again.
+did -- and Retry runs it all again (the sub-recipes asked about again).
 """
 import json
 import re
@@ -69,8 +74,10 @@ def _run(dish_id: int) -> None:
             time.sleep(0.1)
         else:
             return  # deleted, or it never came
+        st = json.loads(row["import_state"] or "{}")
+        resume = {"plan": st["plan"], "keep": st["keep"]} if "plan" in st else None
         try:
-            _import(dish_id, row["url"], row["name"])
+            _import(dish_id, row["url"], row["name"], resume)
         except Exception as e:  # nothing of it saved
             _state(dish_id, {"state": "failed", "errors": [str(e) or type(e).__name__]})
     finally:
@@ -78,57 +85,97 @@ def _run(dish_id: int) -> None:
             _RUNNING.discard(dish_id)
 
 
-def _import(dish_id: int, url: str, name: str) -> None:
+def _import(dish_id: int, url: str, name: str, resume: dict | None = None) -> None:
+    """The whole import -- or, `resume`d, from the sub-recipes picked on."""
     errors: list[str] = []
     started = time.monotonic()
-    _state(dish_id, {"state": "running", "stage": "fetching"})
-    food.fetch_recipe_page(url)
+    if resume is None:
+        _state(dish_id, {"state": "running", "stage": "fetching"})
+        food.fetch_recipe_page(url)
     with food.connect() as conn:
         page = conn.execute("SELECT preparation, json_ld, site_facts FROM food_recipe_pages WHERE url = ?",
                             (url,)).fetchone()
         known = _known(conn)
+    if page is None:
+        raise ImportProblem("the recipe page is gone -- import it again")
     recipe = food._recipe(json.loads(page["json_ld"]))
     steps = _number_unmarked(json.loads(page["preparation"]))
     facts = _facts(url, recipe, json.loads(page["site_facts"] or "{}"))
 
-    _state(dish_id, {"state": "running", "stage": "reading"})
-    with ThreadPoolExecutor(max_workers=2) as pool:
-        f_steps = pool.submit(_clean_preparation, steps)
-        f_ingredients = pool.submit(_ingredients, recipe, name, known)
-    kept = f_steps.result()  # never fails: the steps as they were, at worst
-    try:
-        ingredients = f_ingredients.result()
-    except (ImportProblem, food.TranslationError) as e:
-        ingredients = None
-        errors.append(f"ingredients: {e}")
+    if resume is None:
+        _state(dish_id, {"state": "running", "stage": "splitting"})
+        plan = _plan_split(dish_id, name, recipe, steps)
+        if plan["parts"]:
+            _state(dish_id, {"state": "choosing", "stage": "splitting", "plan": plan,
+                             "parts": [{"name": p["name"]["en"], "name_tr": {k: v for k, v in p["name"].items() if k != "en"},
+                                        "existing": p["existing"]} for p in plan["parts"]]})
+            print(f"[food import] dish {dish_id} ({name}): {len(plan['parts'])} sub-recipe(s) proposed")
+            return
+        resume = {"plan": plan, "keep": []}
+    main, subs, linked = _pieces(resume["plan"], resume["keep"], steps)
+    # What the dish is now made with, apart: named in its instructions.
+    uses = [p["name"] for p in subs]
+    with food.connect() as conn:
+        uses += [food._texts(conn, cid, "name") for cid in linked]
 
-    instructions, photos = None, None
-    if kept:
-        _state(dish_id, {"state": "running", "stage": "translating"})
-        with ThreadPoolExecutor(max_workers=2) as pool:
-            f_tr = pool.submit(_write_instructions, kept)
-            f_photos = pool.submit(_download_photos, kept, name)
-        photos, photo_errors = f_photos.result()
-        errors += photo_errors
+    # Every dish made out of the recipe, read and translated alike: this
+    # one first, then the sub-recipes picked.
+    pieces = [{"name": name, "lines": main["lines"], "steps": main["steps"]}] + [
+        {"name": p["name"]["en"], "names": p["name"], "lines": p["lines"], "steps": p["steps"],
+         "weight_g": p["weight_g"]} for p in subs]
+    _state(dish_id, {"state": "running", "stage": "reading"})
+    with ThreadPoolExecutor(max_workers=2 * len(pieces)) as pool:
+        f_steps = [pool.submit(_clean_preparation, pc["steps"]) for pc in pieces]
+        f_ings = [pool.submit(_ingredients, {**recipe, "recipeIngredient": pc["lines"]}, pc["name"], known)
+                  for pc in pieces]
+    for pc, fs, fi in zip(pieces, f_steps, f_ings):
+        pc["kept"] = fs.result()  # never fails: the steps as they were, at worst
+        pc["errors"] = []
         try:
-            instructions = f_tr.result()
-        except ImportProblem as e:
-            errors.append(f"instructions: {e}")
-            for f in set(photos.values()):
-                food._forget_image(f)
-            photos = None
-    _save(dish_id, url, facts, ingredients, instructions, photos, errors)
+            pc["ingredients"] = fi.result()
+        except (ImportProblem, food.TranslationError) as e:
+            pc["ingredients"] = None
+            pc["errors"].append(f"ingredients: {e}")
+        pc["instructions"], pc["photos"] = None, None
+
+    todo = [pc for pc in pieces if pc["kept"]]
+    if todo:
+        _state(dish_id, {"state": "running", "stage": "translating"})
+        with ThreadPoolExecutor(max_workers=2 * len(todo)) as pool:
+            f_tr = [pool.submit(_write_instructions, pc["kept"], uses if pc is pieces[0] else None) for pc in todo]
+            f_photos = [pool.submit(_download_photos, pc["kept"], pc["name"]) for pc in todo]
+        for pc, ft, fp in zip(todo, f_tr, f_photos):
+            pc["photos"], photo_errors = fp.result()
+            pc["errors"] += photo_errors
+            try:
+                pc["instructions"] = ft.result()
+            except ImportProblem as e:
+                pc["errors"].append(f"instructions: {e}")
+                for f in set(pc["photos"].values()):
+                    food._forget_image(f)
+                pc["photos"] = None
+    errors = pieces[0]["errors"] + [f'{pc["name"]}: {e}' for pc in pieces[1:] for e in pc["errors"]]
+    head = pieces[0]
+    _save(dish_id, url, facts, head["ingredients"], head["instructions"], head["photos"], errors,
+          {"subs": pieces[1:], "linked": linked, "matched": [p["existing"] for p in resume["plan"]["parts"]
+                                                             if p["existing"]]})
     print(f"[food import] dish {dish_id} ({name}): done in {time.monotonic() - started:.1f}s"
+          + (f", {len(pieces) - 1} sub-recipe(s)" if len(pieces) > 1 else "")
           + (f", {len(errors)} error(s)" if errors else ""))
 
 
 def _save(dish_id: int, url: str, facts: dict, ingredients: dict | None,
-          instructions: dict | None, photos: dict | None, errors: list[str]) -> None:
+          instructions: dict | None, photos: dict | None, errors: list[str], split: dict | None = None) -> None:
+    """The import's dish saved, and with `split` ({"subs": the sub-recipes
+    made into dishes, as _import has them; "linked": existing dish -> how
+    many grams of it; "matched": the existing dishes the split named}) the new
+    dishes too, the dish using them and the ones linked."""
+    split = split or {"subs": [], "linked": {}, "matched": []}
     with food.connect() as conn:
-        row = conn.execute("SELECT url, photos FROM food_dishes WHERE id = ?", (dish_id,)).fetchone()
+        row = conn.execute("SELECT url, photos, category_id FROM food_dishes WHERE id = ?", (dish_id,)).fetchone()
         if row is None or row["url"] != url:
             # Deleted, or given another recipe meanwhile (its own import runs).
-            for f in set((photos or {}).values()):
+            for f in set((photos or {}).values()) | {f for sub in split["subs"] for f in (sub["photos"] or {}).values()}:
                 food._forget_image(f)
             return
         cols = {**facts, "import_url": url,
@@ -146,15 +193,250 @@ def _save(dish_id: int, url: str, facts: dict, ingredients: dict | None,
             # A yield unit new to the dish loses its translations: the
             # worker gives it new ones.
             food._set_dish_ingredients(conn, dish_id, ingredients["data"])
-            for ing_name, names in ingredients["new_names"].items():
-                food.name_ingredient(conn, food._ingredient_id(conn, ing_name), names)
-            conn.executemany(
-                "INSERT OR REPLACE INTO food_ingredient_aliases (alias, ingredient_id) VALUES (?, ?)",
-                [(alias, food._ingredient_id(conn, ing_name)) for alias, ing_name in ingredients["aliases"].items()
-                 if alias])
+            _save_names(conn, ingredients)
+        if split["subs"] or split["matched"]:
+            # The dishes it uses: the ones it did, but those the split named
+            # (they are linked again if picked), and the ones made now.
+            comps = {r["component_id"]: r["quantity"] for r in conn.execute(
+                "SELECT component_id, quantity FROM food_dish_components WHERE dish_id = ? ORDER BY position",
+                (dish_id,)) if r["component_id"] not in split["matched"]}
+            usable = food.usable_components(conn, dish_id)
+            for cid, grams in split["linked"].items():
+                if cid in usable:
+                    comps[cid] = food._fmt_qty(grams)
+            for sub in split["subs"]:
+                # All of it, as its own lines weigh -- the estimate when
+                # they can't tell.
+                new_id = _new_dish(conn, sub, row["category_id"])
+                comps[new_id] = food._fmt_qty(food.dish_grams(conn, new_id) or sub["weight_g"])
+            food._set_components(conn, dish_id, comps)
         food._bump_all(conn)
-    if ingredients is not None:
+    if ingredients is not None or split["subs"]:
         food._spawn_translations_processing()
+
+
+def _save_names(conn, ingredients: dict) -> None:
+    """The new ingredients' names and the lines' aliases an ingredients
+    answer (_ingredients) came with."""
+    for ing_name, names in ingredients["new_names"].items():
+        food.name_ingredient(conn, food._ingredient_id(conn, ing_name), names)
+    conn.executemany(
+        "INSERT OR REPLACE INTO food_ingredient_aliases (alias, ingredient_id) VALUES (?, ?)",
+        [(alias, food._ingredient_id(conn, ing_name)) for alias, ing_name in ingredients["aliases"].items()
+         if alias])
+
+
+def _new_dish(conn, sub: dict, category_id: int | None) -> int:
+    """A sub-recipe made a dish of its own, in that category, with no picture
+    and no recipe link of its own (what failed of it is in the import's
+    errors); its id."""
+    pos = conn.execute("SELECT COALESCE(MAX(position), -1) + 1 FROM food_dishes WHERE category_id IS ?",
+                       (category_id,)).fetchone()[0]
+    ins = sub["instructions"] or {}
+    new_id = conn.execute(
+        "INSERT INTO food_dishes (name, category_id, position, instructions, photos) VALUES (?, ?, ?, ?, ?)",
+        (sub["names"]["en"], category_id, pos, ins.get("en", ""), json.dumps(sub["photos"] or {})),
+    ).lastrowid
+    food._set_translations(conn, new_id, "name", sub["names"])
+    if ins:
+        food._set_translations(conn, new_id, "instructions", ins)
+    if sub["ingredients"]:
+        food._set_dish_ingredients(conn, new_id, sub["ingredients"]["data"])
+        _save_names(conn, sub["ingredients"])
+    return new_id
+
+
+# ── sub-recipes ──────────────────────────────────────────────────────────
+_SPLIT_SYSTEM_PROMPT = (
+    "You are given a recipe: its dish, its ingredient lines and its "
+    "preparation, sentence by sentence, each numbered. Some recipes are made "
+    "of sub-recipes -- preparations of their own, that could be made apart or "
+    "swapped for another: a cheesecake's base and its topping, a lasagne's "
+    "ragù and its béchamel, a tart's pastry and its filling, a sauce, a dough, "
+    "a cream. Call save_split with those sub-recipes as its parts, leaving out "
+    "the main one: the main one is the dish itself -- the sub-recipe that is "
+    "most of it (the cheesecake's base) with the assembling, cooking and "
+    "serving -- and it keeps every line and sentence not given to a part.\n\n"
+    "Give no parts at all when the recipe is one preparation. An ingredient "
+    "on its own (grated cheese on top), a garnish, a decoration or the "
+    "assembling is never a part. For each part:\n"
+    "- its name as a dish's, in English, Italian and German (\"Cheesecake "
+    "topping\", \"Copertura per cheesecake\", \"Cheesecake-Topping\");\n"
+    "- lines: the ingredient lines it uses; a line belongs to one part at "
+    "most -- shared by two, to the one using more of it;\n"
+    "- sentences: the sentences that make it, one part at most each; those "
+    "putting the parts together stay with the main one;\n"
+    "- existing: when it is the same preparation as one of the EXISTING "
+    "DISHES (the same thing to make, however written), that dish's id -- "
+    "else 0;\n"
+    "- weight_g: what its lines make weighs in grams, as much as this recipe "
+    "uses, estimated as a cook would (pieces and spoons included).\n"
+    "The main one keeps at least one line."
+)
+
+
+def _units(steps: list[dict]) -> list[dict]:
+    """The steps' sentences, in order: {"step": its index, "para": its
+    paragraph's in the step, "text"}."""
+    out = []
+    for si, st in enumerate(steps):
+        paras = [p for p in st["text"].split("\n\n") if p.strip()]
+        for pi, para in enumerate(paras):
+            out.extend({"step": si, "para": pi, "text": t} for t in _SENTENCE_SPLIT.split(_norm(para)) if t)
+    return out
+
+
+def _plan_split(dish_id: int, name: str, recipe: dict, steps: list[dict]) -> dict:
+    """The recipe's sub-recipes (LLM, checked, one retry): {"lines": its
+    ingredient lines, "units": its sentences (_units), "parts": [{"name":
+    lang -> name, "existing": a dish's id or 0, "lines", "sentences": their
+    indices, "weight_g"}]} -- no parts when it has none, or when they can't
+    be had (the import goes on with the recipe whole)."""
+    lines = [food._clean(str(i)) for i in recipe.get("recipeIngredient") or [] if str(i).strip()]
+    units = _units(steps)
+    plan = {"lines": lines, "units": units, "parts": []}
+    if len(lines) < 2 or not units or not food.OPENROUTER_KEY:
+        return plan
+    with food.connect() as conn:
+        usable = food.usable_components(conn, dish_id)
+        others = []
+        for r in conn.execute("SELECT id, name FROM food_dishes ORDER BY name").fetchall():
+            if r["id"] in usable:
+                ings = [x["name"] for x in conn.execute(
+                    "SELECT i.name FROM food_dish_ingredients di JOIN food_ingredients i ON i.id = di.ingredient_id "
+                    "WHERE di.dish_id = ? ORDER BY di.position", (r["id"],))]
+                others.append(f"{r['id']}. {r['name']}" + (f": {', '.join(ings)}" if ings else ""))
+    listing, last = [], None
+    for n, u in enumerate(units, 1):
+        if u["step"] != last:
+            listing.append(f"STEP {u['step'] + 1}:")
+            last = u["step"]
+        listing.append(f"  [{n}] {u['text']}")
+    parts = [f"DISH: {name}",
+             "EXISTING DISHES:\n" + ("\n".join(others) or "(none)"),
+             "INGREDIENT LINES:\n" + "\n".join(f"{n}. {line}" for n, line in enumerate(lines, 1)),
+             "PREPARATION:\n" + "\n".join(listing)]
+    item = {**{f"name_{lang}": {"type": "string"} for lang in food.LANGUAGES},
+            "lines": {"type": "array", "items": {"type": "integer"}},
+            "sentences": {"type": "array", "items": {"type": "integer"}},
+            "existing": {"type": "integer"}, "weight_g": {"type": "number"}}
+    tool = {"type": "function", "function": {
+        "name": "save_split",
+        "description": "Save the recipe's sub-recipes other than the main one (none for a recipe of one).",
+        "parameters": {"type": "object", "properties": {"parts": {"type": "array", "items": {
+            "type": "object", "properties": item, "required": list(item), "additionalProperties": False}}},
+            "required": ["parts"], "additionalProperties": False},
+    }}
+    messages = [{"role": "system", "content": _SPLIT_SYSTEM_PROMPT}, {"role": "user", "content": "\n\n".join(parts)}]
+    for _attempt in range(2):
+        try:
+            args = _call_tool(messages, tool)
+        except ImportProblem as e:
+            print(f"[food import] no sub-recipes looked for: {e}")
+            return plan
+        found, errors = _check_split(args, len(lines), len(units), usable)
+        if found is not None:
+            return {**plan, "parts": found}
+        print(f"[food import] split answer rejected: {'; '.join(errors[:3])}")
+        messages += [{"role": "assistant", "content": json.dumps(args, ensure_ascii=False)},
+                     {"role": "user", "content": _fix_these(errors)}]
+    return plan
+
+
+def _check_split(args: dict, n_lines: int, n_units: int, usable: set[int]) -> tuple[list[dict] | None, list[str]]:
+    """The parts of a save_split answer, or what is wrong with it."""
+    errors, out = [], []
+    seen_lines, seen_units, seen_dishes = set(), set(), set()
+    for k, p in enumerate(args.get("parts") or [], 1):
+        try:
+            names = {lang: str(p[f"name_{lang}"]).strip() for lang in food.LANGUAGES}
+            lines, units = [int(x) for x in p["lines"]], [int(x) for x in p["sentences"]]
+            existing, weight = int(p["existing"]), float(p["weight_g"])
+        except (KeyError, TypeError, ValueError):
+            errors.append(f"part {k}: give every field, of its type")
+            continue
+        if not all(names.values()):
+            errors.append(f"part {k}: give its name in every language")
+        if not lines:
+            errors.append(f"part {k}: give it its ingredient lines")
+        for n in lines:
+            if not 1 <= n <= n_lines:
+                errors.append(f"part {k}: there is no line {n}")
+            elif n in seen_lines:
+                errors.append(f"line {n} is in two parts -- give it to one")
+            seen_lines.add(n)
+        for n in units:
+            if not 1 <= n <= n_units:
+                errors.append(f"part {k}: there is no sentence {n}")
+            elif n in seen_units:
+                errors.append(f"sentence {n} is in two parts -- give it to one")
+            seen_units.add(n)
+        if existing and (existing not in usable or existing in seen_dishes):
+            errors.append(f"part {k}: {existing} is none of the EXISTING DISHES' ids, or another part's -- "
+                          "give one of them, or 0")
+        seen_dishes.add(existing)
+        if weight <= 0:
+            errors.append(f"part {k}: weight_g is what it weighs, in grams, above 0")
+        out.append({"name": names, "existing": existing, "lines": sorted(n - 1 for n in lines),
+                    "sentences": sorted(n - 1 for n in units), "weight_g": weight})
+    if out and len(seen_lines) >= n_lines:
+        errors.append("the main one keeps at least one line -- the dish itself is no part")
+    return (None, errors) if errors else (out, [])
+
+
+def _pieces(plan: dict, keep: list[int], steps: list[dict]):
+    """The recipe cut by the sub-recipes picked: (the dish's own {"lines",
+    "steps"}, the new ones' -- each its plan part with "lines" and "steps"
+    --, existing dish -> how many grams of it). What isn't picked stays
+    with the dish; a picked existing dish's lines and sentences go, it
+    being the dish's instead. A step's photos go with the sentences that
+    mention them, one mentioned by none with the step's first sentence."""
+    lines, units = plan["lines"], plan["units"]
+    if not keep:
+        return {"lines": lines, "steps": steps}, [], {}
+    owner = [0] * len(units)  # 0 the dish, else 1 + its place in `new`
+    line_owner = [0] * len(lines)
+    new, linked, dropped = [], {}, -1
+    for k in keep:
+        p = plan["parts"][k]
+        if p["existing"]:
+            linked[p["existing"]] = p["weight_g"]
+            tag = dropped
+        else:
+            new.append(p)
+            tag = len(new)
+        for n in p["sentences"]:
+            owner[n] = tag
+        for n in p["lines"]:
+            line_owner[n] = tag
+
+    def cut(tag: int) -> dict:
+        out = []
+        for si, st in enumerate(steps):
+            mine = [(u, owner[i]) for i, u in enumerate(units) if u["step"] == si]
+            if not mine:  # photos only: the dish's
+                if tag == 0:
+                    out.append(st)
+                continue
+            texts = {}
+            for u, o in mine:
+                if o == tag:
+                    texts.setdefault(u["para"], []).append(u["text"])
+            if not texts:
+                continue
+            text = "\n\n".join(" ".join(ts) for _, ts in sorted(texts.items()))
+            marks = {m for _kind, m in food.PHOTO_MARK_RE.findall(text)}
+            mentioned = {m for _kind, m in food.PHOTO_MARK_RE.findall(st["text"])}
+            first = mine[0][1] == tag
+            images = [img for img in st["images"]
+                      if {str(n) for n in img["steps"]} & marks
+                      or (first and not {str(n) for n in img["steps"]} & mentioned)]
+            out.append({"text": text, "images": images})
+        return {"lines": [ln for n, ln in enumerate(lines) if line_owner[n] == tag], "steps": out}
+
+    for t, p in enumerate(new, 1):
+        p.update(cut(t))
+    return cut(0), new, linked
 
 
 # ── facts ────────────────────────────────────────────────────────────────
@@ -334,15 +616,40 @@ _INSTRUCTIONS_SYSTEM_PROMPT = (
 )
 
 
-def _write_instructions(steps: list[dict]) -> dict[str, str]:
+# A dish split off sub-recipes (food_import's splitting stage) keeps only
+# its own sentences, which still speak of the rest loosely ("pour everything
+# over the base"): the instructions say what those are.
+_USES_PROMPT = (
+    "\n\nThis dish is made with these other dishes, each prepared apart, by "
+    "its own recipe -- named here in each language:\n{uses}\n"
+    "Their making was taken out of these instructions, so what is left may "
+    "speak of them loosely (\"pour everything over the base\", \"the "
+    "cream\"). These are the only things to change besides the wording: in "
+    "every language, begin with one step of your own, numbered 1., saying to "
+    "prepare those dishes first, each by its name as given; the given steps "
+    "follow, numbered on from 2.; and wherever a step means one of those "
+    "dishes, name it as given (\"pour the lemon cream over the biscuit "
+    "base\")."
+)
+
+
+def _write_instructions(steps: list[dict], uses: list[dict[str, str]] | None = None) -> dict[str, str]:
     """The steps as Markdown (_markdown, _with_photos) in every language of
     food.LANGUAGES, the house style (_INSTRUCTIONS_STYLE) -- the page's own
     language rewritten too, so it needn't be known. The model never sees
-    the photos' lines: they are put back above their steps after. One retry
+    the photos' lines: they are put back above their steps after. `uses`:
+    the dishes it is made with, apart (lang -> name each) -- a first step
+    says to prepare them, the others name them (_USES_PROMPT). One retry
     with what was wrong. Raises ImportProblem."""
     md = _markdown(steps)
     prompt = _INSTRUCTIONS_SYSTEM_PROMPT.replace("{styles}", "\n".join(
         f"- {food.LANGUAGES[lang]}: {_INSTRUCTIONS_STYLE[lang]}" for lang in food.LANGUAGES))
+    if uses:
+        prompt += _USES_PROMPT.replace("{uses}", "\n".join(
+            "- " + "; ".join(f"{food.LANGUAGES[lang]}: {u.get(lang) or u['en']}" for lang in food.LANGUAGES)
+            for u in uses))
+        # The step of its own comes first, with no photos.
+        steps = [{"text": "", "images": []}] + steps
     tool = {"type": "function", "function": {
         "name": "save_instructions",
         "description": "Save the instructions in every language.",

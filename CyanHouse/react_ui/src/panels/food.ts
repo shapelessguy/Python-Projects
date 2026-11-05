@@ -10,7 +10,8 @@ export interface Dish {
    *  have them (lang -> text). */
   name: string;
   name_tr?: Record<string, string>;
-  category: string;
+  /** Its category (FoodData.categories); null: none. */
+  category_id: number | null;
   rating: number;
   image: string;
   url: string;
@@ -20,6 +21,9 @@ export interface Dish {
   /** The yield's unit ("persons", in English in `ingredients`) in the
    *  other languages that have it (lang -> text). */
   yield_unit_tr?: Record<string, string>;
+  /** What one recipe of it weighs, in grams; null when nothing of it is in
+   *  weight -- then no other dish can use it (it is used by grams). */
+  weight_g: number | null;
   /** Its facts, filled by the recipe import, editable (null: not known). */
   facts: DishFacts;
   /** The instructions' photos: "N" -> stored image file, for {{photo:N}}. */
@@ -27,6 +31,15 @@ export interface Dish {
   /** The recipe import: its state, and whether the linked recipe is the one
    *  imported (false for a recipe linked but never imported). */
   import: DishImport;
+}
+
+/** A sub-recipe an import found (a cheesecake's topping): its name in
+ *  English, name_tr the other languages; `existing` the dish it already is
+ *  (linked, not made again), else 0. */
+export interface SplitPart {
+  name: string;
+  name_tr: Record<string, string>;
+  existing: number;
 }
 
 export type Difficulty = "very_easy" | "easy" | "medium" | "hard" | "very_hard" | "";
@@ -43,9 +56,12 @@ export interface DishFacts {
 }
 
 export interface DishImport {
-  state?: "running" | "done" | "failed";
-  /** While running: queued, fetching, reading, translating. */
+  /** choosing: waiting for which sub-recipes (`parts`) become dishes. */
+  state?: "running" | "choosing" | "done" | "failed";
+  /** While running: queued, fetching, splitting, reading, translating. */
   stage?: string;
+  /** While choosing: the sub-recipes found, other than the dish itself. */
+  parts?: SplitPart[];
   /** What failed (a failed import keeps what did work). */
   errors?: string[];
   imported: boolean;
@@ -81,11 +97,18 @@ export interface UnitDef {
   factor: number;
 }
 
+/** A category of dishes: its name in English, `tr` the other languages
+ *  that have it (lang -> name). */
+export interface Category {
+  id: number;
+  name: string;
+  tr: Record<string, string>;
+}
+
 export interface FoodData {
   dishes: Dish[];
-  categories: string[];
-  /** category -> lang -> its name there. */
-  category_tr?: Record<string, Record<string, string>>;
+  /** In the order they are listed. */
+  categories: Category[];
   ingredients: CatalogIngredient[];
   units: UnitDef[];
   version: number;
@@ -222,6 +245,15 @@ export const foodApi = {
   importRecipe: (id: number) =>
     f(`/api/food/dishes/${id}/import`, { method: "POST" }).then(j<FoodData>),
 
+  /** Go on with an import waiting on its sub-recipes: `keep` the ones
+   *  picked, by their place in import.parts (none: the recipe stays whole). */
+  chooseSplit: (id: number, keep: number[]) =>
+    f(`/api/food/dishes/${id}/import/split`, {
+      method: "POST",
+      headers: JSON_HEADERS,
+      body: JSON.stringify({ keep }),
+    }).then(j<FoodData>),
+
   remove: (id: number) =>
     f(`/api/food/dishes/${id}`, { method: "DELETE" }).then(j<FoodData>),
 
@@ -232,6 +264,14 @@ export const foodApi = {
       method: "PATCH",
       headers: JSON_HEADERS,
       body: JSON.stringify(body),
+    }).then(j<FoodData>),
+
+  /** Rename a category in `lang`; the other languages follow. */
+  renameCategory: (id: number, name: string, lang: string) =>
+    f(`/api/food/categories/${id}`, {
+      method: "PATCH",
+      headers: JSON_HEADERS,
+      body: JSON.stringify({ name, lang }),
     }).then(j<FoodData>),
 
   removeIngredient: (id: number) =>

@@ -5,6 +5,7 @@ import { marked } from "marked";
 import { useVersionPoll } from "../api";
 import {
   CatalogIngredient,
+  Category,
   Dish,
   DishInput,
   Conversion,
@@ -17,6 +18,7 @@ import {
   RecipeHit,
   RecipeStep,
   RecipeSummary,
+  SplitPart,
   UnitDef,
   dishImageUrl,
   dishSmallUrl,
@@ -148,6 +150,8 @@ export function FoodPanel() {
   const [everOpened, setEverOpened] = useState<Set<string>>(() => new Set());
   const [imgLoaded, setImgLoaded] = useState<Set<string>>(() => new Set());
   const [editing, setEditing] = useState<Dish | "new" | null>(null);
+  // The category whose name is being edited in its heading.
+  const [renaming, setRenaming] = useState<number | null>(null);
   const [zoom, setZoom] = useState<number>(loadZoom);
   const [editingIngredients, setEditingIngredients] = useState<Dish | null>(null);
   // The dish whose recipe import is being watched (ImportProgress).
@@ -328,11 +332,12 @@ export function FoodPanel() {
       </div>
     );
 
-  // "" is the dishes with no category, shown last.
-  const byCategory = (cat: string) => data.dishes.filter((d) => d.category === cat);
+  // null is the dishes with no category, shown last. A group's key (the
+  // open / loaded sets) is its category's id, so a rename keeps it open.
+  const byCategory = (cat: Category | null) => data.dishes.filter((d) => d.category_id === (cat?.id ?? null));
   const groups = [
     ...data.categories,
-    ...(data.dishes.some((d) => !d.category) ? [""] : []),
+    ...(data.dishes.some((d) => d.category_id === null) ? [null] : []),
   ].filter((c) => byCategory(c).length > 0);
 
   return (
@@ -389,8 +394,9 @@ export function FoodPanel() {
           <p className="muted">{t("food_no_dishes")}</p>
         )}
 
-        {groups.map((cat) => {
-          const dishes = byCategory(cat).sort((a, b) => b.rating - a.rating);
+        {groups.map((c) => {
+          const cat = c ? String(c.id) : "";
+          const dishes = byCategory(c).sort((a, b) => b.rating - a.rating);
           const isOpen = expanded.has(cat);
           const progress = imgProgress[cat];
           const loadingImgs = isOpen && !imgLoaded.has(cat) && progress && progress[1] > 0 && progress[0] < progress[1];
@@ -401,8 +407,26 @@ export function FoodPanel() {
                 onClick={() => toggleCategory(cat)}
               >
                 <span className="chevron">{isOpen ? "▾" : "▸"}</span>
-                {cat ? data.category_tr?.[cat]?.[lang] || cat : t("food_uncategorised")}
-                <span className="muted"> ({dishes.length})</span>
+                {c && renaming === c.id ? (
+                  <CategoryNameEdit
+                    initial={c.tr[lang] || c.name}
+                    onCancel={() => setRenaming(null)}
+                    onSave={(name) => foodApi.renameCategory(c.id, name, lang)
+                      .then((d) => { apply(d); setRenaming(null); })
+                      .catch((e) => setError(serverMessage(e)))}
+                  />
+                ) : (
+                  <>
+                    {c ? c.tr[lang] || c.name : t("food_uncategorised")}
+                    <span className="muted"> ({dishes.length})</span>
+                    {c && !groceryMode && (
+                      <button className="ghost food-cat-edit" title={t("food_rename_category")}
+                              onClick={(e) => { e.stopPropagation(); setRenaming(c.id); }}>
+                        ✎
+                      </button>
+                    )}
+                  </>
+                )}
                 {loadingImgs && (
                   <span className="load-bar" role="progressbar" aria-valuemin={0} aria-valuemax={progress[1]}
                         aria-valuenow={progress[0]} title={t("food_loading_images", { done: progress[0], total: progress[1] })}>
@@ -435,7 +459,6 @@ export function FoodPanel() {
         <DishForm
           dish={editing === "new" ? null : editing}
           categories={data.categories}
-          categoryTr={data.category_tr ?? {}}
           onCancel={() => setEditing(null)}
           onDelete={(id) => {
             setEditing(null);
@@ -464,7 +487,11 @@ export function FoodPanel() {
 
       {watching !== null && data.dishes.some((d) => d.id === watching) && (
         <ImportProgress
+          // Opened afresh when it comes to the sub-recipes: all ticked.
+          key={`${watching}-${data.dishes.find((d) => d.id === watching)!.import.state}`}
           dish={data.dishes.find((d) => d.id === watching)!}
+          dishes={data.dishes}
+          onChoose={(id, keep) => foodApi.chooseSplit(id, keep).then(apply).catch((e) => setError(serverMessage(e)))}
           onClose={() => setWatching(null)}
           onOpen={(d) => { setWatching(null); setEditingIngredients(d); }}
           onRetry={(id) => foodApi.importRecipe(id).then(apply).catch((e) => setError(serverMessage(e)))}
@@ -656,6 +683,35 @@ function QuantityStepper({
   );
 }
 
+/** A category's name, edited in place in its heading: Enter or ✓ saves --
+ *  the other languages follow, translated on the server -- Esc or ✕ leaves
+ *  it as it was. */
+function CategoryNameEdit({ initial, onSave, onCancel }: {
+  initial: string;
+  onSave: (name: string) => Promise<unknown>;
+  onCancel: () => void;
+}) {
+  const { t } = useT();
+  const [text, setText] = useState(initial);
+  const [saving, setSaving] = useState(false);
+  const save = () => {
+    const name = text.trim();
+    if (!name || name === initial) return onCancel();
+    setSaving(true);
+    onSave(name).finally(() => setSaving(false));
+  };
+  return (
+    <span className="food-cat-rename" onClick={(e) => e.stopPropagation()}>
+      <input value={text} autoFocus disabled={saving} onChange={(e) => setText(e.target.value)}
+             onKeyDown={(e) => { if (e.key === "Enter") save(); else if (e.key === "Escape") onCancel(); }} />
+      <button className="ghost" title={saving ? t("food_translating") : t("save")} disabled={saving} onClick={save}>
+        {saving ? <span className="mv-ring btn-ring" aria-hidden /> : "✓"}
+      </button>
+      <button className="ghost" title={t("cancel")} disabled={saving} onClick={onCancel}>✕</button>
+    </span>
+  );
+}
+
 /** One category's cards, telling how many of their images have loaded (or
  *  errored) -- the parent's bar by its heading -- until they all have. Once
  *  done it calls `onAllLoaded` and the parent stops passing `loaded={false}`,
@@ -813,7 +869,7 @@ function DishCard({
       >
         {img}
       </button>
-      {(dish.import.state === "running" || dish.import.state === "failed") && (
+      {(dish.import.state === "running" || dish.import.state === "choosing" || dish.import.state === "failed") && (
         <button
           type="button"
           className={"dish-card-import " + dish.import.state}
@@ -822,6 +878,7 @@ function DishCard({
         >
           {dish.import.state === "running"
             ? <><span className="mv-ring btn-ring" aria-hidden />{t("food_importing")}</>
+            : dish.import.state === "choosing" ? <>? {t("food_split_suggested")}</>
             : <>⚠ {t("food_import_failed")}</>}
         </button>
       )}
@@ -854,6 +911,9 @@ interface IngredientRow {
   name: string;
   quantity: string;
   unit: string;
+  /** Another dish used as this ingredient (its id; 0 while none is picked):
+   *  then `quantity` is its grams, `name` and `unit` unused. */
+  dish?: number;
 }
 
 // Each ingredient is stored as its own {quantity, unit} object server-side
@@ -866,13 +926,19 @@ function parseIngredients(raw: string): { quantity: string; unit: string; rows: 
       quantity?: unknown;
       unit?: unknown;
       ingredients?: Record<string, { quantity?: unknown; unit?: unknown }>;
+      dishes?: Record<string, { quantity?: unknown; position?: unknown }>;
     };
     const entries = Object.entries(data.ingredients ?? {});
-    const rows = entries.map(([name, v]) => ({
+    const rows: IngredientRow[] = entries.map(([name, v]) => ({
       name,
       quantity: String(v?.quantity ?? ""),
       unit: String(v?.unit ?? ""),
     }));
+    // The dishes it uses, each at its place among the ingredients.
+    Object.entries(data.dishes ?? {})
+      .map(([id, v]) => ({ at: Number(v?.position), row: { name: "", quantity: String(v?.quantity ?? ""), unit: "", dish: Number(id) } }))
+      .sort((a, b) => a.at - b.at)
+      .forEach(({ at, row }) => rows.splice(Math.min(at, rows.length), 0, row));
     return { quantity: String(data.quantity ?? ""), unit: String(data.unit ?? ""), rows };
   } catch {
     return { quantity: "", unit: "", rows: [] };
@@ -889,6 +955,7 @@ const PLAIN_NUMBER_RE = /^\d+(?:\.\d+)?$/;
 function rowError(r: IngredientRow): Key | null {
   const name = r.name.trim();
   const qty = r.quantity.trim();
+  if (r.dish !== undefined) return PLAIN_NUMBER_RE.test(qty) && Number(qty) > 0 ? null : "food_dish_qty_invalid";
   if (name && !TYPED_NAME_RE.test(name)) return "food_name_invalid";
   if (qty && !PLAIN_NUMBER_RE.test(qty)) return "food_qty_invalid";
   return null;
@@ -1005,7 +1072,7 @@ function IngredientCatalog({ items, units, dishes, onOpenDish, onChanged, onClos
   const dishesOf = useMemo(() => {
     const m = new Map<string, Dish[]>();
     for (const d of dishes) {
-      for (const r of parseIngredients(d.ingredients).rows) m.set(r.name, [...(m.get(r.name) ?? []), d]);
+      for (const r of parseIngredients(d.ingredients).rows) if (r.dish === undefined) m.set(r.name, [...(m.get(r.name) ?? []), d]);
     }
     return m;
   }, [dishes]);
@@ -1200,6 +1267,19 @@ function IngredientsEditor({
   // A row with no amount has no unit yet; grams until one is picked.
   const [rows, setRows] = useState<IngredientRow[]>(
     () => initial.rows.map((r) => ({ ...r, name: shown.get(r.name) ?? r.name, unit: r.quantity.trim() ? r.unit : "g" })));
+  // The dishes it can use: ones whose weight is known (what grams of them
+  // are scaled by), and not this one or one using it, however far down --
+  // the server refuses those too (food.py, _check_components).
+  const usable = useMemo(() => {
+    const uses = new Map(dishes.map((d) => [d.id, parseIngredients(d.ingredients).rows.flatMap((r) => (r.dish ? [r.dish] : []))]));
+    const reaches = (from: number, seen = new Set<number>()): boolean =>
+      from === dish.id || (!seen.has(from) && (seen.add(from), (uses.get(from) ?? []).some((c) => reaches(c, seen))));
+    return dishes
+      .filter((d) => (d.weight_g ?? 0) > 0)
+      .filter((d) => !reaches(d.id))
+      .sort((a, b) => dishName(a, lang).localeCompare(dishName(b, lang), lang));
+  }, [dishes, dish.id, lang]);
+  const dishById = useMemo(() => new Map(dishes.map((d) => [d.id, d])), [dishes]);
   // The instructions, below the ingredients: shown rendered, or -- with
   // nothing to show yet, or after Edit -- as the Markdown being written.
   const [insEditing, setInsEditing] = useState(!shownIns);
@@ -1216,7 +1296,8 @@ function IngredientsEditor({
   const [tried, setTried] = useState(false);
   // The yield is needed once there are ingredients: a number, and what it
   // counts in words ("persone", "Personen").
-  const hasRows = rows.some((r) => r.name.trim());
+  const used = (r: IngredientRow) => (r.dish === undefined ? !!r.name.trim() : r.dish > 0);
+  const hasRows = rows.some(used);
   const yieldBad = {
     quantity: hasRows && !PLAIN_NUMBER_RE.test(quantity.trim()),
     unit: hasRows && !/^\p{L}+(?:[ '’-]\p{L}+)*$/u.test(unit.trim()),
@@ -1227,22 +1308,33 @@ function IngredientsEditor({
     setRows((rs) => rs.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
   const removeRow = (i: number) => setRows((rs) => rs.filter((_, idx) => idx !== i));
   const addRow = () => setRows((rs) => [...rs, { name: "", quantity: "", unit: "g" }]);
+  const addDishRow = () => setRows((rs) => [...rs, { name: "", quantity: "", unit: "", dish: 0 }]);
   const lower = (s: string) => s.toLowerCase();
 
   /** The ingredients as they would be saved. */
   const build = (rs: IngredientRow[]) => {
     const ingredients: Record<string, { quantity: string; unit: string }> = {};
+    // The dishes used, each with its place among all the lines (an
+    // ingredient written twice is one line).
+    const comps: Record<string, { quantity: string; position: number }> = {};
+    let at = 0;
     for (const r of rs) {
+      if (r.dish !== undefined) {
+        if (r.dish > 0 && !(r.dish in comps)) comps[r.dish] = { quantity: r.quantity.trim(), position: at++ };
+        continue;
+      }
       const typed = r.name.trim();
       if (!typed) continue;
       const name = listed.get(typed.toLowerCase()) ?? typed;
       const qty = r.quantity.trim();
+      if (!(name in ingredients)) at++;
       ingredients[name] = { quantity: qty, unit: qty ? r.unit : "" };
     }
     // No rows left -> clear the field entirely (an empty {} would fail the
     // backend's "non-empty object" check, and isn't what "cleared" means).
-    const payload = Object.keys(ingredients).length
-      ? JSON.stringify({ quantity: quantity.trim(), unit: unit.trim() === shownUnit ? initial.unit : unit.trim(), ingredients })
+    const payload = at
+      ? JSON.stringify({ quantity: quantity.trim(), unit: unit.trim() === shownUnit ? initial.unit : unit.trim(),
+                         ingredients, dishes: comps })
       : "";
     return payload;
   };
@@ -1256,10 +1348,11 @@ function IngredientsEditor({
     if (payload !== unchanged || quantity !== initial.quantity || unit !== shownUnit) {
       // The backend's own checks (_validate_ingredients_json), made here:
       // what's missing or wrong is marked red, said in one line.
-      const named = rows.filter((r) => r.name.trim());
+      const named = rows.filter(used);
       const todo = [
         yieldBad.quantity && t("food_need_yield_quantity"),
         yieldBad.unit && t("food_need_yield_unit"),
+        named.some((r) => rowError(r) === "food_dish_qty_invalid") && t("food_dish_qty_invalid"),
         named.some((r) => rowError(r) === "food_qty_invalid") && t("food_qty_invalid"),
         named.some((r) => rowError(r) === "food_name_invalid") && t("food_name_invalid"),
       ].filter(Boolean);
@@ -1287,7 +1380,7 @@ function IngredientsEditor({
       .finally(() => { setSaving(false); setTranslating(false); setChecking(false); });
     setTranslating((body.instructions !== undefined && body.instructions.trim() !== "")
       || (body.ingredients !== undefined && unit.trim() !== shownUnit));
-    setChecking(body.ingredients !== undefined && rows.some((r) => r.name.trim() && !known.has(r.name.trim())));
+    setChecking(body.ingredients !== undefined && rows.some((r) => r.dish === undefined && r.name.trim() && !known.has(r.name.trim())));
   };
 
   return (
@@ -1337,7 +1430,32 @@ function IngredientsEditor({
           </datalist>
           <div className="ingredients-rows">
             {rows.map((r, i) => {
-              const err = r.name.trim() ? rowError(r) : null;
+              const err = used(r) ? rowError(r) : null;
+              if (r.dish !== undefined) {
+                const picked = dishById.get(r.dish);
+                // Its own dish, and the usable ones no other line has.
+                const choices = usable.filter((d) => d.id === r.dish || !rows.some((o) => o.dish === d.id));
+                if (picked && !choices.includes(picked)) choices.unshift(picked);
+                return (
+                  <div key={i} className={"ingredients-row dish-row" + (err && tried ? " invalid" : "")}>
+                    <select value={r.dish} onChange={(e) => updateRow(i, { dish: Number(e.target.value) })}
+                            aria-label={t("food_pick_dish")}>
+                      <option value={0} disabled>{t("food_pick_dish")}</option>
+                      {choices.map((d) => <option key={d.id} value={d.id}>🍽 {dishName(d, lang)}</option>)}
+                    </select>
+                    <input
+                      value={r.quantity}
+                      inputMode="decimal"
+                      onChange={(e) => updateRow(i, { quantity: e.target.value })}
+                      placeholder={t("qty")}
+                    />
+                    <span className="dish-row-unit muted small">g</span>
+                    <button type="button" className="glyph-btn" title={t("remove")} onClick={() => removeRow(i)}>
+                      🗑
+                    </button>
+                  </div>
+                );
+              }
               return (
                 <div key={i}>
                   <div className={"ingredients-row" + (err && tried ? " invalid" : "")}>
@@ -1364,9 +1482,16 @@ function IngredientsEditor({
               );
             })}
           </div>
-          <button type="button" className="ghost add-btn" onClick={addRow}>
-            {t("food_add_ingredient")}
-          </button>
+          <div className="ingredients-add">
+            <button type="button" className="ghost add-btn" onClick={addRow}>
+              {t("food_add_ingredient")}
+            </button>
+            {usable.length > 0 && (
+              <button type="button" className="ghost add-btn" onClick={addDishRow}>
+                {t("food_add_component")}
+              </button>
+            )}
+          </div>
           </section>
 
           <FactsEditor facts={facts} onChange={setFacts} />
@@ -1446,24 +1571,36 @@ function FactsEditor({ facts, onChange }: { facts: DishFacts; onChange: (f: Dish
   );
 }
 
-const IMPORT_STAGES = ["fetching", "reading", "translating"] as const;
+const IMPORT_STAGES = ["fetching", "splitting", "reading", "translating"] as const;
 const STAGE_KEYS: Record<(typeof IMPORT_STAGES)[number], Key> = {
-  fetching: "food_stage_fetching", reading: "food_stage_reading", translating: "food_stage_translating",
+  fetching: "food_stage_fetching", splitting: "food_stage_splitting", reading: "food_stage_reading",
+  translating: "food_stage_translating",
 };
 
 /** A dish's recipe import as it goes -- the stages, ticked off -- closing
  *  when it is done; a failure stays, to open the dish or retry. The import
  *  goes on when it is closed. */
-function ImportProgress({ dish, onClose, onOpen, onRetry }: {
+function ImportProgress({ dish, dishes, onClose, onOpen, onRetry, onChoose }: {
   dish: Dish;
+  dishes: Dish[];
   onClose: () => void;
   onOpen: (d: Dish) => void;
   onRetry: (id: number) => void;
+  /** Its sub-recipes picked (by their place in import.parts). */
+  onChoose: (id: number, keep: number[]) => Promise<unknown>;
 }) {
   useBackToClose(onClose);
   const { t, lang } = useT();
-  const { state, stage, errors } = dish.import;
+  const { state, stage, errors, parts = [] } = dish.import;
   const at = IMPORT_STAGES.indexOf(stage as (typeof IMPORT_STAGES)[number]);
+  // The sub-recipes to make dishes of: all of them until unticked.
+  const [keep, setKeep] = useState<Set<number>>(() => new Set(parts.map((_, i) => i)));
+  const [sending, setSending] = useState(false);
+  const partName = (p: SplitPart) => {
+    const there = p.existing ? dishes.find((d) => d.id === p.existing) : undefined;
+    return there ? dishName(there, lang) : (lang !== "en" && p.name_tr[lang]) || p.name;
+  };
+  const toggle = (i: number) => setKeep((k) => { const n = new Set(k); if (n.has(i)) n.delete(i); else n.add(i); return n; });
   // Done is shown on the dish itself: the window just goes. A failure stays.
   useEffect(() => { if (state === "done") onClose(); }, [state]);  // eslint-disable-line react-hooks/exhaustive-deps
   return (
@@ -1472,21 +1609,45 @@ function ImportProgress({ dish, onClose, onOpen, onRetry }: {
         <h4>{dishName(dish, lang)}</h4>
         <ul className="import-stages">
           {IMPORT_STAGES.map((s, i) => {
-            const done = state === "done" || state === "failed" || (state === "running" && i < at);
-            const now = state === "running" && i === at;
+            const going = state === "running" || state === "choosing";
+            const done = state === "done" || state === "failed" || (going && i < at);
+            const now = going && i === at;
             return (
               <li key={s} className={done ? "done" : now ? "now" : ""}>
-                {done ? "✓" : now ? <span className="mv-ring btn-ring" aria-hidden /> : "○"} {t(STAGE_KEYS[s])}
+                {done ? "✓" : now && state === "choosing" ? "?" : now ? <span className="mv-ring btn-ring" aria-hidden /> : "○"}{" "}
+                {t(STAGE_KEYS[s])}
               </li>
             );
           })}
         </ul>
+        {state === "choosing" && (
+          <div className="import-split">
+            <p className="muted small">{t("food_split_intro")}</p>
+            <label className="import-split-main">
+              <input type="checkbox" checked disabled /> {dishName(dish, lang)} <span className="muted small">({t("food_split_main")})</span>
+            </label>
+            {parts.map((p, i) => (
+              <label key={i}>
+                <input type="checkbox" checked={keep.has(i)} disabled={sending} onChange={() => toggle(i)} />{" "}
+                {partName(p)}{" "}
+                <span className="muted small">({p.existing ? t("food_split_existing") : t("food_split_secondary")})</span>
+              </label>
+            ))}
+          </div>
+        )}
         {state === "failed" && (
           <div className="import-failed small">⚠ {t("food_import_failed")}: {(errors ?? []).join("; ")}</div>
         )}
         <div className="row-actions">
           {state === "failed" && <button type="button" className="active" onClick={() => onOpen(dish)}>{t("food_open_dish")}</button>}
           {state === "failed" && <button type="button" onClick={() => onRetry(dish.id)}>{t("food_retry")}</button>}
+          {state === "choosing" && (
+            <button type="button" className="active" disabled={sending}
+                    onClick={() => { setSending(true); onChoose(dish.id, [...keep].sort()).finally(() => setSending(false)); }}>
+              {sending && <span className="mv-ring btn-ring" aria-hidden />}
+              {keep.size ? t("food_split_do") : t("food_split_keep_whole")}
+            </button>
+          )}
           <button type="button" className="ghost" onClick={onClose}>{t("close")}</button>
         </div>
       </div>
@@ -1501,15 +1662,13 @@ function ImportProgress({ dish, onClose, onOpen, onRetry }: {
 function DishForm({
   dish,
   categories,
-  categoryTr,
   onCancel,
   onDelete,
   onSubmit,
   onImport,
 }: {
   dish: Dish | null;
-  categories: string[];
-  categoryTr: Record<string, Record<string, string>>;
+  categories: Category[];
   onCancel: () => void;
   onDelete: (dishId: number) => void;
   onSubmit: (body: Partial<DishInput>) => Promise<unknown>;
@@ -1518,9 +1677,10 @@ function DishForm({
 }) {
   useBackToClose(onCancel);
   const { t, lang } = useT();
-  const catName = (c: string) => categoryTr[c]?.[lang] || c;
+  const catName = (c: Category) => c.tr[lang] || c.name;
   const initialName = dish ? dishName(dish, lang) : "";
-  const initialCategory = dish?.category ? catName(dish.category) : "";
+  const dishCategory = categories.find((c) => c.id === dish?.category_id);
+  const initialCategory = dishCategory ? catName(dishCategory) : "";
   const [name, setName] = useState(initialName);
   const [category, setCategory] = useState(initialCategory);
   const [rating, setRating] = useState(dish?.rating ?? 7);
@@ -1661,7 +1821,7 @@ function DishForm({
               {/* None: one of the list is chosen for it on save. */}
               <option value="">{t("food_category_auto")}</option>
               {categories.map((c) => (
-                <option key={c} value={catName(c)}>{catName(c)}</option>
+                <option key={c.id} value={catName(c)}>{catName(c)}</option>
               ))}
               <option value={"\0new"}>{t("food_category_new")}</option>
             </select>

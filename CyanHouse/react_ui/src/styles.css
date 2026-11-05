@@ -588,6 +588,12 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
   font-size: 0.95rem; margin: 0 0 8px;
 }
 .food-group-head .chevron { color: var(--muted); font-size: 0.8rem; }
+/* Rename, right after the name: small, dim until hovered. */
+.food-group-head .food-cat-edit { padding: 0 6px; font-size: 0.8rem; line-height: 1.4; color: var(--muted); }
+.food-group-head .food-cat-edit:hover { color: var(--text); }
+.food-cat-rename { display: inline-flex; align-items: center; gap: 4px; cursor: auto; }
+.food-cat-rename input { font-size: 0.9rem; padding: 2px 6px; width: 14em; max-width: 50vw; }
+.food-cat-rename button { padding: 0 6px; line-height: 1.6; }
 /* Image-forward cards: the picture is the card; a thin footer carries the
    name, rating and the (small) edit/delete controls. Column count follows the
    width, card image height follows the viewport height. */
@@ -846,6 +852,12 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
 .import-stages li { color: var(--muted); }
 .import-stages li.done, .import-stages li.now { color: var(--text); }
 .import-failed { color: var(--accent); }
+/* The sub-recipes an import found: the dish itself, always kept, and each
+   other one ticked to become a dish of its own. */
+.import-split { display: flex; flex-direction: column; gap: 6px; margin: 4px 0 8px; font-size: 0.85rem; }
+.import-split label { display: flex; align-items: center; gap: 6px; }
+.import-split-main { color: var(--muted); }
+.dish-card-import.choosing { background: rgba(59, 130, 246, 0.9); }
 /* A dish's facts in its view. */
 .facts-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 10px; }
 .facts-grid .facts-wide { grid-column: 1 / -1; }
@@ -1123,6 +1135,13 @@ button.small-btn { padding: 2px 8px; font-size: 0.78rem; color: var(--muted); bo
 button.small-btn:hover { color: var(--text); border-color: var(--line); }
 button.add-btn { width: 100%; border-style: dashed; color: var(--muted); }
 button.add-btn:hover { color: var(--text); }
+/* Under a dish's ingredients: add one, or another dish used as one. */
+.ingredients-add { display: flex; gap: 6px; }
+.ingredients-add button.add-btn { flex: 1 1 0; width: auto; }
+/* A dish used as an ingredient: picked from the dishes, its amount in what
+   that dish makes ("persons"), shown, not picked. */
+.ingredients-row.dish-row select { min-width: 0; }
+.dish-row-unit { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; }
 /* A trash can etc.: just the glyph, dimmed; no box, so it isn't read as an error. */
 button.glyph-btn { background: transparent; border-color: transparent; padding: 4px 6px; opacity: 0.6; }
 button.glyph-btn:hover:not(:disabled) { opacity: 1; border-color: transparent; }
