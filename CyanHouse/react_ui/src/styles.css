@@ -1794,6 +1794,13 @@ input.mv-rename {
   background: var(--panel); color: var(--text);
   border: 1px solid var(--accent); border-radius: 4px;
 }
+/* Documents' "+" on a folder row: quiet until the row is hovered (always shown on a phone). */
+.mv-addbtn {
+  flex: none; width: 24px; height: 22px; padding: 0; line-height: 1;
+  font-size: 1rem; color: var(--muted); opacity: 0.55;
+}
+.mv-node:hover .mv-addbtn, .mv-addbtn:focus-visible { opacity: 1; color: var(--text); }
+html.phone .mv-addbtn { width: 32px; height: 30px; opacity: 1; }
 .mv-menu {
   position: fixed;
   z-index: 60;
@@ -3131,11 +3138,19 @@ html.phone .mv-player.mv-sheet {
   overflow-y: auto; overscroll-behavior: contain;
 }
 html.phone:has(.mv-sheet), html.phone:has(.mv-sheet) body { overflow: hidden; }
+/* Back to the folder: arrow, folder, its name -- a bar across the sheet's
+   top, divided from the page below, not a boxed button. */
 html.phone .mv-sheetback {
-  flex: 0 0 auto; align-self: flex-start; max-width: 100%;
-  min-height: 40px; padding: 4px 6px; font-size: 0.95rem;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  flex: 0 0 auto; align-self: stretch; max-width: 100%;
+  display: flex; align-items: center; gap: 8px;
+  min-height: 44px; padding: 6px 8px; margin-bottom: 8px; font-size: 0.95rem; font-weight: 600;
+  border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: transparent;
+  text-align: left;
 }
+html.phone .mv-sheetback:active { background: var(--panel-2); }
+.mv-sheetback-arrow { color: var(--accent); flex: none; }
+.mv-sheetback-icon { flex: none; }
+.mv-sheetback-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 html.phone .mv-sheet .mv-close { min-width: 40px; min-height: 40px; }
 /* A selection's actions in two rows: the count with ✕ (clear) at its
  * right, then where to move it and the actions as icons (their names in

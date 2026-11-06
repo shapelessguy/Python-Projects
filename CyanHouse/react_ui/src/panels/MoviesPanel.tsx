@@ -509,6 +509,8 @@ export function MoviesPanel() {
   // the same.
   const spaceArea = panes[0]?.key ?? (tab === MOVIES_KEY ? MOVIES_KEY : "");
   useEffect(() => {
+    // No folder (the intro, or tabs not loaded yet): nothing to ask about.
+    if (!spaceArea) { setSpace(null); return; }
     let alive = true;
     api.prepSpace(spaceArea)
       // Only replaced when something in it changed, so an unchanged answer
@@ -1699,6 +1701,8 @@ export function MoviesPanel() {
   const uploadTarget = ((): string | null => {
     if (panes.length !== 1 || !canEditArea(panes[0].key)) return null;
     if (tab === ":music" && musicView !== "folders") return null;
+    // The folder tree takes files by dropping them on a folder; the button is the gallery's.
+    if (tab === ":images" && imagesView !== "gallery") return null;
     if (tab === ":images" && imagesView === "gallery" && galleryFolder) {
       const a = (listings[":images"] ?? []).find((f) => f.kind === "folder" && f.path === galleryFolder)?.access;
       return a && ACCESS_RANK[a.level] >= ACCESS_RANK.add ? galleryFolder : null;
@@ -1854,7 +1858,7 @@ export function MoviesPanel() {
             the disk, always there. */}
         {narrow && tab !== INTRO && !external && searchBtn}
         {narrow && <span className="mv-rowgap" />}
-        {narrow && tab !== INTRO && !external && <>{sizeCtl}{viewPick}{toolUpload}<span className="mv-srcsep" aria-hidden /></>}
+        {narrow && tab !== INTRO && !external && <>{sizeCtl}{toolUpload}{viewPick}<span className="mv-srcsep" aria-hidden /></>}
         {/* The remux queue, at the far end of the tab row: visible from
             every tab whatever is selected, because it is happening on
             the server regardless. The running one is shown outright; the
@@ -2279,7 +2283,10 @@ export function MoviesPanel() {
             way back to the folder it is in (its name is in the page below). */}
         {sheet && viewFile && (
           <button className="ghost mv-sheetback" title={tr("close")} onClick={closeSheet}>
-            ‹ {viewFile.folder.split("/").pop() || tr("st_root")}
+            <Icon name="left" size={16} className="mv-sheetback-arrow" />
+            <span className="mv-sheetback-icon" aria-hidden>📁</span>
+            {/* The folder it is in; at the top, the library's own name. */}
+            <span className="mv-sheetback-name">{viewFile.folder.split("/").pop() || labelOf(tab)}</span>
           </button>
         )}
         {viewFile?.kind === "vault" ? (

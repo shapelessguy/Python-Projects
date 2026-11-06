@@ -40,3 +40,4 @@ export function IconPick({ choices, value, onChange }: {
     </span>
   );
 }
+
