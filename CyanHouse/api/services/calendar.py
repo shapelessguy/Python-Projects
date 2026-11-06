@@ -94,6 +94,8 @@ CREATE TABLE IF NOT EXISTS calendar_events (
     -- makes a newer occurrence of a recurring series immediately override a
     -- snooze meant for an older one, instead of inheriting it.
     alarm          INTEGER NOT NULL DEFAULT 0,
+    -- minutes before the start the alarm rings (0: at the start)
+    alarm_lead     INTEGER NOT NULL DEFAULT 0,
     alarm_ack      TEXT,
     alarm_snooze_occurrence TEXT,
     alarm_snooze_until      INTEGER,
@@ -148,6 +150,8 @@ def _migrate(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE calendar_events ADD COLUMN alarm INTEGER NOT NULL DEFAULT 0")
     if "alarm_ack" not in cols:
         conn.execute("ALTER TABLE calendar_events ADD COLUMN alarm_ack TEXT")
+    if "alarm_lead" not in cols:
+        conn.execute("ALTER TABLE calendar_events ADD COLUMN alarm_lead INTEGER NOT NULL DEFAULT 0")
     if "alarm_snooze_occurrence" not in cols:
         conn.execute("ALTER TABLE calendar_events ADD COLUMN alarm_snooze_occurrence TEXT")
     if "alarm_snooze_until" not in cols:
@@ -396,6 +400,7 @@ def _row_to_event(row: sqlite3.Row, user: str, start_date: str | None = None,
         "recur_until": row["recur_until"],
         "recurring": row["recur_freq"] is not None,
         "alarm": bool(row["alarm"]),
+        "alarm_lead": row["alarm_lead"],
         "alarm_ack": row["alarm_ack"],
         "alarm_snooze_occurrence": row["alarm_snooze_occurrence"],
         "alarm_snooze_until": row["alarm_snooze_until"],
@@ -453,11 +458,15 @@ def _occurrence_starts(start: date, freq: str, interval: int, until: date | None
     return out
 
 
-def list_month(conn: sqlite3.Connection, user: str, month: str) -> dict:
+def list_month(conn: sqlite3.Connection, user: str, month: str, ahead_days: int = 0) -> dict:
     """Every event whose span overlaps the month — including one that started
     earlier and/or ends later — plus every occurrence of a recurring event
-    that falls in the month, computed fresh on each call."""
+    that falls in the month, computed fresh on each call. `ahead_days`
+    reaches that many days into the next month: what the alarm watchers ask
+    for, so an alarm set a day ahead of an event on the 1st rings on the
+    last day of the month before."""
     range_start, range_end = _month_bounds(month)
+    range_end += timedelta(days=ahead_days)
     levels = _calendar_levels(conn, user)
     rows = conn.execute(
         "SELECT e.*, c.name AS calendar_name, c.color AS calendar_color "
@@ -554,14 +563,14 @@ def _validate_new_event(conn: sqlite3.Connection, user: str, body: EventIn) -> N
 def _insert_event(conn: sqlite3.Connection, user: str, body: EventIn) -> int:
     cur = conn.execute(
         "INSERT INTO calendar_events(owner, calendar_id, title, description, start_date, end_date, "
-        "all_day, start_time, end_time, recur_freq, recur_interval, recur_until, alarm, alarm_ack, created_at) "
-        "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        "all_day, start_time, end_time, recur_freq, recur_interval, recur_until, alarm, alarm_lead, alarm_ack, "
+        "created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
         (
             user, body.calendar_id, body.title, body.description, body.start_date, body.end_date,
             int(body.all_day), None if body.all_day else body.start_time,
             None if body.all_day else body.end_time,
             body.recur_freq, body.recur_interval, body.recur_until,
-            int(body.alarm), body.alarm_ack,
+            int(body.alarm), body.alarm_lead, body.alarm_ack,
             datetime.now(timezone.utc).isoformat(),
         ),
     )
@@ -597,7 +606,7 @@ def create_events_bulk(conn: sqlite3.Connection, user: str, bodies: list[EventIn
 
 
 def _event_key(start_date, end_date, all_day, start_time, end_time, title, description,
-               recur_freq, recur_interval, recur_until, alarm) -> tuple:
+               recur_freq, recur_interval, recur_until, alarm, alarm_lead) -> tuple:
     """What makes two events "the same" for sync_events -- everything a sync
     sends, nothing that only changes once the event is in (ids, alarm
     ack/snooze, exceptions)."""
@@ -606,6 +615,7 @@ def _event_key(start_date, end_date, all_day, start_time, end_time, title, descr
         start_date, end_date, all_day,
         None if all_day else start_time, None if all_day else end_time,
         title, description or "", recur_freq, recur_interval or 1, recur_until, bool(alarm),
+        alarm_lead or 0,
     )
 
 
@@ -628,7 +638,7 @@ def sync_events(
     for body in bodies:
         key = _event_key(body.start_date, body.end_date, body.all_day, body.start_time, body.end_time,
                          body.title, body.description, body.recur_freq, body.recur_interval,
-                         body.recur_until, body.alarm)
+                         body.recur_until, body.alarm, body.alarm_lead)
         wanted.setdefault(key, []).append(body)
 
     stale = []
@@ -639,7 +649,7 @@ def sync_events(
     for r in rows:
         key = _event_key(r["start_date"], r["end_date"], r["all_day"], r["start_time"], r["end_time"],
                          r["title"], r["description"], r["recur_freq"], r["recur_interval"],
-                         r["recur_until"], r["alarm"])
+                         r["recur_until"], r["alarm"], r["alarm_lead"])
         if wanted.get(key):
             wanted[key].pop()
         else:
@@ -701,11 +711,13 @@ def update_event(conn: sqlite3.Connection, user: str, event_id: int, body: Event
     # old start_date would otherwise keep suppressing the alarm at the new
     # time whenever only start_time changed (start_date staying the same
     # would still match the stored snooze occurrence). An explicit alarm_ack/
-    # snooze value in the same request still wins over this default.
+    # snooze value in the same request still wins over this default. A new
+    # lead time moves when the alarm rings, so it counts too.
     moved = (
         start_date != row["start_date"]
         or start_time != row["start_time"]
         or int(all_day) != row["all_day"]
+        or fields.get("alarm_lead", row["alarm_lead"]) != row["alarm_lead"]
     )
     if moved:
         fields.setdefault("alarm_ack", "")

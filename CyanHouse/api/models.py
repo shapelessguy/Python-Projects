@@ -67,6 +67,8 @@ class EventIn(BaseModel):
     recur_interval: int = Field(default=1, ge=1)
     recur_until: Optional[str] = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
     alarm: StrictBool = False
+    # How many minutes before the start the alarm rings (0: at the start).
+    alarm_lead: int = Field(default=0, ge=0, le=10080)
     # Format enforced by the service layer (validate_alarm_ack in
     # calendar.py), since it depends on whether the event recurs: "" (not
     # acknowledged), else "true" for a plain event or a YYYY-MM-DD date --
@@ -89,6 +91,7 @@ class EventPatch(BaseModel):
     recur_interval: Optional[int] = Field(default=None, ge=1)
     recur_until: Optional[str] = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
     alarm: Optional[StrictBool] = None
+    alarm_lead: Optional[int] = Field(default=None, ge=0, le=10080)
     alarm_ack: Optional[str] = None
     # Set together (or cleared together, both explicit null) -- see
     # calendar.py's _validate_snooze. Not on EventIn: a freshly created event

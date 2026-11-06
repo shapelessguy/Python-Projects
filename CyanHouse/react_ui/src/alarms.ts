@@ -22,13 +22,17 @@ export interface DueAlarm {
 }
 
 /** All-day events fire from local midnight of their start_date; timed ones
- *  fire at their start_time. Either way this is just "when did it become
- *  due", not a precise ring instant -- once past, it stays due until acked
- *  or snoozed. */
+ *  fire at their start_time -- either way alarm_lead minutes earlier. This
+ *  is just "when did it become due", not a precise ring instant -- once
+ *  past, it stays due until acked or snoozed. */
 function dueInstant(e: CalendarEvent): number {
   const time = e.all_day || !e.start_time ? "00:00" : e.start_time;
-  return new Date(`${e.start_date}T${time}:00`).getTime();
+  return new Date(`${e.start_date}T${time}:00`).getTime() - (e.alarm_lead ?? 0) * 60_000;
 }
+
+/** The longest lead the form offers, in days: how far into next month the
+ *  watcher looks. */
+export const MAX_LEAD_DAYS = 1;
 
 function isAcked(e: CalendarEvent): boolean {
   return e.recurring ? e.alarm_ack === e.start_date : e.alarm_ack === "true";
@@ -91,7 +95,7 @@ export function useDueAlarms(enabled: boolean) {
   useEffect(() => {
     if (!enabled) return;
     let alive = true;
-    api.calendarMonth(month)
+    api.calendarMonth(month, MAX_LEAD_DAYS)
       .then((res) => { if (alive) { setEvents(res.events); setFetched(true); } })
       .catch(() => { /* transient -- keep last known events, retry next trigger */ });
     return () => { alive = false; };

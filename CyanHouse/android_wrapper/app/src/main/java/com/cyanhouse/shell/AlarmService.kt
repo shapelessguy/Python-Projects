@@ -158,12 +158,13 @@ class AlarmService : Service() {
         }
     }
 
-    /** This month's events; on failure (offline, signed out, no calendar for
+    /** This month's events, and the next month's first day (an alarm a day
+     *  ahead of an event on the 1st rings the month before); on failure (offline, signed out, no calendar for
      *  this user) the last ones stay. */
     private fun fetch() {
         val month = LocalDate.now().toString().substring(0, 7)
         try {
-            Net.client.newCall(Request.Builder().url(Net.url("/api/calendar/events?month=$month")).build()).execute().use {
+            Net.client.newCall(Request.Builder().url(Net.url("/api/calendar/events?month=$month&ahead_days=1")).build()).execute().use {
                 check(it.isSuccessful) { "HTTP ${it.code}" }
                 events = JSONObject(it.body!!.string()).getJSONArray("events")
             }
@@ -190,11 +191,12 @@ class AlarmService : Service() {
         }.map { it.optString("title") }
     }
 
-    /** All-day events are due from midnight, timed ones from their start. */
+    /** All-day events are due from midnight, timed ones from their start,
+     *  either way alarm_lead minutes earlier. */
     private fun dueAt(e: JSONObject): Long {
         val time = e.str("start_time")?.takeUnless { e.optBoolean("all_day") }?.let { LocalTime.parse(it) } ?: LocalTime.MIDNIGHT
         return LocalDateTime.of(LocalDate.parse(e.getString("start_date")), time)
-            .atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+            .atZone(ZoneId.systemDefault()).toInstant().toEpochMilli() - e.optLong("alarm_lead", 0) * 60_000
     }
 
     private fun JSONObject.str(key: String): String? = if (isNull(key)) null else optString(key)

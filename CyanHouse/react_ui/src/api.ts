@@ -289,6 +289,8 @@ export interface CalendarEvent {
   recur_until: string | null;
   recurring: boolean;
   alarm: boolean;
+  // Minutes before the start the alarm rings (0: at the start).
+  alarm_lead: number;
   // "" (not acknowledged); else "true" for a plain event or a YYYY-MM-DD
   // date -- the last occurrence acknowledged -- for a recurring one. See
   // alarms.ts for how this decides whether an alarm is currently due.
@@ -321,6 +323,7 @@ export interface EventInput {
   recur_interval?: number;
   recur_until?: string | null;
   alarm?: boolean;
+  alarm_lead?: number;
   alarm_ack?: string | null;
   // Patch-only in practice (see alarms.ts) -- a freshly created event has
   // nothing to snooze yet.
@@ -740,8 +743,11 @@ export const api = {
 
   // Every calendar mutation replies with the full month snapshot for the
   // affected event's month (create/patch: its date; delete: its old date).
-  calendarMonth: (month: string) =>
-    f("/api/calendar/events?" + new URLSearchParams({ month })).then(j<MonthEvents>),
+  // aheadDays reaches into the next month (the alarm watcher: an alarm a day
+  // ahead of an event on the 1st rings the month before).
+  calendarMonth: (month: string, aheadDays = 0) =>
+    f("/api/calendar/events?" + new URLSearchParams({ month, ...(aheadDays ? { ahead_days: String(aheadDays) } : {}) }))
+      .then(j<MonthEvents>),
   createEvent: (body: EventInput) =>
     f("/api/calendar/events", { method: "POST", headers: JSON_HEADERS, body: JSON.stringify(body) }).then(j<MonthEvents>),
   patchEvent: (id: number, body: Partial<EventInput>) =>

@@ -21,7 +21,7 @@ function AlarmRow({
   onSnooze: (minutes: number) => void;
   onClose: () => void;
 }) {
-  const { t } = useT();
+  const { t, lang } = useT();
   const [minutes, setMinutes] = useState(10);
   return (
     <div className="alarm-row">
@@ -30,6 +30,10 @@ function AlarmRow({
         <div className="alarm-title">{alarm.recurring ? "↻ " : ""}{alarm.title}</div>
         <div className="alarm-meta muted small">
           {alarm.calendar_name}
+          {/* Rung ahead of time: a day ahead, "09:00" alone would read as today. */}
+          {alarm.start_date !== new Date().toLocaleDateString("en-CA")
+            ? ` · ${new Date(`${alarm.start_date}T00:00`).toLocaleDateString(lang, { weekday: "short", day: "numeric", month: "short" })}`
+            : ""}
           {!alarm.all_day && alarm.start_time ? ` · ${alarm.start_time}` : ""}
         </div>
       </div>

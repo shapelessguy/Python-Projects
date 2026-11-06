@@ -1,11 +1,10 @@
 import { CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import TimePicker from "react-time-picker";
-import "react-time-picker/dist/TimePicker.css";
 import { api, Calendar, CalendarEvent, EventInput, RecurFreq, useVersionPoll } from "../api";
 import { CalendarShareDialog } from "./ShareDialog";
 import { readCookie, writeCookie } from "../cookies";
 import { usePhone } from "../narrow";
 import { Icon } from "./icons";
+import { TimeField } from "./TimeField";
 import { useBackToClose } from "../backClose";
 import { Key, useT } from "../i18n";
 
@@ -171,6 +170,7 @@ interface Draft {
   recur_interval: number;
   recur_until: string;
   alarm: boolean;
+  alarm_lead: number;
   // Whether the *loaded* event was recurring -- not user-editable, only used
   // by saveDraft to notice a recurring<->single flip and clear alarm_ack
   // along with it (the backend's alarm_ack shape requirement depends on
@@ -179,10 +179,21 @@ interface Draft {
   origRecurring: boolean;
 }
 
+/** The lead times the form offers, in minutes before the start (alarms.ts's
+ *  MAX_LEAD_DAYS covers the longest). */
+const ALARM_LEADS = [0, 1, 5, 10, 15, 30, 60, 1440];
+
+function alarmLeadLabel(m: number, t: (k: Key, v?: Record<string, string | number>) => string): string {
+  if (m % 1440 === 0 && m) return t("alarm_lead_day", { n: m / 1440 });
+  if (m % 60 === 0 && m) return t("alarm_lead_hour", { n: m / 60 });
+  return t("alarm_lead_min", { n: m });
+}
+
 const blankDraft = (date: string, calendarId: number, start = "09:00", end = "10:00", allDay = true): Draft => ({
   mine: true, calendar_shared: false, start_date: date, end_date: date, title: "", description: "",
   all_day: allDay, start_time: start, end_time: end, calendar_id: calendarId,
-  recur_freq: "", recur_interval: 1, recur_until: "", alarm: true, origRecurring: false,
+  recur_freq: "", recur_interval: 1, recur_until: "", alarm: true, alarm_lead: 15,
+  origRecurring: false,
 });
 
 const draftFromEvent = (e: CalendarEvent): Draft => ({
@@ -192,7 +203,7 @@ const draftFromEvent = (e: CalendarEvent): Draft => ({
   all_day: e.all_day, start_time: e.start_time ?? "09:00", end_time: e.end_time ?? "10:00",
   calendar_id: e.calendar_id,
   recur_freq: e.recur_freq ?? "", recur_interval: e.recur_interval, recur_until: e.recur_until ?? "",
-  alarm: e.alarm, origRecurring: e.recurring,
+  alarm: e.alarm, alarm_lead: e.alarm_lead, origRecurring: e.recurring,
 });
 
 /** Client-side mirror of the backend's _validate_span/_validate_recurrence,
@@ -335,7 +346,9 @@ export function CalendarPanel() {
   // or the read view with clickable links (false) -- reset explicitly
   // whenever a modal is opened, never derived from `draft` itself since that
   // object is also replaced on every keystroke.
-  const [descEditing, setDescEditing] = useState(false);
+  // "shown": open but not focused (a new event, where the title has focus);
+  // "tapped": opened by a tap on it, so it takes the focus.
+  const [descEditing, setDescEditing] = useState<false | "shown" | "tapped">(false);
   const [calendars, setCalendars] = useState<Calendar[]>([]);
   const [visibleIds, setVisibleIdsState] = useState<Set<number>>(new Set());
   const [newCalName, setNewCalName] = useState("");
@@ -476,6 +489,7 @@ export function CalendarPanel() {
       recur_interval: draft.recur_interval,
       recur_until: draft.recur_freq ? draft.recur_until || null : null,
       alarm: draft.alarm,
+      alarm_lead: draft.alarm_lead,
       // A stale alarm_ack from before the flip (a date from its recurring
       // days, or "true" from its single days) won't match the other shape's
       // rule -- clear it so the save can't fail on a field this form never
@@ -641,7 +655,7 @@ export function CalendarPanel() {
                     >
                       <div className="cal-day-head">
                         <span className="cal-daynum">{Number(date.slice(8))}</span>
-                        <button className="cal-add" title={t("cal_add_event")} onClick={() => { setDraft(blankDraft(date, defaultCalendarId)); setDescEditing(true); }}>
+                        <button className="cal-add" title={t("cal_add_event")} onClick={() => { setDraft(blankDraft(date, defaultCalendarId)); setDescEditing("shown"); }}>
                           +
                         </button>
                       </div>
@@ -670,7 +684,7 @@ export function CalendarPanel() {
             <WeekGrid
               days={days}
               eventsByDate={eventsByDate}
-              onAdd={(date, start, end) => { setDraft(blankDraft(date, defaultCalendarId, start, end, false)); setDescEditing(true); }}
+              onAdd={(date, start, end) => { setDraft(blankDraft(date, defaultCalendarId, start, end, false)); setDescEditing("shown"); }}
               onOpen={(e) => { setDraft(draftFromEvent(e)); setDescEditing(false); }}
             />
           )}
@@ -686,7 +700,7 @@ export function CalendarPanel() {
                   weekday: "long", day: "numeric", month: "long",
                 })}
               </span>
-              <button className="ghost" onClick={() => { setDraft(blankDraft(selectedDay, defaultCalendarId)); setDescEditing(true); }}>
+              <button className="ghost" onClick={() => { setDraft(blankDraft(selectedDay, defaultCalendarId)); setDescEditing("shown"); }}>
                 {t("cal_add")}
               </button>
             </div>
@@ -725,47 +739,73 @@ export function CalendarPanel() {
           }}
         >
           <div className="modal event-form" onClick={(e) => e.stopPropagation()}>
-            <h4>
-              {draft.id
-                ? draft.mine
-                  ? t("cal_edit_event")
-                  : editable
-                    ? t("cal_edit_event_by", { owner: draft.owner ?? "" })
-                    : t("cal_by", { owner: draft.owner ?? "" })
-                : t("cal_new_event")}
+            {/* What the form does on the left; whose event it is, if not ours, on the right. */}
+            <h4 className="event-form-head">
+              <span>{!draft.id ? t("cal_new_event") : editable ? t("cal_edit_event") : t("cal_event")}</span>
+              {draft.id && !draft.mine && (
+                <span className="muted small">{t("cal_by", { owner: draft.owner ?? "" })}</span>
+              )}
             </h4>
-            <label className="field">
-              {t("cal_title")}
-              <input
-                value={draft.title}
-                disabled={!editable}
-                onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-                autoFocus
-              />
-            </label>
-            <label className="field">
-              {t("cols_description")}
+            <input
+              className="event-title"
+              value={draft.title}
+              placeholder={t("cal_title")}
+              disabled={!editable}
+              onChange={(e) => setDraft({ ...draft, title: e.target.value })}
+              autoFocus
+            />
+            <div className="field">
               {editable && descEditing ? (
                 <textarea
                   value={draft.description}
+                  placeholder={t("cols_description")}
                   onChange={(e) => setDraft({ ...draft, description: e.target.value })}
                   onBlur={() => setDescEditing(false)}
                   // Focused when tapped open, not when a new event starts with it open.
-                  autoFocus={!!draft.id}
+                  autoFocus={descEditing === "tapped"}
                 />
               ) : (
                 <div
                   className={"description-view" + (editable ? " editable" : "")}
-                  onClick={() => editable && setDescEditing(true)}
+                  onClick={() => editable && setDescEditing("tapped")}
                 >
                   {draft.description
                     ? linkifyText(draft.description)
                     : editable && <span className="muted">{t("cal_add_description")}</span>}
                 </div>
               )}
-            </label>
-            <div className="check-row-group">
-              <label className="check-row">
+            </div>
+            {/* Label, date, time on one line each: the whole form fits a phone's height. */}
+            <div className="event-grid">
+              <span>{t("cal_start")}</span>
+              <input
+                type="date"
+                value={draft.start_date}
+                disabled={!editable}
+                onChange={(e) => setDraft({ ...draft, start_date: e.target.value })}
+              />
+              {draft.all_day ? <span /> : (
+                <TimeField
+                  value={draft.start_time}
+                  disabled={!editable}
+                  onChange={(v) => setDraft({ ...draft, start_time: v })}
+                />
+              )}
+              <span>{t("cal_end")}</span>
+              <input
+                type="date"
+                value={draft.end_date}
+                disabled={!editable}
+                onChange={(e) => setDraft({ ...draft, end_date: e.target.value })}
+              />
+              {draft.all_day ? <span /> : (
+                <TimeField
+                  value={draft.end_time}
+                  disabled={!editable}
+                  onChange={(v) => setDraft({ ...draft, end_time: v })}
+                />
+              )}
+              <label className="check-row span-2">
                 <input
                   type="checkbox"
                   checked={draft.all_day}
@@ -774,57 +814,24 @@ export function CalendarPanel() {
                 />
                 {t("cal_all_day")}
               </label>
-              <label className="check-row">
-                <input
-                  type="checkbox"
-                  checked={draft.alarm}
-                  disabled={!editable}
-                  onChange={(e) => setDraft({ ...draft, alarm: e.target.checked })}
-                />
-                🔔 {t("alarm_one")}
-              </label>
-            </div>
-            <div className="field">
-              {t("cal_start")}
-              <div className="dates">
-                <input
-                  type="date"
-                  value={draft.start_date}
-                  disabled={!editable}
-                  onChange={(e) => setDraft({ ...draft, start_date: e.target.value })}
-                />
-                <TimePicker
-                  format="HH:mm"
-                  disableClock
-                  clearIcon={null}
-                  value={draft.start_time}
-                  disabled={!editable || draft.all_day}
-                  onChange={(v) => v && setDraft({ ...draft, start_time: v })}
-                />
-              </div>
-            </div>
-            <div className="field">
-              {t("cal_end")}
-              <div className="dates">
-                <input
-                  type="date"
-                  value={draft.end_date}
-                  disabled={!editable}
-                  onChange={(e) => setDraft({ ...draft, end_date: e.target.value })}
-                />
-                <TimePicker
-                  format="HH:mm"
-                  disableClock
-                  clearIcon={null}
-                  value={draft.end_time}
-                  disabled={!editable || draft.all_day}
-                  onChange={(v) => v && setDraft({ ...draft, end_time: v })}
-                />
-              </div>
-            </div>
-            <div className="field">
-              {t("panel_calendar")}
               <select
+                className="alarm-lead"
+                aria-label={t("alarm_one")}
+                title={draft.alarm ? t("alarm_before") : t("alarm_none")}
+                value={draft.alarm ? String(draft.alarm_lead) : "off"}
+                disabled={!editable}
+                onChange={(e) => setDraft(e.target.value === "off"
+                  ? { ...draft, alarm: false }
+                  : { ...draft, alarm: true, alarm_lead: Number(e.target.value) })}
+              >
+                <option value="off">🔕</option>
+                {ALARM_LEADS.map((m) => (
+                  <option key={m} value={m}>🔔 {alarmLeadLabel(m, t)}</option>
+                ))}
+              </select>
+              <span>{t("panel_calendar")}</span>
+              <select
+                className="span-2"
                 value={draft.calendar_id}
                 disabled={!editable}
                 onChange={(e) => setDraft({ ...draft, calendar_id: Number(e.target.value) })}
@@ -835,10 +842,9 @@ export function CalendarPanel() {
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
-            </div>
-            <div className="field">
-              {t("cal_repeat")}
+              <span>{t("cal_repeat")}</span>
               <select
+                className={draft.recur_freq ? "" : "span-2"}
                 value={draft.recur_freq}
                 disabled={!editable}
                 onChange={(e) => setDraft({ ...draft, recur_freq: e.target.value as RecurFreq | "" })}
@@ -848,11 +854,9 @@ export function CalendarPanel() {
                   <option key={f} value={f}>{t(RECUR_LABELS[f])}</option>
                 ))}
               </select>
-            </div>
-            {draft.recur_freq && (
-              <div className="field">
-                {t("cal_every_until")}
-                <div className="dates">
+              {draft.recur_freq && (
+                <label className="recur-every" title={t("cal_every_until")}>
+                  ×
                   <input
                     type="number"
                     min={1}
@@ -860,24 +864,29 @@ export function CalendarPanel() {
                     disabled={!editable}
                     onChange={(e) => setDraft({ ...draft, recur_interval: Math.max(1, Number(e.target.value)) })}
                   />
+                </label>
+              )}
+              {draft.recur_freq && (
+                <>
+                  <span>{t("cal_until_label")}</span>
                   <input
+                    className="span-2"
                     type="date"
                     value={draft.recur_until}
                     disabled={!editable}
-                    placeholder={t("cal_never")}
                     onChange={(e) => setDraft({ ...draft, recur_until: e.target.value })}
                   />
-                </div>
-                {editable && (
-                  <p className="muted small">
-                    {draft.recur_interval > 1
-                      ? t(RECUR_EVERY[draft.recur_freq], { n: draft.recur_interval })
-                      : t(RECUR_LABELS[draft.recur_freq])}
-                    {draft.recur_until ? t("cal_until", { date: draft.recur_until }) : t("cal_no_end")}.{" "}
-                    {t("cal_series_note")}
-                  </p>
-                )}
-              </div>
+                </>
+              )}
+            </div>
+            {draft.recur_freq && editable && (
+              <p className="muted small recur-summary">
+                {draft.recur_interval > 1
+                  ? t(RECUR_EVERY[draft.recur_freq], { n: draft.recur_interval })
+                  : t(RECUR_LABELS[draft.recur_freq])}
+                {draft.recur_until ? t("cal_until", { date: draft.recur_until }) : t("cal_no_end")}.{" "}
+                {t("cal_series_note")}
+              </p>
             )}
             {editable && draftError && <p className="error small">{t(draftError)}</p>}
             <div className="row-actions">
@@ -970,11 +979,25 @@ function WeekGrid({
     return () => cancelAnimationFrame(raf);
   }, []);
 
-  const handleColumnClick = (date: string, ev: React.MouseEvent<HTMLDivElement>) => {
+  // The half hour under the pointer: lit while the mouse is over it, and
+  // where a click starts the new event (an hour long).
+  const [hoverSlot, setHoverSlot] = useState<{ date: string; slot: number } | null>(null);
+  const slotAt = (ev: React.MouseEvent<HTMLDivElement>) => {
     const rect = ev.currentTarget.getBoundingClientRect();
-    const hour = Math.max(0, Math.min(23, Math.floor((ev.clientY - rect.top) / HOUR_HEIGHT)));
-    const pad = (n: number) => String(n).padStart(2, "0");
-    onAdd(date, `${pad(hour)}:00`, `${pad(Math.min(23, hour + 1))}:00`);
+    return Math.max(0, Math.min(47, Math.floor((ev.clientY - rect.top) / (HOUR_HEIGHT / 2))));
+  };
+  const handleColumnMove = (date: string, ev: React.MouseEvent<HTMLDivElement>) => {
+    // Not over an event: that one opens, nothing new starts there.
+    const slot = (ev.target as Element).closest(".cal-week-event") ? -1 : slotAt(ev);
+    if (slot < 0) { if (hoverSlot) setHoverSlot(null); return; }
+    if (hoverSlot?.date !== date || hoverSlot.slot !== slot) setHoverSlot({ date, slot });
+  };
+  const handleColumnClick = (date: string, ev: React.MouseEvent<HTMLDivElement>) => {
+    const start = slotAt(ev) * 30;
+    const end = Math.min(start + 60, 23 * 60 + 59);
+    const hhmm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+    setHoverSlot(null);
+    onAdd(date, hhmm(start), hhmm(end));
   };
 
   // Multi-day events (whether all_day or not) can't be meaningfully placed
@@ -1072,10 +1095,15 @@ function WeekGrid({
               key={date}
               className={"cal-week-col" + (isWeekend(date) ? " weekend" : "")}
               onClick={(ev) => handleColumnClick(date, ev)}
+              onMouseMove={(ev) => handleColumnMove(date, ev)}
+              onMouseLeave={() => setHoverSlot(null)}
             >
               {hours.map((h) => (
                 <div key={h} className="cal-hour-line" style={{ top: h * HOUR_HEIGHT }} />
               ))}
+              {hoverSlot?.date === date && (
+                <div className="cal-week-hover" style={{ top: hoverSlot.slot * (HOUR_HEIGHT / 2), height: HOUR_HEIGHT / 2 }} />
+              )}
               {date === nowDate && <div className="cal-week-now" style={{ top: nowTop }} />}
               {layoutDayEvents((eventsByDate[date] ?? []).filter(isTimedSingleDay))
                 .map(({ event: e, lane, lanes }) => {

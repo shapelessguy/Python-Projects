@@ -79,9 +79,13 @@ def delete_calendar(calendar_id: int, user: str = Depends(require_user)):
 
 
 @router.get("/events")
-def get_events(month: str = Query(..., pattern=_MONTH_RE), user: str = Depends(require_user)):
+def get_events(
+    month: str = Query(..., pattern=_MONTH_RE),
+    ahead_days: int = Query(0, ge=0, le=7),
+    user: str = Depends(require_user),
+):
     with calendar.connect() as conn:
-        return calendar.list_month(conn, user, month)
+        return calendar.list_month(conn, user, month, ahead_days)
 
 
 @router.post("/events")
