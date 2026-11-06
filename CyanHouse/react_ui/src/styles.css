@@ -3140,7 +3140,9 @@ html.phone .overview-toolbar .presets button { flex: 1 1 0; padding: 4px 2px; wh
 html.phone .ov-part { gap: 4px; }
 /* The day ("Wed 11") on one line. Fixed width: each row is its own grid,
    so a content-sized column would shift the icons row to row. */
-html.phone .ov-row { grid-template-columns: 2.9rem repeat(4, minmax(0, 1fr)); gap: 2px; }
+/* Icon, temperature, humidity, wind: the wind ("12.6 km/h" and its icon)
+   gets the most, or it spills past the right edge and is cut off. */
+html.phone .ov-row { grid-template-columns: 2.9rem minmax(0, 0.7fr) minmax(0, 1fr) minmax(0, 0.8fr) minmax(0, 1.5fr); gap: 2px; }
 html.phone .ov-time { font-size: 0.72rem; white-space: nowrap; }
 html.phone .humidity-gauge svg { display: none; }
 html.phone .wind-icon svg { width: 22px; height: 22px; }
@@ -3208,7 +3210,7 @@ html.phone .cal-week-gutter, html.phone .cal-hour-labels { flex-basis: 34px; }
 .weather-glance {
   position: fixed; inset: 0; box-sizing: border-box;
   display: flex; flex-direction: column; gap: 10px;
-  padding: 12px 12px 16px; background: var(--bg);
+  padding: 20px 20px 16px; background: var(--bg);
 }
 .weather-glance h4 { margin: 0; font-size: 0.95rem; flex: 0 0 auto; }
 .weather-glance .env-charts { height: auto; min-height: 0; }

@@ -6,11 +6,13 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.view.ViewGroup
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.FrameLayout
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
@@ -71,12 +73,18 @@ class WeatherActivity : ComponentActivity() {
             }
         }
         Bridge.attach(web, this)
-        ViewCompat.setOnApplyWindowInsetsListener(web) { v, insets ->
+        // The bars' room as padding on a holder: a WebView ignores its own
+        // padding and would draw the page under the status and nav bars.
+        val root = FrameLayout(this).apply {
+            setBackgroundColor(Color.BLACK)
+            addView(web, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+        }
+        ViewCompat.setOnApplyWindowInsetsListener(root) { v, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.updatePadding(left = bars.left, top = bars.top, right = bars.right, bottom = bars.bottom)
             WindowInsetsCompat.CONSUMED
         }
-        setContentView(web)
+        setContentView(root)
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() = AlarmService.weatherSeen()
