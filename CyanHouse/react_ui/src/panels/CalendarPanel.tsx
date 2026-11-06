@@ -539,13 +539,15 @@ export function CalendarPanel() {
       <div className="calendar-main">
         <div className="month-nav">
           <button onClick={goPrev}>◀</button>
-          <h2>{headerLabel}</h2>
+          {/* The date itself goes back to today: no Today button, more room for the others. */}
+          <h2 className="cal-go-today" role="button" tabIndex={0} title={t("env_today")}
+              onClick={() => setAnchor(TODAY)}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setAnchor(TODAY); } }}>
+            {headerLabel}
+          </h2>
           <button onClick={goNext}>▶</button>
           {/* Words on a wide screen, icons on a phone (styles.css swaps
               .nav-text for .nav-icon), so the bar stays one row. */}
-          <button className="ghost" title={t("env_today")} onClick={() => setAnchor(TODAY)}>
-            <span className="nav-text">{t("env_today")}</span><Icon name="today" />
-          </button>
           <div className="cal-view-toggle">
             <button className={view === "month" ? "active" : ""} title={t("cal_month")} onClick={() => setView("month")}>
               <span className="nav-text">{t("cal_month")}</span><Icon name="month" />
