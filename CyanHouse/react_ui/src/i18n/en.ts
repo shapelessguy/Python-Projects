@@ -112,6 +112,9 @@ export const en = {
   food_no_dishes: "No dishes yet — add your first one.",
   food_uncategorised: "Uncategorised",
   food_rename_category: "Rename category",
+  food_rename_hint: "Long-press or right-click to rename",
+  food_search: "Search dishes…",
+  food_no_matches: "No dish matches.",
 
   // food: grocery list
   food_grocery_list: "Grocery list",

@@ -108,6 +108,9 @@ export const de: Dict = {
   food_no_dishes: "Noch keine Gerichte — füge das erste hinzu.",
   food_uncategorised: "Ohne Kategorie",
   food_rename_category: "Kategorie umbenennen",
+  food_rename_hint: "Lange drücken oder Rechtsklick zum Umbenennen",
+  food_search: "Gerichte suchen…",
+  food_no_matches: "Kein Gericht passt.",
 
   food_grocery_list: "Einkaufsliste",
   food_shopping_list: "Zu kaufen",

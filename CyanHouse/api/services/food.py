@@ -2306,7 +2306,9 @@ def grocery(items: dict[int, float]) -> list[dict]:
     Each ingredient is totalled in mass when any of its lines is in mass or
     converts to it, else in volume the same way, else in pieces; a line that
     can't get there is totalled the same way on its own, next to it ("200 g +
-    3"). `approximate`: some line gave no amount, so it is at least that."""
+    3"). `approximate`: some line gave no amount, so it is at least that.
+    Each part also has its `macro` and its `base` (total in that macro's base
+    unit, unrounded)."""
     if not items:
         return []
     with connect() as conn:
@@ -2332,7 +2334,10 @@ def grocery(items: dict[int, float]) -> list[dict]:
         parts, left = [], a["lines"]
         while left:
             target = next(t for t in MACROS if any((m, t) in rates for m, _ in left))
-            parts.append(_readable(target, sum(q * rates[(m, target)] for m, q in left if (m, target) in rates)))
+            total = sum(q * rates[(m, target)] for m, q in left if (m, target) in rates)
+            # macro/base besides the readable amount: what the client compares
+            # a ticked line's bought amount with (500 g vs 1.2 kg).
+            parts.append({**_readable(target, total), "macro": target, "base": total})
             left = [(m, q) for m, q in left if (m, target) not in rates]
         out.append({"key": a["name"], "name": a["name"], "parts": parts,
                     "approximate": a["approximate"] and bool(parts)})

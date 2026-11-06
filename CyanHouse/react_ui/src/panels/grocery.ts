@@ -32,25 +32,42 @@ export function saveGroceryList(list: GroceryList): void {
     (location.protocol === "https:" ? "; Secure" : "");
 }
 
-// Which shopping-list lines (keyed "name::unit", see FoodPanel's
-// computeGroceryTotals) have been ticked off -- separate cookie since it
-// churns independently of which dishes/quantities are selected.
+// Which shopping-list lines (keyed by the line's `key`) have been ticked off,
+// each with how much was bought: macro -> amount in its base unit, the line's
+// totals when it was ticked. A later selection that needs more than that of
+// any part unticks it (FoodPanel). null: ticked before amounts were kept,
+// taken as the line's amounts the next time it is seen. Separate cookie
+// since it churns independently of which dishes/quantities are selected.
 const CHECKED_COOKIE = "grocery_checked";
 
-export function loadCheckedIngredients(): Set<string> {
+export type Bought = Record<string, number>;
+export type CheckedIngredients = Map<string, Bought | null>;
+
+export function loadCheckedIngredients(): CheckedIngredients {
+  const out: CheckedIngredients = new Map();
   try {
     const raw = readCookie(CHECKED_COOKIE);
-    if (!raw) return new Set();
+    if (!raw) return out;
     const parsed = JSON.parse(decodeURIComponent(raw)) as unknown;
-    if (Array.isArray(parsed)) return new Set(parsed.filter((x): x is string => typeof x === "string"));
+    if (Array.isArray(parsed)) {
+      for (const k of parsed) if (typeof k === "string") out.set(k, null);
+    } else if (parsed && typeof parsed === "object") {
+      for (const [k, v] of Object.entries(parsed as Record<string, unknown>)) {
+        if (!v || typeof v !== "object") { out.set(k, null); continue; }
+        const bought: Bought = {};
+        for (const [m, n] of Object.entries(v as Record<string, unknown>))
+          if (typeof n === "number" && Number.isFinite(n)) bought[m] = n;
+        out.set(k, bought);
+      }
+    }
   } catch {
     /* ignore */
   }
-  return new Set();
+  return out;
 }
 
-export function saveCheckedIngredients(keys: Set<string>): void {
-  const value = encodeURIComponent(JSON.stringify([...keys]));
+export function saveCheckedIngredients(checked: CheckedIngredients): void {
+  const value = encodeURIComponent(JSON.stringify(Object.fromEntries(checked)));
   document.cookie =
     `${CHECKED_COOKIE}=${value}; path=/; max-age=${MAX_AGE}; SameSite=Strict` +
     (location.protocol === "https:" ? "; Secure" : "");

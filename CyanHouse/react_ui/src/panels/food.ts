@@ -120,7 +120,8 @@ export interface FoodData {
 export interface GroceryLine {
   key: string;
   name: string;
-  parts: { amount: string; unit: string }[];
+  /** `base`: the total in `macro`'s base unit (g, ml, pieces), unrounded. */
+  parts: { amount: string; unit: string; macro: string; base: number }[];
   approximate: boolean;
 }
 

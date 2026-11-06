@@ -80,10 +80,11 @@ export default function App() {
   // in their list.
   const active = visible.find((p) => p.id === panel) ?? visible[0];
 
-  // Both of these own their own scrolling: the environment charts and the
-  // media library are each taller than the viewport, and only that column --
-  // not the page -- should get a scrollbar.
-  const fixedHeight = active?.id === "environment" || active?.id === "media" || active?.id === "controls";
+  // These own their own scrolling: the environment charts, the media library
+  // and the dishes are each taller than the viewport, and only that column --
+  // not the page, tab bar included -- should get a scrollbar.
+  const fixedHeight = active?.id === "environment" || active?.id === "media" || active?.id === "controls"
+    || active?.id === "food";
 
   useLayoutEffect(() => {
     const nav = navRef.current;

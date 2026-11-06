@@ -28,6 +28,8 @@ import { SizeSlider } from "./SizeSlider";
 import { Key, useT } from "../i18n";
 import {
   GroceryList,
+  Bought,
+  CheckedIngredients,
   loadCheckedIngredients,
   loadGroceryList,
   saveCheckedIngredients,
@@ -36,6 +38,8 @@ import {
 import { createPortal } from "react-dom";
 import { useBackToClose } from "../backClose";
 import { ConfirmDialog } from "../ConfirmDialog";
+import { usePhone } from "../narrow";
+import { useDragScroll } from "../dragScroll";
 
 function stars(rating: number): string {
   const full = Math.max(0, Math.min(Math.round(rating), 10));
@@ -52,6 +56,71 @@ const ingredientName = (c: CatalogIngredient, lang: string) => (lang !== "en" &&
 
 /** A dish's name in the UI's language, English until it has one. */
 const dishName = (d: Dish, lang: string) => d.name_tr?.[lang] || d.name;
+
+/** A shopping-list line's amounts, as what was bought when it is ticked. */
+const boughtOf = (line: GroceryLine): Bought =>
+  Object.fromEntries(line.parts.map((p) => [p.macro, p.base]));
+
+/** Whether what was bought still covers `line`: every part at most as much
+ *  as was bought in its macro. A line with no amounts ("to taste") always
+ *  is. A part from an older server, without its base, can't be compared
+ *  and doesn't count against. */
+const covers = (bought: Bought, line: GroceryLine) =>
+  line.parts.every((p) => p.base === undefined || (bought[p.macro] ?? -1) >= p.base - 1e-6);
+
+/** Lower case, accents dropped: "Caffè" is found by "caffe". */
+const fold = (s: string) => s.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+
+/** The open / loaded sets' key for a category's group: its id ("" for the
+ *  uncategorised), so a rename keeps it open. */
+const groupKey = (c: Category | null) => (c ? String(c.id) : "");
+
+// null is the dishes with no category, shown last.
+const byCategoryOf = (data: FoodData, cat: Category | null) =>
+  data.dishes.filter((d) => d.category_id === (cat?.id ?? null));
+const categoryGroups = (data: FoodData) => [
+  ...data.categories,
+  ...(data.dishes.some((d) => d.category_id === null) ? [null] : []),
+].filter((c) => byCategoryOf(data, c).length > 0);
+
+const LONG_PRESS_MS = 500;
+
+/** A long press (touch) or a right click (mouse) on an element:
+ *  `press(onLong, onClick)` gives the handlers to spread on it. The click a
+ *  long press ends with is swallowed, so it doesn't also count as a tap. One
+ *  timer for every element -- only one is ever being pressed. */
+function useLongPress() {
+  const timer = useRef<number | undefined>(undefined);
+  const fired = useRef(false);
+  const origin = useRef<[number, number]>([0, 0]);
+  const cancel = () => { window.clearTimeout(timer.current); timer.current = undefined; };
+  return (onLong: () => void, onClick?: () => void) => ({
+    onPointerDown: (e: React.PointerEvent) => {
+      fired.current = false;
+      if (e.pointerType === "mouse") return;
+      origin.current = [e.clientX, e.clientY];
+      cancel();
+      timer.current = window.setTimeout(() => { timer.current = undefined; fired.current = true; onLong(); }, LONG_PRESS_MS);
+    },
+    // A finger that moves is scrolling, not pressing.
+    onPointerMove: (e: React.PointerEvent) => {
+      if (timer.current !== undefined
+          && Math.hypot(e.clientX - origin.current[0], e.clientY - origin.current[1]) > 10) cancel();
+    },
+    onPointerUp: cancel,
+    onPointerCancel: cancel,
+    // Right click -- and Android's own long press, which may beat the timer.
+    onContextMenu: (e: React.MouseEvent) => {
+      e.preventDefault();
+      cancel();
+      if (!fired.current) { fired.current = true; onLong(); }
+    },
+    onClick: () => {
+      if (fired.current) { fired.current = false; return; }
+      onClick?.();
+    },
+  });
+}
 /** What a dish's yield counts ("persone"), in `lang` -- English until it has it. */
 const yieldUnit = (d: Dish, lang: string) =>
   (lang !== "en" && d.yield_unit_tr?.[lang]) || parseIngredients(d.ingredients).unit;
@@ -160,7 +229,17 @@ export function FoodPanel() {
   const [groceryList, setGroceryList] = useState<GroceryList>(() => loadGroceryList());
   const [groceryMode, setGroceryMode] = useState(false);
   const [pendingSelection, setPendingSelection] = useState<Set<number>>(() => new Set());
-  const [checkedIngredients, setCheckedIngredients] = useState<Set<string>>(() => loadCheckedIngredients());
+  const [checkedIngredients, setCheckedIngredients] = useState<CheckedIngredients>(() => loadCheckedIngredients());
+  // Phone: categories are chips, one open at a time, and the grocery list is
+  // a full-screen sheet opened from 🛒 rather than a block atop the dishes.
+  const phone = usePhone();
+  const [showGrocery, setShowGrocery] = useState(false);
+  const [query, setQuery] = useState("");
+  const press = useLongPress();
+  // .panel.food scrolls; .food-top (heading, chips) sticks at its top.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const topRef = useRef<HTMLDivElement>(null);
+  const groupsRef = useRef<HTMLDivElement>(null);
 
   const toggleCategory = useCallback((cat: string) => {
     setExpanded((s) => {
@@ -170,6 +249,39 @@ export function FoodPanel() {
     });
     setEverOpened((s) => (s.has(cat) ? s : new Set(s).add(cat)));
   }, []);
+
+  // A chip: that category alone, remembered for next time. If the page is
+  // scrolled into the dishes, back to the top of them, so the new category
+  // starts at its first row.
+  const selectCategory = useCallback((cat: string) => {
+    setExpanded(new Set([cat]));
+    setEverOpened((s) => (s.has(cat) ? s : new Set(s).add(cat)));
+    try {
+      localStorage.setItem("foodCat", cat);
+    } catch {
+      /* ignore */
+    }
+    const panel = scrollRef.current, top = topRef.current, groups = groupsRef.current;
+    if (panel && top && groups) {
+      const gap = groups.getBoundingClientRect().top - top.getBoundingClientRect().bottom;
+      if (gap < 0) panel.scrollTop += gap;
+    }
+  }, []);
+
+  // Chips always show a category: the last one picked, else the first.
+  useEffect(() => {
+    if (!phone || !data || query) return;
+    const keys = categoryGroups(data).map(groupKey);
+    if (keys.some((k) => expanded.has(k))) return;
+    let saved: string | null = null;
+    try {
+      saved = localStorage.getItem("foodCat");
+    } catch {
+      /* ignore */
+    }
+    const pick = saved !== null && keys.includes(saved) ? saved : keys[0];
+    if (pick !== undefined) selectCategory(pick);
+  }, [phone, data, query, expanded, selectCategory]);
 
   const markLoaded = useCallback(
     (cat: string) => setImgLoaded((s) => (s.has(cat) ? s : new Set(s).add(cat))),
@@ -228,8 +340,8 @@ export function FoodPanel() {
   // is already in the bag stays bought. Only clearing the list as a whole
   // starts them over.
   const resetChecked = () => {
-    setCheckedIngredients(new Set());
-    saveCheckedIngredients(new Set());
+    setCheckedIngredients(new Map());
+    saveCheckedIngredients(new Map());
   };
 
   // Drop grocery-list entries for dishes that got deleted, or whose
@@ -281,6 +393,7 @@ export function FoodPanel() {
     setGroceryList(next);
     saveGroceryList(next);
     setGroceryMode(false);
+    if (phone && Object.keys(next).length) setShowGrocery(true);
   };
   const setGroceryQty = (id: number, qty: number) => {
     setGroceryList((gl) => {
@@ -301,14 +414,35 @@ export function FoodPanel() {
     setGroceryList({});
     saveGroceryList({});
     resetChecked();
+    setShowGrocery(false);
   };
-  const toggleChecked = (key: string) =>
+  // Ticking a line keeps what it asks for now as what was bought.
+  const toggleChecked = (line: GroceryLine) =>
     setCheckedIngredients((s) => {
-      const n = new Set(s);
-      n.has(key) ? n.delete(key) : n.add(key);
+      const n = new Map(s);
+      n.has(line.key) ? n.delete(line.key) : n.set(line.key, boughtOf(line));
       saveCheckedIngredients(n);
       return n;
     });
+  // A new shopping list (the selection or a quantity changed): a ticked line
+  // that now needs more than was bought, of any of its parts, is unticked --
+  // less, or the same, stays bought. Legacy ticks (no amounts) take the
+  // line's amounts as bought. Lines not on the list keep their tick.
+  const reconcileChecked = useCallback((lines: GroceryLine[]) =>
+    setCheckedIngredients((s) => {
+      let n: CheckedIngredients | null = null;
+      for (const line of lines) {
+        if (!s.has(line.key)) continue;
+        const bought = s.get(line.key);
+        if (bought && covers(bought, line)) continue;
+        n ??= new Map(s);
+        if (bought) n.delete(line.key);
+        else n.set(line.key, boughtOf(line));
+      }
+      if (!n) return s;
+      saveCheckedIngredients(n);
+      return n;
+    }), []);
 
   if (error && !data)
     return (
@@ -332,128 +466,180 @@ export function FoodPanel() {
       </div>
     );
 
-  // null is the dishes with no category, shown last. A group's key (the
-  // open / loaded sets) is its category's id, so a rename keeps it open.
-  const byCategory = (cat: Category | null) => data.dishes.filter((d) => d.category_id === (cat?.id ?? null));
-  const groups = [
-    ...data.categories,
-    ...(data.dishes.some((d) => d.category_id === null) ? [null] : []),
-  ].filter((c) => byCategory(c).length > 0);
+  const byCategory = (cat: Category | null) => byCategoryOf(data, cat);
+  const groups = categoryGroups(data);
+  // Searching shows every category with a match, open, and only the matches.
+  const q = fold(query.trim());
+  const searching = q !== "";
+  const matches = (d: Dish) =>
+    [d.name, ...Object.values(d.name_tr ?? {})].some((n) => n && fold(n).includes(q));
+  const chips = phone && !searching;
+  const groceryCount = Object.keys(groceryList).length;
+  const onGroceryButton = () => (phone && groceryCount ? setShowGrocery(true) : enterGroceryMode());
+  const renameEditor = (c: Category) => (
+    <CategoryNameEdit
+      initial={c.tr[lang] || c.name}
+      onCancel={() => setRenaming(null)}
+      onSave={(name) => foodApi.renameCategory(c.id, name, lang)
+        .then((d) => { apply(d); setRenaming(null); })
+        .catch((e) => setError(serverMessage(e)))}
+    />
+  );
+  // Long press / right click on a category's name renames it.
+  const renamable = (c: Category | null) => Boolean(c) && !groceryMode && renaming !== c?.id;
+  const groupLabel = (c: Category | null) => (c ? c.tr[lang] || c.name : t("food_uncategorised"));
+  const groupProgress = (cat: string, open: boolean) => {
+    const progress = imgProgress[cat];
+    return open && !imgLoaded.has(cat) && progress && progress[1] > 0 && progress[0] < progress[1] ? progress : null;
+  };
+  const groceryProps = {
+    dishes: data.dishes,
+    catalog: data.ingredients ?? [],
+    version: data.version,
+    list: groceryList,
+    onQtyChange: setGroceryQty,
+    onRemove: removeFromGrocery,
+    onClear: clearGroceryList,
+    checked: checkedIngredients,
+    onToggleChecked: toggleChecked,
+    onLines: reconcileChecked,
+  };
 
   return (
-    <div className="panel food">
+    <div className="panel food" ref={scrollRef}>
       <div
-        className="food-main"
+        className={"food-main" + (chips ? " food--chips" : "")}
         style={{ "--dish-col": `${zoom}px` } as React.CSSProperties}
       >
-        <div className="food-head">
-          <h2>{t("food_dishes")}</h2>
-          <label className="food-zoom" title={t("food_card_size")}>
-            <span aria-hidden>🔍</span>
-            <SizeSlider min={ZOOM_MIN} max={ZOOM_MAX} step={10} value={zoom} title={t("food_card_size")} onChange={setZoom} />
-          </label>
-          {groceryMode ? (
-            <>
-              <span className="muted small">{t("food_selected", { n: pendingSelection.size })}</span>
-              <button className="active" onClick={confirmSelection}>{t("done")}</button>
-              <button className="ghost" onClick={cancelSelection}>{t("cancel")}</button>
-            </>
-          ) : (
-            <>
-              {/* The words go on a phone (.btn-text), leaving the icons. */}
-              <button className="ghost" title={t("food_ingredients")} onClick={() => setShowCatalog(true)}>
-                🥕<span className="btn-text"> {t("food_ingredients")}</span>
-              </button>
-              <button className="ghost" title={t("food_grocery")} onClick={enterGroceryMode}>
-                🛒<span className="btn-text"> {t("food_grocery")}</span>
-              </button>
-              <button className="active" title={t("food_add_dish")} onClick={() => setEditing("new")}>
-                +<span className="btn-text"> {t("food_add_dish")}</span>
-              </button>
-            </>
+        <div className="food-top" ref={topRef}>
+          <div className="food-head">
+            <h2>{t("food_dishes")}</h2>
+            <input type="search" className="food-search" placeholder={t("food_search")} aria-label={t("food_search")}
+                   value={query} onChange={(e) => setQuery(e.target.value)}
+                   onKeyDown={(e) => { if (e.key === "Escape") setQuery(""); }} />
+            <label className="food-zoom" title={t("food_card_size")}>
+              <span aria-hidden>🔍</span>
+              <SizeSlider min={ZOOM_MIN} max={ZOOM_MAX} step={10} value={zoom} title={t("food_card_size")} onChange={setZoom} />
+            </label>
+            {groceryMode ? (
+              <>
+                <span className="muted small food-selected">{t("food_selected", { n: pendingSelection.size })}</span>
+                <button className="active" onClick={confirmSelection}>{t("done")}</button>
+                <button className="ghost" onClick={cancelSelection}>{t("cancel")}</button>
+              </>
+            ) : (
+              <>
+                {/* The words go on a phone (.btn-text), leaving the icons. */}
+                <button className="ghost" title={t("food_ingredients")} onClick={() => setShowCatalog(true)}>
+                  🥕<span className="btn-text"> {t("food_ingredients")}</span>
+                </button>
+                <button className="ghost food-grocery-btn" title={t("food_grocery")} onClick={onGroceryButton}>
+                  🛒<span className="btn-text"> {t("food_grocery")}</span>
+                  {phone && groceryCount > 0 && <span className="food-badge">{groceryCount}</span>}
+                </button>
+                <button className="active" title={t("food_add_dish")} onClick={() => setEditing("new")}>
+                  +<span className="btn-text"> {t("food_add_dish")}</span>
+                </button>
+              </>
+            )}
+          </div>
+          {chips && (
+            <ChipStrip>
+              {groups.map((c) => {
+                const cat = groupKey(c);
+                const isOpen = expanded.has(cat);
+                const progress = groupProgress(cat, isOpen);
+                if (c && renaming === c.id)
+                  return <span className="food-chip renaming" key={cat}>{renameEditor(c)}</span>;
+                return (
+                  <button key={cat} className={"food-chip" + (isOpen ? " active" : " ghost")}
+                          title={c && !groceryMode ? t("food_rename_hint") : undefined}
+                          {...press(() => renamable(c) && setRenaming(c!.id), () => selectCategory(cat))}>
+                    {groupLabel(c)}
+                    <span className="food-chip-n">{byCategory(c).length}</span>
+                    {progress && (
+                      <span className="food-chip-bar" role="progressbar" aria-valuemin={0} aria-valuemax={progress[1]}
+                            aria-valuenow={progress[0]} title={t("food_loading_images", { done: progress[0], total: progress[1] })}>
+                        <span className="load-bar-fill" style={{ width: `${(progress[0] / progress[1]) * 100}%` }} />
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </ChipStrip>
           )}
         </div>
         {error && <p className="error small">{error}</p>}
 
-        {!groceryMode && (
-          <GroceryPanel
-            dishes={data.dishes}
-            catalog={data.ingredients ?? []}
-            version={data.version}
-            list={groceryList}
-            onQtyChange={setGroceryQty}
-            onRemove={removeFromGrocery}
-            onEdit={enterGroceryMode}
-            onClear={clearGroceryList}
-            checked={checkedIngredients}
-            onToggleChecked={toggleChecked}
-          />
-        )}
+        {!groceryMode && !phone && <GroceryPanel {...groceryProps} onEdit={enterGroceryMode} />}
 
         {groups.length === 0 && (
           <p className="muted">{t("food_no_dishes")}</p>
         )}
+        {searching && !data.dishes.some(matches) && (
+          <p className="muted">{t("food_no_matches")}</p>
+        )}
 
-        {groups.map((c) => {
-          const cat = c ? String(c.id) : "";
-          const dishes = byCategory(c).sort((a, b) => b.rating - a.rating);
-          const isOpen = expanded.has(cat);
-          const progress = imgProgress[cat];
-          const loadingImgs = isOpen && !imgLoaded.has(cat) && progress && progress[1] > 0 && progress[0] < progress[1];
-          return (
-            <section className="food-group" key={cat || "-"}>
-              <h3
-                className="food-group-head"
-                onClick={() => toggleCategory(cat)}
-              >
-                <span className="chevron">{isOpen ? "▾" : "▸"}</span>
-                {c && renaming === c.id ? (
-                  <CategoryNameEdit
-                    initial={c.tr[lang] || c.name}
-                    onCancel={() => setRenaming(null)}
-                    onSave={(name) => foodApi.renameCategory(c.id, name, lang)
-                      .then((d) => { apply(d); setRenaming(null); })
-                      .catch((e) => setError(serverMessage(e)))}
+        <div ref={groupsRef}>
+          {groups.map((c) => {
+            const cat = groupKey(c);
+            const all = byCategory(c).sort((a, b) => b.rating - a.rating);
+            const dishes = searching ? all.filter(matches) : all;
+            if (!dishes.length) return null;
+            const isOpen = searching || expanded.has(cat);
+            const progress = groupProgress(cat, isOpen);
+            return (
+              <section className={"food-group" + (isOpen ? " open" : "")} key={cat || "-"}>
+                <h3
+                  className="food-group-head"
+                  title={c && !groceryMode ? t("food_rename_hint") : undefined}
+                  {...press(() => renamable(c) && setRenaming(c!.id), () => !searching && toggleCategory(cat))}
+                >
+                  <span className="chevron">{isOpen ? "▾" : "▸"}</span>
+                  {c && renaming === c.id ? renameEditor(c) : (
+                    <>
+                      {groupLabel(c)}
+                      <span className="muted"> ({dishes.length})</span>
+                    </>
+                  )}
+                  {progress && (
+                    <span className="load-bar" role="progressbar" aria-valuemin={0} aria-valuemax={progress[1]}
+                          aria-valuenow={progress[0]} title={t("food_loading_images", { done: progress[0], total: progress[1] })}>
+                      <span className="load-bar-fill" style={{ width: `${(progress[0] / progress[1]) * 100}%` }} />
+                    </span>
+                  )}
+                </h3>
+                {/* Searching mounts just the matches' cards, and only an
+                    opened category may call itself loaded -- a search
+                    through it has not loaded all its pictures. */}
+                {(everOpened.has(cat) || searching) && (
+                  <CategoryGrid
+                    dishes={dishes}
+                    collapsed={!isOpen}
+                    loaded={imgLoaded.has(cat)}
+                    onAllLoaded={() => { if (!searching) markLoaded(cat); }}
+                    onProgress={(done, total) => reportProgress(cat, done, total)}
+                    onEdit={setEditing}
+                    onRate={(id, rating) => mutate(foodApi.patch(id, { rating }))}
+                    onEditIngredients={setEditingIngredients}
+                    onWatchImport={setWatching}
+                    groceryMode={groceryMode}
+                    selection={pendingSelection}
+                    onToggleSelect={toggleSelect}
                   />
-                ) : (
-                  <>
-                    {c ? c.tr[lang] || c.name : t("food_uncategorised")}
-                    <span className="muted"> ({dishes.length})</span>
-                    {c && !groceryMode && (
-                      <button className="ghost food-cat-edit" title={t("food_rename_category")}
-                              onClick={(e) => { e.stopPropagation(); setRenaming(c.id); }}>
-                        ✎
-                      </button>
-                    )}
-                  </>
                 )}
-                {loadingImgs && (
-                  <span className="load-bar" role="progressbar" aria-valuemin={0} aria-valuemax={progress[1]}
-                        aria-valuenow={progress[0]} title={t("food_loading_images", { done: progress[0], total: progress[1] })}>
-                    <span className="load-bar-fill" style={{ width: `${(progress[0] / progress[1]) * 100}%` }} />
-                  </span>
-                )}
-              </h3>
-              {everOpened.has(cat) && (
-                <CategoryGrid
-                  dishes={dishes}
-                  collapsed={!isOpen}
-                  loaded={imgLoaded.has(cat)}
-                  onAllLoaded={() => markLoaded(cat)}
-                  onProgress={(done, total) => reportProgress(cat, done, total)}
-                  onEdit={setEditing}
-                  onRate={(id, rating) => mutate(foodApi.patch(id, { rating }))}
-                  onEditIngredients={setEditingIngredients}
-                  onWatchImport={setWatching}
-                  groceryMode={groceryMode}
-                  selection={pendingSelection}
-                  onToggleSelect={toggleSelect}
-                />
-              )}
-            </section>
-          );
-        })}
+              </section>
+            );
+          })}
+        </div>
       </div>
+
+      {phone && showGrocery && !groceryMode && (
+        <GrocerySheet onClose={() => setShowGrocery(false)}>
+          <GroceryPanel {...groceryProps} onClose={() => setShowGrocery(false)}
+                        onEdit={() => { setShowGrocery(false); enterGroceryMode(); }} />
+        </GrocerySheet>
+      )}
 
       {editing && (
         <DishForm
@@ -532,8 +718,8 @@ function GrocerySummary({
   catalog,
 }: {
   items: GroceryLine[];
-  checked: Set<string>;
-  onToggle: (key: string) => void;
+  checked: CheckedIngredients;
+  onToggle: (line: GroceryLine) => void;
   catalog: CatalogIngredient[];
 }) {
   const { t, lang } = useT();
@@ -549,7 +735,7 @@ function GrocerySummary({
               <input
                 type="checkbox"
                 checked={checked.has(it.key)}
-                onChange={() => onToggle(it.key)}
+                onChange={() => onToggle(it)}
               />
               <span className="grocery-summary-name">
                 {byName.has(it.name) ? ingredientName(byName.get(it.name)!, lang) : it.name}
@@ -586,6 +772,8 @@ function GroceryPanel({
   onClear,
   checked,
   onToggleChecked,
+  onLines,
+  onClose,
 }: {
   dishes: Dish[];
   catalog: CatalogIngredient[];
@@ -595,8 +783,12 @@ function GroceryPanel({
   onRemove: (id: number) => void;
   onEdit: () => void;
   onClear: () => void;
-  checked: Set<string>;
-  onToggleChecked: (key: string) => void;
+  checked: CheckedIngredients;
+  onToggleChecked: (line: GroceryLine) => void;
+  /** Every new shopping list, to check the ticks against. */
+  onLines: (lines: GroceryLine[]) => void;
+  /** In the phone's sheet: a ✕ to close it. */
+  onClose?: () => void;
 }) {
   const { t, lang } = useT();
   const byId = new Map(dishes.map((d) => [d.id, d]));
@@ -608,7 +800,8 @@ function GroceryPanel({
   const listKey = JSON.stringify(list);
   useEffect(() => {
     let live = true;
-    foodApi.grocery(list).then((r) => live && setTotals(r.lines)).catch(() => live && setTotals([]));
+    foodApi.grocery(list).then((r) => { if (live) { setTotals(r.lines); onLines(r.lines); } })
+      .catch(() => live && setTotals([]));
     return () => { live = false; };
   }, [listKey, version]);  // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -625,6 +818,7 @@ function GroceryPanel({
           <button type="button" className="ghost danger" onClick={onClear}>
             {t("clear")}
           </button>
+          {onClose && <button type="button" className="ghost" title={t("close")} onClick={onClose}>✕</button>}
         </div>
       </div>
       <div className="grocery-items">
@@ -710,6 +904,22 @@ function CategoryNameEdit({ initial, onSave, onCancel }: {
       <button className="ghost" title={t("cancel")} disabled={saving} onClick={onCancel}>✕</button>
     </span>
   );
+}
+
+/** The phone's category chips, in a row that also scrolls by wheel and
+ *  mouse drag -- phone mode holds on a short desktop window too. Its own
+ *  component so the ref exists when the hook runs (the row mounts later
+ *  than the panel). */
+function ChipStrip({ children }: { children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useDragScroll(ref);
+  return <div className="food-chips" ref={ref}>{children}</div>;
+}
+
+/** The phone's grocery list: the whole screen, closed by its ✕ or Back. */
+function GrocerySheet({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
+  useBackToClose(onClose);
+  return createPortal(<div className="grocery-sheet">{children}</div>, document.body);
 }
 
 /** One category's cards, telling how many of their images have loaded (or

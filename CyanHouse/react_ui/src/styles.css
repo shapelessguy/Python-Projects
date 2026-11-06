@@ -679,10 +679,44 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
 .login button { padding: 8px; }
 .login button.login-switch { padding: 0; font-size: 0.8rem; align-self: center; }
 /* ── food ────────────────────────────────────────────────── */
-.food { align-items: stretch; }
+/* The panel is the scroll container (App gives Food a fixed height), so the
+ * tab bar stays put; .food-top -- heading, search, the phone's chips --
+ * sticks at its top. flex-start, not stretch: .food-main must grow with its
+ * dishes, or the sticky top would leave with its box after one screen. */
+.panel.food { height: 100%; overflow-y: auto; overscroll-behavior: contain; align-items: flex-start; }
 .food-main { flex: 1 1 auto; min-width: 0; max-width: 1400px; margin: 0 auto; }
+/* padding-top: room for the 🛒 badge, which the scroll box would clip. */
+.food-top { position: sticky; top: 0; z-index: 5; background: var(--bg); padding: 7px 0 6px; }
 .food-head { display: flex; align-items: center; gap: 12px; }
 .food-head h2 { margin-right: auto; }
+.food-search { flex: 0 1 240px; min-width: 0; }
+.food-grocery-btn { position: relative; }
+.food-badge {
+  position: absolute; top: -6px; right: -6px; min-width: 16px; height: 16px; padding: 0 4px;
+  border-radius: 8px; background: var(--accent); color: #fff; font-size: 0.65rem; line-height: 16px;
+}
+/* Phone: the categories as a row of chips swiped sideways, one open at a
+ * time -- their headings go. */
+.food-chips { display: flex; gap: 6px; overflow-x: auto; padding-top: 8px; scrollbar-width: none; }
+.food-chips::-webkit-scrollbar { display: none; }
+.food-chip {
+  flex: 0 0 auto; position: relative; overflow: hidden;
+  border-radius: 999px; padding: 6px 12px; white-space: nowrap;
+  user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+}
+.food-chip-n { margin-left: 5px; opacity: 0.65; font-size: 0.85em; }
+.food-chip-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; }
+.food-chip.active .food-chip-bar .load-bar-fill { background: rgba(255, 255, 255, 0.85); }
+.food-chip.renaming { display: inline-flex; padding: 2px 6px; border: 1px solid var(--line); background: var(--panel-2); }
+.food--chips .food-group-head { display: none; }
+.food--chips .food-group:not(.open) { display: none; }
+.food--chips .food-group { margin-top: 8px; }
+/* Phone: the grocery list over everything, from 🛒. */
+.grocery-sheet {
+  position: fixed; inset: 0; z-index: 100; background: var(--bg);
+  overflow-y: auto; overscroll-behavior: contain; padding: 12px 14px;
+}
+.grocery-sheet .grocery-panel { margin: 0; padding: 0; border: none; background: none; }
 .food-zoom { display: flex; align-items: center; gap: 6px; color: var(--muted); }
 .food-zoom input[type="range"] { width: clamp(90px, 18vw, 200px); }
 /* ── grocery list ────────────────────────────────────────── */
@@ -728,15 +762,12 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
 }
 .food-group { margin-top: 14px; }
 .food-group-head {
-  cursor: pointer; user-select: none;
+  cursor: pointer; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
   display: flex; align-items: baseline; gap: 6px;
   color: var(--text); text-transform: none; letter-spacing: 0;
   font-size: 0.95rem; margin: 0 0 8px;
 }
 .food-group-head .chevron { color: var(--muted); font-size: 0.8rem; }
-/* Rename, right after the name: small, dim until hovered. */
-.food-group-head .food-cat-edit { padding: 0 6px; font-size: 0.8rem; line-height: 1.4; color: var(--muted); }
-.food-group-head .food-cat-edit:hover { color: var(--text); }
 .food-cat-rename { display: inline-flex; align-items: center; gap: 4px; cursor: auto; }
 .food-cat-rename input { font-size: 0.9rem; padding: 2px 6px; width: 14em; max-width: 50vw; }
 .food-cat-rename button { padding: 0 6px; line-height: 1.6; }
@@ -2940,9 +2971,15 @@ html.phone .month-nav h2 {
 html.phone .nav-text { display: none; }
 html.phone .month-nav .nav-icon { display: block; }
 html.phone .food-head { gap: 6px; }
-html.phone .food-head h2 { font-size: 1rem; }
 html.phone .food-head button { padding: 4px 8px; }
 html.phone .btn-text { display: none; }
+html.phone .food-head h2, html.phone .food-selected { display: none; }
+html.phone .food-search { flex: 1 1 auto; margin-right: auto; }
+/* The dish form takes the whole screen. */
+html.phone .modal.dish-form {
+  width: 100vw; min-height: 100dvh; max-height: 100dvh; align-self: stretch;
+  border: none; border-radius: 0;
+}
 
 /* Media: one button naming the current tab, the job queue at the right;
  * the tabs a list sliding down under them, full-width rows with their
