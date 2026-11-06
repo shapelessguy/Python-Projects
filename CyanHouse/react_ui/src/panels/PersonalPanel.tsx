@@ -106,11 +106,13 @@ export function PersonalPanel() {
       <div className="personal-main">
         <div className="month-nav">
           <button onClick={() => setMonth((m) => addMonths(m, -1))}>◀</button>
-          <h2>{monthLabel(month, lang)}</h2>
+          {/* The month itself goes back to this month: no Today button. */}
+          <h2 className="go-today" role="button" tabIndex={0} title={t("env_today")}
+              onClick={() => setMonth(currentMonth())}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setMonth(currentMonth()); } }}>
+            {monthLabel(month, lang)}
+          </h2>
           <button onClick={() => setMonth((m) => addMonths(m, 1))}>▶</button>
-          <button className="ghost" title={t("env_today")} onClick={() => setMonth(currentMonth())}>
-            <span className="nav-text">{t("env_today")}</span><Icon name="today" />
-          </button>
           {/* The table's own tools, held at the right of the month bar. */}
           <span className="personal-tools">
             <button className="ghost icon-only" onClick={() => setReordering(true)}

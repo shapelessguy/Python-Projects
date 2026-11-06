@@ -4,6 +4,7 @@ import { CalendarShareDialog } from "./ShareDialog";
 import { readCookie, writeCookie } from "../cookies";
 import { usePhone } from "../narrow";
 import { Icon } from "./icons";
+import { IconPick } from "./IconPick";
 import { TimeField } from "./TimeField";
 import { useBackToClose } from "../backClose";
 import { Key, useT } from "../i18n";
@@ -540,7 +541,7 @@ export function CalendarPanel() {
         <div className="month-nav">
           <button onClick={goPrev}>◀</button>
           {/* The date itself goes back to today: no Today button, more room for the others. */}
-          <h2 className="cal-go-today" role="button" tabIndex={0} title={t("env_today")}
+          <h2 className="go-today" role="button" tabIndex={0} title={t("env_today")}
               onClick={() => setAnchor(TODAY)}
               onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setAnchor(TODAY); } }}>
             {headerLabel}
@@ -548,13 +549,26 @@ export function CalendarPanel() {
           <button onClick={goNext}>▶</button>
           {/* Words on a wide screen, icons on a phone (styles.css swaps
               .nav-text for .nav-icon), so the bar stays one row. */}
+          {/* On a phone the views are one button opening a list of them, as in Media. */}
           <div className="cal-view-toggle">
-            <button className={view === "month" ? "active" : ""} title={t("cal_month")} onClick={() => setView("month")}>
-              <span className="nav-text">{t("cal_month")}</span><Icon name="month" />
-            </button>
-            <button className={view === "week" ? "active" : ""} title={t("cal_week")} onClick={() => setView("week")}>
-              <span className="nav-text">{t("cal_week")}</span><Icon name="week" />
-            </button>
+            {narrow ? (
+              <IconPick
+                choices={(["month", "week"] as const).map((v) => ({
+                  key: v, label: t(v === "month" ? "cal_month" : "cal_week"), icon: <Icon name={v} className="" />,
+                }))}
+                value={view}
+                onChange={(v) => setView(v as ViewMode)}
+              />
+            ) : (
+              <>
+                <button className={view === "month" ? "active" : ""} title={t("cal_month")} onClick={() => setView("month")}>
+                  <span className="nav-text">{t("cal_month")}</span><Icon name="month" />
+                </button>
+                <button className={view === "week" ? "active" : ""} title={t("cal_week")} onClick={() => setView("week")}>
+                  <span className="nav-text">{t("cal_week")}</span><Icon name="week" />
+                </button>
+              </>
+            )}
           </div>
           <div className="cal-calendars-menu" ref={calendarsMenuRef}>
             <button
