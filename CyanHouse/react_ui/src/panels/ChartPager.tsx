@@ -1,22 +1,25 @@
-import { useRef, useState } from "react";
+import { ReactNode, useRef, useState } from "react";
 import createPlotlyComponent from "react-plotly.js/factory";
 import Plotly from "plotly.js-dist-min";
 import type { PlotParams } from "react-plotly.js";
 
 const Plot = createPlotlyComponent(Plotly);
 
-export type PagedChart = { key: string; title: string; data: PlotParams["data"]; layout: PlotParams["layout"] };
+export type PagedChart = { key: string; title: ReactNode; data: PlotParams["data"]; layout: PlotParams["layout"] };
 
 /** Plotly charts `perPage` to a page (two by default), sharing the height
  *  the pager is given -- for a phone, where a column of charts would scroll
  *  (Environment's history and forecast). ‹ › or a sideways swipe turns the
- *  page; the charts don't zoom or pan, so a swipe across one is a swipe. */
-export function ChartPager({ charts, perPage = 2 }: { charts: PagedChart[]; perPage?: number }) {
+ *  page; the charts don't zoom or pan, so a swipe across one is a swipe.
+ *  `lead`, if given, is a page of its own before the charts. */
+export function ChartPager({ charts, perPage = 2, lead }: { charts: PagedChart[]; perPage?: number; lead?: ReactNode }) {
   const [page, setPage] = useState(0);
   const touch = useRef<{ x: number; y: number } | null>(null);
-  const pages = Math.max(1, Math.ceil(charts.length / perPage));
+  const first = lead ? 1 : 0;
+  const pages = first + Math.max(lead ? 0 : 1, Math.ceil(charts.length / perPage));
   const p = Math.min(page, pages - 1);
-  const shown = charts.slice(p * perPage, (p + 1) * perPage);
+  const onLead = !!lead && p === 0;
+  const shown = onLead ? [] : charts.slice((p - first) * perPage, (p - first + 1) * perPage);
   const go = (to: number) => setPage(Math.max(0, Math.min(pages - 1, to)));
 
   return (
@@ -33,6 +36,7 @@ export function ChartPager({ charts, perPage = 2 }: { charts: PagedChart[]; perP
           if (Math.abs(dx) > 50 && Math.abs(dx) > 2 * Math.abs(dy)) go(p + (dx < 0 ? 1 : -1));
         }}
       >
+        {onLead && lead}
         {shown.map((c) => (
           <div key={c.key} className="cp-chart">
             <div className="chart-title">{c.title}</div>
@@ -55,7 +59,7 @@ export function ChartPager({ charts, perPage = 2 }: { charts: PagedChart[]; perP
           </div>
         ))}
         {/* A short last page keeps its charts the size of the others'. */}
-        {pages > 1 && Array.from({ length: perPage - shown.length }, (_, i) => <div key={i} className="cp-chart" />)}
+        {pages > 1 && !onLead && Array.from({ length: perPage - shown.length }, (_, i) => <div key={i} className="cp-chart" />)}
       </div>
       {pages > 1 && (
         <div className="cp-nav">

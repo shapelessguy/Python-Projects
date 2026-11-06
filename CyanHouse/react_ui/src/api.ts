@@ -62,6 +62,87 @@ export interface SeriesResponse {
   series: Record<string, Record<string, (number | null)[] | string[]>>;
 }
 
+export interface Stock {
+  isin: string;
+  name: string;
+  /** Span of the daily history; null until its first download is done. */
+  min_date: string | null;
+  max_date: string | null;
+  /** The latest close -- today's last tick once there is one -- and its day. */
+  last: number | null;
+  last_date: string | null;
+  prev_close: number | null;
+  /** Its history is being downloaded (just added). */
+  loading: boolean;
+  /** Moves when this stock gets new ticks or its history: refetch its chart. */
+  rev: number;
+}
+
+export interface StocksList {
+  today: string;
+  stocks: Stock[];
+}
+
+export type StockResample = "ticks" | "daily" | "weekly";
+
+/** A buy (shares > 0) or sell (< 0) at the price per share given with it
+ *  (`exact`), or else its day's close -- null until the stock's history is
+ *  there. */
+export interface Transaction {
+  id: number;
+  isin: string;
+  name: string;
+  date: string;
+  shares: number;
+  price: number | null;
+  exact: boolean;
+  amount: number | null;
+}
+
+/** One stock of the portfolio at average cost; the money fields are null
+ *  while any of its transactions has no price. */
+export interface Holding {
+  isin: string;
+  name: string;
+  shares: number;
+  cost: number | null;
+  last: number | null;
+  value: number | null;
+  realised: number | null;
+  unrealised: number | null;
+}
+
+export interface PortfolioTotals {
+  value: number; net: number; invested: number; profit: number;
+  realised: number; unrealised: number; tax: number;
+}
+
+export interface Portfolio {
+  tax_rate: number;
+  transactions: Transaction[];   // newest first
+  holdings: Holding[];
+  totals: PortfolioTotals;
+  /** The totals on every trading day since the first transaction. */
+  history: { index: string[] } & { [K in keyof PortfolioTotals]: number[] };
+  incomplete: boolean;
+}
+
+/** Daily bars: one close and volume per date. */
+export interface StockBars {
+  index: string[];
+  close: (number | null)[];
+  volume: (number | null)[];
+}
+
+/** Today's trades (or those after `since`), and the id to ask after next. */
+export interface StockTicks {
+  day: string;
+  time: string[];
+  close: number[];
+  volume: number[];
+  last_id: number;
+}
+
 export interface ForecastBootstrap {
   cities: City[];
   issued_at: Record<string, string | null>;
@@ -149,6 +230,8 @@ export interface Versions {
   /** Bumps when a folder the Media panel shows changes -- the backend
    *  follows them, and the held version request carries it at once. */
   prep: number;
+  /** Bumps when the recorder saves ticks, or a stock or its history arrives. */
+  stocks: number;
 }
 
 // null = every panel (the default, unrestricted); otherwise the explicit
@@ -609,6 +692,32 @@ export const api = {
     f("/api/environment/series?" + new URLSearchParams(q)).then(j<SeriesResponse>),
   refresh: () => f("/api/environment/refresh", { method: "POST" }).then(j<EnvBootstrap>),
 
+  stocks: () => f("/api/stocks").then(j<StocksList>),
+  addStock: (isin: string) =>
+    f("/api/stocks", { method: "POST", headers: JSON_HEADERS, body: JSON.stringify({ isin }) })
+      .then(j<{ isin: string; name: string }>),
+  reorderStocks: (isins: string[]) =>
+    f("/api/stocks/order", { method: "PUT", headers: JSON_HEADERS, body: JSON.stringify({ isins }) })
+      .then(j<object>),
+  removeStock: (isin: string) =>
+    f(`/api/stocks/${encodeURIComponent(isin)}`, { method: "DELETE" }).then(j<object>),
+  portfolio: () => f("/api/stocks/portfolio").then(j<Portfolio>),
+  /** `amount`: what all the shares cost or brought, in €. */
+  addTransaction: (t: { isin: string; date: string; shares: number; amount: number }) =>
+    f("/api/stocks/portfolio", { method: "POST", headers: JSON_HEADERS, body: JSON.stringify(t) })
+      .then(j<object>),
+  deleteTransaction: (id: number) =>
+    f(`/api/stocks/portfolio/${id}`, { method: "DELETE" }).then(j<object>),
+  setTaxRate: (tax_rate: number) =>
+    f("/api/stocks/portfolio/tax", { method: "PUT", headers: JSON_HEADERS, body: JSON.stringify({ tax_rate }) })
+      .then(j<object>),
+  stockBars: (q: { isins: string; start: string; end: string }) =>
+    f("/api/stocks/series?" + new URLSearchParams({ ...q, resample: "daily" }))
+      .then(j<{ series: Record<string, StockBars> }>),
+  stockTicks: (q: { isins: string; since: string }) =>
+    f("/api/stocks/series?" + new URLSearchParams({ ...q, resample: "ticks" }))
+      .then(j<{ series: Record<string, StockTicks> }>),
+
   forecastBootstrap: () => f("/api/forecast/bootstrap").then(j<ForecastBootstrap>),
   forecast: (cities: string) =>
     f("/api/forecast/series?" + new URLSearchParams({ cities })).then(j<ForecastResponse>),
@@ -932,7 +1041,7 @@ export function follow<T>(
  *  the last to leave stops it. Each panel picks the counters it cares about
  *  and refetches when those move. */
 const versionStore = {
-  value: { diary: 0, weather: 0, food: 0, forecast: 0, calendar: 0, prep: 0 } as Versions,
+  value: { diary: 0, weather: 0, food: 0, forecast: 0, calendar: 0, prep: 0, stocks: 0 } as Versions,
   listeners: new Set<(v: Versions) => void>(),
   stop: null as AbortController | null,
 };

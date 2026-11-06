@@ -3,7 +3,7 @@ import createPlotlyComponent from "react-plotly.js/factory";
 import Plotly from "plotly.js-dist-min";
 import { api, City, ForecastResponse } from "../api";
 import { useT } from "../i18n";
-import { useNarrow } from "../narrow";
+import { usePhone } from "../narrow";
 import { ChartPager, PagedChart } from "./ChartPager";
 
 const Plot = createPlotlyComponent(Plotly);
@@ -49,7 +49,7 @@ export function ForecastStrip({ allCities, selected, forecastVersion }: Props) {
   const [data, setData] = useState<ForecastResponse | null>(null);
   const [selectedDay, setSelectedDay] = useState(0);
   const [busy, setBusy] = useState(false);
-  const narrow = useNarrow();
+  const narrow = usePhone();
 
   const cityByKey = useMemo(
     () => Object.fromEntries(allCities.map((c) => [c.key, c])) as Record<string, City>,

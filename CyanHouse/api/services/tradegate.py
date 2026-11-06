@@ -27,6 +27,10 @@ Request strategy (keeps load on the site low):
 On start it backfills the whole current day, and it resumes from the CSV
 files if restarted. Standard library only, Python 3.8+.
 
+The API runs this loop in a background thread (api/routers/stocks.py), so
+normally nothing has to be started by hand; the folder lock keeps a second
+copy from the CLI from writing alongside it.
+
 Usage (from the project root, the folder holding api/):
     python -m api.services.tradegate                 # all users' watchlists
     python -m api.services.tradegate DE0005140008    # only these ISINs (testing)
@@ -249,7 +253,10 @@ class Recorder:
 
     # -- one polling cycle
     def cycle(self):
+        """One pass over every stock. Returns {isin: trades saved} for the
+        stocks that got any."""
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        added = {}
 
         # 1) stocks covered by an index feed: one request per index
         for ix in sorted({s.index for s in self.stocks.values() if s.index}):
@@ -266,8 +273,8 @@ class Recorder:
                                 [[now, to_float(row.get("bid")), to_float(row.get("ask")), count]])
                 if count < st.last_id:          # counter reset -> new day started
                     st.last_id = 0
-                if count > st.last_id:
-                    self.pull_trades(st, target=count)
+                if count > st.last_id and (n := self.pull_trades(st, target=count)):
+                    added[st.isin] = n
                 st.last_count = count
 
         # 2) other stocks: ask directly for trades after the last saved one
@@ -280,7 +287,9 @@ class Recorder:
                     append_rows(self.quotes_path(st.isin), QUOTE_FIELDS,
                                 [[now, to_float(q.get("bid")), to_float(q.get("ask")),
                                   q.get("executions")]])
-            self.pull_trades(st)
+            if n := self.pull_trades(st):
+                added[st.isin] = n
+        return added
 
 
 # ----------------------------------------------------------------- main
@@ -294,10 +303,14 @@ def in_trading_window(window):
     return start <= hhmm <= end
 
 
+class RecorderBusy(RuntimeError):
+    pass
+
+
 def acquire_lock(out_dir):
     """Allow only one recorder per output folder: two would each append the
     same trades. The OS releases the lock when the process exits, even on a
-    crash. Returns the open lock file (keep a reference) or exits."""
+    crash. Returns the open lock file (keep a reference) or raises RecorderBusy."""
     os.makedirs(out_dir, exist_ok=True)
     f = open(os.path.join(out_dir, ".lock"), "a+")
     try:
@@ -309,23 +322,18 @@ def acquire_lock(out_dir):
             import fcntl
             fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except OSError:
-        sys.exit(f"Another tradegate recorder is already writing to {out_dir}. Stop it first.")
+        f.close()
+        raise RecorderBusy(f"Another tradegate recorder is already writing to {out_dir}. Stop it first.")
     return f
 
 
-def main():
-    p = argparse.ArgumentParser(description="Record Tradegate trades (ticks) for all watched ISINs.")
-    p.add_argument("isins", nargs="*",
-                   help="only these ISINs (default: the union of all users' watchlists)")
-    p.add_argument("--out", default=str(TRADEGATE_DIR), help="output folder (default: %(default)s)")
-    p.add_argument("--interval", type=float, default=15, help="seconds between cycles (default: 15)")
-    p.add_argument("--quotes", action="store_true", help="also record bid/ask snapshots each cycle")
-    p.add_argument("--hours", default="07:25-22:10",
-                   help="local time window to poll, Mon-Fri (default: 07:25-22:10)")
-    p.add_argument("--once", action="store_true", help="run a single cycle and exit")
-    args = p.parse_args()
-
-    fixed = [store.normalise_isin(i) for i in args.isins]
+def run(isins=(), out=str(TRADEGATE_DIR), interval=30, quotes=False, hours="07:25-22:10",
+        once=False, on_trades=None):
+    """The recorder loop: the CLI below, and the API's background thread
+    (api/routers/stocks.py), which passes `on_trades({isin: n})` to hear
+    which stocks got new trades.
+    Raises RecorderBusy if another recorder holds the folder."""
+    fixed = [store.normalise_isin(i) for i in isins]
 
     def wanted():
         if fixed:
@@ -336,27 +344,45 @@ def main():
             log(f"  ! reading watchlists failed: {e}")
             return list(rec.stocks)            # keep what we have
 
-    lock = acquire_lock(args.out)  # noqa: F841  (held until exit)
-    rec = Recorder([], args.out, args.quotes)
+    lock = acquire_lock(out)  # noqa: F841  (held until exit)
+    rec = Recorder([], out, quotes)
     rec.start_day()                            # migrates finished days first
     rec.sync_watchlist(wanted())
     if not rec.stocks:
         log("no ISINs on any watchlist yet -- add some with "
             "'python -m api.services.tradegate_store watch <user> <ISIN>'")
 
+    while True:
+        if datetime.now().strftime("%Y-%m-%d") != rec.day:
+            rec.start_day()
+        rec.sync_watchlist(wanted())
+        if once or in_trading_window(hours):
+            t0 = time.monotonic()
+            added = rec.cycle()
+            if added and on_trades:
+                on_trades(added)
+            if once:
+                break
+            time.sleep(max(1.0, interval - (time.monotonic() - t0)))
+        else:
+            time.sleep(60)
+
+
+def main():
+    p = argparse.ArgumentParser(description="Record Tradegate trades (ticks) for all watched ISINs.")
+    p.add_argument("isins", nargs="*",
+                   help="only these ISINs (default: the union of all users' watchlists)")
+    p.add_argument("--out", default=str(TRADEGATE_DIR), help="output folder (default: %(default)s)")
+    p.add_argument("--interval", type=float, default=30, help="seconds between cycles (default: 30)")
+    p.add_argument("--quotes", action="store_true", help="also record bid/ask snapshots each cycle")
+    p.add_argument("--hours", default="07:25-22:10",
+                   help="local time window to poll, Mon-Fri (default: 07:25-22:10)")
+    p.add_argument("--once", action="store_true", help="run a single cycle and exit")
+    args = p.parse_args()
     try:
-        while True:
-            if datetime.now().strftime("%Y-%m-%d") != rec.day:
-                rec.start_day()
-            rec.sync_watchlist(wanted())
-            if args.once or in_trading_window(args.hours):
-                t0 = time.monotonic()
-                rec.cycle()
-                if args.once:
-                    break
-                time.sleep(max(1.0, args.interval - (time.monotonic() - t0)))
-            else:
-                time.sleep(60)
+        run(args.isins, args.out, args.interval, args.quotes, args.hours, args.once)
+    except RecorderBusy as e:
+        sys.exit(str(e))
     except KeyboardInterrupt:
         log("stopped")
 

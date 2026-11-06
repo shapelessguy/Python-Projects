@@ -15,7 +15,7 @@ import { MusicIdentify } from "./MusicPrep";
 import { SizeSlider } from "./SizeSlider";
 import { VolumePop } from "./VolumePop";
 import { forget, useNative } from "../native";
-import { useNarrow } from "../narrow";
+import { usePhone } from "../narrow";
 import { useDragScroll } from "../dragScroll";
 import { Icon, UploadButton } from "./icons";
 import { IconPick } from "./IconPick";
@@ -354,7 +354,7 @@ export function MoviesPanel() {
   const [query, setQuery] = useState("");
   // On a phone the search box is a magnifier until tapped, then slides open;
   // it folds back once it loses focus with nothing typed in it.
-  const narrow = useNarrow();
+  const narrow = usePhone();
   const [searchOpen, setSearchOpen] = useState(false);
   const tabStripRef = useRef<HTMLDivElement>(null);
   // On a phone the tabs are a list that slides down from a button naming

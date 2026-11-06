@@ -59,6 +59,13 @@ npm install
 npm run dev
 ```
 
+### Phone mode
+
+One rule for the whole UI, in `react_ui/src/narrow.ts`: the window is at most
+**700px wide or 700px tall**. While it holds, `<html>` has the class `phone`:
+CSS writes phone rules as `html.phone .foo { … }` (never an `@media` width or
+height of its own), and code asks `usePhone()` / `isPhone()`.
+
 ## Run (single process)
 
 ```bash

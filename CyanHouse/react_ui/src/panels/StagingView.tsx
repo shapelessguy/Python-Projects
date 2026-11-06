@@ -8,7 +8,7 @@ import { ACCESS_RANK, AccessLevel, api, FolderAccess, PrepPlan, RemuxJob, Staged
 import { ACCESS_ICON, AccessBadge } from "./ShareDialog";
 import { isVideo } from "./ImageGallery";
 import { useBackToClose } from "../backClose";
-import { useNarrow } from "../narrow";
+import { usePhone } from "../narrow";
 import { useT } from "../i18n";
 import { serverText } from "../serverText";
 
@@ -624,7 +624,7 @@ export function FileTree({
   // A folder being named before it exists: an input row inside `parent`.
   const [creating, setCreating] = useState<{ parent: string; value: string } | null>(null);
   const [dropOn, setDropOn] = useState<string | null>(null);
-  const narrow = useNarrow();
+  const narrow = usePhone();
 
   useEffect(() => {
     if (!menu) return;

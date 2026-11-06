@@ -1,5 +1,5 @@
 import { ReactNode, useEffect, useRef, useState } from "react";
-import { useNarrow } from "../narrow";
+import { usePhone } from "../narrow";
 
 type Props = {
   min: number;
@@ -19,7 +19,7 @@ type Props = {
  *  the slider in a popover, closed again by letting go of the slider or
  *  tapping anywhere else. */
 export function SizeSlider({ min, max, step, value, onChange, title, className, icon }: Props) {
-  const narrow = useNarrow();
+  const narrow = usePhone();
   // Where the popover goes: just below the button, as a strip across the
   // screen -- the button sits at the left in one toolbar and the right in
   // another, and an anchored popover would run off one edge or the other.

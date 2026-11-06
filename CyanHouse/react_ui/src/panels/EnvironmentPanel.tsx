@@ -8,8 +8,9 @@ import { isKey, Key, useT } from "../i18n";
 import { useBackToClose } from "../backClose";
 import { Icon } from "./icons";
 import { ChartPager } from "./ChartPager";
+import { StocksView } from "./StocksView";
 import { MenuTab, TabMenu } from "./TabMenu";
-import { useNarrow } from "../narrow";
+import { usePhone } from "../narrow";
 
 const Plot = createPlotlyComponent(Plotly);
 
@@ -51,8 +52,8 @@ function shiftDays(iso: string, days: number): string {
   return d.toLocaleDateString("en-CA");
 }
 
-type Tab = "overview" | "forecast" | "historical";
-const TABS: Tab[] = ["overview", "forecast", "historical"];
+type Tab = "overview" | "forecast" | "historical" | "stocks";
+const TABS: Tab[] = ["overview", "forecast", "historical", "stocks"];
 const TAB_KEY = "environment.tab";
 const CITIES_KEY = "environment.cities";
 
@@ -145,10 +146,12 @@ export function EnvironmentPanel() {
   const [refreshing, setRefreshing] = useState(false);
   const [seriesNonce, setSeriesNonce] = useState(0);
   const [tab, setTab] = useState<Tab>(loadTab);
-  // Under 800px the controls column is hidden; the gear by the city opens
+  // In phone mode the controls column is hidden; the gear by the city opens
   // it over the whole screen instead.
   const [controlsOpen, setControlsOpen] = useState(false);
-  const narrow = useNarrow();
+  // Where the Stocks tab draws its stock picker, in the tab row.
+  const [pickerSlot, setPickerSlot] = useState<HTMLSpanElement | null>(null);
+  const narrow = usePhone();
   useBackToClose(() => setControlsOpen(false), controlsOpen);
   const appliedWeather = useRef(0);
 
@@ -250,7 +253,8 @@ export function EnvironmentPanel() {
   const envTabs: MenuTab<Tab>[] = [
     { key: "overview", icon: "🌤️", label: t("env_overview") },
     { key: "forecast", icon: "🌦️", label: t("env_forecast") },
-    { key: "historical", icon: "📈", label: t("env_historical") },
+    { key: "historical", icon: "🌡️", label: t("env_historical") },
+    { key: "stocks", icon: "💹", label: t("env_stocks") },
   ];
   const cityByKey = Object.fromEntries(boot.cities.map((c) => [c.key, c])) as Record<string, City>;
   const chartData = (v: Variable) =>
@@ -287,7 +291,8 @@ export function EnvironmentPanel() {
             {x.label}
           </button>
         ))}
-        {tab !== "overview" && (
+        {tab === "stocks" && <span className="env-pickslot" ref={setPickerSlot} />}
+        {(tab === "forecast" || tab === "historical") && (
           <CityPicker cities={boot.cities} selected={cities} onToggle={(key, on) =>
             changeCities((s) => {
               const n = new Set(s);
@@ -296,10 +301,17 @@ export function EnvironmentPanel() {
             })
           } />
         )}
+        {tab === "historical" && (
+          <button className="env-controls-btn" onClick={() => setControlsOpen(true)}
+                  title={t("settings")} aria-label={t("settings")}>
+            <Icon name="settings" size={20} className="" />
+          </button>
+        )}
       </div>
 
       <div className="env-tab-body">
       {tab === "overview" && <OverviewView cities={boot.cities} />}
+      {tab === "stocks" && <StocksView pickerSlot={pickerSlot} />}
 
       {tab === "historical" && (
       <aside className={"env-controls" + (controlsOpen ? " env-controls--open" : "")}>
@@ -403,10 +415,6 @@ export function EnvironmentPanel() {
             <h1>
               {t("env_historical")} {shortDate(start, lang)} – {shortDate(end, lang)}
             </h1>
-            <button className="env-controls-btn" onClick={() => setControlsOpen(true)}
-                    title={t("settings")} aria-label={t("settings")}>
-              <Icon name="settings" size={20} className="" />
-            </button>
           </div>
           <p className="muted env-range">{t(RESAMPLE_KEYS[resample] ?? "env_hourly")}</p>
 

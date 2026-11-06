@@ -1,3 +1,11 @@
+/* ── PHONE MODE ─────────────────────────────────────────────────────────
+ * One rule for the whole app, in src/narrow.ts: at most 700px wide OR at
+ * most 700px tall. While it holds, <html> has the class `phone`; write a
+ * phone rule as `html.phone .foo { ... }`, never with an @media width or
+ * height of its own. A phone held sideways: `@media (orientation:
+ * landscape)` around html.phone rules. The @media widths left in this file
+ * are about room on a desktop, not phones.
+ * ────────────────────────────────────────────────────────────────────── */
 :root {
   --bg: #0e1117;
   --panel: #161a23;
@@ -247,24 +255,162 @@ h3 { font-size: 0.85rem; margin: 12px 0 6px; text-transform: uppercase; letter-s
   padding: 6px 10px; min-width: 180px; box-shadow: 0 6px 20px rgba(0,0,0,.4);
 }
 .env-citypop .check { display: flex; gap: 8px; align-items: center; padding: 6px 0; cursor: pointer; white-space: nowrap; }
-.env-controls-btn, .env-controls-head { display: none; }
-@media (max-width: 800px) {
-  .env-controls { display: none; }
-  .env-controls-btn { display: inline-flex; flex: 0 0 auto; }
-  .env-controls-btn, .env-controls-close {
-    align-items: center; justify-content: center; width: 36px; height: 32px; padding: 0;
-  }
-  .env-controls-close { display: inline-flex; }
-  /* The gear opens it over the whole screen. */
-  .env-controls.env-controls--open {
-    display: block; position: fixed; inset: 0; z-index: 95;
-    min-width: 0; border: none; border-radius: 0; padding: 12px 16px;
-  }
-  .env-controls--open .env-controls-head {
-    display: flex; align-items: center; justify-content: space-between;
-    font-weight: 600; margin-bottom: 4px;
-  }
+/* The pickers' lists hang from the tab row's right edge, not their button's:
+   with more buttons right of it (the gear), a list of long names would run
+   off the left of a phone. Never wider than the row; a long name is cut. */
+.env-tabs { position: relative; }
+.env-tabs .env-citypick { position: static; }
+.env-tabs .env-citypop { max-width: 100%; box-sizing: border-box; }
+.env-citypop .check > span { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.env-pickslot { display: contents; }
+/* The Stocks settings: the list of stocks takes the height left and
+   scrolls, so the ISIN field under it stays in sight however long it gets. */
+.env-controls.stk-controls { display: flex; flex-direction: column; overflow: hidden; }
+html.phone .env-controls.stk-controls:not(.env-controls--open) { display: none; }
+html.phone .env-controls.stk-controls.env-controls--open { display: flex; }
+.stk-list { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+.stk-cards { display: flex; flex-direction: column; gap: 6px; flex: 0 1 auto; min-height: 0;
+             overflow-y: auto; overscroll-behavior: contain; padding-right: 2px; }
+.stk-card {
+  display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 2px;
+  border: 1px solid var(--line); border-radius: 8px; background: rgba(255, 255, 255, 0.02);
+  transition: transform 0.15s;
 }
+/* The dragged card follows the pointer at once, over the others. */
+.stk-card--drag { transition: none; position: relative; z-index: 1; background: var(--panel);
+                  border-color: var(--accent); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45); }
+.stk-grip { flex: 0 0 auto; padding: 6px 6px; cursor: grab; touch-action: none; user-select: none;
+            color: var(--muted); font-size: 1.1rem; line-height: 1; }
+.stk-card--drag .stk-grip { cursor: grabbing; }
+.stk-card-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
+.stk-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stk-remove { flex: 0 0 auto; padding: 2px 4px; display: inline-flex; }
+.stk-add { display: flex; gap: 6px; margin-top: 8px; }
+.stk-add input { flex: 1 1 auto; min-width: 0; font-family: monospace; }
+.stk-note { text-align: center; padding: 40px 0; }
+.stk-title { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: baseline; padding: 0 4px; }
+.stk-title-price { color: #4dd0e1; }
+.stk-title-name { display: flex; justify-content: center; gap: 0.3em; min-width: 0; white-space: nowrap; }
+.stk-title-name > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.pf-btn { padding: 4px 10px; display: inline-flex; align-items: center; }
+.pf-eye { margin-left: auto; }
+/* The portfolio hidden: every stock on the list as a card, price and the
+   day's change -- a whole row on a wide screen, the first page on a phone
+   (scrolling when the list is long). */
+.stk-overview { grid-column: 1 / -1; display: flex; flex-direction: column; min-height: 0; }
+/* Off the phone the charts' own margins space the grid; the cards have none. */
+html:not(.phone) .stk-overview { margin: 4px 0 20px; }
+.stk-ov-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 6px;
+                align-content: start; min-height: 0; overflow-y: auto; font-variant-numeric: tabular-nums; }
+.stk-ov-card { display: flex; flex-direction: column; gap: 2px; padding: 6px 10px; min-width: 0;
+               border: 1px solid var(--line); border-radius: 8px; background: rgba(255, 255, 255, 0.02); }
+.stk-ov-name { font-size: 0.8rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stk-ov-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+/* Filling a phone's page: OverviewCards sets the columns and row height. */
+.stk-ov-cards--fit { flex: 1 1 auto; }
+.stk-ov-cards--fit .stk-ov-card { justify-content: center; overflow: hidden; padding: 4px 10px; gap: 0; line-height: 1.2; }
+/* The summary: its buttons in one chart slot, the chart picked in the next. */
+/* "Summary" and the year it covers, side by side. !important: the app-wide
+   field rule makes every select full width. */
+.pf-summary-head { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.pf-summary-head > select { width: auto !important; padding: 1px 4px; font-size: 12px; }
+/* Big enough for a finger. */
+html.phone .pf-summary-head { margin: 2px 0 6px; }
+html.phone .pf-summary-head > select { min-height: 32px; padding: 4px 8px; font-size: 14px; }
+.pf-card { display: flex; flex-direction: column; box-sizing: border-box; min-height: 262px; }
+.pf-tiles { flex: 1 1 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 6px; align-content: center; font-variant-numeric: tabular-nums; }
+.pf-tile { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; padding: 6px 10px;
+           text-align: left; border: 1px solid var(--line); border-radius: 8px;
+           background: rgba(255, 255, 255, 0.02); color: inherit; font: inherit; cursor: pointer; }
+.pf-tile.active { border-color: var(--accent); background: rgba(255, 255, 255, 0.06); }
+.pf-tile-label { font-size: 0.75rem; color: var(--muted); }
+.pf-tile-value { font-size: 1rem; }
+.pf-tile--big .pf-tile-value { font-size: 1.25rem; font-weight: 600; }
+/* On a phone: the pager's first page, buttons above and chart below. The
+   buttons share the half page in equal rows, their text sized by the
+   screen's height, so a small phone shows them all without scrolling. */
+/* At most a thumb's height each: on a tall phone the chart gets the rest. */
+.cp-chart.pf-card { flex: 0 1 auto; min-height: 0; overflow: hidden; }
+.cp-chart.pf-card .pf-tiles {
+  grid-template-columns: 1fr 1fr; grid-auto-rows: minmax(0, 64px); align-content: start;
+  min-height: 0; gap: 4px;
+}
+.cp-chart.pf-card .pf-tile { justify-content: center; min-height: 0; overflow: hidden; padding: 2px 8px; gap: 0; }
+.cp-chart.pf-card .pf-tile-label { font-size: clamp(0.62rem, 1.7vh, 0.75rem); white-space: nowrap; }
+.cp-chart.pf-card .pf-tile-value { font-size: clamp(0.8rem, 2.4vh, 1rem); white-space: nowrap; }
+.cp-chart.pf-card .pf-tile--big .pf-tile-value { font-size: clamp(0.9rem, 3vh, 1.25rem); }
+/* The portfolio's overlays, styled as the tabs' settings panel. */
+.pf-panel {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+  padding: 10px 12px; width: min(360px, 94vw); max-height: 88vh; box-sizing: border-box;
+  display: flex; flex-direction: column;
+  overflow: auto; overscroll-behavior: contain; font-variant-numeric: tabular-nums;
+}
+/* The section whose list can grow a lot: it takes the height left and its
+   list scrolls, so the rest of the panel stays put. */
+.pf-grow { flex: 1 1 auto; min-height: 120px; display: flex; flex-direction: column; }
+.pf-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.pf-grow > .pf-scroll { max-height: 50vh; }
+.pf-head { display: flex; align-items: center; justify-content: space-between; font-weight: 600; margin-bottom: 8px; }
+.pf-close { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 32px; padding: 0; }
+.pf-panel .small, .pf-panel .unit { font-size: 0.8rem; }
+.pf-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+.pf-actions > button { padding: 9px 12px; font-size: 1rem; }
+.pf-up { color: #4caf50; }
+.pf-down { color: #e05555; }
+.pf-totals { display: grid; grid-template-columns: 1fr auto; gap: 3px 8px; margin: 0; }
+.pf-totals dt { color: var(--muted); }
+.pf-totals dd { margin: 0; text-align: right; }
+.pf-totals .pf-net { font-weight: 600; color: inherit; border-top: 1px solid #333; padding-top: 3px; }
+.pf-holding { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 8px; padding: 4px 0; border-top: 1px solid #2a2a2a; }
+.pf-holding > :nth-child(even) { text-align: right; }
+.pf-tax { display: flex; align-items: center; gap: 6px; color: var(--muted); }
+.pf-tax > span { white-space: nowrap; }
+/* !important: the app-wide input rule makes every field full width, and its
+   :not() chain outranks a class. */
+.pf-tax > input { flex: 0 0 auto; width: 72px !important; margin-left: auto; }
+.pf-add { display: flex; flex-direction: column; gap: 6px; }
+.pf-add-row { display: flex; gap: 6px; }
+.pf-add-row > * { flex: 1 1 0; min-width: 0; }
+.pf-add-row > .pf-icon-btn { flex: 0 0 36px; display: inline-flex; align-items: center; justify-content: center; padding: 0; }
+/* One grid for the whole list, so the shares and the amounts line up in
+   columns; each row's cells sit straight in it. */
+.pf-txlist { display: grid; align-content: start;
+             grid-template-columns: minmax(0, 1fr) auto auto auto; gap: 8px 12px; align-items: center; }
+.pf-tx { display: contents; }
+.pf-tx > :nth-child(2), .pf-tx > :nth-child(3) { text-align: right; }
+.pf-tx-what { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+.pf-empty { grid-column: 1 / -1; }
+/* A phone: the portfolio's overlays take the whole screen, like the
+   settings panel. */
+html.phone .modal-backdrop.pf-backdrop { background: none; }
+html.phone .pf-panel { position: fixed; inset: 0; width: auto; max-height: none;
+            border: none; border-radius: 0; padding: 12px 16px; }
+html.phone .pf-grow > .pf-scroll { max-height: none; }
+
+/* Two charts a row on a wide window; min-width 0 lets Plotly shrink to its half. */
+@media (min-width: 1000px) {
+  .stk-grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: 12px; }
+  .stk-grid > .chart-block { min-width: 0; }
+}
+.env-controls-btn, .env-controls-head { display: none; }
+html.phone .env-controls { display: none; }
+html.phone .env-controls-btn { display: inline-flex; flex: 0 0 auto; }
+html.phone .env-controls-btn, html.phone .env-controls-close {
+  align-items: center; justify-content: center; width: 36px; height: 32px; padding: 0;
+}
+html.phone .env-controls-close { display: inline-flex; }
+/* The gear opens it over the whole screen. */
+html.phone .env-controls.env-controls--open {
+  display: block; position: fixed; inset: 0; z-index: 95;
+  min-width: 0; border: none; border-radius: 0; padding: 12px 16px;
+}
+html.phone .env-controls--open .env-controls-head {
+  display: flex; align-items: center; justify-content: space-between;
+  font-weight: 600; margin-bottom: 4px;
+}
+
 .chart-group { margin-bottom: 18px; }
 /* ── forecast strip ──────────────────────────────────────── */
 .forecast-strip {
@@ -306,13 +452,13 @@ button.link:hover { color: var(--text); }
 /* A phone held sideways: the volume card and the tabs make a left column,
    what they show fills the right (the mouse's arrow / keyboard / right-click
    row goes under the left column). */
-@media (orientation: landscape) and (max-height: 500px) {
-  .panel.controls { display: grid; grid-template-columns: minmax(220px, 34%) 1fr; grid-template-rows: auto 1fr; gap: 8px 12px; }
-  .controls > .ctl-head { grid-column: 1; grid-row: 1; min-width: 0; }
-  .controls > .ctl-body { grid-column: 2; grid-row: 1 / 3; }
-  .controls > .ctl-body.fill, .controls .mouse { display: contents; }
-  .controls .mouse-main { grid-column: 2; grid-row: 1 / 3; }
-  .controls .mouse-keys { grid-column: 1; grid-row: 2; align-self: end; }
+@media (orientation: landscape) {
+  html.phone .panel.controls { display: grid; grid-template-columns: minmax(220px, 34%) 1fr; grid-template-rows: auto 1fr; gap: 8px 12px; }
+  html.phone .controls > .ctl-head { grid-column: 1; grid-row: 1; min-width: 0; }
+  html.phone .controls > .ctl-body { grid-column: 2; grid-row: 1 / 3; }
+  html.phone .controls > .ctl-body.fill, html.phone .controls .mouse { display: contents; }
+  html.phone .controls .mouse-main { grid-column: 2; grid-row: 1 / 3; }
+  html.phone .controls .mouse-keys { grid-column: 1; grid-row: 2; align-self: end; }
 }
 .ctl-modes button svg { vertical-align: middle; }
 .ctl-modes { display: flex; gap: 4px; }
@@ -1113,10 +1259,9 @@ html.alarm-window, html.alarm-window body { background: transparent; }
    both buttons get a full-width row of their own, finger-sized. */
 html.alarm-window .alarm-actions { flex: 1 1 100%; margin-left: 0; gap: 8px; }
 html.alarm-window .alarm-actions > * { flex: 1 1 0; min-width: 0; min-height: 52px; font-size: 1.05rem; }
-@media (max-width: 600px), (max-height: 500px) {
-  .alarm-actions { flex: 1 1 100%; margin-left: 0; gap: 8px; }
-  .alarm-actions > * { flex: 1 1 0; min-width: 0; min-height: 52px; font-size: 1.05rem; }
-}
+html.phone .alarm-actions { flex: 1 1 100%; margin-left: 0; gap: 8px; }
+html.phone .alarm-actions > * { flex: 1 1 0; min-width: 0; min-height: 52px; font-size: 1.05rem; }
+
 .dish-info-scroll {
   overflow-y: auto; min-height: 0; margin: 0 0 12px;
   /* Room for the focus ring and the scrollbar, which would cover the
@@ -2185,9 +2330,8 @@ select.mv-preplang:invalid, select.mv-preplang[data-empty="true"] { color: var(-
 .cf-choice label.active { border-color: var(--accent); }
 .cf-actions { display: flex; justify-content: flex-end; gap: 8px; }
 .cf-apply { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
-@media (max-width: 600px), (max-height: 500px) {
-  .cf-row { grid-template-columns: 1fr; }
-}
+html.phone .cf-row { grid-template-columns: 1fr; }
+
 /* The Music tab as a library (react_ui/src/panels/MusicLibrary.tsx): album
  * covers, artists, songs — scrolled, not paged, like a music app. */
 .ml-scroll {
@@ -2266,10 +2410,9 @@ select.mv-preplang:invalid, select.mv-preplang[data-empty="true"] { color: var(-
 .mp-side { display: flex; align-items: center; justify-content: flex-end; gap: 12px; min-width: 0; }
 .mp-meta { font-size: 0.75rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .mp-volume { flex: 0 0 auto; display: flex; align-items: center; gap: 6px; width: 120px; }
-@media (max-width: 800px) {
-  .mp-bar { grid-template-columns: 1fr; gap: 6px; }
-  .mp-side { justify-content: space-between; }
-}
+html.phone .mp-bar { grid-template-columns: 1fr; gap: 6px; }
+html.phone .mp-side { justify-content: space-between; }
+
 /* An artist's page: all their songs, an album divider above each album's. */
 .ml-artisthead { display: flex; gap: 18px; align-items: flex-end; margin-bottom: 10px; }
 .ml-headart { flex: 0 0 120px; width: 120px; }
@@ -2482,12 +2625,11 @@ select.mv-preplang:invalid, select.mv-preplang[data-empty="true"] { color: var(-
 .iv-menu button.armed { background: #6b2b2b; color: #fff; }
 .iv-nav.prev { left: 16px; }
 .iv-nav.next { right: 16px; }
-@media (max-width: 600px), (max-height: 500px) {
-  .iv-img { max-width: 100vw; max-height: calc(100vh - 120px); border-radius: 0; }
-  .iv-nav { display: none; }   /* swipe instead */
-  .ig-scroll { padding: 4px 10px 16px; }
-  .ig-tile { border-radius: 8px; }
-}
+html.phone .iv-img { max-width: 100vw; max-height: calc(100vh - 120px); border-radius: 0; }
+html.phone .iv-nav { display: none; }   /* swipe instead */
+html.phone .ig-scroll { padding: 4px 10px 16px; }
+html.phone .ig-tile { border-radius: 8px; }
+
 
 /* ── Who sees an album (Images) ────────────────────────────────────────── */
 .mv-access {
@@ -2727,7 +2869,7 @@ label.button-like {
 .mv-introicon { font-size: 1.8rem; line-height: 1; }
 .mv-introname { font-weight: 600; font-size: 1rem; }
 .mv-introabout { color: var(--muted); font-size: 0.8rem; line-height: 1.35; }
-@media (max-width: 640px) { .mv-intro { padding: 18px 16px 24px; } }
+html.phone .mv-intro { padding: 18px 16px 24px; }
 /* A paused video its owner may give a thumbnail: the frame on screen. */
 .iv-poster {
   position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); z-index: 2;
@@ -2736,260 +2878,257 @@ label.button-like {
 }
 .iv-posternote { color: #fff; font-size: 0.8rem; }
 /* ── phone ───────────────────────────────────────────────── */
-/* One threshold for the whole app: under 600px wide, or 500px tall (a
- * phone held sideways). narrow.ts uses the same for what CSS can't
- * rearrange, like the calendar's day agenda. Last in the
- * file so it outranks the equally specific desktop rules above it. */
-@media (max-width: 600px), (max-height: 500px) {
-  /* Anything still too wide is cut off here rather than widening the page:
-   * a phone browser grows its layout viewport to fit the widest content,
-   * which zooms everything out and pushes fixed dialogs off the right edge. */
-  .app { overflow-x: clip; }
-  .topbar { padding: 6px 8px; }
-  .switcher { gap: 4px; }
-  .switcher.compact > button { height: 44px; font-size: 1.4rem; }
-  .switcher.compact .whoami { margin-left: 6px; }
-  .whoami { padding-right: 0; }
-  .whoami-name { max-width: 6em; }
-  .content { padding: 10px 8px; }
+/* Phone mode: every rule here and elsewhere starting `html.phone` -- see
+ * the PHONE MODE note at the top of this file. */
+/* Anything still too wide is cut off here rather than widening the page:
+ * a phone browser grows its layout viewport to fit the widest content,
+ * which zooms everything out and pushes fixed dialogs off the right edge. */
+html.phone .app { overflow-x: clip; }
+html.phone .topbar { padding: 6px 8px; }
+html.phone .switcher { gap: 4px; }
+html.phone .switcher.compact > button { height: 44px; font-size: 1.4rem; }
+html.phone .switcher.compact .whoami { margin-left: 6px; }
+html.phone .whoami { padding-right: 0; }
+html.phone .whoami-name { max-width: 6em; }
+html.phone .content { padding: 10px 8px; }
 
-  /* Dialogs never wider than the screen, whatever width they ask for. */
-  .modal { max-width: calc(100vw - 16px); padding: 12px; }
-  /* The dish dialog is a page of its own on a phone: the whole screen, the
-     buttons fixed at the bottom, controls big enough for a thumb (16px
-     text: smaller makes a phone zoom in on focus). */
-  .modal-backdrop:has(> .modal.dish-info) { padding: 0; align-items: stretch; overflow: hidden; }
-  /* The page behind stops scrolling meanwhile: its scrollbar, drawn beside
-     the dialog in a narrow desktop window, was the second one. */
-  html:has(.modal.dish-info), html:has(.modal.dish-info) body { overflow: hidden; }
-  .modal.dish-info {
-    /* 100%, not 100vw: vw counts the page's scrollbar in. */
-    width: 100%; max-width: 100%; height: 100dvh; max-height: 100dvh;
-    border: 0; border-radius: 0; padding: 12px 12px calc(10px + env(safe-area-inset-bottom));
-    /* Only its middle scrolls (.dish-info-scroll): not the dialog too, as
-       other dialogs do on a phone (the .modal rule further down). */
-    overflow: hidden;
-  }
-  .modal.dish-info .dish-info-scroll { flex: 1 1 auto; padding-right: 3px; }
-  .modal.dish-info input:not([type="checkbox"]), .modal.dish-info select, .modal.dish-info textarea {
-    min-height: 40px; font-size: 16px !important;  /* !important: the app-wide input rule sets font: inherit, and outranks this */
-  }
-  .modal.dish-info button { min-height: 40px; }
-  .modal.dish-info button.glyph-btn { min-width: 40px; }
-  .modal.dish-info .row-actions { margin-top: 0; }
-  .modal.dish-info .row-actions button { flex: 1 1 0; }
-  .modal.dish-info .ingredients-row { grid-template-columns: minmax(0, 1fr) 4em 3.4em auto; gap: 5px; }
-  .modal-backdrop { padding: 8px 0; }
-  .modal.event-form .field textarea,
-  .modal.event-form .field .description-view { min-height: 120px; max-height: 160px; }
-  /* Finger-sized: the form's buttons share a row, fields and ticks grow. */
-  .modal.event-form .row-actions button { flex: 1 1 0; min-height: 46px; font-size: 0.95rem; }
-  .modal.event-form input:not([type="checkbox"]), .modal.event-form select,
-  .modal.event-form .react-time-picker__wrapper { min-height: 40px; }
-  .modal.event-form label.check-row { min-height: 40px; margin-top: 4px; font-size: 0.95rem; }
-  .modal.event-form label.check-row input { width: 20px; height: 20px; }
-
-  /* Headers wrap onto a second row instead of running off the side. */
-  /* The calendar's bar stays one row: icons for Today/Month/Week and a
-   * smaller title that gives way (ellipsis) before anything wraps. */
-  .month-nav { gap: 4px; }
-  .month-nav > button, .cal-view-toggle button { padding: 4px 7px; }
-  .month-nav h2 {
-    min-width: 0; flex: 1 1 auto; font-size: 0.85rem;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  .nav-text { display: none; }
-  .month-nav .nav-icon { display: block; }
-  .food-head { gap: 6px; }
-  .food-head h2 { font-size: 1rem; }
-  .food-head button { padding: 4px 8px; }
-  .btn-text { display: none; }
-
-  /* Media: one button naming the current tab, the job queue at the right;
-   * the tabs a list sliding down under them, full-width rows with their
-   * names. The disk readout is just its ring (the numbers stay in its
-   * tooltip). */
-  .mv-sources { flex-wrap: nowrap; position: relative; }
-  .mv-tabcurrent {
-    flex: 0 1 auto; min-width: 0; display: inline-flex; align-items: center; gap: 6px;
-    padding: 4px 10px; min-height: 34px; font-size: 0.9rem; white-space: nowrap; overflow: hidden;
-  }
-  .mv-tabcurrent .mv-tablabel { display: inline; overflow: hidden; text-overflow: ellipsis; }
-  .mv-tabcurrent .mv-tabicon { margin-right: 0; }
-  .mv-tabcaret { font-size: 0.75rem; color: var(--muted); transition: transform 0.2s; }
-  .mv-tabcurrent.open .mv-tabcaret { transform: rotate(180deg); }
-  .mv-sources .mv-tabstrip {
-    position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 50;
-    display: flex; flex-direction: column; gap: 2px;
-    max-height: min(70dvh, 480px); overflow-y: auto; overscroll-behavior: contain;
-    padding: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
-    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
-    visibility: hidden; opacity: 0; transform: translateY(-10px);
-    transition: opacity 0.18s ease, transform 0.18s ease, visibility 0s linear 0.18s;
-  }
-  .mv-sources .mv-tabstrip.open {
-    visibility: visible; opacity: 1; transform: none;
-    transition: opacity 0.18s ease, transform 0.18s ease;
-  }
-  .mv-tabstrip > button {
-    display: flex; align-items: center; gap: 10px;
-    min-height: 44px; padding: 6px 12px; font-size: 0.95rem; text-align: left;
-    background: transparent; border-color: transparent;
-  }
-  .mv-tabstrip > button.active { background: var(--accent); border-color: var(--accent); }
-  .mv-sources .mv-tabstrip .mv-tablabel { display: inline; }
-  .mv-sources .mv-tabstrip .mv-tabicon { margin-right: 0; width: 1.4em; text-align: center; }
-  .mv-tabstrip > .mv-srcsep { align-self: stretch; width: auto; height: 1px; margin: 4px 6px; }
-  /* The rest of the tab row: [tab ▾] [search] ... [views] | [queue] [disk].
-   * The gap takes all the room left; the queue keeps only its ring and
-   * ☰ (what is running is in its menu), so the disk always fits. */
-  .mv-rowgap { flex: 1 1 auto; min-width: 0; }
-  .mv-sources > .mv-srcsep { margin: 4px 2px; }
-  .mv-sources > .mv-viewpick:empty + .mv-srcsep { display: none; }
-  .mv-sources .mv-searchbtn, .mv-sources .size-pop-btn, .mv-sources .mv-viewpick .icon-pick > button { width: 34px; height: 34px; }
-  .mv-queue { flex: 0 0 auto; margin-left: 0; max-width: none; }
-  .mv-queue .mv-jobtext { display: none; }
-  /* The queue's list hangs from the whole tab row (.mv-sources is the
-   * positioned box here), as the tabs' list does: from the ☰ itself it ran
-   * off the left edge, the disk now being right of it. */
-  .mv-sources .mv-queue { position: static; }
-  .mv-queuemenu { left: 0; right: 0; width: auto; max-height: min(70dvh, 480px); }
-  .mv-space { flex: 0 0 auto; width: auto; }
-  .mv-spacetext { display: none; }
-  .mv-searchslide { animation: mv-searchslide 0.2s ease-out; }
-  /* The open box's focus is its own border, inside its edges: the browser's
-   * ring sits outside them, where the library column's clip cut it off. */
-  .mv-search > input.mv-searchslide { height: 36px; padding: 3px 10px; font-size: 16px; }   /* 16px: smaller makes a phone zoom in on focus */
-  .mv-search > input.mv-searchslide:focus { outline: none; border-color: var(--accent); }
-  /* The player fills the phone's screen: the height-based size above it
-   * comes out tiny on a phone. */
-  .mv-transport { gap: 4px; }
-  .mv-transport button { width: 40px; }
-  /* Quality, audio and subtitles: a gear button the size of its
-   * neighbours, the list's own (invisible) box over it taking the tap. It
-   * pushes the volume and full screen to the right. */
-  .mv-trackpick {
-    position: relative; flex: 0 0 auto; margin-left: auto;
-    display: inline-flex; align-items: center; justify-content: center;
-    width: 40px; align-self: stretch;
-    border: 1px solid var(--line); border-radius: 6px; background: var(--panel-2);
-  }
-  .mv-trackpick select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; }
-  .mv-trackpick:has(select:disabled) { opacity: 0.45; }
-  .mv-transport > .mv-volpop { margin-left: auto; }
-  .mv-transport > .mv-trackpick + .mv-volpop { margin-left: 0; }
-  /* The film's window on a phone: a window across the screen's width,
-   * as tall as what it holds -- or the whole screen when that would leave
-   * less than a fifth of it (FilmDialog sets .full). Its title and ✕ on
-   * top, over the picture; no codec / size line under the title. */
-  .modal-backdrop.mv-filmback { padding: 8px; }
-  .modal.mv-filmdialog {
-    width: 100%; max-width: 100%; min-width: 0; max-height: calc(100dvh - 16px);
-    padding: 8px 10px;
-  }
-  .modal-backdrop.mv-filmback:has(> .full) { padding: 0; align-items: stretch; }
-  .modal.mv-filmdialog.full {
-    height: 100dvh; max-height: 100dvh;
-    border: 0; border-radius: 0;
-    padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
-  }
-  html:has(.mv-filmdialog), html:has(.mv-filmdialog) body { overflow: hidden; }
-  .mv-filmdialog .mv-meta, .mv-sheet .mv-meta { order: -1; }
-  .mv-filmdialog .mv-meta p:not(:has(.error)), .mv-sheet .mv-meta p:not(:has(.error)) { display: none; }
-  .mv-searchbtn, .size-pop-btn { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 28px; padding: 0; }
-  .mv-searchbtn.active { color: var(--accent); }
-  /* One scrollbar: the stacked layout above lets the whole body scroll,
-   * the tree scrolling inside it made two. Here the right-hand column is
-   * gone (below), so the tree alone fills the height and scrolls. */
-  .mv-body { overflow: hidden; }
-  .mv-library { min-height: 0; }
-  /* The staging tabs' right-hand column, only while a file or film is
-   * open: a page of its own over the whole screen, Back (or its ‹ / ✕)
-   * returning to the folders. Under dialogs (100), which open from it. */
-  .mv-player.mv-sheet {
-    position: fixed; inset: 0; z-index: 95;
-    width: 100%; max-width: none;
-    border: 0; border-radius: 0;
-    padding: 8px 10px calc(10px + env(safe-area-inset-bottom));
-    overflow-y: auto; overscroll-behavior: contain;
-  }
-  html:has(.mv-sheet), html:has(.mv-sheet) body { overflow: hidden; }
-  .mv-sheetback {
-    flex: 0 0 auto; align-self: flex-start; max-width: 100%;
-    min-height: 40px; padding: 4px 6px; font-size: 0.95rem;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  }
-  .mv-sheet .mv-close { min-width: 40px; min-height: 40px; }
-  /* A selection's actions in two rows: the count with ✕ (clear) at its
-   * right, then where to move it and the actions as icons (their names in
-   * the tooltips). */
-  .mv-bulk { flex-wrap: wrap; gap: 6px; padding: 6px; }
-  .mv-bulkcount { order: 0; flex: 1 1 calc(100% - 52px); font-size: 0.85rem; padding-left: 4px; }
-  .mv-bulk .mv-bulkclear { order: 1; flex: 0 0 auto; min-height: 32px; padding: 0 6px; }
-  .mv-bulk > select, .mv-bulk > button:not(.mv-bulkclear) { order: 2; min-height: 40px; }
-  .mv-bulk > select { flex: 1 1 auto; min-width: 0; width: 0; font-size: 16px; }
-  .mv-bulk > button:not(.mv-bulkclear) { min-width: 44px; height: auto; }
-  .mv-bulk .mv-bulkclear { height: auto; }
-  /* No "open the original in a new tab" on a phone: the app has no tabs. */
-  .iv-original { display: none; }
-  /* The staging tabs: no "what just happened" note (errors stay), no
-   * folder paths or matching status beside TO PROCESS / DONE; a long press
-   * on a row selects no text (it is a drag, with no menu here). */
-  .mv-library > p.muted.mv-note { display: none; }
-  .mv-panepath, .mu-auto { display: none; }
-  .mv-tree { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
-  /* The music bar: no details row (album, format, size) and no volume
-   * slider -- the volume is a button at the right end of the buttons,
-   * which stay centred (the empty first column balances it). */
-  .mp-side { display: none; }
-  .mp-buttons { display: grid; grid-template-columns: 1fr auto auto auto 1fr; width: 100%; }
-  .mp-buttons > :first-child { grid-column: 2; }   /* ⏮ ▶ ⏭ in the middle three, with or without the volume */
-  .mp-buttons .mv-volpop { justify-self: end; }
-  /* Sideways, a full-width 16:9 picture is taller than the screen: it
-   * takes the height left over by its title, seek bar and buttons instead
-   * (not in full screen, where it has the whole screen). */
-  @media (max-height: 500px) {
-    .mv-filmdialog .mv-stage:not(:fullscreen), .mv-sheet .mv-stage:not(:fullscreen) {
-      height: calc(100dvh - 140px); width: auto; max-width: 100%; align-self: center;
-    }
-  }
-
-  /* Weather overview: the toolbar wraps, the humidity tube goes (its % stays)
-   * and every column may shrink -- a bare 1fr never goes below its content,
-   * which is what pushed the rows a fixed distance past the right edge. */
-  .overview-toolbar { flex-wrap: wrap; gap: 6px; }
-  .overview-toolbar select { min-width: 0; flex: 1 1 100%; }
-  .overview-toolbar .presets { flex: 1 1 100%; }
-  .overview-toolbar .presets button { flex: 1 1 0; padding: 4px 2px; white-space: nowrap; }
-  .ov-part { gap: 4px; }
-  /* The day ("Wed 11") on one line. Fixed width: each row is its own grid,
-     so a content-sized column would shift the icons row to row. */
-  .ov-row { grid-template-columns: 2.9rem repeat(4, minmax(0, 1fr)); gap: 2px; }
-  .ov-time { font-size: 0.72rem; white-space: nowrap; }
-  .humidity-gauge svg { display: none; }
-  .wind-icon svg { width: 22px; height: 22px; }
-  .temp-bar svg { width: 30px; }
-  .temp-bar-label, .humidity-gauge-label, .wind-icon-label { white-space: nowrap; font-size: 0.72rem; }
-  .food-zoom > span[aria-hidden] { display: none; }
-  /* Taller than the screen scrolls inside the dialog, so its title and
-   * buttons stay reachable (a centred overflow cuts off the top for good). */
-  .modal { max-height: calc(100dvh - 16px); overflow-y: auto; overscroll-behavior: contain; }
-
-  /* Month view: colour bars only (tapping opens the day's events), so a
-   * 45px-wide cell still says how busy the day is; the weeks share the
-   * height down to the bottom of the screen. */
-  .cal-weekdays { gap: 2px; }
-  .cal-grid { gap: 2px; grid-auto-rows: minmax(0, 1fr); }
-  .cal-day { padding: 2px 3px; gap: 2px; border-radius: 6px; cursor: pointer; overflow: hidden; }
-  .cal-day.selected { outline: 2px solid var(--text); outline-offset: -2px; }
-  .cal-add { display: none; }
-  .cal-grid .cal-event {
-    pointer-events: none;
-    height: 4px; padding: 0; font-size: 0; border-left: none; border-radius: 2px;
-    background: var(--cal-color, var(--muted));
-  }
-  .cal-week-gutter, .cal-hour-labels { flex-basis: 34px; }
+/* Dialogs never wider than the screen, whatever width they ask for. */
+html.phone .modal { max-width: calc(100vw - 16px); padding: 12px; }
+/* The dish dialog is a page of its own on a phone: the whole screen, the
+   buttons fixed at the bottom, controls big enough for a thumb (16px
+   text: smaller makes a phone zoom in on focus). */
+html.phone .modal-backdrop:has(> .modal.dish-info) { padding: 0; align-items: stretch; overflow: hidden; }
+/* The page behind stops scrolling meanwhile: its scrollbar, drawn beside
+   the dialog in a narrow desktop window, was the second one. */
+html.phone:has(.modal.dish-info), html.phone:has(.modal.dish-info) body { overflow: hidden; }
+html.phone .modal.dish-info {
+  /* 100%, not 100vw: vw counts the page's scrollbar in. */
+  width: 100%; max-width: 100%; height: 100dvh; max-height: 100dvh;
+  border: 0; border-radius: 0; padding: 12px 12px calc(10px + env(safe-area-inset-bottom));
+  /* Only its middle scrolls (.dish-info-scroll): not the dialog too, as
+     other dialogs do on a phone (the .modal rule further down). */
+  overflow: hidden;
 }
+html.phone .modal.dish-info .dish-info-scroll { flex: 1 1 auto; padding-right: 3px; }
+html.phone .modal.dish-info input:not([type="checkbox"]), html.phone .modal.dish-info select, html.phone .modal.dish-info textarea {
+  min-height: 40px; font-size: 16px !important;  /* !important: the app-wide input rule sets font: inherit, and outranks this */
+}
+html.phone .modal.dish-info button { min-height: 40px; }
+html.phone .modal.dish-info button.glyph-btn { min-width: 40px; }
+html.phone .modal.dish-info .row-actions { margin-top: 0; }
+html.phone .modal.dish-info .row-actions button { flex: 1 1 0; }
+html.phone .modal.dish-info .ingredients-row { grid-template-columns: minmax(0, 1fr) 4em 3.4em auto; gap: 5px; }
+html.phone .modal-backdrop { padding: 8px 0; }
+html.phone .modal.event-form .field textarea,
+html.phone .modal.event-form .field .description-view { min-height: 120px; max-height: 160px; }
+/* Finger-sized: the form's buttons share a row, fields and ticks grow. */
+html.phone .modal.event-form .row-actions button { flex: 1 1 0; min-height: 46px; font-size: 0.95rem; }
+html.phone .modal.event-form input:not([type="checkbox"]), html.phone .modal.event-form select,
+html.phone .modal.event-form .react-time-picker__wrapper { min-height: 40px; }
+html.phone .modal.event-form label.check-row { min-height: 40px; margin-top: 4px; font-size: 0.95rem; }
+html.phone .modal.event-form label.check-row input { width: 20px; height: 20px; }
+
+/* Headers wrap onto a second row instead of running off the side. */
+/* The calendar's bar stays one row: icons for Today/Month/Week and a
+ * smaller title that gives way (ellipsis) before anything wraps. */
+html.phone .month-nav { gap: 4px; }
+html.phone .month-nav > button, html.phone .cal-view-toggle button { padding: 4px 7px; }
+html.phone .month-nav h2 {
+  min-width: 0; flex: 1 1 auto; font-size: 0.85rem;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+html.phone .nav-text { display: none; }
+html.phone .month-nav .nav-icon { display: block; }
+html.phone .food-head { gap: 6px; }
+html.phone .food-head h2 { font-size: 1rem; }
+html.phone .food-head button { padding: 4px 8px; }
+html.phone .btn-text { display: none; }
+
+/* Media: one button naming the current tab, the job queue at the right;
+ * the tabs a list sliding down under them, full-width rows with their
+ * names. The disk readout is just its ring (the numbers stay in its
+ * tooltip). */
+html.phone .mv-sources { flex-wrap: nowrap; position: relative; }
+html.phone .mv-tabcurrent {
+  flex: 0 1 auto; min-width: 0; display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; min-height: 34px; font-size: 0.9rem; white-space: nowrap; overflow: hidden;
+}
+html.phone .mv-tabcurrent .mv-tablabel { display: inline; overflow: hidden; text-overflow: ellipsis; }
+html.phone .mv-tabcurrent .mv-tabicon { margin-right: 0; }
+html.phone .mv-tabcaret { font-size: 0.75rem; color: var(--muted); transition: transform 0.2s; }
+html.phone .mv-tabcurrent.open .mv-tabcaret { transform: rotate(180deg); }
+html.phone .mv-sources .mv-tabstrip {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 50;
+  display: flex; flex-direction: column; gap: 2px;
+  max-height: min(70dvh, 480px); overflow-y: auto; overscroll-behavior: contain;
+  padding: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+  visibility: hidden; opacity: 0; transform: translateY(-10px);
+  transition: opacity 0.18s ease, transform 0.18s ease, visibility 0s linear 0.18s;
+}
+html.phone .mv-sources .mv-tabstrip.open {
+  visibility: visible; opacity: 1; transform: none;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+html.phone .mv-tabstrip > button {
+  display: flex; align-items: center; gap: 10px;
+  min-height: 44px; padding: 6px 12px; font-size: 0.95rem; text-align: left;
+  background: transparent; border-color: transparent;
+}
+html.phone .mv-tabstrip > button.active { background: var(--accent); border-color: var(--accent); }
+html.phone .mv-sources .mv-tabstrip .mv-tablabel { display: inline; }
+html.phone .mv-sources .mv-tabstrip .mv-tabicon { margin-right: 0; width: 1.4em; text-align: center; }
+html.phone .mv-tabstrip > .mv-srcsep { align-self: stretch; width: auto; height: 1px; margin: 4px 6px; }
+/* The rest of the tab row: [tab ▾] [search] ... [views] | [queue] [disk].
+ * The gap takes all the room left; the queue keeps only its ring and
+ * ☰ (what is running is in its menu), so the disk always fits. */
+html.phone .mv-rowgap { flex: 1 1 auto; min-width: 0; }
+html.phone .mv-sources > .mv-srcsep { margin: 4px 2px; }
+html.phone .mv-sources > .mv-viewpick:empty + .mv-srcsep { display: none; }
+html.phone .mv-sources .mv-searchbtn, html.phone .mv-sources .size-pop-btn, html.phone .mv-sources .mv-viewpick .icon-pick > button { width: 34px; height: 34px; }
+html.phone .mv-queue { flex: 0 0 auto; margin-left: 0; max-width: none; }
+html.phone .mv-queue .mv-jobtext { display: none; }
+/* The queue's list hangs from the whole tab row (.mv-sources is the
+ * positioned box here), as the tabs' list does: from the ☰ itself it ran
+ * off the left edge, the disk now being right of it. */
+html.phone .mv-sources .mv-queue { position: static; }
+html.phone .mv-queuemenu { left: 0; right: 0; width: auto; max-height: min(70dvh, 480px); }
+html.phone .mv-space { flex: 0 0 auto; width: auto; }
+html.phone .mv-spacetext { display: none; }
+html.phone .mv-searchslide { animation: mv-searchslide 0.2s ease-out; }
+/* The open box's focus is its own border, inside its edges: the browser's
+ * ring sits outside them, where the library column's clip cut it off. */
+html.phone .mv-search > input.mv-searchslide { height: 36px; padding: 3px 10px; font-size: 16px; }   /* 16px: smaller makes a phone zoom in on focus */
+html.phone .mv-search > input.mv-searchslide:focus { outline: none; border-color: var(--accent); }
+/* The player fills the phone's screen: the height-based size above it
+ * comes out tiny on a phone. */
+html.phone .mv-transport { gap: 4px; }
+html.phone .mv-transport button { width: 40px; }
+/* Quality, audio and subtitles: a gear button the size of its
+ * neighbours, the list's own (invisible) box over it taking the tap. It
+ * pushes the volume and full screen to the right. */
+html.phone .mv-trackpick {
+  position: relative; flex: 0 0 auto; margin-left: auto;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 40px; align-self: stretch;
+  border: 1px solid var(--line); border-radius: 6px; background: var(--panel-2);
+}
+html.phone .mv-trackpick select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; }
+html.phone .mv-trackpick:has(select:disabled) { opacity: 0.45; }
+html.phone .mv-transport > .mv-volpop { margin-left: auto; }
+html.phone .mv-transport > .mv-trackpick + .mv-volpop { margin-left: 0; }
+/* The film's window on a phone: a window across the screen's width,
+ * as tall as what it holds -- or the whole screen when that would leave
+ * less than a fifth of it (FilmDialog sets .full). Its title and ✕ on
+ * top, over the picture; no codec / size line under the title. */
+html.phone .modal-backdrop.mv-filmback { padding: 8px; }
+html.phone .modal.mv-filmdialog {
+  width: 100%; max-width: 100%; min-width: 0; max-height: calc(100dvh - 16px);
+  padding: 8px 10px;
+}
+html.phone .modal-backdrop.mv-filmback:has(> .full) { padding: 0; align-items: stretch; }
+html.phone .modal.mv-filmdialog.full {
+  height: 100dvh; max-height: 100dvh;
+  border: 0; border-radius: 0;
+  padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+}
+html.phone:has(.mv-filmdialog), html.phone:has(.mv-filmdialog) body { overflow: hidden; }
+html.phone .mv-filmdialog .mv-meta, html.phone .mv-sheet .mv-meta { order: -1; }
+html.phone .mv-filmdialog .mv-meta p:not(:has(.error)), html.phone .mv-sheet .mv-meta p:not(:has(.error)) { display: none; }
+html.phone .mv-searchbtn, html.phone .size-pop-btn { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 28px; padding: 0; }
+html.phone .mv-searchbtn.active { color: var(--accent); }
+/* One scrollbar: the stacked layout above lets the whole body scroll,
+ * the tree scrolling inside it made two. Here the right-hand column is
+ * gone (below), so the tree alone fills the height and scrolls. */
+html.phone .mv-body { overflow: hidden; }
+html.phone .mv-library { min-height: 0; }
+/* The staging tabs' right-hand column, only while a file or film is
+ * open: a page of its own over the whole screen, Back (or its ‹ / ✕)
+ * returning to the folders. Under dialogs (100), which open from it. */
+html.phone .mv-player.mv-sheet {
+  position: fixed; inset: 0; z-index: 95;
+  width: 100%; max-width: none;
+  border: 0; border-radius: 0;
+  padding: 8px 10px calc(10px + env(safe-area-inset-bottom));
+  overflow-y: auto; overscroll-behavior: contain;
+}
+html.phone:has(.mv-sheet), html.phone:has(.mv-sheet) body { overflow: hidden; }
+html.phone .mv-sheetback {
+  flex: 0 0 auto; align-self: flex-start; max-width: 100%;
+  min-height: 40px; padding: 4px 6px; font-size: 0.95rem;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+html.phone .mv-sheet .mv-close { min-width: 40px; min-height: 40px; }
+/* A selection's actions in two rows: the count with ✕ (clear) at its
+ * right, then where to move it and the actions as icons (their names in
+ * the tooltips). */
+html.phone .mv-bulk { flex-wrap: wrap; gap: 6px; padding: 6px; }
+html.phone .mv-bulkcount { order: 0; flex: 1 1 calc(100% - 52px); font-size: 0.85rem; padding-left: 4px; }
+html.phone .mv-bulk .mv-bulkclear { order: 1; flex: 0 0 auto; min-height: 32px; padding: 0 6px; }
+html.phone .mv-bulk > select, html.phone .mv-bulk > button:not(.mv-bulkclear) { order: 2; min-height: 40px; }
+html.phone .mv-bulk > select { flex: 1 1 auto; min-width: 0; width: 0; font-size: 16px; }
+html.phone .mv-bulk > button:not(.mv-bulkclear) { min-width: 44px; height: auto; }
+html.phone .mv-bulk .mv-bulkclear { height: auto; }
+/* No "open the original in a new tab" on a phone: the app has no tabs. */
+html.phone .iv-original { display: none; }
+/* The staging tabs: no "what just happened" note (errors stay), no
+ * folder paths or matching status beside TO PROCESS / DONE; a long press
+ * on a row selects no text (it is a drag, with no menu here). */
+html.phone .mv-library > p.muted.mv-note { display: none; }
+html.phone .mv-panepath, html.phone .mu-auto { display: none; }
+html.phone .mv-tree { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+/* The music bar: no details row (album, format, size) and no volume
+ * slider -- the volume is a button at the right end of the buttons,
+ * which stay centred (the empty first column balances it). */
+html.phone .mp-side { display: none; }
+html.phone .mp-buttons { display: grid; grid-template-columns: 1fr auto auto auto 1fr; width: 100%; }
+html.phone .mp-buttons > :first-child { grid-column: 2; }   /* ⏮ ▶ ⏭ in the middle three, with or without the volume */
+html.phone .mp-buttons .mv-volpop { justify-self: end; }
+/* Sideways, a full-width 16:9 picture is taller than the screen: it
+ * takes the height left over by its title, seek bar and buttons instead
+ * (not in full screen, where it has the whole screen). */
+@media (orientation: landscape) {
+  html.phone .mv-filmdialog .mv-stage:not(:fullscreen), html.phone .mv-sheet .mv-stage:not(:fullscreen) {
+    height: calc(100dvh - 140px); width: auto; max-width: 100%; align-self: center;
+  }
+}
+
+/* Weather overview: the toolbar wraps, the humidity tube goes (its % stays)
+ * and every column may shrink -- a bare 1fr never goes below its content,
+ * which is what pushed the rows a fixed distance past the right edge. */
+html.phone .overview-toolbar { flex-wrap: wrap; gap: 6px; }
+html.phone .overview-toolbar select { min-width: 0; flex: 1 1 100%; }
+html.phone .overview-toolbar .presets { flex: 1 1 100%; }
+html.phone .overview-toolbar .presets button { flex: 1 1 0; padding: 4px 2px; white-space: nowrap; }
+html.phone .ov-part { gap: 4px; }
+/* The day ("Wed 11") on one line. Fixed width: each row is its own grid,
+   so a content-sized column would shift the icons row to row. */
+html.phone .ov-row { grid-template-columns: 2.9rem repeat(4, minmax(0, 1fr)); gap: 2px; }
+html.phone .ov-time { font-size: 0.72rem; white-space: nowrap; }
+html.phone .humidity-gauge svg { display: none; }
+html.phone .wind-icon svg { width: 22px; height: 22px; }
+html.phone .temp-bar svg { width: 30px; }
+html.phone .temp-bar-label, html.phone .humidity-gauge-label, html.phone .wind-icon-label { white-space: nowrap; font-size: 0.72rem; }
+html.phone .food-zoom > span[aria-hidden] { display: none; }
+/* Taller than the screen scrolls inside the dialog, so its title and
+ * buttons stay reachable (a centred overflow cuts off the top for good). */
+html.phone .modal { max-height: calc(100dvh - 16px); overflow-y: auto; overscroll-behavior: contain; }
+
+/* Month view: colour bars only (tapping opens the day's events), so a
+ * 45px-wide cell still says how busy the day is; the weeks share the
+ * height down to the bottom of the screen. */
+html.phone .cal-weekdays { gap: 2px; }
+html.phone .cal-grid { gap: 2px; grid-auto-rows: minmax(0, 1fr); }
+html.phone .cal-day { padding: 2px 3px; gap: 2px; border-radius: 6px; cursor: pointer; overflow: hidden; }
+html.phone .cal-day.selected { outline: 2px solid var(--text); outline-offset: -2px; }
+html.phone .cal-add { display: none; }
+html.phone .cal-grid .cal-event {
+  pointer-events: none;
+  height: 4px; padding: 0; font-size: 0; border-left: none; border-radius: 2px;
+  background: var(--cal-color, var(--muted));
+}
+html.phone .cal-week-gutter, html.phone .cal-hour-labels { flex-basis: 34px; }
+
 .cal-agenda { display: flex; flex-direction: column; gap: 6px; }
 .modal.cal-agenda { width: min(460px, 100%); }
 .cal-agenda-head { display: flex; align-items: center; justify-content: space-between; font-weight: 600; }
@@ -3029,19 +3168,19 @@ label.button-like {
 /* A phone: the Environment panel keeps only its charts -- no range and
  * aggregation line under the city (the gear's panel says it), no forecast
  * issue time or refresh, day label or headline. */
-@media (max-width: 600px), (max-height: 500px) {
-  .env-title h1 { font-size: 1.25rem; }
-  .env-range, .fc-issued, .fc-daylabel, .fc-headline, .fc-sources { display: none; }
-}
+html.phone .env-title h1 { font-size: 1.25rem; }
+/* The gear is in the tab row: the title would only take height. */
+html.phone .env-title { display: none; }
+html.phone .env-range, html.phone .fc-issued, html.phone .fc-daylabel, html.phone .fc-headline, html.phone .fc-sources { display: none; }
+
 /* A phone: the charts two to a page (ChartPager), the pair filling what is
  * left of the screen under the title / forecast controls; nothing scrolls. */
-@media (max-width: 600px), (max-height: 500px) {
-  .env-charts:has(.chart-pager) { display: flex; flex-direction: column; overflow: hidden; }
-  .env-charts:has(.chart-pager) > .forecast-strip {
-    flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; margin-bottom: 0;
-  }
-  .env-charts:has(.chart-pager) > .forecast-strip > .muted.small { margin: 4px 0 0; }
+html.phone .env-charts:has(.chart-pager) { display: flex; flex-direction: column; overflow: hidden; }
+html.phone .env-charts:has(.chart-pager) > .forecast-strip {
+  flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; margin-bottom: 0;
 }
+html.phone .env-charts:has(.chart-pager) > .forecast-strip > .muted.small { margin: 4px 0 0; }
+
 .chart-pager { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
 .cp-page { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
 .cp-chart { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
@@ -3079,14 +3218,13 @@ label.button-like {
 /* A phone: the cover book's ‹ › sit either side of its page count at the
  * bottom (swiping turns the page as well), the covers taking the full
  * width instead of two side columns. */
-@media (max-width: 600px), (max-height: 500px) {
-  .mv-book { grid-template-columns: auto minmax(0, 1fr) auto; gap: 4px; }
-  .mv-bookpage { grid-row: 1; grid-column: 1 / -1; }
-  .mv-turn { grid-row: 2; width: 44px; height: 32px; font-size: 1.6rem; }
-  .mv-turn:first-child { grid-column: 1; }
-  .mv-turn:nth-child(3) { grid-column: 3; }
-  .mv-bookfoot { grid-row: 2; grid-column: 2; align-items: center; }
-}
+html.phone .mv-book { grid-template-columns: auto minmax(0, 1fr) auto; gap: 4px; }
+html.phone .mv-bookpage { grid-row: 1; grid-column: 1 / -1; }
+html.phone .mv-turn { grid-row: 2; width: 44px; height: 32px; font-size: 1.6rem; }
+html.phone .mv-turn:first-child { grid-column: 1; }
+html.phone .mv-turn:nth-child(3) { grid-column: 3; }
+html.phone .mv-bookfoot { grid-row: 2; grid-column: 2; align-items: center; }
+
 /* IconPick: a few choices behind one icon button, the list opening under it. */
 .icon-pick { position: relative; display: inline-flex; }
 .ip-list {

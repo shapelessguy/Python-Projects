@@ -4,7 +4,7 @@ import "react-time-picker/dist/TimePicker.css";
 import { api, Calendar, CalendarEvent, EventInput, RecurFreq, useVersionPoll } from "../api";
 import { CalendarShareDialog } from "./ShareDialog";
 import { readCookie, writeCookie } from "../cookies";
-import { useNarrow } from "../narrow";
+import { usePhone } from "../narrow";
 import { Icon } from "./icons";
 import { useBackToClose } from "../backClose";
 import { Key, useT } from "../i18n";
@@ -278,7 +278,7 @@ export function CalendarPanel() {
   // Phone month view: the cells are too narrow for titles, so they only show
   // colour bars, and tapping one opens that day's events in a window (a
   // double click does the same at any width).
-  const narrow = useNarrow();
+  const narrow = usePhone();
   const phoneMonth = narrow && view === "month";
   const [selectedDay, setSelectedDay] = useState(TODAY);
   const [dayOpen, setDayOpen] = useState(false);

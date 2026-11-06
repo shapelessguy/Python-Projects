@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { api, MusicSong } from "../api";
 import { useT } from "../i18n";
 import { inShell, NativeMusic, send, useNative } from "../native";
-import { useNarrow } from "../narrow";
+import { usePhone } from "../narrow";
 import { VolumePop } from "./VolumePop";
 import { Icon } from "./icons";
 
@@ -143,7 +143,7 @@ export function MusicPlayerBar({ song, play, list, hasPrev, hasNext, onPrev, onN
   const title = song?.title ?? (mine ? phone!.title : "");
   const artist = song?.artist ?? (mine ? phone!.artist : "");
   const loaded = !!song || mine;
-  const narrow = useNarrow();
+  const narrow = usePhone();
   const changeVolume = (v: number) => {
     setVolume(v);
     try { localStorage.setItem("music.volume", String(v)); } catch { /* ignore */ }
