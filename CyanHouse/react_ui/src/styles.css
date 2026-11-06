@@ -3200,8 +3200,20 @@ html.phone .cal-week-gutter, html.phone .cal-hour-labels { flex-basis: 34px; }
    it only holds the phone's keyboard up and takes what is typed. */
 .mouse-typing { position: fixed; left: 0; bottom: 0; width: 1px; height: 1px; padding: 0; border: 0;
   opacity: 0; pointer-events: none; resize: none; }
-/* The Android shell's morning weather popup (WeatherPopup.tsx). */
-.modal.weather-popup { width: min(96vw, 900px); max-height: 92vh; overflow: auto; display: flex; flex-direction: column; gap: 10px; }
+/* The Android shell's morning weather (WeatherPopup.tsx): the whole screen,
+   its weather window's page or over the app. The overview's rows share the
+   height they are given, so it has to be the screen's -- in a box sized by
+   its content they shrank to nothing. */
+.weather-backdrop { position: fixed; inset: 0; z-index: 150; background: var(--bg); }
+.weather-glance {
+  position: fixed; inset: 0; box-sizing: border-box;
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 12px 12px 16px; background: var(--bg);
+}
+.weather-glance h4 { margin: 0; font-size: 0.95rem; flex: 0 0 auto; }
+.weather-glance .env-charts { height: auto; min-height: 0; }
+.weather-glance .row-actions { flex: 0 0 auto; }
+.weather-glance .row-actions button { flex: 1 1 auto; min-height: 48px; font-size: 1.05rem; }
 /* A phone: the Environment panel keeps only its charts -- no range and
  * aggregation line under the city (the gear's panel says it), no forecast
  * issue time or refresh, day label or headline. */

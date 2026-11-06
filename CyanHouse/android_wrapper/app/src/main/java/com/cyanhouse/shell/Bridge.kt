@@ -18,8 +18,8 @@ import java.util.concurrent.ConcurrentHashMap
  *  page a state ({"type": "music", ...}); the last one of each type is kept
  *  and sent again to a page that has just loaded (its "hello").
  *
- *  There can be two pages at once -- the app's and the alarm window's
- *  (AlarmActivity) -- so every WebView's page is told. */
+ *  There can be several pages at once -- the app's, the alarm window's
+ *  (AlarmActivity), the weather window's (WeatherActivity) -- so every WebView's page is told. */
 object Bridge {
     private const val TAG = "Bridge"
     private val main = Handler(Looper.getMainLooper())

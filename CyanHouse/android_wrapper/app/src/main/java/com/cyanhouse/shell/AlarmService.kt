@@ -49,9 +49,11 @@ import java.time.ZoneId
  *  background); otherwise by a full-screen notification, which the system
  *  turns into the window with the screen off and shows as a banner with it on.
  *
- *  Also the morning glance: once a day, from [WEATHER_AT], the page is
- *  asked for its weather popup (WeatherPopup.tsx, the "weather" state) and
- *  the app brought up -- behind the lock screen, there once it is unlocked.
+ *  Also the morning glance: once a day, from [WEATHER_AT], the weather
+ *  window (WeatherActivity: only the overview, never the app) is brought
+ *  up -- behind the lock screen, there once it is unlocked. Without "display
+ *  over other apps" it can't start from here, so the app's page is asked
+ *  for its popup instead (WeatherPopup.tsx, the "weather" state).
  *  Both can be turned off on the phone (the page's Settings, "settings"). */
 class AlarmService : Service() {
     companion object {
@@ -92,9 +94,10 @@ class AlarmService : Service() {
             Bridge.emit("settings", JSONObject().put("alarms", p.getBoolean("alarms", true)).put("weather", p.getBoolean("weather", true)))
         }
 
-        /** The page closed its weather popup. */
+        /** The weather window or the app's popup was closed. */
         fun weatherSeen() {
             Bridge.emit("weather", JSONObject().put("show", false))
+            WeatherActivity.close()
         }
     }
 
@@ -203,10 +206,9 @@ class AlarmService : Service() {
         val today = LocalDate.now().toString()
         if (!p.getBoolean("weather", true) || p.getString("weather_day", "") == today || LocalTime.now() < WEATHER_AT) return
         p.edit().putString("weather_day", today).apply()
-        Bridge.emit("weather", JSONObject().put("show", true))
-        if (Settings.canDrawOverlays(this)) {
-            runCatching { startActivity(Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
-        }
+        val window = Settings.canDrawOverlays(this) &&
+            runCatching { startActivity(Intent(this, WeatherActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }.isSuccess
+        if (!window) Bridge.emit("weather", JSONObject().put("show", true))
     }
 
     /** Ring for `due`, or stop when it is empty. Main thread. */

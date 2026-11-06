@@ -48,6 +48,17 @@
             android:theme="@style/Theme.CyanShell.Alarm"
             android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation|uiMode" />
 
+        <!-- The morning weather window: only the overview, full screen
+             (WeatherActivity.kt). A task of its own, like the alarm's, so
+             the app never comes up with it. -->
+        <activity
+            android:name=".WeatherActivity"
+            android:exported="false"
+            android:launchMode="singleInstance"
+            android:taskAffinity="com.cyanhouse.shell.weather"
+            android:excludeFromRecents="true"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation|uiMode" />
+
         <!-- Calendar alarms with the app closed (AlarmService.kt). -->
         <service
             android:name=".AlarmService"
