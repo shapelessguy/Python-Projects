@@ -240,6 +240,8 @@ export function FoodPanel() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const topRef = useRef<HTMLDivElement>(null);
   const groupsRef = useRef<HTMLDivElement>(null);
+  // Where a touch on the dishes started: a sideways swipe changes category.
+  const swipeFrom = useRef<[number, number] | null>(null);
 
   const toggleCategory = useCallback((cat: string) => {
     setExpanded((s) => {
@@ -474,6 +476,25 @@ export function FoodPanel() {
   const matches = (d: Dish) =>
     [d.name, ...Object.values(d.name_tr ?? {})].some((n) => n && fold(n).includes(q));
   const chips = phone && !searching;
+  // Phone: a sideways swipe over the dishes goes to the next / previous
+  // category, as the chips run (no wrapping round). Mostly sideways and long
+  // enough, so a scroll down the dishes is never one.
+  const swipe = chips ? {
+    onTouchStart: (e: React.TouchEvent) => {
+      swipeFrom.current = e.touches.length === 1 ? [e.touches[0].clientX, e.touches[0].clientY] : null;
+    },
+    onTouchEnd: (e: React.TouchEvent) => {
+      const from = swipeFrom.current;
+      swipeFrom.current = null;
+      if (!from) return;
+      const dx = e.changedTouches[0].clientX - from[0], dy = e.changedTouches[0].clientY - from[1];
+      if (Math.abs(dx) < 60 || Math.abs(dx) < 2 * Math.abs(dy)) return;
+      const keys = groups.map(groupKey);
+      const at = keys.findIndex((k) => expanded.has(k));
+      const next = keys[at + (dx < 0 ? 1 : -1)];
+      if (at >= 0 && next !== undefined) selectCategory(next);
+    },
+  } : {};
   const groceryCount = Object.keys(groceryList).length;
   const onGroceryButton = () => (phone && groceryCount ? setShowGrocery(true) : enterGroceryMode());
   const renameEditor = (c: Category) => (
@@ -580,7 +601,7 @@ export function FoodPanel() {
           <p className="muted">{t("food_no_matches")}</p>
         )}
 
-        <div ref={groupsRef}>
+        <div ref={groupsRef} className="food-groups" {...swipe}>
           {groups.map((c) => {
             const cat = groupKey(c);
             const all = byCategory(c).sort((a, b) => b.rating - a.rating);
@@ -913,6 +934,15 @@ function CategoryNameEdit({ initial, onSave, onCancel }: {
 function ChipStrip({ children }: { children: React.ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   useDragScroll(ref);
+  // The open one in sight -- a swipe may have gone to a chip off the edge.
+  useEffect(() => {
+    const strip = ref.current, chip = strip?.querySelector<HTMLElement>(".food-chip.active");
+    if (!strip || !chip) return;
+    const l = chip.offsetLeft - strip.offsetLeft, r = l + chip.offsetWidth;
+    if (l < strip.scrollLeft) strip.scrollTo({ left: l - 8, behavior: "smooth" });
+    else if (r > strip.scrollLeft + strip.clientWidth)
+      strip.scrollTo({ left: r - strip.clientWidth + 8, behavior: "smooth" });
+  });
   return <div className="food-chips" ref={ref}>{children}</div>;
 }
 

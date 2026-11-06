@@ -711,6 +711,8 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
 .food--chips .food-group-head { display: none; }
 .food--chips .food-group:not(.open) { display: none; }
 .food--chips .food-group { margin-top: 8px; }
+/* The swipe area: down to the bottom even for a category of three dishes. */
+.food--chips .food-groups { min-height: 70dvh; }
 /* Phone: the grocery list over everything, from 🛒. */
 .grocery-sheet {
   position: fixed; inset: 0; z-index: 100; background: var(--bg);
@@ -2975,11 +2977,33 @@ html.phone .food-head button { padding: 4px 8px; }
 html.phone .btn-text { display: none; }
 html.phone .food-head h2, html.phone .food-selected { display: none; }
 html.phone .food-search { flex: 1 1 auto; margin-right: auto; }
-/* The dish form takes the whole screen. */
+/* The dish form, like the dish dialog: the whole screen, the page behind
+ * still, the form scrolling with its buttons pinned at the bottom; the
+ * picture full width with its two buttons under it, the stars across the
+ * width, controls big enough for a thumb (16px text: no zoom on focus). */
+html.phone .modal-backdrop:has(> .modal.dish-form) { padding: 0; align-items: stretch; overflow: hidden; }
+html.phone:has(.modal.dish-form), html.phone:has(.modal.dish-form) body { overflow: hidden; }
 html.phone .modal.dish-form {
-  width: 100vw; min-height: 100dvh; max-height: 100dvh; align-self: stretch;
-  border: none; border-radius: 0;
+  width: 100%; max-width: 100%; height: 100dvh; max-height: 100dvh;
+  border: 0; border-radius: 0; padding: 12px 12px 0; overflow-y: auto; gap: 12px;
 }
+html.phone .modal.dish-form input:not([type="checkbox"]):not([type="range"]), html.phone .modal.dish-form select {
+  min-height: 42px; font-size: 16px !important;  /* !important: the app-wide input rule sets font: inherit */
+}
+html.phone .modal.dish-form button, html.phone .dish-form label.dish-form-upload { min-height: 42px; }
+html.phone .dish-form-rating { flex-direction: column; align-items: stretch; gap: 4px; }
+html.phone .dish-form-rating .star-rating { justify-content: space-between; }
+html.phone .dish-form-rating .star-rating button { font-size: 1.6rem; min-height: 0; padding: 2px 0; }
+html.phone .dish-form-image { flex-direction: column; align-items: stretch; }
+html.phone .dish-form-image .dish-thumb { width: 100%; height: auto; aspect-ratio: 4 / 3; }
+html.phone .dish-form-image .col { flex-direction: row; }
+html.phone .dish-form-image .col > button, html.phone .dish-form-image .col > label { flex: 1 1 0; display: flex; align-items: center; justify-content: center; }
+html.phone .dish-form-actions {
+  position: sticky; bottom: 0; margin-top: auto; background: var(--panel);
+  padding: 10px 0 calc(12px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line);
+}
+html.phone .dish-form-actions button { flex: 1 1 0; font-size: 0.95rem; }
+html.phone .dish-form-actions .dish-form-delete { margin-right: 0; }
 
 /* Media: one button naming the current tab, the job queue at the right;
  * the tabs a list sliding down under them, full-width rows with their
