@@ -20,7 +20,7 @@ export function ConfirmDialog({ message, yesLabel, danger, onYes, onNo }: {
   useBackToClose(onNo);
   return createPortal(
     <div className="modal-backdrop" onClick={(e) => { e.stopPropagation(); onNo(); }}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div className="modal confirm-dialog" onClick={(e) => e.stopPropagation()}>
         <p>{message}</p>
         <div className="row-actions">
           <button className={danger ? "danger" : "active"} onClick={onYes}>{yesLabel ?? t("confirm")}</button>

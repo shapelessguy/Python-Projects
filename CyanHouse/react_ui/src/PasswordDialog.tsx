@@ -16,23 +16,41 @@ export function passwordProblem(p: string): Key | null {
  *  sign-in screen swaps for their token. */
 export function PasswordDialog({ onClose }: { onClose: () => void }) {
   useBackToClose(onClose);
-  const { t } = useT();
-  const [has, setHas] = useState<boolean | null>(null);
-  const [first, setFirst] = useState("");
-  const [again, setAgain] = useState("");
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  const [done, setDone] = useState("");
-
-  useEffect(() => {
-    api.me().then((me) => setHas(!!me.has_password)).catch(() => setHas(false));
-  }, []);
 
   useEffect(() => {
     const key = (e: KeyboardEvent) => e.key === "Escape" && !busy && onClose();
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
   }, [busy]);
+
+  return (
+    <div className="modal-backdrop" onClick={() => !busy && onClose()}>
+      <PasswordForm className="modal" onClose={onClose} onBusy={setBusy} />
+    </div>
+  );
+}
+
+/** The password form itself: in its own dialog (with a Close), or a
+ *  section of the phone's full-screen settings (none, and no field
+ *  focused, so the keyboard waits for a tap). */
+export function PasswordForm({ className, onClose, onBusy }: {
+  className?: string;
+  onClose?: () => void;
+  onBusy?: (busy: boolean) => void;
+}) {
+  const { t } = useT();
+  const [has, setHas] = useState<boolean | null>(null);
+  const [first, setFirst] = useState("");
+  const [again, setAgain] = useState("");
+  const [busy, setBusyState] = useState(false);
+  const setBusy = (b: boolean) => { setBusyState(b); onBusy?.(b); };
+  const [error, setError] = useState("");
+  const [done, setDone] = useState("");
+
+  useEffect(() => {
+    api.me().then((me) => setHas(!!me.has_password)).catch(() => setHas(false));
+  }, []);
 
   const problem = first ? passwordProblem(first) : null;
   const mismatch = again !== "" && again !== first;
@@ -58,13 +76,12 @@ export function PasswordDialog({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="modal-backdrop" onClick={() => !busy && onClose()}>
-      <form className="modal password-form" onClick={(e) => e.stopPropagation()} onSubmit={save}>
+      <form className={(className ? className + " " : "") + "password-form"} onClick={(e) => e.stopPropagation()} onSubmit={save}>
         <h4>{t(has ? "change_password" : "password_set_title")}</h4>
         <p className="muted small">{t("password_intro")}</p>
         <label>
           {t("password_new")}
-          <input type="password" autoComplete="new-password" value={first} autoFocus
+          <input type="password" autoComplete="new-password" value={first} autoFocus={!!onClose}
                  onChange={(e) => { setFirst(e.target.value); setDone(""); }} />
         </label>
         <label>
@@ -78,17 +95,16 @@ export function PasswordDialog({ onClose }: { onClose: () => void }) {
         {done && <p className="small">{done}</p>}
         <div className="password-actions">
           {has && (
-            <button type="button" className="linkish" disabled={busy}
+            <button type="button" className={onClose ? "linkish" : "danger"} disabled={busy}
                     onClick={() => run(api.removePassword, t("password_removed"))}>
               {t("password_remove")}
             </button>
           )}
-          <button type="button" className="ghost" disabled={busy} onClick={onClose}>{t("close")}</button>
+          {onClose && <button type="button" className="ghost" disabled={busy} onClick={onClose}>{t("close")}</button>}
           <button disabled={busy || has === null || !first || !!problem || first !== again}>
             {busy ? t("saving") : t("save")}
           </button>
         </div>
       </form>
-    </div>
   );
 }

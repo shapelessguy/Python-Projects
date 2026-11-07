@@ -3,6 +3,7 @@ import { api, Calendar, CalendarEvent, EventInput, RecurFreq, useVersionPoll } f
 import { CalendarShareDialog } from "./ShareDialog";
 import { readCookie, writeCookie } from "../cookies";
 import { usePhone } from "../narrow";
+import { ConfirmDialog } from "../ConfirmDialog";
 import { Icon } from "./icons";
 import { IconPick } from "./IconPick";
 import { TimeField } from "./TimeField";
@@ -193,7 +194,7 @@ function alarmLeadLabel(m: number, t: (k: Key, v?: Record<string, string | numbe
 const blankDraft = (date: string, calendarId: number, start = "09:00", end = "10:00", allDay = true): Draft => ({
   mine: true, calendar_shared: false, start_date: date, end_date: date, title: "", description: "",
   all_day: allDay, start_time: start, end_time: end, calendar_id: calendarId,
-  recur_freq: "", recur_interval: 1, recur_until: "", alarm: true, alarm_lead: 15,
+  recur_freq: "", recur_interval: 1, recur_until: "", alarm: false, alarm_lead: 15,
   origRecurring: false,
 });
 
@@ -520,6 +521,8 @@ export function CalendarPanel() {
     if (!draft?.id) return;
     api.deleteEvent(draft.id).then(() => { load(); setDraft(null); }).catch((e) => setError(String(e)));
   };
+  // Which of the two the form's delete buttons asked for, until confirmed.
+  const [askDelete, setAskDelete] = useState<"this" | "series" | null>(null);
 
   if (error) return <div className="panel"><p className="error">{error}</p></div>;
   if (!events) return <div className="panel"><p className="muted">{t("loading")}</p></div>;
@@ -768,7 +771,8 @@ export function CalendarPanel() {
               placeholder={t("cal_title")}
               disabled={!editable}
               onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-              autoFocus
+              // On a phone an opened event is for reading: no keyboard over it.
+              autoFocus={!(narrow && draft.id)}
             />
             <div className="field">
               {editable && descEditing ? (
@@ -914,17 +918,29 @@ export function CalendarPanel() {
               {editable && draft.id && (
                 draft.recur_freq ? (
                   <>
-                    <button className="danger" onClick={deleteThisOccurrence}>{t("cal_delete_this")}</button>
-                    <button className="danger" onClick={deleteSeries}>{t("cal_delete_series")}</button>
+                    <button className="danger" onClick={() => setAskDelete("this")}>{t("cal_delete_this")}</button>
+                    <button className="danger" onClick={() => setAskDelete("series")}>{t("cal_delete_series")}</button>
                   </>
                 ) : (
-                  <button className="danger" onClick={deleteSeries}>{t("delete")}</button>
+                  <button className="danger" onClick={() => setAskDelete("series")}>{t("delete")}</button>
                 )
               )}
               <button className="ghost" onClick={() => setDraft(null)}>
                 {editable ? t("cancel") : t("close")}
               </button>
             </div>
+            {askDelete && (
+              <ConfirmDialog
+                message={t(
+                  !draft.recur_freq ? "cal_delete_event_ask" : askDelete === "this" ? "cal_delete_this_ask" : "cal_delete_series_ask",
+                  { name: draft.title },
+                )}
+                yesLabel={t("delete")}
+                danger
+                onYes={() => { setAskDelete(null); if (askDelete === "this") deleteThisOccurrence(); else deleteSeries(); }}
+                onNo={() => setAskDelete(null)}
+              />
+            )}
           </div>
         </div>
         );

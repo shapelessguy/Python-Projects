@@ -11,6 +11,7 @@ import { inShell, useNative } from "./native";
 import { useVisibility } from "./api";
 import { currentUsername, logout } from "./auth";
 import { SettingsDialog } from "./SettingsDialog";
+import { usePhone } from "./narrow";
 import { Key, useT } from "./i18n";
 import { readCookie, writeCookie } from "./cookies";
 
@@ -54,6 +55,7 @@ export default function App() {
   }, [opening]);
   const username = currentUsername();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const phone = usePhone();
   const { t } = useT();
 
   // Icons only once the full labels no longer fit in the bar. The bar
@@ -121,7 +123,13 @@ export default function App() {
               <span className="sw-label">{t(p.label)}</span>
             </button>
           ))}
-          {username && (
+          {username && phone ? (
+            // A phone: the name alone, a button to the full-screen settings
+            // (language, password, sign out).
+            <button className="ghost whoami whoami-btn" onClick={() => setSettingsOpen(true)} title={t("settings")}>
+              <span className="whoami-name">{username}</span>
+            </button>
+          ) : username && (
             <span className="whoami">
               <span className="whoami-name">{username}</span>
               <span className="whoami-actions">

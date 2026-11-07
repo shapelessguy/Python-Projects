@@ -1268,6 +1268,8 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
 .modal.settings-dialog { display: flex; flex-direction: column; gap: 12px; }
 .settings-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .settings-row select { width: auto; }
+/* A long label wraps; the checkbox beside it keeps its size. */
+.settings-row input[type="checkbox"] { flex: none; }
 .modal.password-form { display: flex; flex-direction: column; gap: 10px; }
 .password-form p { margin: 0; }
 .password-form label { display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem; color: var(--muted); }
@@ -3048,6 +3050,34 @@ html.phone .switcher.compact .whoami { margin-left: 6px; }
 html.phone .whoami { padding-right: 0; }
 html.phone .whoami-name { max-width: 6em; }
 html.phone .content { padding: 10px 8px; }
+/* A phone: the bar shows just the user's name, small, a button to the settings. */
+/* It sits straight in .switcher, so it must outrank the panel tabs' own
+   `.switcher.compact > button` sizes (and the sideways column's). */
+html.phone .switcher > button.whoami-btn, html.phone .switcher.compact > button.whoami-btn {
+  flex: 0 0 auto; width: auto; height: auto; min-height: 0; padding: 2px;
+  border-color: transparent; font-size: 0.7rem; line-height: 1.2;
+}
+html.phone .whoami-btn .whoami-name { max-width: 5em; }
+/* ...which take the whole screen: a back bar, then language, the phone's
+   own switches, a Change password row that opens the form under it, and
+   Sign out, all finger-sized. */
+html.phone .modal-backdrop.settings-full { background: var(--bg); align-items: stretch; justify-content: stretch; }
+html.phone .settings-full-page { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 100%; background: var(--bg); }
+html.phone .settings-full-body { display: flex; flex-direction: column; gap: 16px; padding: 8px 16px 24px; }
+html.phone .settings-full-body .settings-row { min-height: 44px; font-size: 1rem; }
+html.phone .settings-full-body select { min-height: 40px; font-size: 1rem; }
+html.phone .settings-full-body input[type="checkbox"] { width: 22px; height: 22px; }
+html.phone .settings-full-section { display: flex; align-items: center; justify-content: space-between;
+            min-height: 44px; padding: 0; font-size: 1rem; border: 0; border-top: 1px solid var(--line); border-radius: 0; }
+html.phone .settings-full-section svg { color: var(--muted); transition: transform 0.15s; }
+html.phone .settings-full-section svg.open { transform: rotate(90deg); }
+html.phone .settings-full-password { display: flex; flex-direction: column; gap: 10px; margin-top: -8px; }
+html.phone .settings-full-password h4 { display: none; }
+html.phone .settings-full-password input { min-height: 44px; font-size: 1rem; }
+html.phone .settings-full-password .password-actions button { min-height: 44px; }
+html.phone .settings-full-password .password-actions button:last-child { flex: 1 1 auto; }
+html.phone .settings-full-signout { display: flex; align-items: center; justify-content: center; gap: 8px;
+            min-height: 48px; font-size: 1rem; margin-top: 8px; }
 /* A phone held sideways: the panel tabs are a column of icons down the left
  * edge (the user's name, settings and sign-out at its foot) and the panel
  * gets the whole height. The labels go whatever App's measuring decided. */
@@ -3076,6 +3106,12 @@ html.phone .content { padding: 10px 8px; }
 
 /* Dialogs never wider than the screen, whatever width they ask for. */
 html.phone .modal { max-width: calc(100vw - 16px); padding: 12px; }
+/* A phone: the app's confirm question nearly full width, larger text, and
+   two finger-sized buttons sharing the row. */
+html.phone .modal.confirm-dialog { width: calc(100vw - 32px); padding: 18px 16px 16px; }
+html.phone .modal.confirm-dialog p { margin: 0 0 14px; font-size: 1rem; line-height: 1.4; overflow-wrap: anywhere; }
+html.phone .modal.confirm-dialog .row-actions { gap: 10px; margin-top: 0; }
+html.phone .modal.confirm-dialog .row-actions button { flex: 1 1 0; min-height: 44px; font-size: 1rem; }
 /* The dish dialog is a page of its own on a phone: the whole screen, the
    buttons fixed at the bottom, controls big enough for a thumb (16px
    text: smaller makes a phone zoom in on focus). */
