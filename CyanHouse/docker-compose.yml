@@ -12,6 +12,8 @@ services:
       - ./docker/html:/usr/share/nginx/html:ro
       - ./docker/certbot/www:/var/www/certbot:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
+      # The access log (log_format cyan in nginx.conf), kept on the host
+      - ./docker/logs/nginx:/var/log/cyanhouse
       # Lansi's GUI, as `npm run build` leaves it (~/Documents/Lansi/chat-ui/dist)
       - ../../Lansi/chat-ui/dist:/srv/lansi:ro
 

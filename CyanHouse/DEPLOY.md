@@ -254,6 +254,28 @@ automatically after a reboot as long as the Docker daemon itself is running
 (it normally is, via its own systemd service) — no extra systemd unit needed
 for those.
 
+### The access log
+
+nginx writes who came to `docker/logs/nginx/access.log` (gitignored), in
+nginx's "combined" format with the name asked for and the time taken after.
+`goaccess docker/logs/nginx/access.log --log-format=COMBINED` reads it. Nobody
+rotates it inside the container, so the host does, weekly, keeping eight
+weeks — `/etc/logrotate.d/cyanhouse-nginx`:
+
+```
+/home/claudio/Documents/sharedCode/CyanHouse/docker/logs/nginx/*.log {
+    weekly
+    rotate 8
+    compress
+    delaycompress
+    missingok
+    notifempty
+    postrotate
+        docker exec cyanhouse-nginx nginx -s reopen >/dev/null 2>&1 || true
+    endscript
+}
+```
+
 
 ## 11. Mount the Earth drive (NTFS, USB dock)
 

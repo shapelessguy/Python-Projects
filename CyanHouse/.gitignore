@@ -15,3 +15,4 @@ scripts/update_containers.log
 docker/pyload/
 docker/qbittorrent/
 docker/jackett/
+docker/logs/

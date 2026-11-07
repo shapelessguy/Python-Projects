@@ -19,11 +19,39 @@ http {
     gzip_types text/css application/javascript text/javascript application/json
                image/svg+xml application/manifest+json text/plain;
 
+    # Who came, to a file rather than the image's default of the container's
+    # stdout, which is gone whenever the container is recreated. The folder
+    # is docker/logs/nginx on the host (docker-compose.yml); logrotate and
+    # fail2ban read it from there (DEPLOY.md). "combined", which fail2ban's
+    # filters already parse, with the name asked for and the time taken after.
+    log_format cyan '$remote_addr - $remote_user [$time_local] "$request" '
+                    '$status $body_bytes_sent "$http_referer" "$http_user_agent" '
+                    '$ssl_server_name $request_time';
+    access_log /var/log/cyanhouse/access.log cyan;
+
+    # Password guessing at the sign-in routes, per address: five tries at
+    # once, then one every ten seconds; the rest get a 429.
+    limit_req_zone $binary_remote_addr zone=login:1m rate=6r/m;
+    limit_req_status 429;
+
+    # Anything that does not ask for one of the site's names — scanners going
+    # by the bare IP or a made-up name — is dropped unanswered: on 80 by
+    # closing the connection (444), on 443 by refusing the TLS handshake, so
+    # no certificate is needed for it and the site's names are never shown.
+    server {
+        listen 80 default_server;
+        return 444;
+    }
+    server {
+        listen 443 ssl default_server;
+        ssl_reject_handshake on;
+    }
+
     # Redirect HTTP → HTTPS, except the ACME HTTP-01 challenge Certbot uses to
     # issue/renew the cert — that must stay reachable in plain HTTP.
     server {
         listen 80;
-        server_name ${PUBLIC_HOST};
+        server_name ${SITE_HOSTS};
 
         location /.well-known/acme-challenge/ {
             root /var/www/certbot;
@@ -204,6 +232,24 @@ http {
             alias /srv/lansi/;
             try_files $uri $uri/ /lansi/index.html;
             add_header Cache-Control "no-cache";
+        }
+
+        # The sign-in routes, throttled (the login zone, above).
+        location = /api/login {
+            limit_req zone=login burst=5 nodelay;
+            proxy_pass http://127.0.0.1:${API_PORT}/api/login;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+        location = /api/token {
+            limit_req zone=login burst=5 nodelay;
+            proxy_pass http://127.0.0.1:${API_PORT}/api/token;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
         }
 
         # FastAPI backend — routers are already prefixed /api/... , so this

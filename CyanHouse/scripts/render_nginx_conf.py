@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Renders docker/nginx.conf and docker/nginx-bootstrap.conf from their
-.template counterparts, filling in ${PUBLIC_HOST}/${LAN_HOST}/${API_PORT}/
+.template counterparts, filling in ${PUBLIC_HOST}/${LAN_HOST}/${SITE_HOSTS}/${API_PORT}/
 ${CONTROLS_FN_HOST}/${CONTROLS_FN_PORT} from the top-level config.json --
 the same file api/config.py reads, so the domain/ports live in exactly one
 place instead of also being baked into the nginx config committed to git.
@@ -42,6 +42,8 @@ def load_settings() -> dict:
     # Optional: the name used at home (DEPLOY.md, "Reaching it on the LAN").
     # Without one, PUBLIC_HOST stands in and the config is as before.
     settings["LAN_HOST"] = str(data.get("LAN_HOST", "")).strip() or settings["PUBLIC_HOST"]
+    # Both names, once each, for the plain-HTTP redirect's server_name.
+    settings["SITE_HOSTS"] = " ".join(dict.fromkeys([settings["PUBLIC_HOST"], settings["LAN_HOST"]]))
     return settings
 
 
