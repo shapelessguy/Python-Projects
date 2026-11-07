@@ -72,8 +72,15 @@ class MainActivity : ComponentActivity() {
     private lateinit var root: FrameLayout
     private var fileCallback: ValueCallback<Array<Uri>>? = null
 
+    // Several files picked come back in the result's clipData, with its data
+    // empty -- and parseResult reads only data, so a multi-pick gave the page
+    // nothing at all. One file comes back as data.
     private val pickFiles = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { res ->
-        fileCallback?.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(res.resultCode, res.data))
+        val clip = res.data?.clipData
+        val picked = if (res.resultCode == RESULT_OK && clip != null && clip.itemCount > 0)
+            Array(clip.itemCount) { clip.getItemAt(it).uri }
+        else WebChromeClient.FileChooserParams.parseResult(res.resultCode, res.data)
+        fileCallback?.onReceiveValue(picked)
         fileCallback = null
     }
 

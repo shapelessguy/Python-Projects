@@ -40,6 +40,7 @@ import { useBackToClose } from "../backClose";
 import { ConfirmDialog } from "../ConfirmDialog";
 import { usePhone } from "../narrow";
 import { useDragScroll } from "../dragScroll";
+import { Icon } from "./icons";
 
 function stars(rating: number): string {
   const full = Math.max(0, Math.min(Math.round(rating), 10));
@@ -235,6 +236,9 @@ export function FoodPanel() {
   const phone = usePhone();
   const [showGrocery, setShowGrocery] = useState(false);
   const [query, setQuery] = useState("");
+  // A phone: the search is a button, as in Media; the box slides in under
+  // the bar while open, or while it holds a search.
+  const [searchOpen, setSearchOpen] = useState(false);
   const press = useLongPress();
   // .panel.food scrolls; .food-top (heading, chips) sticks at its top.
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -526,6 +530,14 @@ export function FoodPanel() {
     onLines: reconcileChecked,
   };
 
+  const searchBox = (
+    <input type="search" className="food-search" placeholder={t("food_search")} aria-label={t("food_search")}
+           autoFocus={phone}
+           onBlur={() => { if (!query) setSearchOpen(false); }}
+           value={query} onChange={(e) => setQuery(e.target.value)}
+           onKeyDown={(e) => { if (e.key === "Escape") { setQuery(""); setSearchOpen(false); } }} />
+  );
+
   return (
     <div className="panel food" ref={scrollRef}>
       <div
@@ -535,9 +547,16 @@ export function FoodPanel() {
         <div className="food-top" ref={topRef}>
           <div className="food-head">
             <h2>{t("food_dishes")}</h2>
-            <input type="search" className="food-search" placeholder={t("food_search")} aria-label={t("food_search")}
-                   value={query} onChange={(e) => setQuery(e.target.value)}
-                   onKeyDown={(e) => { if (e.key === "Escape") setQuery(""); }} />
+            {phone ? (
+              <button className={"ghost food-searchbtn" + (searchOpen || query ? " active" : "")}
+                      title={t("search")} aria-label={t("search")}
+                      // Keeps the box's focus, whose blur would otherwise close it
+                      // before this click could: a second tap on an empty search closes it.
+                      onPointerDown={(e) => e.preventDefault()}
+                      onClick={() => setSearchOpen(!(searchOpen && !query))}>
+                <Icon name="search" size={14} className="" />
+              </button>
+            ) : searchBox}
             <label className="food-zoom" title={t("food_card_size")}>
               <span aria-hidden>🔍</span>
               <SizeSlider min={ZOOM_MIN} max={ZOOM_MAX} step={10} value={zoom} title={t("food_card_size")} onChange={setZoom} />
@@ -551,19 +570,20 @@ export function FoodPanel() {
             ) : (
               <>
                 {/* The words go on a phone (.btn-text), leaving the icons. */}
-                <button className="ghost" title={t("food_ingredients")} onClick={() => setShowCatalog(true)}>
-                  🥕<span className="btn-text"> {t("food_ingredients")}</span>
+                <button className="ghost food-iconbtn" title={t("food_ingredients")} onClick={() => setShowCatalog(true)}>
+                  <Icon name="carrot" size={17} className="" /><span className="btn-text"> {t("food_ingredients")}</span>
                 </button>
-                <button className="ghost food-grocery-btn" title={t("food_grocery")} onClick={onGroceryButton}>
-                  🛒<span className="btn-text"> {t("food_grocery")}</span>
+                <button className="ghost food-iconbtn food-grocery-btn" title={t("food_grocery")} onClick={onGroceryButton}>
+                  <Icon name="cart" size={17} className="" /><span className="btn-text"> {t("food_grocery")}</span>
                   {phone && groceryCount > 0 && <span className="food-badge">{groceryCount}</span>}
                 </button>
-                <button className="active" title={t("food_add_dish")} onClick={() => setEditing("new")}>
+                <button className="active food-iconbtn" title={t("food_add_dish")} onClick={() => setEditing("new")}>
                   +<span className="btn-text"> {t("food_add_dish")}</span>
                 </button>
               </>
             )}
           </div>
+          {phone && (searchOpen || query) && <div className="food-searchrow">{searchBox}</div>}
           {chips && (
             <ChipStrip>
               {groups.map((c) => {

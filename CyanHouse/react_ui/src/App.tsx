@@ -113,7 +113,8 @@ export default function App() {
             <button
               key={p.id}
               className={active && p.id === active.id ? "active" : ""}
-              title={compact ? t(p.label) : undefined}
+              // Its name, wherever only the icon shows (compact, or a sideways phone's column).
+              title={t(p.label)}
               onClick={() => setPanel(p.id)}
             >
               <span className="sw-icon">{p.icon}</span>

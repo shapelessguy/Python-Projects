@@ -413,13 +413,8 @@ html.phone .env-controls--open .env-controls-head {
 
 .chart-group { margin-bottom: 18px; }
 /* ── forecast strip ──────────────────────────────────────── */
-.forecast-strip {
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--panel);
-  padding: 10px 12px;
-  margin: 6px 0 20px;
-}
+/* No card around it: it sits straight on the panel like the charts. */
+.forecast-strip { margin: 6px 0 20px; }
 .forecast-strip h3 { margin: 0; }
 .fc-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
 .fc-days {
@@ -488,13 +483,14 @@ button.link:hover { color: var(--text); }
 .ctl-ico { font-size: 22px; line-height: 1; color: var(--tint, var(--text)); }
 .ctl-lbl { font-size: 13px; }
 .ctl-slider {
+  min-width: 0;
   display: flex; flex-direction: column; gap: 6px;
   background: var(--panel-2); border: 1px solid var(--line);
   border-radius: 10px; padding: 10px 12px;
 }
 .ctl-slider label { font-size: 12px; color: var(--muted); }
 .ctl-slider-row { display: flex; align-items: center; gap: 8px; }
-.ctl-slider-row input[type="range"] { flex: 1 1 auto; width: auto; accent-color: var(--accent); }
+.ctl-slider-row input[type="range"] { flex: 1 1 auto; width: auto; min-width: 0; accent-color: var(--accent); }
 .ctl-nudge {
   flex: none; width: 30px; height: 30px; padding: 0;
   font-size: 18px; line-height: 1; border-radius: 6px;
@@ -687,14 +683,17 @@ table.grid tr.today td.sticky-col { background: rgba(255, 90, 90, 0.28); color: 
  * dishes, or the sticky top would leave with its box after one screen. */
 .panel.food { height: 100%; overflow-y: auto; overscroll-behavior: contain; align-items: flex-start; }
 .food-main { flex: 1 1 auto; min-width: 0; max-width: 1400px; margin: 0 auto; }
-/* padding-top: room for the 🛒 badge, which the scroll box would clip. */
-.food-top { position: sticky; top: 0; z-index: 5; background: var(--bg); padding: 7px 0 6px; }
+.food-top { position: sticky; top: 0; z-index: 5; background: var(--bg); padding: 0 0 6px; }
 .food-head { display: flex; align-items: center; gap: 12px; }
 .food-head h2 { margin-right: auto; }
 .food-search { flex: 0 1 240px; min-width: 0; }
+/* Icon and words on one line, the line icon centred on the text. */
+.food-iconbtn { display: inline-flex; align-items: center; gap: 2px; }
 .food-grocery-btn { position: relative; }
+/* Inside the cart button's corner: poking out above it, the scroll box
+ * would clip it unless the bar kept a margin for it. */
 .food-badge {
-  position: absolute; top: -6px; right: -6px; min-width: 16px; height: 16px; padding: 0 4px;
+  position: absolute; top: 1px; right: 1px; min-width: 16px; height: 16px; padding: 0 4px;
   border-radius: 8px; background: var(--accent); color: #fff; font-size: 0.65rem; line-height: 16px;
 }
 /* Phone: the categories as a row of chips swiped sideways, one open at a
@@ -1763,7 +1762,7 @@ button.glyph-btn:disabled { opacity: 0.2; }
 /* The selection dot. Faint until the row is hovered or it is on, so a tree
  * nobody is selecting in does not read as a column of radio buttons. */
 .mv-dot {
-  flex: 0 0 11px; width: 11px; height: 11px;
+  flex: none; width: 11px; height: 11px;   /* flex: none, so a resize keeps it round */
   border-radius: 50%;
   border: 1.5px solid var(--muted);
   opacity: 0.35;
@@ -1794,13 +1793,6 @@ input.mv-rename {
   background: var(--panel); color: var(--text);
   border: 1px solid var(--accent); border-radius: 4px;
 }
-/* Documents' "+" on a folder row: quiet until the row is hovered (always shown on a phone). */
-.mv-addbtn {
-  flex: none; width: 24px; height: 22px; padding: 0; line-height: 1;
-  font-size: 1rem; color: var(--muted); opacity: 0.55;
-}
-.mv-node:hover .mv-addbtn, .mv-addbtn:focus-visible { opacity: 1; color: var(--text); }
-html.phone .mv-addbtn { width: 32px; height: 30px; opacity: 1; }
 .mv-menu {
   position: fixed;
   z-index: 60;
@@ -2098,7 +2090,7 @@ select.mv-preplang:invalid, select.mv-preplang[data-empty="true"] { color: var(-
  * wobble around the point it should turn on. A square ring turns on its
  * own centre. */
 .mv-ring {
-  flex: 0 0 11px; width: 11px; height: 11px;
+  flex: none; width: 11px; height: 11px;   /* flex: none, so a resize keeps it round */
   box-sizing: border-box;
   border-radius: 50%;
   border: 2px solid rgba(255, 255, 255, 0.18);
@@ -2406,7 +2398,6 @@ html.phone .cf-row { grid-template-columns: 1fr; }
 }
 .ml-cardtitle { font-size: 0.82rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 4px; }
 .ml-cardsub { font-size: 0.74rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ml-back { margin-bottom: 10px; padding: 2px 8px; }
 .ml-artistname { margin: 0 0 14px; }
 .ml-albuminfo { min-width: 0; display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
 .ml-albuminfo h2 { margin: 0; }
@@ -2493,17 +2484,55 @@ html.phone .mp-side { justify-content: space-between; }
   border: 2px dashed var(--accent); border-radius: 10px;
   background: color-mix(in srgb, var(--accent) 7%, transparent);
 }
+/* Media's way back up (a file's folder, Music's artists, Images' folder
+ * path): one bar across the top -- accent arrow, an icon, the name in
+ * bold -- divided from the page below, not a boxed button. */
+.back-bar {
+  flex: 0 0 auto; align-self: stretch; max-width: 100%;
+  display: flex; align-items: center; gap: 8px;
+  min-height: 44px; padding: 6px 8px; margin-bottom: 8px; font-size: 0.95rem; font-weight: 600;
+  border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: transparent;
+  text-align: left; color: var(--text);
+}
+.back-bar:hover, .back-bar:active { background: var(--panel-2); }
+.back-bar-arrow { color: var(--accent); flex: none; }
+.back-bar-icon { flex: none; }
+.back-bar-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Music's sits at the very top of its scrolling box, edge to edge. */
+.ml-back { width: calc(100% + 24px); max-width: none; margin: -12px -12px 12px; padding: 6px 12px; border-radius: 8px 8px 0 0; }
 /* The open folder's path, back up to the first layer. */
+/* At the box's very top, over its padding, both before and while stuck: a
+ * sticky box stops at the padding's inner edge, so top is minus the padding
+ * (or the photos show through above it), and the margin pulls it up the
+ * same amount at rest (or it changes height as the scrolling starts). One line: the folders above give way (ellipsis)
+ * before the open one does; only a selection's actions may wrap. */
 .ig-crumbs {
   position: sticky; top: -6px; z-index: 6;   /* over the tiles' ticks, and the Move picker with it */
-  display: flex; align-items: center; flex-wrap: wrap; gap: 2px;
-  margin: 0 -16px; padding: 10px 16px 8px;
+  display: flex; align-items: center; flex-wrap: nowrap; gap: 2px;
+  margin: -6px -16px 0; padding: 8px 16px;
   background: var(--panel); border-bottom: 1px solid var(--line);
 }
-.ig-crumbpart { display: inline-flex; align-items: center; gap: 2px; min-width: 0; }
-.ig-crumb { padding: 2px 6px; font-size: 0.9rem; }
-.ig-sep { color: var(--muted); padding: 0 2px; }
-.ig-here { font-weight: 600; font-size: 1rem; padding: 2px 6px; }
+/* The folders above keep their whole names (up to 12em); only the open
+ * one gives way, with an ellipsis. */
+.ig-crumbpart { display: inline-flex; align-items: center; gap: 2px; flex: 0 0 auto; }
+.ig-crumbpart:has(.ig-here) { flex: 0 1 auto; min-width: 0; }
+.ig-crumbs > .ig-up, .ig-crumbs > .ig-crumb, .ig-crumbaccess, .ig-crumbtool { flex-shrink: 0; }
+.ig-crumbs:has(.ig-selbar) { flex-wrap: wrap; }
+.ig-crumbs { min-height: 44px; }
+.ig-up { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; border: 0; margin-right: 2px; }
+/* The folders above as plain words, not boxes: grey and tappable, the open
+ * one in bold -- the look of the other back bars in Media. */
+.ig-crumb {
+  padding: 4px 4px; font-size: 0.95rem; font-weight: 500; color: var(--muted);
+  border: 0; border-radius: 6px; background: transparent;
+  min-width: 0; max-width: 12em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ig-crumb:hover, .ig-crumb:active { color: var(--text); background: var(--panel-2); }
+.ig-sep { color: var(--muted); padding: 0 1px; }
+.ig-here {
+  font-weight: 600; font-size: 0.95rem; padding: 4px 4px; color: var(--text);
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 /* The first layer: a card per folder, a photo on its cover and a couple
    more peeking out behind it, like a pile of prints. */
 /* align-items: start — a card is only as tall as its cover and caption,
@@ -2643,6 +2672,11 @@ html.phone .mp-side { justify-content: space-between; }
   transition: opacity 0.25s ease, transform 0.25s ease;
 }
 .iv-img.in { opacity: 1; transform: none; }
+/* The viewer's own pinch zoom (ImageViewer): no page zoom or scrolling in
+ * here; while a finger moves the picture follows it without easing. */
+.iv-overlay { touch-action: none; overflow: hidden; overscroll-behavior: contain; }
+.iv-img.zoomed { box-shadow: none; border-radius: 0; }
+.iv-img.gesturing { transition: none; }
 /* Small ones (old phone clips are 176×144) are scaled up to at least half
    the width; object-fit keeps the shape when the height caps it. */
 .iv-img { min-width: 50vw; }
@@ -2677,6 +2711,7 @@ html.phone .mp-side { justify-content: space-between; }
 html.phone .iv-img { max-width: 100vw; max-height: calc(100vh - 120px); border-radius: 0; }
 html.phone .iv-nav { display: none; }   /* swipe instead */
 html.phone .ig-scroll { padding: 4px 10px 16px; }
+html.phone .ig-crumbs { top: -4px; margin: -4px -10px 0; padding: 6px 10px; gap: 0; }
 html.phone .ig-tile { border-radius: 8px; }
 
 
@@ -2698,6 +2733,7 @@ html.phone .ig-tile { border-radius: 8px; }
 }
 .ig-albumaccess.public { opacity: 1; }
 .ig-crumbaccess { margin-left: 8px; }
+.ig-crumbtool { margin-left: auto; display: inline-flex; }
 
 .sd-overlay {
   position: fixed; inset: 0; z-index: 1100; display: flex; align-items: center; justify-content: center;
@@ -2845,6 +2881,59 @@ label.button-like {
 .ig-soundtext { display: flex; flex-direction: column; gap: 3px; min-width: 0; padding: 2px 0; }
 .ig-soundname { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.85rem; }
 .ig-soundmeta { color: var(--muted); font-size: 0.72rem; }
+/* Documents: a file that is not a picture -- a page with its type on it,
+ * coloured by family (PDF red, documents blue, sheets green, ...), its name
+ * on two lines at most and its size under it. */
+.ig-docs { display: grid; gap: 18px 14px; margin-top: 10px; align-items: start; }
+.ig-doc {
+  display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0;
+  margin: 0; padding: 10px 6px 8px; border: 1px solid transparent; border-radius: 10px;
+  background: transparent; color: inherit; cursor: pointer; text-align: center;
+}
+.ig-doc:hover, .ig-doc:focus-visible { background: var(--panel-2); outline: none; }
+.ig-doc.picked { border-color: var(--accent); background: var(--panel-2); }
+.ig-docpage { position: relative; width: 56px; height: 70px; color: var(--muted); }
+.ig-docpage svg { width: 100%; height: 100%; fill: var(--panel-2); stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round; }
+.ig-docpage .ig-check { top: -6px; left: -14px; }
+.ig-docext {
+  position: absolute; left: -6px; bottom: 12px; max-width: 64px; overflow: hidden;
+  padding: 1px 5px; border-radius: 4px; font-size: 0.62rem; font-weight: 700; letter-spacing: 0.04em;
+  background: currentColor;
+}
+.ig-docext { color: #fff; background: #6b7280; }
+.tone-pdf { color: #e5534b; }      .tone-pdf .ig-docext { background: #d64541; }
+.tone-doc { color: #5b8def; }      .tone-doc .ig-docext { background: #3f6fd8; }
+.tone-sheet { color: #3fb27f; }    .tone-sheet .ig-docext { background: #2a9467; }
+.tone-slides { color: #e8913a; }   .tone-slides .ig-docext { background: #d27a22; }
+.tone-archive { color: #c9a227; }  .tone-archive .ig-docext { background: #a8861a; }
+.tone-text { color: var(--muted); }
+.ig-docname {
+  width: 100%; font-size: 0.8rem; line-height: 1.25; overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.ig-docsize { font-size: 0.7rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+/* An encrypted folder: a card with a padlock, no cover (the server cannot read it). */
+.ig-lock { color: var(--muted); }
+.ig-vault:hover .ig-lock { color: var(--accent); }
+/* The gallery's ⋮ at the right of its path bar (Images and Documents), and
+ * its little list: new folder, upload, encrypted folder, select, delete. */
+.ig-add { position: relative; display: inline-flex; }
+.ig-addbtn { width: 36px; height: 36px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+.ig-addbtn.open { border-color: var(--accent); color: var(--accent); }
+.ig-addmenu {
+  position: absolute; top: calc(100% + 6px); right: 0; z-index: 20; min-width: 220px;
+  display: flex; flex-direction: column; padding: 4px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+}
+.ig-additem {
+  display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 6px 10px;
+  border: 0; border-radius: 6px; background: transparent; color: var(--text);
+  font-size: 0.9rem; text-align: left; cursor: pointer; white-space: nowrap;
+}
+.ig-additem:hover { background: var(--panel-2); }
+.ig-additem svg { color: var(--muted); flex: none; }
+.ig-additem.danger, .ig-additem.danger svg { color: #e5534b; }
 .iv-audio {
   display: flex; flex-direction: column; align-items: center; gap: 24px;
   width: min(560px, calc(100vw - 40px)); cursor: default;
@@ -2861,8 +2950,14 @@ label.button-like {
   background: rgba(0, 0, 0, 0.35); border: 2px solid rgba(255, 255, 255, 0.85);
   opacity: 0; transition: opacity 0.12s ease;
 }
-.ig-tile:hover .ig-check, .ig-album:hover .ig-check, .ig-sound:hover .ig-check,
-.ig-check.on, .ig-scroll:has(.ig-selbar) .ig-check { opacity: 1; }
+.ig-tile:hover .ig-check, .ig-album:hover .ig-check, .ig-sound:hover .ig-check, .ig-doc:hover .ig-check,
+.ig-check.on, .ig-scroll:has(.ig-selbar) .ig-check, .ig-scroll.selecting .ig-check { opacity: 1; }
+/* A phone: the tick circles only while picking (a long press or the menu's
+ * Select starts it); no text selection or the phone's own long-press menu
+ * on the tiles. */
+html.phone .ig-check { display: none; }
+html.phone .ig-scroll.selecting .ig-check, html.phone .ig-scroll:has(.ig-selbar) .ig-check { display: flex; }
+html.phone .ig-scroll { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 .ig-check:hover { background: rgba(0, 0, 0, 0.55); color: rgba(255, 255, 255, 0.6); }
 .ig-check.on { background: var(--accent); border-color: var(--accent); color: #fff; }
 .ig-tile.picked { outline: 3px solid var(--accent); outline-offset: -3px; }
@@ -2897,6 +2992,19 @@ label.button-like {
 .ig-pickpath, .ig-picknone { color: var(--muted); font-size: 0.72rem; }
 .ig-picknone { padding: 6px 10px; }
 .ig-selbar .danger.armed { background: #7a1f1f; color: #fff; font-weight: 600; }
+/* A phone's selection: the whole path bar, one row -- ✕ and the count, then
+ * select all, move and delete as 40px icons; Delete's second tap shows it
+ * waiting ("Delete 2?"). The move list hangs from the whole bar. */
+.ig-selbar-phone { flex: 1 1 auto; flex-wrap: nowrap; gap: 4px; margin-left: 0; min-width: 0; }
+.ig-selbar-phone .ig-selcount { flex: 1 1 auto; min-width: 0; margin: 0 0 0 4px; font-size: 0.95rem;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ig-selbtn { flex: none; min-width: 40px; height: 40px; padding: 0 8px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.ig-selbtn.active { border-color: var(--accent); color: var(--accent); }
+.ig-selbtn.danger { color: #e5534b; }
+.ig-selbtn.danger.armed { background: #b3302b; border-color: #b3302b; color: #fff; font-weight: 600; font-size: 0.85rem; }
+.ig-selbtn .mv-ring { width: 16px; height: 16px; }
+.ig-selbar-phone .ig-movewrap { position: static; }
+.ig-selbar-phone .ig-picker { left: 0; right: 0; width: auto; }
 /* The Media panel before a tab is picked: a card per tab this user has. */
 .mv-intro {
   flex: 1 1 auto; min-height: 0; overflow-y: auto;
@@ -2940,6 +3048,31 @@ html.phone .switcher.compact .whoami { margin-left: 6px; }
 html.phone .whoami { padding-right: 0; }
 html.phone .whoami-name { max-width: 6em; }
 html.phone .content { padding: 10px 8px; }
+/* A phone held sideways: the panel tabs are a column of icons down the left
+ * edge (the user's name, settings and sign-out at its foot) and the panel
+ * gets the whole height. The labels go whatever App's measuring decided. */
+@media (orientation: landscape) {
+  html.phone .app { display: flex; flex-direction: row; align-items: flex-start; }
+  html.phone .app--fixed { align-items: stretch; }
+  html.phone .topbar {
+    flex: 0 0 auto; align-self: flex-start; height: 100vh; height: 100dvh; overflow-y: auto;
+    padding: 6px; border-bottom: 0; border-right: 1px solid var(--line);
+  }
+  html.phone .switcher { flex-direction: column; width: 48px; min-height: 100%; overflow: visible; }
+  html.phone .switcher > button, html.phone .switcher.compact > button {
+    flex: 0 0 auto; width: 48px; height: 40px; padding: 0; font-size: 1.3rem; line-height: 1;
+  }
+  html.phone .switcher .sw-label { display: none; }
+  html.phone .whoami, html.phone .switcher.compact .whoami { margin: auto 0 0; padding: 0; }
+  html.phone .whoami-name { max-width: 48px; font-size: 0.75rem; }
+  html.phone .whoami-actions { gap: 0; }
+  html.phone .whoami .icon-btn { width: 24px; height: 32px; }
+  /* No bar above the panel here: Personal's table takes the height it left,
+     less the month row and the padding. */
+  html.phone .personal .table-wrap { max-height: calc(100vh - 76px); max-height: calc(100dvh - 76px); }
+  html.phone .content { flex: 1 1 auto; min-width: 0; }
+  html.phone .app--fixed .content { min-height: 0; height: 100%; }
+}
 
 /* Dialogs never wider than the screen, whatever width they ask for. */
 html.phone .modal { max-width: calc(100vw - 16px); padding: 12px; }
@@ -2997,10 +3130,23 @@ html.phone .month-nav h2 {
 html.phone .nav-text { display: none; }
 html.phone .month-nav .nav-icon { display: block; }
 html.phone .food-head { gap: 6px; }
-html.phone .food-head button { padding: 4px 8px; }
+/* The bar's buttons: 40px squares, as in Media and Calendar (Done and Cancel,
+ * words, only as tall). The search is the first of them, the rest at the right. */
+html.phone .food-head button { min-height: 40px; padding: 4px 10px; }
+html.phone .food-head .food-searchbtn, html.phone .food-head .size-pop-btn,
+html.phone .food-head .food-iconbtn {
+  width: 40px; height: 40px; padding: 0; display: inline-flex; align-items: center; justify-content: center;
+}
+html.phone .food-head .food-searchbtn { margin-right: auto; }
+html.phone .food-searchbtn.active { color: var(--accent); }
+html.phone .food-searchrow { display: flex; margin-top: 6px; }
+html.phone .food-searchrow .food-search {
+  flex: 1 1 auto; height: 36px; padding: 3px 10px; font-size: 16px;   /* 16px: smaller makes a phone zoom in on focus */
+  animation: mv-searchslide 0.2s ease-out;
+}
+html.phone .food-searchrow .food-search:focus { outline: none; border-color: var(--accent); }
 html.phone .btn-text { display: none; }
 html.phone .food-head h2, html.phone .food-selected { display: none; }
-html.phone .food-search { flex: 1 1 auto; margin-right: auto; }
 /* The dish form, like the dish dialog: the whole screen, the page behind
  * still, the form scrolling with its buttons pinned at the bottom; the
  * picture full width with its two buttons under it, the stars across the
@@ -3036,7 +3182,7 @@ html.phone .dish-form-actions .dish-form-delete { margin-right: 0; }
 html.phone .mv-sources { flex-wrap: nowrap; position: relative; }
 html.phone .mv-tabcurrent {
   flex: 0 1 auto; min-width: 0; display: inline-flex; align-items: center; gap: 6px;
-  padding: 4px 10px; min-height: 34px; font-size: 0.9rem; white-space: nowrap; overflow: hidden;
+  padding: 4px 12px; min-height: 40px; font-size: 0.95rem; white-space: nowrap; overflow: hidden;
 }
 html.phone .mv-tabcurrent .mv-tablabel { display: inline; overflow: hidden; text-overflow: ellipsis; }
 html.phone .mv-tabcurrent .mv-tabicon { margin-right: 0; }
@@ -3070,7 +3216,12 @@ html.phone .mv-tabstrip > .mv-srcsep { align-self: stretch; width: auto; height:
 html.phone .mv-rowgap { flex: 1 1 auto; min-width: 0; }
 html.phone .mv-sources > .mv-srcsep { margin: 4px 2px; }
 html.phone .mv-sources > .mv-viewpick:empty + .mv-srcsep { display: none; }
-html.phone .mv-sources .mv-searchbtn, html.phone .mv-sources .size-pop-btn, html.phone .mv-sources .mv-viewpick .icon-pick > button { width: 34px; height: 34px; }
+/* Finger-sized, as the calendar's bar: 40px square icon buttons. */
+html.phone .mv-sources .mv-searchbtn, html.phone .mv-sources .size-pop-btn, html.phone .mv-sources .mv-viewpick .icon-pick > button,
+html.phone .mv-sources .upload-pick { width: 40px; height: 40px; }
+/* The jobs button as big as the disk ring beside it (26px), not a 40px box. */
+html.phone .mv-sources .mv-queuebtn { min-width: 26px; height: 26px; padding: 0 5px; justify-content: center; font-size: 0.8rem; border-radius: 6px; }
+html.phone .mv-sources .mv-jobpill { height: 40px; }
 html.phone .mv-queue { flex: 0 0 auto; margin-left: 0; max-width: none; }
 html.phone .mv-queue .mv-jobtext { display: none; }
 /* The queue's list hangs from the whole tab row (.mv-sources is the
@@ -3138,19 +3289,6 @@ html.phone .mv-player.mv-sheet {
   overflow-y: auto; overscroll-behavior: contain;
 }
 html.phone:has(.mv-sheet), html.phone:has(.mv-sheet) body { overflow: hidden; }
-/* Back to the folder: arrow, folder, its name -- a bar across the sheet's
-   top, divided from the page below, not a boxed button. */
-html.phone .mv-sheetback {
-  flex: 0 0 auto; align-self: stretch; max-width: 100%;
-  display: flex; align-items: center; gap: 8px;
-  min-height: 44px; padding: 6px 8px; margin-bottom: 8px; font-size: 0.95rem; font-weight: 600;
-  border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: transparent;
-  text-align: left;
-}
-html.phone .mv-sheetback:active { background: var(--panel-2); }
-.mv-sheetback-arrow { color: var(--accent); flex: none; }
-.mv-sheetback-icon { flex: none; }
-.mv-sheetback-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 html.phone .mv-sheet .mv-close { min-width: 40px; min-height: 40px; }
 /* A selection's actions in two rows: the count with ✕ (clear) at its
  * right, then where to move it and the actions as icons (their names in
@@ -3164,10 +3302,10 @@ html.phone .mv-bulk > button:not(.mv-bulkclear) { min-width: 44px; height: auto;
 html.phone .mv-bulk .mv-bulkclear { height: auto; }
 /* No "open the original in a new tab" on a phone: the app has no tabs. */
 html.phone .iv-original { display: none; }
-/* The staging tabs: no "what just happened" note (errors stay), no
+/* The staging tabs: no "what just happened" note, failed or not, no
  * folder paths or matching status beside TO PROCESS / DONE; a long press
  * on a row selects no text (it is a drag, with no menu here). */
-html.phone .mv-library > p.muted.mv-note { display: none; }
+html.phone .mv-library > p.mv-note { display: none; }   /* failures (red) too */
 html.phone .mv-panepath, html.phone .mu-auto { display: none; }
 html.phone .mv-tree { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 /* The music bar: no details row (album, format, size) and no volume
@@ -3177,6 +3315,17 @@ html.phone .mp-side { display: none; }
 html.phone .mp-buttons { display: grid; grid-template-columns: 1fr auto auto auto 1fr; width: 100%; }
 html.phone .mp-buttons > :first-child { grid-column: 2; }   /* ⏮ ▶ ⏭ in the middle three, with or without the volume */
 html.phone .mp-buttons .mv-volpop { justify-self: end; }
+/* Sideways there is no height to spare: two rows, not three -- the song
+ * (a smaller cover) with the buttons beside it, then the seek bar. */
+@media (orientation: landscape) {
+  html.phone .mp-bar { grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; padding: 6px 10px; }
+  html.phone .mp-controls { display: contents; }
+  html.phone .mp-now { grid-column: 1; grid-row: 1; }
+  html.phone .mp-art { flex-basis: 36px; width: 36px; height: 36px; }
+  html.phone .mp-buttons { grid-column: 2; grid-row: 1; display: flex; width: auto; gap: 6px; }
+  html.phone .mp-buttons > :first-child { grid-column: auto; }
+  html.phone .mp-seek { grid-column: 1 / -1; grid-row: 2; }
+}
 /* Sideways, a full-width 16:9 picture is taller than the screen: it
  * takes the height left over by its title, seek bar and buttons instead
  * (not in full screen, where it has the whole screen). */
@@ -3194,6 +3343,16 @@ html.phone .overview-toolbar select { min-width: 0; flex: 1 1 100%; }
 html.phone .overview-toolbar .presets { flex: 1 1 100%; }
 html.phone .overview-toolbar .presets button { flex: 1 1 0; padding: 4px 2px; white-space: nowrap; }
 html.phone .ov-part { gap: 4px; }
+/* Sideways: the city and the days on one row, and the rows a readable
+ * height, scrolling, rather than sharing a short screen until they overlap. */
+@media (orientation: landscape) {
+  html.phone .overview-toolbar { flex-wrap: nowrap; margin-bottom: 6px; }
+  html.phone .overview-toolbar select { flex: 0 1 34%; }
+  html.phone .overview-toolbar .presets { flex: 1 1 auto; min-width: 0; }
+  html.phone .ov-board { overflow-y: auto; overscroll-behavior: contain; }
+  html.phone .ov-part { flex: 0 0 auto; }
+  html.phone .ov-row { flex: 0 0 auto; min-height: 30px; }
+}
 /* The day ("Wed 11") on one line. Fixed width: each row is its own grid,
    so a content-sized column would shift the icons row to row. */
 /* Icon, temperature, humidity, wind: the wind ("12.6 km/h" and its icon)
@@ -3278,6 +3437,11 @@ html.phone .cal-week-gutter, html.phone .cal-hour-labels { flex-basis: 34px; }
 html.phone .env-title h1 { font-size: 1.25rem; }
 /* The gear is in the tab row: the title would only take height. */
 html.phone .env-title { display: none; }
+/* No "Weather forecast" title either: the tab picker above says it. The
+ * slider beside the day buttons, not on a row of its own. */
+html.phone .fc-head { display: none; }
+html.phone .fc-days { flex-wrap: nowrap; gap: 10px; margin-top: 4px; }
+html.phone .fc-track { flex: 1 1 0; min-width: 0; }
 html.phone .env-range, html.phone .fc-issued, html.phone .fc-daylabel, html.phone .fc-headline, html.phone .fc-sources { display: none; }
 
 /* A phone: the charts two to a page (ChartPager), the pair filling what is

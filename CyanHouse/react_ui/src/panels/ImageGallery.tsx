@@ -1,8 +1,11 @@
+import type React from "react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useBackToClose } from "../backClose";
 import { ACCESS_RANK, api, FolderAccess, StagedFile } from "../api";
 import { AccessBadge } from "./ShareDialog";
 import { useT } from "../i18n";
+import { Icon, IconName } from "./icons";
+import { usePhone } from "../narrow";
 
 /** Tiles drawn at a time: a first screenful or two, then another batch
  *  whenever the end of what is drawn comes near — so ten thousand photos
@@ -48,7 +51,8 @@ function justify(list: StagedFile[], width: number, target: number, complete: bo
  *  under it (its subfolders' too), and the one on its cover. */
 /** `count` is its pictures, `videos` its videos and `audios` its sound
  *  files, each counted apart. */
-type Album = { path: string; name: string; count: number; videos: number; audios: number; albums: number; cover: StagedFile | null; depth: number };
+/** `others` (Documents only): the files that are none of those. */
+type Album = { path: string; name: string; count: number; videos: number; audios: number; others: number; albums: number; cover: StagedFile | null; depth: number };
 
 const byName = (a: string, b: string) => a.localeCompare(b, undefined, { numeric: true });
 /** Pictures: the most recently modified first, name order among equals. */
@@ -70,7 +74,7 @@ export const byDate = (a: StagedFile, b: StagedFile) => b.modified - a.modified 
  *  thumbs.py); the viewer shows the picture itself. Photos dropped on a
  *  folder's card, or on the open folder, from the computer are added to it;
  *  moving and renaming them is the Folders view's job. */
-export function ImageGallery({ area, files, loading, query, size, folder: at, onFolder, onOpen, onUpload, onShare, onMove, onRemove }: {
+export function ImageGallery({ area, files, loading, query, size, folder: at, onFolder, onOpen, onUpload, onShare, onMove, onRemove, onUploadFiles, docs }: {
   area: string;
   files: StagedFile[];
   /** The listing has not arrived yet. */
@@ -92,9 +96,27 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
    *  delete them (to the library's trash). */
   onMove?: (paths: string[], to: string) => Promise<void>;
   onRemove?: (paths: string[]) => Promise<void>;
+  /** Files picked with the menu's Upload, into `folder`. Absent for
+   *  someone who may not upload here at all. */
+  onUploadFiles?: (files: File[], folder: string) => void;
+  /** The Documents tab: every file, not only pictures -- the others as tiles
+   *  with their type, opened by `onOpenFile` (as is an encrypted folder,
+   *  a card with a padlock: the server cannot read it, so it has no cover).
+   *  The path bar is there at the top too, named `rootLabel`. */
+  docs?: {
+    rootLabel: string;
+    onOpenFile: (f: StagedFile) => void;
+    /** Files dropped from the computer on an encrypted folder's card. */
+    onDropOnVault?: (vault: StagedFile, dt: DataTransfer) => void;
+    /** The menu's New encrypted folder, inside `folder`. */
+    onNewVault?: (folder: string) => void;
+  };
 }) {
   const { t } = useT();
+  const phone = usePhone();
   const q = query.trim().toLowerCase();
+  // What is laid out as a file: in Documents everything but folders.
+  const vis = (f: StagedFile) => (docs ? f.kind !== "folder" && f.kind !== "vault" : shown(f));
   // What a drag of files is over: a folder's card ("a:" + folder), a
   // section ("s:" + folder), or the space around them ("bg"). Kept apart
   // because the top folder's name is "" too, and dropping on one must not
@@ -135,7 +157,10 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
   const [moving, setMoving] = useState(false);
   const [armed, setArmed] = useState(false);
   const [busy, setBusy] = useState(false);
-  const clearSel = () => { setSel(new Set()); anchor.current = null; setMoving(false); setArmed(false); };
+  // Picking without a modifier key (a phone has none): the menu's Select
+  // shows every tick, and a tap picks until the bar's ✕.
+  const [selecting, setSelecting] = useState(false);
+  const clearSel = () => { setSel(new Set()); anchor.current = null; setMoving(false); setArmed(false); setSelecting(false); };
   useEffect(clearSel, [at, q]);
   useEffect(() => { setArmed(false); }, [sel]);
   useEffect(() => {
@@ -167,25 +192,29 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
 
   const inside = (f: string) => at === "" || f === at || f.startsWith(at + "/");
   // The open folder's subfolders, as cards, and its own pictures.
-  const [albums, direct] = useMemo(() => {
+  const [albums, direct, vaults] = useMemo(() => {
     const cards = new Map<string, Album>();
     const kids = new Map<string, Set<string>>();
     const own: StagedFile[] = [];
+    const locked: StagedFile[] = [];
     for (const f of files) {
-      if (!shown(f) || !inside(f.folder)) continue;
+      if (f.kind === "vault" && f.folder === at) { locked.push(f); continue; }
+      if (!vis(f) || !inside(f.folder)) continue;
       if (f.folder === at) { own.push(f); continue; }
       const rest = (at ? f.folder.slice(at.length + 1) : f.folder).split("/");
       const path = at ? `${at}/${rest[0]}` : rest[0];
       const depth = rest.length;
       const a = cards.get(path);
-      const video = isVideo(f), audio = isAudio(f);
-      // A sound file has no picture to put on the cover.
-      if (!a) cards.set(path, { path, name: rest[0], count: video || audio ? 0 : 1, videos: video ? 1 : 0,
-                                audios: audio ? 1 : 0, albums: 0, cover: audio ? null : f, depth: audio ? 99 : depth });
+      const video = isVideo(f), audio = isAudio(f), other = !shown(f);
+      // A sound file (or a document) has no picture to put on the cover.
+      const flat = audio || other;
+      if (!a) cards.set(path, { path, name: rest[0], count: video || flat ? 0 : 1, videos: video ? 1 : 0,
+                                audios: audio ? 1 : 0, others: other ? 1 : 0, albums: 0,
+                                cover: flat ? null : f, depth: flat ? 99 : depth });
       else {
-        if (video) a.videos++; else if (audio) a.audios++; else a.count++;
+        if (video) a.videos++; else if (audio) a.audios++; else if (other) a.others++; else a.count++;
         // The cover: the first picture of the shallowest folder in it.
-        if (!audio && (!a.cover || depth < a.depth || (depth === a.depth && byName(f.path, a.cover.path) < 0))) {
+        if (!flat && (!a.cover || depth < a.depth || (depth === a.depth && byName(f.path, a.cover.path) < 0))) {
           a.cover = f;
           a.depth = depth;
         }
@@ -201,7 +230,7 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
       if (f.kind !== "folder" || !inside(f.path) || f.path === at) continue;
       const rest = (at ? f.path.slice(at.length + 1) : f.path).split("/");
       const path = at ? `${at}/${rest[0]}` : rest[0];
-      if (!cards.has(path)) cards.set(path, { path, name: rest[0], count: 0, videos: 0, audios: 0, albums: 0, cover: null, depth: 99 });
+      if (!cards.has(path)) cards.set(path, { path, name: rest[0], count: 0, videos: 0, audios: 0, others: 0, albums: 0, cover: null, depth: 99 });
       if (rest.length > 1) {
         const k = kids.get(path) ?? new Set<string>();
         k.add(rest[1]);
@@ -209,22 +238,24 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
       }
     }
     for (const [path, k] of kids) cards.get(path)!.albums = k.size;
-    own.sort(byDate);
-    return [[...cards.values()].sort((a, b) => byName(a.name, b.name)), own] as const;
-  }, [files, at]);
+    // Documents: the files by name, as a folder lists them; pictures by date.
+    own.sort(docs ? (a, b) => byName(a.name, b.name) : byDate);
+    locked.sort((a, b) => byName(a.name, b.name));
+    return [[...cards.values()].sort((a, b) => byName(a.name, b.name)), own, locked] as const;
+  }, [files, at, !!docs]);
 
   // Searching: what matches under the open folder, folder by folder.
   const sections = useMemo(() => {
     if (!q) return direct.length ? [[at, direct] as [string, StagedFile[]]] : [];
     const by = new Map<string, StagedFile[]>();
     for (const f of files) {
-      if (!shown(f) || !inside(f.folder)) continue;
+      if (!vis(f) || !inside(f.folder)) continue;
       if (!f.path.toLowerCase().includes(q)) continue;
       const l = by.get(f.folder) ?? [];
       l.push(f);
       by.set(f.folder, l);
     }
-    for (const l of by.values()) l.sort(byDate);
+    for (const l of by.values()) l.sort(docs ? (a, b) => byName(a.name, b.name) : byDate);
     // The open folder first, then the others by name.
     return [...by.entries()].sort(([a], [b]) => (a === at ? -1 : b === at ? 1 : byName(a, b)));
   }, [files, q, at, direct]);
@@ -232,7 +263,7 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
   // Everything pickable in the order it is shown, for Shift ranges and
   // "all": the folder cards, then the pictures, section by section.
   const shownOrder = () => [
-    ...(q ? [] : albums.map((a) => a.path)),
+    ...(q ? [] : [...vaults, ...albums].map((a) => a.path)),
     ...sections.flatMap(([, list]) => list.map((f) => f.path)),
   ].filter((p) => pickable.has(p));
   const pick = (path: string, e: React.MouseEvent) => {
@@ -256,8 +287,46 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
   };
   /** A click on a tile or card: picks while picking (or with a modifier),
    *  otherwise does `open`. */
+  // A long press (a phone's way in): selection mode, with what was pressed
+  // picked. Found by the pressed element's data-path, so every kind of tile
+  // and card gets it; the click the release makes is then swallowed.
+  const press = useRef<{ timer: number; x: number; y: number } | null>(null);
+  const swallowClick = useRef(false);
+  const endPress = () => { if (press.current) { clearTimeout(press.current.timer); press.current = null; } };
+  const longPress = {
+    onPointerDown: (e: React.PointerEvent) => {
+      if (e.pointerType !== "touch") return;
+      // A new touch: a long press's leftover (some phones send no click
+      // after one) must not eat this tap.
+      swallowClick.current = false;
+      const path = (e.target as HTMLElement).closest<HTMLElement>("[data-path]")?.dataset.path;
+      endPress();
+      if (!path || !pickable.has(path)) return;
+      press.current = {
+        x: e.clientX, y: e.clientY,
+        timer: window.setTimeout(() => {
+          press.current = null;
+          swallowClick.current = true;
+          setSelecting(true);
+          anchor.current = path;
+          setSel((cur) => new Set(cur).add(path));
+          navigator.vibrate?.(15);
+        }, 500),
+      };
+    },
+    onPointerMove: (e: React.PointerEvent) => {
+      const p = press.current;
+      if (p && Math.hypot(e.clientX - p.x, e.clientY - p.y) > 10) endPress();
+    },
+    onPointerUp: endPress,
+    onPointerCancel: endPress,
+    // The phone's own long-press menu (save image, ...) stays away.
+    onContextMenu: (e: React.MouseEvent) => { if (phone) e.preventDefault(); },
+  };
+  useEffect(() => endPress, []);
   const clickOr = (path: string, open: () => void) => (e: React.MouseEvent) => {
-    if (sel.size || e.ctrlKey || e.metaKey || e.shiftKey) {
+    if (swallowClick.current) { swallowClick.current = false; e.preventDefault(); return; }
+    if (sel.size || selecting || e.ctrlKey || e.metaKey || e.shiftKey) {
       if (pickable.has(path)) pick(path, e);
       else e.preventDefault();
       return;
@@ -281,7 +350,40 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
     setBusy(true);
     try { await what(); clearSel(); } finally { setBusy(false); setArmed(false); setMoving(false); }
   };
-  const selBar = sel.size > 0 && (
+  // A phone: the whole path bar, one row of finger-sized icons -- ✕ and the
+  // count at the left; all, move and delete at the right.
+  const selBar = (sel.size > 0 || selecting) && phone ? (
+    <div className="ig-selbar ig-selbar-phone" onClick={(e) => e.stopPropagation()}>
+      <button className="ghost ig-selbtn" disabled={busy} onClick={clearSel} title={t("ig_clear_sel")} aria-label={t("ig_clear_sel")}>
+        <Icon name="close" size={18} className="" />
+      </button>
+      <span className="ig-selcount">{t("ig_selected", { n: sel.size })}</span>
+      <button className="ghost ig-selbtn" disabled={busy} title={t("ig_select_all")} aria-label={t("ig_select_all")}
+              onClick={() => setSel(new Set(shownOrder()))}>
+        <Icon name="check" size={18} className="" />
+      </button>
+      {onMove && (
+        <span className="ig-movewrap">
+          <button className={"ghost ig-selbtn" + (moving ? " active" : "")} disabled={busy || !sel.size}
+                  title={t("ig_move_to")} aria-label={t("ig_move_to")} onClick={() => setMoving((m) => !m)}>
+            {busy && moving ? <span className="mv-ring" aria-hidden /> : <Icon name="moveTo" size={18} className="" />}
+          </button>
+          {moving && !busy && (
+            <MovePicker folders={destinations} onClose={() => setMoving(false)}
+                        onPick={(to) => run(() => onMove([...sel], to))} />
+          )}
+        </span>
+      )}
+      {onRemove && (
+        <button className={"ghost ig-selbtn danger" + (armed ? " armed" : "")} disabled={busy || !sel.size}
+                title={t("delete")} aria-label={t("delete")}
+                onClick={() => { if (!armed) { setArmed(true); return; } run(() => onRemove([...sel])); }}>
+          {busy && !moving ? <span className="mv-ring" aria-hidden />
+            : <><Icon name="trash" size={18} className="" />{armed && <span>{t("ig_delete_n_short", { n: sel.size })}</span>}</>}
+        </button>
+      )}
+    </div>
+  ) : (sel.size > 0 || selecting) && (
     <div className="ig-selbar" onClick={(e) => e.stopPropagation()}>
       <span className="ig-selcount">{t("ig_selected", { n: sel.size })}</span>
       <button className="ghost" disabled={busy}
@@ -360,10 +462,11 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
     .map(([folder, list, take]) => {
       // Pictures and videos in justified rows; sound files have no picture
       // to size a tile by, so they go in a list of their own underneath.
+      // Documents' other files: tiles with their type, after both.
       const part = list.slice(0, take);
-      const visual = part.filter((f) => !isAudio(f));
+      const visual = part.filter((f) => shown(f) && !isAudio(f));
       return [folder, list, width > 0 ? justify(visual, width, size, take === list.length) : [],
-              part.filter(isAudio)] as const;
+              part.filter(isAudio), part.filter((f) => !shown(f))] as const;
     });
 
   const crumbs = at ? at.split("/") : [];
@@ -371,22 +474,54 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
   // Not while the library is still being read: the card alone would look
   // like an empty library, until the albums appear around it.
   const canCreate = !q && !loading && !!onUpload && mayAdd(at);
-  const showAlbums = !q && (albums.length > 0 || canCreate);
+  // The menu's New folder: its card, named in place, first among the folders.
+  const [naming, setNaming] = useState(false);
+  useEffect(() => { setNaming(false); }, [at, q]);
+  const showAlbums = !q && (albums.length > 0 || vaults.length > 0 || (canCreate && naming));
+  const rootLabel = docs ? docs.rootLabel : t("ig_pictures");
   const picturesFirst = !!at && !q;
   const albumsBlock = showAlbums && (
     <>
       {picturesFirst && sections.length > 0 && (
         <header className="ig-head ig-folderhead">
           <h3>{t("ig_folders")}</h3>
-          <span className="ig-count">{albums.length}</span>
+          <span className="ig-count">{albums.length + vaults.length}</span>
           <span className="ig-line" aria-hidden />
         </header>
       )}
       <div className="ig-albums" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${size}px, 1fr))` }}>
+            {canCreate && naming && <NewAlbum area={area} folder={at} onDone={() => setNaming(false)} />}
+            {vaults.map((v) => (
+              <button key={v.path}
+                      className={"ig-album ig-vault" + (dropOn === "v:" + v.path ? " dropping" : "") + (sel.has(v.path) ? " picked" : "")}
+                      title={v.path} data-path={v.path} onClick={clickOr(v.path, () => docs?.onOpenFile(v))}
+                      {...(docs?.onDropOnVault ? {
+                        onDragOver: (e: React.DragEvent) => {
+                          if (!e.dataTransfer.types.includes("Files")) return;
+                          e.preventDefault(); e.stopPropagation();
+                          e.dataTransfer.dropEffect = "copy";
+                          setDropOn("v:" + v.path);
+                        },
+                        onDragLeave: () => setDropOn((c) => (c === "v:" + v.path ? null : c)),
+                        onDrop: (e: React.DragEvent) => {
+                          if (!e.dataTransfer.types.includes("Files")) return;
+                          e.preventDefault(); e.stopPropagation();
+                          setDropOn(null);
+                          docs.onDropOnVault!(v, e.dataTransfer);
+                        },
+                      } : {})}>
+                <span className="ig-cover">
+                  {pickable.has(v.path) && <Check on={sel.has(v.path)} onPick={(e) => pick(v.path, e)} />}
+                  <span className="ig-broken ig-emptyalbum ig-lock"><Icon name="lock" size={40} className="" /></span>
+                </span>
+                <span className="ig-albumname">{v.name}</span>
+                <span className="ig-albumsub">{t("ig_encrypted")}</span>
+              </button>
+            ))}
             {albums.map((a) => (
               <button key={a.path}
                       className={"ig-album" + (dropOn === "a:" + a.path ? " dropping" : "") + (sel.has(a.path) ? " picked" : "")}
-                      title={a.path} onClick={clickOr(a.path, () => go(a.path))} {...dropProps(a.path, "a:" + a.path)}>
+                      title={a.path} data-path={a.path} onClick={clickOr(a.path, () => go(a.path))} {...dropProps(a.path, "a:" + a.path)}>
                 <span className="ig-cover">
                   {pickable.has(a.path) && <Check on={sel.has(a.path)} onPick={(e) => pick(a.path, e)} />}
                   {accessOf.get(a.path) && (
@@ -399,7 +534,10 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
                 </span>
                 <span className="ig-albumname">{a.name}</span>
                 <span className="ig-albumsub">
-                  {[
+                  {docs ? [
+                    `${a.count + a.videos + a.audios + a.others} ${a.count + a.videos + a.audios + a.others === 1 ? "file" : "files"}`,
+                    a.albums > 0 && `${a.albums} ${a.albums === 1 ? "folder" : "folders"}`,
+                  ].filter(Boolean).join(" · ") : [
                     (a.count > 0 || (!a.videos && !a.audios)) && `${a.count} ${a.count === 1 ? "picture" : "pictures"}`,
                     a.videos > 0 && `${a.videos} ${a.videos === 1 ? "video" : "videos"}`,
                     a.audios > 0 && `${a.audios} audio`,
@@ -408,7 +546,6 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
                 </span>
               </button>
             ))}
-            {canCreate && <NewAlbum area={area} folder={at} size={size} />}
           </div>
     </>
   );
@@ -417,14 +554,18 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
       {!showAlbums && !sections.length && (
         loading
           ? <p className="muted small ig-empty ig-loading"><span className="mv-ring" aria-hidden />{t("ml_reading")}</p>
-          : <p className="muted small ig-empty">{q ? t("ig_no_match") : t("ig_none_yet")}</p>
+          : <p className="muted small ig-empty">{q ? t(docs ? "ig_no_file_match" : "ig_no_match") : t(docs ? "st_nothing_here" : "ig_none_yet")}</p>
       )}
-      {drawn.map(([folder, list, rows, sounds]) => (
+      {drawn.map(([folder, list, rows, sounds, others]) => {
+        // The full-screen viewer steps through the pictures, videos and
+        // sound only (in Documents, the folder holds other files too).
+        const media = docs ? list.filter(shown) : list;
+        return (
         <section key={folder} className={"ig-section" + (dropOn === "s:" + folder ? " dropping" : "")}
                  {...dropProps(folder, "s:" + folder)}>
           {(q || (showAlbums && !picturesFirst)) && (
             <header className="ig-head">
-              <h3>{q ? (folder ? folder.split("/").pop() : t("ig_pictures")) : t("ig_pictures_here")}</h3>
+              <h3>{q ? (folder ? folder.split("/").pop() : rootLabel) : t(docs ? "ig_files_here" : "ig_pictures_here")}</h3>
               {q && folder.includes("/") && <span className="ig-path">{folder}</span>}
               <span className="ig-count">{list.length}</span>
               <span className="ig-line" aria-hidden />
@@ -438,7 +579,7 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
                         src={api.prepThumbUrl(area, file.path, Math.round(w * dpr), thumbVersion(file))}
                         picked={sel.has(file.path)}
                         onPick={pickable.has(file.path) ? (e) => pick(file.path, e) : undefined}
-                        onClick={clickOr(file.path, () => onOpen(list, list.indexOf(file)))} />
+                        onClick={clickOr(file.path, () => onOpen(media, media.indexOf(file)))} />
                 ))}
               </div>
             ))}
@@ -449,22 +590,68 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
                 <SoundCard key={file.path} file={file} src={api.prepRawUrl(area, file.path)}
                            picked={sel.has(file.path)}
                            onPick={pickable.has(file.path) ? (e) => pick(file.path, e) : undefined}
-                           onClick={clickOr(file.path, () => onOpen(list, list.indexOf(file)))} />
+                           onClick={clickOr(file.path, () => onOpen(media, media.indexOf(file)))} />
+              ))}
+            </div>
+          )}
+          {others.length > 0 && (
+            <div className="ig-docs" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${Math.max(96, Math.round(size * 0.55))}px, 1fr))` }}>
+              {others.map((file) => (
+                <DocTile key={file.path} file={file}
+                         picked={sel.has(file.path)}
+                         onPick={pickable.has(file.path) ? (e) => pick(file.path, e) : undefined}
+                         onClick={clickOr(file.path, () => docs?.onOpenFile(file))} />
               ))}
             </div>
           )}
         </section>
-      ))}
+        );
+      })}
       {limit < total && <div ref={more} className="ig-more" aria-hidden />}
     </>
   );
+  // The path bar's menu: what can be done here, each only where it may be.
+  const deletable = !!at && !!onRemove && pickable.has(at);
+  const menuItems: MenuItem[] = [
+    canCreate && { key: "folder", icon: "folderPlus", label: t("vault_new_folder"), run: () => setNaming(true) },
+    !!onUploadFiles && !q && mayAdd(at) && { key: "upload", icon: "upload", label: t("vault_upload"), files: (fs: File[]) => onUploadFiles(fs, at) },
+    !!docs?.onNewVault && !q && mayAdd(at) && { key: "vault", icon: "lock", label: t("vault_new"), run: () => docs.onNewVault!(at) },
+    pickable.size > 0 && shownOrder().length > 0 && { key: "select", icon: "check", label: t("ig_select_items"), run: () => setSelecting(true) },
+    deletable && { key: "delete", icon: "trash", label: t("ig_delete_folder"), danger: true, run: () => {
+      if (!window.confirm(t("ig_delete_folder_ask", { name: crumbs[crumbs.length - 1] ?? at }))) return;
+      const up = crumbs.slice(0, -1).join("/");
+      onRemove!([at]).then(() => go(up)).catch(() => {});
+    } },
+  ].filter(Boolean) as MenuItem[];
+
   return (
-    <div ref={box} className={"ig-scroll" + (at ? " nested" : "") + (dropOn === "bg" ? " dropping" : "")}
-         {...dropProps(at, "bg")}>
-      {at && (
+    <div ref={box} className={"ig-scroll" + (at ? " nested" : "") + (selecting ? " selecting" : "") + (dropOn === "bg" ? " dropping" : "")}
+         {...dropProps(at, "bg")} {...longPress}>
+      {/* At the top too: the library's name, and the menu. */}
+      {(
         <nav className="ig-crumbs">
-          <button className="ghost ig-crumb" onClick={() => go("")}>{t("ig_pictures")}</button>
-          {crumbs.map((c, i) => (
+          {phone && selBar ? selBar : <>
+          {/* Up one folder, as the other back bars in Media. */}
+          {at && (
+            <button className="ghost ig-up" title={t("back")} aria-label={t("back")}
+                    onClick={() => go(crumbs.slice(0, -1).join("/"))}>
+              <Icon name="left" size={16} className="back-bar-arrow" />
+            </button>
+          )}
+          {at
+            ? <button className="ghost ig-crumb" onClick={() => go("")}>{rootLabel}</button>
+            : <span className="ig-here">{rootLabel}</span>}
+          {/* A phone: the folders between the top and the open one are a
+              "…" (up one level, their path in its tooltip), so the bar
+              stays one line of whole words. */}
+          {phone && crumbs.length > 1 && (
+            <span className="ig-crumbpart">
+              <span className="ig-sep" aria-hidden>›</span>
+              <button className="ghost ig-crumb" title={crumbs.slice(0, -1).join(" › ")}
+                      onClick={() => go(crumbs.slice(0, -1).join("/"))}>…</button>
+            </span>
+          )}
+          {crumbs.map((c, i) => (phone && i < crumbs.length - 1) ? null : (
             <span key={i} className="ig-crumbpart">
               <span className="ig-sep" aria-hidden>›</span>
               {i < crumbs.length - 1
@@ -472,14 +659,15 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
                 : <span className="ig-here">{c}</span>}
             </span>
           ))}
-          {accessOf.get(at) && (
+          {at && accessOf.get(at) && (
             <AccessBadge access={accessOf.get(at)!} className="ig-crumbaccess"
                          onShare={onShare ? () => onShare(at) : undefined} />
           )}
           {selBar}
+          {!selBar && menuItems.length > 0 && <span className="ig-crumbtool"><GalleryMenu items={menuItems} /></span>}
+          </>}
         </nav>
       )}
-      {!at && selBar && <div className="ig-crumbs ig-selonly">{selBar}</div>}
       {/* Inside an album its own pictures come first and its folders after;
           at the top, where the albums are what you came for, the other way
           round. */}
@@ -488,51 +676,125 @@ export function ImageGallery({ area, files, loading, query, size, folder: at, on
   );
 }
 
-/** The last card of the albums: a new folder, here. Its name is typed on
- *  the card; the new folder is the maker's (image_access.claim), and it
- *  appears as soon as the listing is read again (the server says so). */
-function NewAlbum({ area, folder }: { area: string; folder: string; size: number }) {
+/** A new folder, here (the menu's New folder): its name typed on a card
+ *  first among the folders; the new folder is the maker's
+ *  (image_access.claim), and it appears as soon as the listing is read
+ *  again (the server says so). An empty name, Esc or a tap away drop it. */
+function NewAlbum({ area, folder, onDone }: { area: string; folder: string; onDone: () => void }) {
   const { t } = useT();
-  const [editing, setEditing] = useState(false);
   const [name, setName] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const create = async () => {
     const n = name.trim();
-    if (!n) { setEditing(false); return; }
+    if (!n) { onDone(); return; }
     setBusy(true);
     setError("");
     try {
       await api.prepMkdir(area, folder, n);
-      setEditing(false);
-      setName("");
+      onDone();
     } catch (e) {
       setError(String(e).replace(/^Error:\s*/, ""));
-    } finally {
       setBusy(false);
     }
   };
-  if (!editing) {
-    return (
-      <button className="ig-album ig-newalbum" onClick={() => setEditing(true)} title={t("ig_new_folder_title")}>
-        <span className="ig-cover"><span className="ig-newplus" aria-hidden>＋</span></span>
-        <span className="ig-albumname">{t("vault_new_folder")}</span>
-        <span className="ig-albumsub">{folder ? t("ig_in", { name: folder.split("/").pop() ?? "" }) : t("ig_own_album")}</span>
-      </button>
-    );
-  }
   return (
     <div className="ig-album ig-newalbum editing">
       <span className="ig-cover"><span className="ig-newplus" aria-hidden>📁</span></span>
       <input className="ig-newname" autoFocus placeholder={t("ig_folder_name")} value={name} disabled={busy}
              onChange={(e) => setName(e.target.value)}
-             onBlur={() => { if (!name.trim()) setEditing(false); }}
+             onBlur={() => { if (!name.trim()) onDone(); }}
              onKeyDown={(e) => {
                if (e.key === "Enter") { e.preventDefault(); create(); }
-               if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); setEditing(false); setName(""); }
+               if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); onDone(); }
              }} />
       <span className={"ig-albumsub" + (error ? " error" : "")}>{error || (busy ? t("vault_creating") : t("ig_enter_esc"))}</span>
     </div>
+  );
+}
+
+type MenuItem = { key: string; icon: IconName; label: string; danger?: boolean; run?: () => void; files?: (fs: File[]) => void };
+
+/** The path bar's ⋮: a short list of what can be done in the open folder.
+ *  An item with `files` picks files from the device. A tap elsewhere or
+ *  Back puts it away. */
+function GalleryMenu({ items }: { items: MenuItem[] }) {
+  const { t } = useT();
+  const [open, setOpen] = useState(false);
+  const boxRef = useRef<HTMLSpanElement>(null);
+  useBackToClose(() => setOpen(false), open);
+  useEffect(() => {
+    if (!open) return;
+    const down = (e: PointerEvent) => { if (!boxRef.current?.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener("pointerdown", down);
+    return () => document.removeEventListener("pointerdown", down);
+  }, [open]);
+  return (
+    <span className="ig-add" ref={boxRef}>
+      <button className={"ghost ig-addbtn" + (open ? " open" : "")} title={t("more")} aria-label={t("more")}
+              aria-expanded={open} onClick={() => setOpen(!open)}>
+        <Icon name="more" size={18} className="" />
+      </button>
+      {open && (
+        <div className="ig-addmenu">
+          {items.map((it) => it.files ? (
+            <label key={it.key} className="ig-additem">
+              <Icon name={it.icon} size={16} className="" />
+              {it.label}
+              <input type="file" multiple hidden onChange={(e) => {
+                const fs = Array.from(e.target.files ?? []);
+                e.target.value = "";
+                setOpen(false);
+                if (fs.length) it.files!(fs);
+              }} />
+            </label>
+          ) : (
+            <button key={it.key} className={"ig-additem" + (it.danger ? " danger" : "")}
+                    onClick={() => { setOpen(false); it.run?.(); }}>
+              <Icon name={it.icon} size={16} className="" />
+              {it.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </span>
+  );
+}
+
+/** A file's type, as the short tag on its tile ("PDF", "DOCX") and the
+ *  colour family it is drawn in. */
+function docType(name: string): { ext: string; tone: string } {
+  const m = /\.([a-z0-9]{1,5})$/i.exec(name);
+  const ext = m ? m[1].toLowerCase() : "";
+  const tone = ext === "pdf" ? "pdf"
+    : /^(doc|docx|odt|rtf|pages)$/.test(ext) ? "doc"
+    : /^(xls|xlsx|ods|csv|numbers)$/.test(ext) ? "sheet"
+    : /^(ppt|pptx|odp|key)$/.test(ext) ? "slides"
+    : /^(zip|rar|7z|tar|gz|bz2|xz)$/.test(ext) ? "archive"
+    : /^(txt|md|log|json|xml|yml|yaml|ini|cfg)$/.test(ext) ? "text"
+    : "other";
+  return { ext: ext.toUpperCase() || "FILE", tone };
+}
+
+/** Documents: a file that is not a picture -- a page with its type on it,
+ *  its name and size under it. */
+function DocTile({ file, picked, onPick, onClick }: {
+  file: StagedFile; picked: boolean; onPick?: (e: React.MouseEvent) => void; onClick: (e: React.MouseEvent) => void;
+}) {
+  const { ext, tone } = docType(file.name);
+  return (
+    <button className={"ig-doc" + (picked ? " picked" : "")} title={file.path} onClick={onClick} data-path={file.path}>
+      <span className={"ig-docpage tone-" + tone}>
+        {onPick && <Check on={picked} onPick={onPick} />}
+        <svg viewBox="0 0 48 60" aria-hidden>
+          <path d="M6 2h26l14 14v40a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z" />
+          <path d="M32 2v12a2 2 0 0 0 2 2h12" />
+        </svg>
+        <span className="ig-docext">{ext}</span>
+      </span>
+      <span className="ig-docname">{file.name}</span>
+      <span className="ig-docsize">{fmtSize(file.size)}</span>
+    </button>
   );
 }
 
@@ -612,7 +874,7 @@ function Tile({ file, src, width, grow, onClick, picked, onPick }: {
   // Its place in the row is fixed before the thumbnail arrives: nothing
   // moves when it does.
   return (
-    <button className={"ig-tile " + state + (picked ? " picked" : "")} onClick={onClick} title={file.name}
+    <button className={"ig-tile " + state + (picked ? " picked" : "")} onClick={onClick} title={file.name} data-path={file.path}
             style={{ flex: grow ? `${width} 1 0` : `0 0 ${Math.round(width)}px` }}>
       {state !== "error" ? (
         <img src={src} alt={file.name} loading="lazy" decoding="async" draggable={false}
@@ -657,7 +919,7 @@ function SoundCard({ file, src, onClick, picked, onPick }: {
   }, [src]);
   const ext = file.name.split(".").pop()?.toUpperCase();
   return (
-    <button ref={ref} className={"ig-sound" + (picked ? " picked" : "")} onClick={onClick} title={file.name}>
+    <button ref={ref} className={"ig-sound" + (picked ? " picked" : "")} onClick={onClick} title={file.name} data-path={file.path}>
       {onPick && <Check on={picked} onPick={onPick} />}
       <span className="ig-soundicon" aria-hidden>♪</span>
       <span className="ig-soundtext">
@@ -701,7 +963,20 @@ export function ImageViewer({ area, list, index, onIndex, onClose, mayDelete, on
   useBackToClose(onClose);
   const file = list[index];
   const [loaded, setLoaded] = useState(false);
-  const [touch, setTouch] = useState<number | null>(null);
+  // The viewer's own zoom, by touch: pinch (1-5x, around the fingers), one
+  // finger pans while zoomed, a double tap toggles 2.5x. Unzoomed, a swipe
+  // steps to the next picture; zoomed, it never does. The browser's page
+  // zoom is off in here (touch-action: none), so nothing else scrolls.
+  const [zoom, setZoom] = useState({ s: 1, x: 0, y: 0 });
+  const [gesturing, setGesturing] = useState(false);
+  const zoomRef = useRef(zoom);
+  zoomRef.current = zoom;
+  const imgRef = useRef<HTMLImageElement | null>(null);
+  const pts = useRef(new Map<number, { x: number; y: number }>());
+  const gesture = useRef<{ kind: "pan" | "pinch"; x0: number; y0: number; s0: number; tx0: number; ty0: number; d0: number } | null>(null);
+  // A drag or pinch is not a tap: the click that follows it closes nothing.
+  const moved = useRef(false);
+  const lastTap = useRef(0);
   // The right-click menu: where it opened, and whether Delete is armed.
   const [menu, setMenu] = useState<{ x: number; y: number; armed: boolean } | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -714,7 +989,7 @@ export function ImageViewer({ area, list, index, onIndex, onClose, mayDelete, on
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [paused, setPaused] = useState(false);
   const [posterNote, setPosterNote] = useState("");
-  useEffect(() => { setLoaded(false); setMenu(null); setPaused(false); setPosterNote(""); }, [file?.path]);
+  useEffect(() => { setLoaded(false); setMenu(null); setPaused(false); setPosterNote(""); setZoom({ s: 1, x: 0, y: 0 }); }, [file?.path]);
   const usePoster = async () => {
     const v = videoRef.current;
     if (!v || !onPoster || !v.videoWidth) return;
@@ -760,6 +1035,88 @@ export function ImageViewer({ area, list, index, onIndex, onClose, mayDelete, on
     }
   }, [area, list, index]);
 
+  /** Keep a zoomed picture over the screen: it pans no further than its
+   *  own edges. */
+  const clamp = (z: { s: number; x: number; y: number }) => {
+    const el = imgRef.current;
+    if (!el || z.s <= 1) return { s: 1, x: 0, y: 0 };
+    const mx = (el.offsetWidth * (z.s - 1)) / 2, my = (el.offsetHeight * (z.s - 1)) / 2;
+    return { s: z.s, x: Math.max(-mx, Math.min(mx, z.x)), y: Math.max(-my, Math.min(my, z.y)) };
+  };
+  /** Zoom to `s`, keeping the picture's point under (px, py) where it is. */
+  const zoomAt = (s: number, px: number, py: number, from = zoomRef.current, at = { x: px, y: py }) => {
+    const cx = window.innerWidth / 2, cy = window.innerHeight / 2;
+    const ux = (at.x - cx - from.x) / from.s, uy = (at.y - cy - from.y) / from.s;
+    return clamp({ s, x: px - cx - ux * s, y: py - cy - uy * s });
+  };
+  const touchProps = {
+    onPointerDown: (e: React.PointerEvent) => {
+      if (e.pointerType !== "touch") return;
+      pts.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      const z = zoomRef.current;
+      if (pts.current.size === 1) {
+        moved.current = false;
+        gesture.current = { kind: "pan", x0: e.clientX, y0: e.clientY, s0: z.s, tx0: z.x, ty0: z.y, d0: 0 };
+      } else if (pts.current.size === 2 && !isAudio(file) && !isVideo(file)) {
+        const [a, b] = [...pts.current.values()];
+        gesture.current = { kind: "pinch", x0: (a.x + b.x) / 2, y0: (a.y + b.y) / 2, s0: z.s, tx0: z.x, ty0: z.y,
+                            d0: Math.hypot(a.x - b.x, a.y - b.y) || 1 };
+        moved.current = true;
+        setGesturing(true);
+      }
+    },
+    onPointerMove: (e: React.PointerEvent) => {
+      if (!pts.current.has(e.pointerId)) return;
+      pts.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      const g = gesture.current;
+      if (!g) return;
+      if (g.kind === "pinch" && pts.current.size >= 2) {
+        const [a, b] = [...pts.current.values()];
+        const s = Math.max(1, Math.min(5, g.s0 * Math.hypot(a.x - b.x, a.y - b.y) / g.d0));
+        setZoom(zoomAt(s, (a.x + b.x) / 2, (a.y + b.y) / 2, { s: g.s0, x: g.tx0, y: g.ty0 }, { x: g.x0, y: g.y0 }));
+      } else if (g.kind === "pan") {
+        const dx = e.clientX - g.x0, dy = e.clientY - g.y0;
+        if (Math.abs(dx) > 8 || Math.abs(dy) > 8) moved.current = true;
+        if (g.s0 > 1) {
+          setGesturing(true);
+          setZoom(clamp({ s: g.s0, x: g.tx0 + dx, y: g.ty0 + dy }));
+        }
+      }
+    },
+    onPointerUp: (e: React.PointerEvent) => {
+      if (!pts.current.has(e.pointerId)) return;
+      pts.current.delete(e.pointerId);
+      const g = gesture.current;
+      if (pts.current.size > 0) {
+        // One finger left of a pinch: it pans from here.
+        const [a] = [...pts.current.values()];
+        const z = zoomRef.current;
+        gesture.current = { kind: "pan", x0: a.x, y0: a.y, s0: z.s, tx0: z.x, ty0: z.y, d0: 0 };
+        return;
+      }
+      gesture.current = null;
+      setGesturing(false);
+      if (!g) return;
+      if (g.kind === "pan" && g.s0 === 1) {
+        const dx = e.clientX - g.x0, dy = e.clientY - g.y0;
+        if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) { go(dx < 0 ? 1 : -1); return; }
+      }
+      // A double tap on the picture: 2.5x there, or back to the whole of it.
+      if (!moved.current && e.target === imgRef.current) {
+        const now = Date.now();
+        if (now - lastTap.current < 300) {
+          lastTap.current = 0;
+          setZoom(zoomRef.current.s > 1 ? { s: 1, x: 0, y: 0 } : zoomAt(2.5, e.clientX, e.clientY));
+        } else lastTap.current = now;
+      }
+    },
+    onPointerCancel: (e: React.PointerEvent) => {
+      pts.current.delete(e.pointerId);
+      if (!pts.current.size) { gesture.current = null; setGesturing(false); }
+    },
+  };
+  const zoomed = zoom.s > 1;
+
   if (!file) return null;
   const openMenu = (e: React.MouseEvent) => {
     // Without the right to delete, the browser's own menu stays.
@@ -769,14 +1126,8 @@ export function ImageViewer({ area, list, index, onIndex, onClose, mayDelete, on
     setMenu({ x: e.clientX, y: e.clientY, armed: false });
   };
   return (
-    <div className="iv-overlay" onClick={() => (menu ? setMenu(null) : onClose())}
-         onTouchStart={(e) => setTouch(e.touches[0].clientX)}
-         onTouchEnd={(e) => {
-           if (touch === null) return;
-           const dx = e.changedTouches[0].clientX - touch;
-           if (Math.abs(dx) > 50) go(dx < 0 ? 1 : -1);
-           setTouch(null);
-         }}>
+    <div className="iv-overlay" {...touchProps}
+         onClick={() => { if (moved.current) { moved.current = false; return; } if (menu) setMenu(null); else onClose(); }}>
       <div className="iv-top" onClick={(e) => e.stopPropagation()}>
         <span className="iv-name" title={file.path}>{file.name}</span>
         <span className="iv-meta">
@@ -800,7 +1151,9 @@ export function ImageViewer({ area, list, index, onIndex, onClose, mayDelete, on
                onPause={() => setPaused(true)} onPlay={() => { setPaused(false); setPosterNote(""); }}
                onClick={(e) => { e.stopPropagation(); setMenu(null); }} onContextMenu={openMenu} />
       ) : (
-        <img key={file.path} className={"iv-img" + (loaded ? " in" : "")} src={api.prepRawUrl(area, file.path)}
+        <img key={file.path} ref={imgRef} src={api.prepRawUrl(area, file.path)}
+             className={"iv-img" + (loaded ? " in" : "") + (zoomed ? " zoomed" : "") + (gesturing ? " gesturing" : "")}
+             style={zoomed ? { transform: `translate(${zoom.x}px, ${zoom.y}px) scale(${zoom.s})` } : undefined}
              alt={file.name} onLoad={() => setLoaded(true)} draggable={false}
              onClick={(e) => { e.stopPropagation(); setMenu(null); }} onContextMenu={openMenu} />
       )}

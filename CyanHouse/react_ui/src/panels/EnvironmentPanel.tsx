@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import createPlotlyComponent from "react-plotly.js/factory";
 import Plotly from "plotly.js-dist-min";
 import { api, City, EnvBootstrap, SeriesResponse, useVersionPoll, Variable } from "../api";
@@ -291,7 +292,7 @@ export function EnvironmentPanel() {
             {x.label}
           </button>
         ))}
-        {tab === "stocks" && <span className="env-pickslot" ref={setPickerSlot} />}
+        {(tab === "stocks" || tab === "overview") && <span className="env-pickslot" ref={setPickerSlot} />}
         {(tab === "forecast" || tab === "historical") && (
           <CityPicker cities={boot.cities} selected={cities} onToggle={(key, on) =>
             changeCities((s) => {
@@ -310,7 +311,7 @@ export function EnvironmentPanel() {
       </div>
 
       <div className="env-tab-body">
-      {tab === "overview" && <OverviewView cities={boot.cities} />}
+      {tab === "overview" && <OverviewView cities={boot.cities} pickerSlot={pickerSlot} />}
       {tab === "stocks" && <StocksView pickerSlot={pickerSlot} />}
 
       {tab === "historical" && (
@@ -465,9 +466,10 @@ function shortDate(iso: string, lang: string): string {
 
 /** The cities shown (forecast and history): a button with their flags, and
  *  under it a small list to tick them on and off. A tap elsewhere or Back
- *  puts it away. */
-function CityPicker({ cities, selected, onToggle }: {
-  cities: City[]; selected: Set<string>; onToggle: (key: string, on: boolean) => void;
+ *  puts it away. `single` (the overview, one city): a pick replaces the
+ *  city and closes the list. */
+function CityPicker({ cities, selected, onToggle, single = false }: {
+  cities: City[]; selected: Set<string>; onToggle: (key: string, on: boolean) => void; single?: boolean;
 }) {
   const { t } = useT();
   const [open, setOpen] = useState(false);
@@ -490,8 +492,8 @@ function CityPicker({ cities, selected, onToggle }: {
         <div className="env-citypop">
           {cities.map((c) => (
             <label key={c.key} className="check">
-              <input type="checkbox" checked={selected.has(c.key)}
-                     onChange={(e) => onToggle(c.key, e.target.checked)} />
+              <input type={single ? "radio" : "checkbox"} checked={selected.has(c.key)}
+                     onChange={(e) => { onToggle(c.key, e.target.checked); if (single) setOpen(false); }} />
               <span style={{ color: c.color }}>{c.flag} {c.city_name}</span>
             </label>
           ))}
@@ -510,7 +512,7 @@ function groupBy(vars: Variable[]): Record<string, Variable[]> {
 /** The Overview tab: the forecast board of one city, over a range, both
  *  remembered on this device. Also the Android shell's morning popup
  *  (WeatherPopup.tsx). */
-export function OverviewView({ cities }: { cities: City[] }) {
+export function OverviewView({ cities, pickerSlot = null }: { cities: City[]; pickerSlot?: HTMLElement | null }) {
   const { t } = useT();
   const { forecast } = useVersionPoll();
   const [saved, setCity] = useState<string>(loadOverviewCity);
@@ -528,8 +530,13 @@ export function OverviewView({ cities }: { cities: City[] }) {
   };
   return (
     <div className="env-charts env-charts--fit">
+      {/* In the panel the city is the tab row's button, as on Forecast; the
+          Android popup has no tab row and keeps a plain select. */}
+      {pickerSlot && createPortal(
+        <CityPicker cities={cities} selected={new Set([city])} single onToggle={(key) => changeCity(key)} />,
+        pickerSlot)}
       <div className="overview-toolbar">
-        <select
+        {!pickerSlot && <select
           value={city}
           onChange={(e) => changeCity(e.target.value)}
         >
@@ -538,7 +545,7 @@ export function OverviewView({ cities }: { cities: City[] }) {
               {c.flag} {c.city_name}
             </option>
           ))}
-        </select>
+        </select>}
         <div className="presets">
           <button
             className={range === "today" ? "active" : ""}

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { api, MusicLibrary as Library, MusicSong } from "../api";
 import { CoverBook } from "./CoverBook";
 import { useT } from "../i18n";
+import { Icon } from "./icons";
 
 /** The Music tab as a music library rather than a folder tree: artists —
  *  each one a single list of all their songs, album by album under a
@@ -72,7 +73,10 @@ export function MusicLibrary({ view, query, activePath, version, onOpen, coverSi
     const x = lib.artists.find((y) => y.name === artist);
     return (
       <div className="ml-scroll">
-        <button className="ghost ml-back" onClick={() => setArtist(null)}>‹ {t("ml_artists")}</button>
+        <button className="ghost back-bar ml-back" onClick={() => setArtist(null)}>
+          <Icon name="left" size={16} className="back-bar-arrow" />
+          <span className="back-bar-name">{t("ml_artists")}</span>
+        </button>
         <div className="ml-artisthead">
           <span className="ml-art ml-round ml-headart">
             {x?.cover ? <img src={api.musicArtUrl(x.cover, 400)} alt="" /> : <span className="ml-blank">{artist}</span>}

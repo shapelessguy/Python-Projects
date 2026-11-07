@@ -502,8 +502,9 @@ export interface TreeAction {
   /** Move these into the root of another folder — the context menu's
    *  "Move to", the same destinations the selection bar offers. */
   moveTo: (paths: string[], toArea: string) => void;
-  /** Files dragged in from the desktop, dropped on the folder `to`. */
-  upload: (dt: DataTransfer, to: string) => void;
+  /** Files dragged in from the desktop, dropped on the folder `to`. Absent
+   *  where nothing is uploaded (the film and music libraries). */
+  upload?: (dt: DataTransfer, to: string) => void;
   /** Create an empty folder called `name` inside `parent` ("" is the root). */
   mkdir: (parent: string, name: string) => void;
 }
@@ -614,7 +615,7 @@ export function FileTree({
   // folder the tree shows rather than anything in it.
   // `add`: the "+" of a folder row (or the top's), offering a folder or an
   // encrypted one inside it -- not the right-click menu.
-  const [menu, setMenu] = useState<{ x: number; y: number; file: StagedFile | null; add?: string } | null>(null);
+  const [menu, setMenu] = useState<{ x: number; y: number; file: StagedFile | null } | null>(null);
   // The only irreversible thing in this panel, so it takes two clicks: the
   // item arms itself first and says what it is about to take with it.
   const [armed, setArmed] = useState(false);
@@ -853,23 +854,6 @@ export function FileTree({
     setMenu(null);
   };
 
-  /** Documents' "+" on a folder row (and the top's): a new folder or an
-   *  encrypted one inside it, where a phone has no right click. */
-  const addBtn = (parent: string) => onNewVault && allows(parent ? files.find((x) => x.path === parent) ?? null : null, "add") && (
-    <button
-      className="ghost mv-addbtn"
-      title={t("vault_new_folder")}
-      aria-label={t("vault_new_folder")}
-      onClick={(e) => {
-        e.stopPropagation();
-        const r = e.currentTarget.getBoundingClientRect();
-        setMenu({ x: Math.max(8, r.right - 220), y: r.bottom + 4, file: null, add: parent });
-      }}
-    >
-      +
-    </button>
-  );
-
   const createRow = (parent: string, depth: number) =>
     creating?.parent === parent && (
       <div className="mv-node folder" style={{ paddingLeft: 6 + depth * 14 }}>
@@ -911,7 +895,7 @@ export function FileTree({
       const from = currentDrag?.area;
       return from !== undefined && (acceptsFrom === "*" || acceptsFrom.includes(from));
     }
-    return canEdit && e.dataTransfer.types.includes("Files");
+    return canEdit && !!actions.upload && e.dataTransfer.types.includes("Files");
   };
 
   const drop = (e: React.DragEvent, to: string) => {
@@ -926,7 +910,7 @@ export function FileTree({
     const raw = e.dataTransfer.getData(DRAG_TYPE);
     if (!raw) {
       // From outside the page: upload it into whatever folder it landed on.
-      if (e.dataTransfer.types.includes("Files")) actions.upload(e.dataTransfer, to);
+      if (e.dataTransfer.types.includes("Files")) actions.upload?.(e.dataTransfer, to);
       return;
     }
     try {
@@ -1088,7 +1072,6 @@ export function FileTree({
               {markCounts.get(f.path)} ?
             </span>
           )}
-          {f.kind === "folder" && addBtn(f.path)}
           <span className="mv-size">
             {folder ? `${f.children ?? 0} · ${fmtSize(f.size)}` : fmtSize(f.size)}
           </span>
@@ -1127,7 +1110,6 @@ export function FileTree({
             {!canEdit ? (q ? t("st_shown") : t("st_total"))
               : allOn ? t("st_unselect_all") : picked.size ? t("st_select_all_n", { n: picked.size }) : t("ig_select_all")}
           </span>
-          {addBtn("")}
           <span className="mv-size" title={picked.size ? t("st_selected_of_shown") : t("st_everything_shown")}>
             {picked.size ? t("st_size_of", { a: fmtSize(pickedSize), b: fmtSize(shownSize) }) : fmtSize(shownSize)}
           </span>
@@ -1135,19 +1117,11 @@ export function FileTree({
       )}
       {createRow("", 0)}
       {shown.map((n) => row(n, 0))}
-      {/* Empty: the "+" where it can make something, else say so. */}
       {!shown.length && !creating && (
-        <p className="muted small">{loading ? t("ml_reading") : addBtn("") || t("st_nothing_here")}</p>
+        <p className="muted small">{loading ? t("ml_reading") : t("st_nothing_here")}</p>
       )}
 
-      {menu && menu.add !== undefined && (
-        <div className="mv-menu" style={{ left: menu.x, top: menu.y }} onClick={(e) => e.stopPropagation()}>
-          <button onClick={() => startCreate(menu.add!)}>📁 {t("vault_new_folder")}</button>
-          <button onClick={() => { onNewVault?.(menu.add!); setMenu(null); }}>🔐 {t("st_new_vault")}</button>
-        </div>
-      )}
-
-      {menu && !menu.file && menu.add === undefined && (
+      {menu && !menu.file && (
         <div className="mv-menu" style={{ left: menu.x, top: menu.y }}
              onClick={(e) => e.stopPropagation()}>
           <button

@@ -46,6 +46,7 @@ const COVER_COOKIE = "movies_cover";
 // The Music tab's view: the library by album, artist or song, or its folders.
 const MUSIC_VIEW_COOKIE = "music_view";
 const IMAGES_VIEW_COOKIE = "images_view";
+const DOCS_VIEW_COOKIE = "documents_view";
 const THUMB_COOKIE = "image_size";
 const THUMB_MIN = 70;
 const THUMB_MAX = 420;
@@ -64,6 +65,10 @@ const EXTERNAL = [
 /** The tabs that keep only their icon when the tab row runs out of room
  *  (styles.css, .mv-sources): the film library (MOVIES_KEY), and the music,
  *  image and document libraries. A staging area's icon comes from secrets.json. */
+/** Libraries nothing is uploaded into, by button or by dropping files from
+ *  the desktop: films and music come in through the staging areas. Moving
+ *  things around inside them by drag and drop still works. */
+const NO_UPLOAD = new Set<string>([MOVIES_KEY, ":music"]);
 const TAB_ICONS: Record<string, string> = { [MOVIES_KEY]: "🎬", ":music": "🎵", ":images": "🖼️", ":documents": "📄" };
 /** The Media panel's `tab` before one is picked: its introduction. */
 const INTRO = "#intro";
@@ -395,6 +400,14 @@ export function MoviesPanel() {
   const setThumbSize = (n: number) => { setThumbSizeState(n); writeCookie(THUMB_COOKIE, String(n)); };
   // The gallery's open folder ("" is its first layer, the folders).
   const [galleryFolder, setGalleryFolder] = useState("");
+  // The Documents tab: the same gallery (the default) or the folder tree,
+  // with its own open folder.
+  const [docsView, setDocsViewState] = useState<"gallery" | "folders">(() =>
+    readCookie(DOCS_VIEW_COOKIE) === "folders" ? "folders" : "gallery");
+  const setDocsView = (v: "gallery" | "folders") => { setDocsViewState(v); writeCookie(DOCS_VIEW_COOKIE, v); };
+  const [docsFolder, setDocsFolder] = useState("");
+  // Its files as the gallery takes them: an encrypted folder one entry.
+  const docsFiles = useMemo(() => treeFiles(":documents", listings[":documents"] ?? []), [listings]);
   // The folder whose sharing is being edited (ShareDialog), if any.
   const [sharing, setSharing] = useState<{ area: string; path: string } | null>(null);
   // Where a new encrypted folder is being made (CreateVaultDialog), if one is.
@@ -855,7 +868,7 @@ export function MoviesPanel() {
         await afterRearrange(path, r.new_path, area, area);
       } catch (e) { failed(e); }
     },
-    upload: (dt: DataTransfer, to: string) => {
+    upload: NO_UPLOAD.has(area) ? undefined : (dt: DataTransfer, to: string) => {
       // Read *before* any await: the DataTransfer is emptied the moment the
       // drop handler returns, and an entry taken from it afterwards is null.
       const entries = entriesFrom(dt);
@@ -1699,8 +1712,10 @@ export function MoviesPanel() {
   // open, where this user may add to it. A staging area's two folders have
   // one each, by TO PROCESS and DONE.
   const uploadTarget = ((): string | null => {
-    if (panes.length !== 1 || !canEditArea(panes[0].key)) return null;
+    if (panes.length !== 1 || !canEditArea(panes[0].key) || NO_UPLOAD.has(panes[0].key)) return null;
     if (tab === ":music" && musicView !== "folders") return null;
+    // Documents: its gallery's "+" uploads; nothing in the tab row.
+    if (tab === ":documents") return null;
     // The folder tree takes files by dropping them on a folder; the button is the gallery's.
     if (tab === ":images" && imagesView !== "gallery") return null;
     if (tab === ":images" && imagesView === "gallery" && galleryFolder) {
@@ -1709,6 +1724,9 @@ export function MoviesPanel() {
     }
     return "";
   })();
+  // Images: never in the tab row -- in an open album the upload sits in its
+  // path bar, beside its name; at the top there is none.
+  const uploadInCrumbs = tab === ":images" || tab === ":documents";
   const toolUpload = uploadTarget !== null && (
     <UploadButton title={tr("vault_upload")}
                   onFiles={(files) => actionsFor(panes[0].key).uploadFiles(files, uploadTarget)} />
@@ -1723,7 +1741,7 @@ export function MoviesPanel() {
     </button>
   );
   const sizeCtl = (() => {
-    const size = tab === ":images" && imagesView === "gallery"
+    const size = (tab === ":images" && imagesView === "gallery") || (tab === ":documents" && docsView === "gallery")
       ? { min: THUMB_MIN, max: THUMB_MAX, step: 10, value: thumbSize, set: setThumbSize, title: tr("mv_picture_size") }
       : (tab === MOVIES_KEY && view === "grid") || (tab === ":music" && musicView === "artists")
         ? { min: COVER_MIN, max: COVER_MAX, step: 5, value: coverSize, set: setCoverSize, title: tr("mv_cover_size") }
@@ -1738,6 +1756,8 @@ export function MoviesPanel() {
         ["folders", "ig_folders", musicView, setMusicView]] as const)
     : tab === ":images"
       ? ([["gallery", "mv_gallery", imagesView, setImagesView], ["folders", "ig_folders", imagesView, setImagesView]] as const)
+      : tab === ":documents"
+        ? ([["gallery", "mv_gallery", docsView, setDocsView], ["folders", "ig_folders", docsView, setDocsView]] as const)
       : tab === MOVIES_KEY
         ? ([["grid", "mv_covers", view, setView], ["list", "ig_folders", view, setView]] as const)
         : []);
@@ -1858,7 +1878,7 @@ export function MoviesPanel() {
             the disk, always there. */}
         {narrow && tab !== INTRO && !external && searchBtn}
         {narrow && <span className="mv-rowgap" />}
-        {narrow && tab !== INTRO && !external && <>{sizeCtl}{toolUpload}{viewPick}<span className="mv-srcsep" aria-hidden /></>}
+        {narrow && tab !== INTRO && !external && <>{sizeCtl}{!uploadInCrumbs && toolUpload}{viewPick}<span className="mv-srcsep" aria-hidden /></>}
         {/* The remux queue, at the far end of the tab row: visible from
             every tab whatever is selected, because it is happening on
             the server regardless. The running one is shown outright; the
@@ -1984,10 +2004,41 @@ export function MoviesPanel() {
             folder={galleryFolder}
             onFolder={setGalleryFolder}
             onOpen={(list, index) => setViewing({ area: ":images", list, index })}
-            onUpload={(dt, folder) => actionsFor(":images").upload(dt, folder)}
+            onUpload={(dt, folder) => actionsFor(":images").upload?.(dt, folder)}
             onShare={(path) => setSharing({ area: ":images", path })}
             onMove={(paths, to) => actionsFor(":images").move(paths, to, ":images")}
             onRemove={(paths) => deletePaths(":images", paths)}
+            onUploadFiles={canEditArea(":images") ? (files, folder) => actionsFor(":images").uploadFiles(files, folder) : undefined}
+          />
+        ) : tab === ":documents" && docsView === "gallery" ? (
+          <ImageGallery
+            area=":documents"
+            files={docsFiles}
+            loading={!listings[":documents"] && !paneErrors[":documents"]}
+            query={query}
+            size={thumbSize}
+            folder={docsFolder}
+            onFolder={setDocsFolder}
+            onOpen={(list, index) => setViewing({ area: ":documents", list, index })}
+            onUpload={(dt, folder) => actionsFor(":documents").upload?.(dt, folder)}
+            onShare={(path) => setSharing({ area: ":documents", path })}
+            onMove={(paths, to) => actionsFor(":documents").move(paths, to, ":documents")}
+            onRemove={(paths) => deletePaths(":documents", paths)}
+            onUploadFiles={canEditArea(":documents") ? (files, folder) => actionsFor(":documents").uploadFiles(files, folder) : undefined}
+            docs={{
+              rootLabel: sources.find((y) => y.key === ":documents")?.label ?? "Documents",
+              onOpenFile: (f) => pickFile(f, ":documents"),
+              onNewVault: canEditArea(":documents") ? setNewVaultIn : undefined,
+              onDropOnVault: (vf, dt) => {
+                // Read now: the drop's contents go when this returns.
+                const entries = entriesFrom(dt);
+                walkEntries(entries, dt).then((files) => {
+                  if (!files.length) return;
+                  pickFile(vf, ":documents");
+                  setVaultDrop({ path: vf.path, files });
+                }).catch((e) => failed(e));
+              },
+            }}
           />
         ) : panes.length ? (
           // A library is one tree; a staging area is two, the inbox on top
@@ -2003,7 +2054,7 @@ export function MoviesPanel() {
                     {/* A phone cannot drop files in: it picks them, into the
                         folder's top level. A one-folder tab has the button in
                         the tab row instead (toolUpload). */}
-                    {narrow && canEditArea(pane.key) && (
+                    {narrow && canEditArea(pane.key) && !NO_UPLOAD.has(pane.key) && (
                       <UploadButton title={tr("vault_upload")}
                                     onFiles={(files) => actionsFor(pane.key).uploadFiles(files, "")} />
                     )}
@@ -2282,11 +2333,13 @@ export function MoviesPanel() {
         {/* The film has its own ✕ in its title row; a file's page gets a
             way back to the folder it is in (its name is in the page below). */}
         {sheet && viewFile && (
-          <button className="ghost mv-sheetback" title={tr("close")} onClick={closeSheet}>
-            <Icon name="left" size={16} className="mv-sheetback-arrow" />
-            <span className="mv-sheetback-icon" aria-hidden>📁</span>
-            {/* The folder it is in; at the top, the library's own name. */}
-            <span className="mv-sheetback-name">{viewFile.folder.split("/").pop() || labelOf(tab)}</span>
+          <button className="ghost back-bar mv-sheetback" title={tr("close")} onClick={closeSheet}>
+            <Icon name="left" size={16} className="back-bar-arrow" />
+            {/* The folder it is in; at the top, the library's own icon and name. */}
+            <span className="back-bar-icon" aria-hidden>
+              {viewFile.folder ? "📁" : TAB_ICONS[tab] ?? sources.find((y) => y.key === tab)?.icon ?? "📁"}</span>
+            <span className="back-bar-name">
+              {viewFile.folder.split("/").pop() || (sources.find((y) => y.key === tab)?.label ?? tab)}</span>
           </button>
         )}
         {viewFile?.kind === "vault" ? (
@@ -2482,6 +2535,9 @@ export function MoviesPanel() {
       {/* Back climbs out of the gallery's folders one at a time. */}
       {tab === ":images" && galleryFolder.split("/").filter(Boolean).map((_, i, parts) => (
         <BackStep key={parts.slice(0, i + 1).join("/")} onBack={() => setGalleryFolder(parts.slice(0, i).join("/"))} />
+      ))}
+      {tab === ":documents" && docsView === "gallery" && docsFolder.split("/").filter(Boolean).map((_, i, parts) => (
+        <BackStep key={parts.slice(0, i + 1).join("/")} onBack={() => setDocsFolder(parts.slice(0, i).join("/"))} />
       ))}
       {conflicts && (
         <ConflictDialog
