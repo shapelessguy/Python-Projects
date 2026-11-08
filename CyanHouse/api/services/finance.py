@@ -8,6 +8,10 @@ Three tables per user, plus one shared:
     category under any other (or pull it back out) by changing that one
     column. `sort` is the order among siblings. A category that has been used
     is archived rather than deleted, so old payments keep their names.
+    `kind` says what a category is: "account" holds the user's own money (a
+    bank, a wallet), "" is anything else (a spending, an income source).
+    That alone tells a payment apart: into an account from elsewhere is
+    income, out of one is spending, between two is a transfer.
   - finance_executed: what was actually paid — a self-contained snapshot
     (date, from, to, amount, currency, justification). Nothing points into
     it and it points at nothing but categories: editing or deleting a row is
@@ -44,7 +48,8 @@ CREATE TABLE IF NOT EXISTS finance_categories (
     name      TEXT NOT NULL,
     icon      TEXT NOT NULL DEFAULT '',
     sort      INTEGER NOT NULL DEFAULT 0,
-    archived  INTEGER NOT NULL DEFAULT 0
+    archived  INTEGER NOT NULL DEFAULT 0,
+    kind      TEXT NOT NULL DEFAULT ''
 );
 CREATE INDEX IF NOT EXISTS idx_fin_cat_user ON finance_categories(username);
 CREATE TABLE IF NOT EXISTS finance_forecasts (
@@ -92,7 +97,8 @@ _RECUR_FREQS = {"daily", "weekly", "monthly", "yearly"}
 _FX_PAIR = ("EUR", "USD")
 _FX_FIRST_DAY = date(1999, 1, 4)   # the ECB's first published rate
 
-_CATEGORY_FIELDS = {"parent_id", "name", "icon", "sort", "archived"}
+_CATEGORY_FIELDS = {"parent_id", "name", "icon", "sort", "archived", "kind"}
+CATEGORY_KINDS = {"", "account"}
 _PAYMENT_FIELDS = {"from_id", "to_id", "amount_cents", "currency", "justification"}
 _FORECAST_FIELDS = _PAYMENT_FIELDS | {"start_date", "recur_freq", "recur_interval", "recur_until"}
 _EXECUTED_FIELDS = _PAYMENT_FIELDS | {"date"}
@@ -113,6 +119,15 @@ def connect():
 def init_db() -> None:
     with connect() as conn:
         conn.executescript(_SCHEMA)
+        _migrate(conn)
+
+
+def _migrate(conn: sqlite3.Connection) -> None:
+    """Columns added after a database already existed — CREATE TABLE IF NOT
+    EXISTS in _SCHEMA only covers a brand-new one."""
+    cat_cols = {r["name"] for r in conn.execute("PRAGMA table_info(finance_categories)")}
+    if "kind" not in cat_cols:
+        conn.execute("ALTER TABLE finance_categories ADD COLUMN kind TEXT NOT NULL DEFAULT ''")
 
 
 def version_key(user: str) -> str:
@@ -148,6 +163,11 @@ def _check_parent(conn: sqlite3.Connection, user: str, cat_id: int | None, paren
         if p == cat_id:
             raise FinanceError("a category can't sit under itself or its own sub-categories")
         p = _own_category(conn, user, p)["parent_id"]
+
+
+def _check_kind(kind) -> None:
+    if kind not in CATEGORY_KINDS:
+        raise FinanceError(f"kind must be one of {sorted(CATEGORY_KINDS)}")
 
 
 def _check_payment(conn: sqlite3.Connection, user: str, rec: dict) -> None:
@@ -221,6 +241,7 @@ def create_category(conn: sqlite3.Connection, user: str, fields: dict) -> dict:
         raise FinanceError("name is required")
     rec["name"] = rec["name"].strip()
     rec["archived"] = int(bool(rec["archived"]))
+    _check_kind(rec.get("kind", ""))
     _check_parent(conn, user, None, rec["parent_id"])
     rec.setdefault("sort", _next_sort(conn, user, rec["parent_id"]))
     new_id = _insert(conn, "finance_categories", user, rec)
@@ -241,6 +262,8 @@ def update_category(conn: sqlite3.Connection, user: str, cat_id: int, fields: di
             fields["sort"] = _next_sort(conn, user, fields["parent_id"])
     if "archived" in fields:
         fields["archived"] = int(bool(fields["archived"]))
+    if "kind" in fields:
+        _check_kind(fields["kind"])
     _update(conn, "finance_categories", cat_id, fields)
     bump(conn, version_key(user))
     return _get(conn, "finance_categories", user, cat_id)

@@ -126,6 +126,7 @@ class FinanceCategoryBody(BaseModel):
     icon: Optional[str] = None
     sort: Optional[StrictInt] = None
     archived: Optional[StrictBool] = None
+    kind: Optional[str] = None
 
 
 class FinanceOrderBody(BaseModel):

@@ -13,7 +13,7 @@ import { Key, useT } from "../i18n";
 
 const TODAY = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD, local
 /** Mon..Sun, short, in `lang` (2024-01-01 was a Monday). */
-const weekdayNames = (lang: string) =>
+export const weekdayNames = (lang: string) =>
   Array.from({ length: 7 }, (_, i) => new Date(2024, 0, 1 + i).toLocaleDateString(lang, { weekday: "short" }));
 const HOUR_HEIGHT = 48; // px per hour row in the week grid
 
@@ -23,7 +23,7 @@ function mondayIndex(getDay: number): number {
   return (getDay + 6) % 7;
 }
 
-function isWeekend(date: string): boolean {
+export function isWeekend(date: string): boolean {
   const day = new Date(date + "T00:00:00").getDay();
   return day === 0 || day === 6;
 }
@@ -31,13 +31,13 @@ function isWeekend(date: string): boolean {
 type ViewMode = "month" | "week";
 
 
-function addDays(date: string, delta: number): string {
+export function addDays(date: string, delta: number): string {
   const d = new Date(date + "T00:00:00");
   d.setDate(d.getDate() + delta);
   return d.toLocaleDateString("en-CA");
 }
 
-function addMonths(date: string, delta: number): string {
+export function addMonths(date: string, delta: number): string {
   const [y, m] = date.split("-").map(Number);
   const d = new Date(y, m - 1 + delta, 1);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
@@ -51,24 +51,24 @@ function startOfWeek(date: string): string {
 
 /** 6 weeks (42 days) covering the month, padded with adjacent months so the
  *  grid always starts on a Monday. */
-function monthGrid(monthStr: string): string[] {
+export function monthGrid(monthStr: string): string[] {
   const [y, m] = monthStr.split("-").map(Number);
   const first = new Date(y, m - 1, 1);
   const start = new Date(y, m - 1, 1 - mondayIndex(first.getDay())).toLocaleDateString("en-CA");
   return Array.from({ length: 42 }, (_, i) => addDays(start, i));
 }
 
-function weekDays(anchor: string): string[] {
+export function weekDays(anchor: string): string[] {
   const start = startOfWeek(anchor);
   return Array.from({ length: 7 }, (_, i) => addDays(start, i));
 }
 
-function monthLabel(monthStr: string, lang: string): string {
+export function monthLabel(monthStr: string, lang: string): string {
   const [y, m] = monthStr.split("-").map(Number);
   return new Date(y, m - 1, 1).toLocaleString(lang, { month: "long", year: "numeric" });
 }
 
-function weekLabel(days: string[], lang: string): string {
+export function weekLabel(days: string[], lang: string): string {
   const fmt = (d: string, withYear: boolean) =>
     new Date(d + "T00:00:00").toLocaleDateString(
       lang,
@@ -77,7 +77,7 @@ function weekLabel(days: string[], lang: string): string {
   return `${fmt(days[0], false)} – ${fmt(days[6], true)}`;
 }
 
-function dayLabel(d: string, lang: string): { weekday: string; num: number } {
+export function dayLabel(d: string, lang: string): { weekday: string; num: number } {
   const dt = new Date(d + "T00:00:00");
   return { weekday: dt.toLocaleDateString(lang, { weekday: "short" }), num: dt.getDate() };
 }

@@ -694,6 +694,9 @@ export interface FinCategory {
   icon: string;
   sort: number;
   archived: boolean;
+  /** "account": holds the user's own money (a bank, a wallet); "": anything
+   *  else. Payments in and out of accounts are income and spending. */
+  kind: "" | "account";
 }
 
 /** from/to null: outside the books (money coming in from, or going out to,

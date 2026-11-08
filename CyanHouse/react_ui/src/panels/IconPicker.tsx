@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { useBackToClose } from "../backClose";
 import { useT } from "../i18n";
 import { usePhone } from "../narrow";
+import { Floating } from "./Floating";
 import { Icon } from "./icons";
 
 // The two icon sets a category can take its icon from, packed by
@@ -93,6 +94,8 @@ export function IconPicker({ value, onChange }: { value: string; onChange: (icon
   const phone = usePhone();
   const box = useRef<HTMLSpanElement>(null);
   const full = useRef<HTMLDivElement>(null);
+  const btn = useRef<HTMLButtonElement>(null);
+  const pop = useRef<HTMLSpanElement>(null);
   const grid = useRef<HTMLSpanElement>(null);
   const end = useRef<HTMLSpanElement>(null);
   useBackToClose(() => setOpen(false), open);
@@ -100,7 +103,7 @@ export function IconPicker({ value, onChange }: { value: string; onChange: (icon
     if (!open) return;
     const down = (e: PointerEvent) => {
       const at = e.target as Node;
-      if (!box.current?.contains(at) && !full.current?.contains(at)) setOpen(false);
+      if (!box.current?.contains(at) && !full.current?.contains(at) && !pop.current?.contains(at)) setOpen(false);
     };
     document.addEventListener("pointerdown", down);
     return () => document.removeEventListener("pointerdown", down);
@@ -166,11 +169,11 @@ export function IconPicker({ value, onChange }: { value: string; onChange: (icon
 
   return (
     <span className="icon-picker" ref={box}>
-      <button type="button" className={"ghost icon-picker-btn" + (open ? " active" : "")}
+      <button type="button" ref={btn} className={"ghost icon-picker-btn" + (open ? " active" : "")}
               title={value || t("fin_icon_none")} onClick={() => setOpen(!open)}>
         {value ? <CatIcon icon={value} /> : <span className="muted">—</span>}
       </button>
-      {open && !phone && <span className="icon-picker-pop">{content}</span>}
+      {open && !phone && <Floating anchor={btn} ref={pop} className="icon-picker-pop" maxHeight={460}>{content}</Floating>}
       {/* On a phone: the whole screen, its way back a bar named as the field. */}
       {open && phone && createPortal(
         <div className="modal-backdrop settings-full" ref={full}>

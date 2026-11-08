@@ -595,6 +595,10 @@ html.phone .fin-pay-form > label { display: grid; grid-template-columns: 4.8em m
 html.phone .fin-form-actions { margin-top: 2px; }
 /* Payments and forecasts as cards: from → to and the amount, the when and why under. */
 .fin-pay-card { padding-left: 14px; }
+/* A recurring one: a rule, not a payment — dashed and see-through. */
+.fin-pay-card.recurring { background: transparent; border-style: dashed; border-color: color-mix(in srgb, var(--text) 28%, var(--line)); }
+.fin-pay-recur { margin-right: 5px; color: var(--muted); font-weight: 400; }
+.fin-recurring { padding-left: 10px; border-left: 2px solid var(--line); margin-left: 6px; }
 .fin-more { align-self: center; margin-top: 4px; padding: 8px 18px; }
 .fin-pay-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; padding: 4px 0; }
 /* One line: each side its own icon and name, cut short with "…" if long. */
@@ -609,6 +613,40 @@ html.phone .fin-form-actions { margin-top: 2px; }
 .fin-pay-meta > :not(.fin-pay-when):not(.fin-pay-flow) { flex: none; }
 .fin-pay-meta .fin-pay-flow { flex: 0 0 auto; max-width: 60%; font-weight: 400; }
 .fin-pay-meta .cat-icon { width: 1.35em; height: 1.35em; }
+.fin-pay-main > .fin-pay-flow .cat-icon { width: 1.5em; height: 1.5em; }
+/* ── Finance's calendar (FinanceCalendar): Calendar's grid, payments as chips ── */
+.fin-calendar { display: flex; flex-direction: column; min-width: 0; }
+/* A busy day scrolls inside its cell; the chips keep their height. */
+.fin-calendar .cal-day { min-height: 0; overflow: hidden; }
+.fin-calendar .cal-events { flex: 1 1 auto; min-height: 0; overflow-y: auto; scrollbar-width: thin; }
+.fin-calendar .cal-events > .cal-event { flex: none; }
+.cal-event.fin-cal-event { display: flex; gap: 6px; align-items: baseline; }
+.fin-cal-event .fin-cal-amount { flex: none; font-weight: 600; font-variant-numeric: tabular-nums; }
+.fin-cal-event .fin-cal-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cal-event.fin-cal-event.planned { background: transparent; border: 1px dashed color-mix(in srgb, var(--cal-color) 55%, transparent); border-left-width: 3px; border-left-style: solid; opacity: 0.8; }
+.cal-event.fin-cal-event.big { font-size: 0.85rem; padding: 6px 8px; flex-direction: column; gap: 1px; }
+.cal-agenda .cal-event.fin-cal-event.big { flex-direction: row; gap: 10px; }
+html.phone .cal-grid .fin-cal-event.planned { opacity: 0.45; border: none; }
+.fin-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); gap: 6px; margin-top: 10px; flex: 1 1 auto; min-height: 0; }
+.fin-week-day { display: flex; flex-direction: column; gap: 6px; min-width: 0; min-height: 0; padding: 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+.fin-week-day.weekend { background: var(--panel-2); }
+.fin-week-day.today { border-color: var(--accent); }
+.fin-week-head { display: flex; align-items: center; justify-content: space-between; font-size: 0.8rem; color: var(--muted); }
+.fin-week-head b { color: var(--text); }
+.fin-week-list { display: flex; flex-direction: column; gap: 4px; overflow-y: auto; min-height: 0; flex: 1 1 auto; scrollbar-width: thin; }
+.fin-week-list > .cal-event { flex: none; }
+.fin-week-empty { color: var(--muted); font-size: 0.8rem; text-align: center; opacity: 0.5; }
+/* A phone's week: a row a day, its own height (the week scrolls) — the day
+ * at the left, its payments in the middle, its "+" at the right. */
+html.phone .fin-week { display: flex; flex-direction: column; overflow-y: auto; gap: 6px; }
+html.phone .fin-week-day { flex: none; flex-direction: row; align-items: center; gap: 10px; padding: 6px 6px 6px 10px; min-height: 48px; }
+html.phone .fin-week-head { display: contents; }
+html.phone .fin-week-label { order: 0; flex: 0 0 44px; display: flex; flex-direction: column; align-items: center; line-height: 1.1; font-size: 0.75rem; color: var(--muted); }
+html.phone .fin-week-label b { font-size: 1.15rem; }
+html.phone .fin-week-list { order: 1; flex: 1 1 auto; min-width: 0; overflow: visible; }
+html.phone .fin-week-head .fin-week-add { order: 2; display: inline-flex; align-items: center; justify-content: center; flex: none; width: 36px; height: 36px; padding: 0; font-size: 1.3rem; border-radius: 6px; }
+html.phone .fin-week-empty { text-align: left; font-size: 0.85rem; }
+html.phone .fin-week-day:not(.today):has(.fin-week-empty) { background: transparent; }
 .fin-pay-amount { flex: none; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
 html.phone .fin-sheet-page { min-width: 0; }
 /* The icon picker over the whole screen (a phone's): the grid takes the rest. */
@@ -663,14 +701,35 @@ html.phone .fin-back-row .fin-add { width: 48px; padding: 0; font-size: 1.7rem; 
 html:not(.phone) .fin-cat-grip { display: none; }
 .fin-cat-card.draggable { cursor: grab; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 .fin-cat-card .cat-icon { width: 1.6em; height: 1.6em; font-size: 1.05rem; }
+.fin-kind-badge {
+  flex: none; display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; border-radius: 50%; font-size: 0.72rem; font-weight: 700;
+  color: #58a6ff; background: color-mix(in srgb, #58a6ff 14%, transparent); border: 1px solid color-mix(in srgb, #58a6ff 40%, transparent);
+}
 .fin-cat-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fin-cat-actions { display: flex; gap: 2px; flex: none; }
 html.phone .fin-cat-actions button { width: 40px; height: 40px; padding: 0; }
-.fin-drawer { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 6px; }
-.fin-drawer-head { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; padding: 8px 6px; }
-.fin-drawer-caret { display: inline-block; transform: rotate(-90deg); transition: transform 0.15s; opacity: 0.7; }
+.fin-drawer { margin-top: 12px; }
+/* A drawer's bar: a card of its own — icon, name, a count pill, the caret at the right. */
+.fin-drawer-head {
+  display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+  min-height: 44px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 8px;
+  background: var(--panel-2); color: var(--text); font-weight: 600; cursor: pointer;
+}
+.fin-drawer-head:hover { border-color: color-mix(in srgb, var(--text) 25%, var(--line)); }
+.fin-drawer-head[aria-expanded="true"] { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+.fin-drawer-icon { flex: none; font-size: 1.1rem; }
+.fin-drawer-label { flex: 1 1 auto; min-width: 0; }
+.fin-drawer-count {
+  flex: none; min-width: 24px; padding: 1px 8px; border-radius: 999px; text-align: center;
+  font-size: 0.8rem; background: var(--line); color: var(--text);
+}
+.fin-drawer-caret { flex: none; display: inline-block; transform: rotate(-90deg); transition: transform 0.15s; color: var(--muted); }
 .fin-drawer-caret.open { transform: none; }
 .fin-archived { margin-top: 6px; }
+/* Payments' recurring ones: the same drawer, above the list. */
+.fin-drawer.fin-drawer-top { margin: 0 0 10px; }
+.fin-recurring { margin: 4px 0 4px; }
 .fin-archived .fin-cat-card { opacity: 0.7; }
 .fin-cat-select { position: relative; display: inline-block; }
 .fin-cat-btn { display: inline-flex; align-items: center; gap: 6px; min-width: 10em; min-height: 2.1em; text-align: left; }
@@ -698,7 +757,8 @@ html.phone .fin-cat-actions button { width: 40px; height: 40px; padding: 0; }
 .icon-picker-sets button { flex: 1; }
 .icon-picker-head { display: flex; gap: 6px; }
 .icon-picker-head input { flex: 1; min-width: 0; }
-.icon-picker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 2px; max-height: 320px; overflow-y: auto; }
+.icon-picker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 2px; max-height: 320px; min-height: 0; flex: 1 1 auto; overflow-y: auto; }
+.icon-picker-pop { overflow: hidden; }
 .icon-picker-grid button { display: inline-flex; align-items: center; justify-content: center; padding: 5px; font-size: 1.3em; }
 .icon-picker-end { grid-column: 1 / -1; height: 1px; }
 /* Day view: one row per column, its name on the left. */

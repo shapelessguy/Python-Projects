@@ -10,6 +10,8 @@ import { ConfirmDialog } from "../ConfirmDialog";
 import { usePhone } from "../narrow";
 import { Icon, IconName } from "./icons";
 import { CatIcon, IconPicker } from "./IconPicker";
+import { Floating } from "./Floating";
+import { CalEntry, DIR_COLOR, DIR_SIGN, directionBy, FinanceCalendar } from "./FinanceCalendar";
 
 // The currency picked last, offered first on the next new payment or
 // forecast (EUR until one is picked).
@@ -64,9 +66,10 @@ type Tree = ReturnType<typeof useCategoryTree>;
 type Editing = { kind: FinKind; id: number | null } | null;   // id null: a new one
 
 // The three lists, each opened over the page from its button.
+// Two lists: categories, and payments (the recurring ones — forecasts — in a
+// drawer at the payments' top).
 const SHEETS: { kind: FinKind; icon: string }[] = [
   { kind: "categories", icon: "🗂️" },
-  { kind: "forecasts", icon: "🔁" },
   { kind: "executed", icon: "🧾" },
 ];
 
@@ -78,6 +81,10 @@ export function FinancePanel({ toolsSlot }: { toolsSlot: HTMLElement | null }) {
   const { t, lang } = useT();
   const versions = useVersionPoll();
   const [shown, setShown] = useState(PAGE);
+  const [recurringOpen, setRecurringOpen] = useState(false);
+  // A payment opened from the calendar — a new one on a day, or one tapped
+  // (a recurring one's date edits its rule) — in a window of its own.
+  const [quick, setQuick] = useState<{ date: string } | { entry: CalEntry } | null>(null);
   const [data, setData] = useState<FinSnapshot | null>(null);
   const [editing, setEditing] = useState<Editing>(null);
   const [sheet, setSheet] = useState<FinKind | null>(null);
@@ -90,11 +97,17 @@ export function FinancePanel({ toolsSlot }: { toolsSlot: HTMLElement | null }) {
   }, [versions.finance]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   const tree = useCategoryTree(data?.categories ?? []);
+  // Income, spending, transfer: by which side of a payment is an account.
+  const direction = useMemo(() => {
+    const accounts = new Set((data?.categories ?? []).filter((c) => c.kind === "account").map((c) => c.id));
+    return directionBy((id) => id != null && accounts.has(id));
+  }, [data?.categories]);
 
   const phone = usePhone();
+  // True when it went through (a form over the calendar then closes).
   const apply = (p: Promise<FinSnapshot>) =>
-    p.then((d) => { setData(d); setEditing(null); setError(""); })
-      .catch((e) => setError(String(e.message ?? e)));
+    p.then((d) => { setData(d); setEditing(null); setError(""); return true; })
+      .catch((e) => { setError(String(e.message ?? e)); return false; });
   const save = (kind: FinKind, id: number | null, body: object) =>
     apply(id == null ? api.financeCreate(kind, body) : api.financeUpdate(kind, id, body));
   // Deleting asks first, in the app's own dialog.
@@ -118,7 +131,9 @@ export function FinancePanel({ toolsSlot }: { toolsSlot: HTMLElement | null }) {
   // A payment or a forecast as a card, the amount at its right. On top its
   // reason, when it has one, with `when` (its date, or how it repeats) and
   // from → to under it, smaller; without one, from → to on top.
-  const payCard = (p: FinExecuted | FinForecast, when: (string | null | false)[], buttons: () => ReactNode) => {
+  // A recurring one (a forecast: a rule, not a payment) is drawn apart:
+  // dashed, see-through, with ↻ by its amount.
+  const payCard = (p: FinExecuted | FinForecast, when: (string | null | false)[], buttons: () => ReactNode, recurring = false) => {
     const flow = (small: boolean) => (
       <span className="fin-pay-flow">
         {side(p.from_id, small)}
@@ -128,15 +143,17 @@ export function FinancePanel({ toolsSlot }: { toolsSlot: HTMLElement | null }) {
     );
     const whenText = when.filter(Boolean).join(" · ");
     return (
-      <div key={p.id} className="fin-cat-card fin-pay-card">
+      <div key={p.id} className={"fin-cat-card fin-pay-card" + (recurring ? " recurring" : "")}>
         <div className="fin-pay-main">
-          {p.justification ? <div className="fin-pay-title">{p.justification}</div> : flow(false)}
+          {p.justification ? <div className="fin-pay-title">{p.justification}</div> : flow(true)}
           <div className="fin-pay-meta">
             <span className="fin-pay-when">{whenText}</span>
             {p.justification && <>{whenText && <span aria-hidden>·</span>}{flow(true)}</>}
           </div>
         </div>
-        <span className="fin-pay-amount">{money(p.amount_cents, p.currency)}</span>
+        <span className="fin-pay-amount" style={{ color: DIR_COLOR[direction(p)] }}>
+          {recurring && <span className="fin-pay-recur" aria-hidden>↻</span>}{DIR_SIGN[direction(p)]}{money(p.amount_cents, p.currency)}
+        </span>
         <span className="fin-cat-actions">{buttons()}</span>
       </div>
     );
@@ -148,6 +165,8 @@ export function FinancePanel({ toolsSlot }: { toolsSlot: HTMLElement | null }) {
     categories: t("fin_categories"), forecasts: t("fin_forecasts"), executed: t("fin_payments"),
   };
   const openSheet = (kind: FinKind) => { setEditing(null); setError(""); setSheet(kind); };
+  const catName = (id: number | null) =>
+    id == null ? t("fin_outside") : data?.categories.find((c) => c.id === id)?.name ?? "?";
   const closeSheet = () => { setEditing(null); setError(""); setSheet(null); };
 
   // On Personal's tab row, pushed to its right: icon + name on a wide
@@ -188,30 +207,34 @@ export function FinancePanel({ toolsSlot }: { toolsSlot: HTMLElement | null }) {
         onMove={(parent, ids) => apply(api.financeMove(parent, ids))}
       />
     </>;
-    if (kind === "forecasts") return <>
-      {isEditing("forecasts", null) &&
-        <PaymentForm kind="forecasts" tree={tree} onSave={(b) => save("forecasts", null, b)} onCancel={close} />}
-      <div className="fin-cats">
-        {data.forecasts.map((fc) => isEditing("forecasts", fc.id) ? (
-          <PaymentForm key={fc.id} kind="forecasts" row={fc} tree={tree}
-                       onSave={(b) => save("forecasts", fc.id, b)} onCancel={close} />
-        ) : payCard(fc, [
-          fc.recur_freq
-            ? repeatText(t, fc.recur_freq, fc.recur_interval)
-            : t("cal_no_repeat"),
-          `${t("fin_since")} ${day(fc.start_date)}` + (fc.recur_until ? ` → ${day(fc.recur_until)}` : ""),
-          fc.generated_until && `${t("fin_written_until")} ${day(fc.generated_until)}`,
-        ], () => actions("forecasts", fc.id)))}
-        {!data.forecasts.length && !isEditing("forecasts", null) && <p className="muted">{t("fin_no_forecasts")}</p>}
-      </div>
-    </>;
+    // Payments, under a closed drawer of the recurring ones. One "+" and one
+    // form for both: what it repeats (and when) decides which it saves.
+    const forecastCard = (fc: FinForecast) => isEditing("forecasts", fc.id) ? (
+      <PaymentForm key={fc.id} kind="forecasts" row={fc} tree={tree}
+                   onSave={(_, b) => save("forecasts", fc.id, b)} onCancel={close} />
+    ) : payCard(fc, [
+      fc.recur_freq ? repeatText(t, fc.recur_freq, fc.recur_interval) : day(fc.start_date),
+      fc.recur_freq && `${t("fin_since")} ${day(fc.start_date)}` + (fc.recur_until ? ` → ${day(fc.recur_until)}` : ""),
+      fc.generated_until && `${t("fin_written_until")} ${day(fc.generated_until)}`,
+    ], () => actions("forecasts", fc.id), true);
     return <>
       {isEditing("executed", null) &&
-        <PaymentForm kind="executed" tree={tree} onSave={(b) => save("executed", null, b)} onCancel={close} />}
+        <PaymentForm tree={tree} onSave={(k, b) => save(k, null, b)} onCancel={close} />}
+      {data.forecasts.length > 0 && (
+        <div className="fin-drawer fin-drawer-top">
+          <button className="fin-drawer-head" aria-expanded={recurringOpen} onClick={() => setRecurringOpen(!recurringOpen)}>
+            <span className="fin-drawer-icon" aria-hidden>🔁</span>
+            <span className="fin-drawer-label">{t("fin_recurring")}</span>
+            <span className="fin-drawer-count">{data.forecasts.length}</span>
+            <span className={"fin-drawer-caret" + (recurringOpen ? " open" : "")} aria-hidden>▾</span>
+          </button>
+          {recurringOpen && <div className="fin-cats fin-recurring">{data.forecasts.map(forecastCard)}</div>}
+        </div>
+      )}
       <div className="fin-cats">
         {data.executed.slice(0, shown).map((ex) => isEditing("executed", ex.id) ? (
           <PaymentForm key={ex.id} kind="executed" row={ex} tree={tree}
-                       onSave={(b) => save("executed", ex.id, b)} onCancel={close} />
+                       onSave={(_, b) => save("executed", ex.id, b)} onCancel={close} />
         ) : payCard(ex, [day(ex.date)], () => actions("executed", ex.id)))}
         {!data.executed.length && !isEditing("executed", null) && <p className="muted">{t("fin_no_payments")}</p>}
         {shown < data.executed.length && (
@@ -225,13 +248,39 @@ export function FinancePanel({ toolsSlot }: { toolsSlot: HTMLElement | null }) {
 
   return (
     <div className="panel finance">
-      {/* The calendar of payments goes here (day / month, as Calendar's). */}
-      <p className="muted">{t("fin_calendar_soon")}</p>
+      {data ? (
+        <FinanceCalendar
+          executed={data.executed} forecasts={data.forecasts}
+          money={(p) => money(p.amount_cents, p.currency)}
+          direction={direction}
+          title={(p) => p.justification || catName(direction(p) === "out" ? p.to_id : direction(p) === "in" ? p.from_id : p.to_id)}
+          onAdd={(date) => { setError(""); setQuick({ date }); }}
+          onOpen={(entry) => { setError(""); setQuick({ entry }); }}
+        />
+      ) : <p className="muted">{error || t("loading")}</p>}
       {toolsSlot && createPortal(tools, toolsSlot)}
       {deleting && (
         <ConfirmDialog message={t("fin_confirm_delete")} yesLabel={t("delete")} danger onNo={() => setDeleting(null)}
                        onYes={() => { apply(api.financeDelete(deleting.kind, deleting.id)); setDeleting(null); }} />
       )}
+      {quick && data && (() => {
+        const close = () => { setQuick(null); setError(""); };
+        const done = (ok: boolean) => { if (ok) setQuick(null); };
+        const e = "entry" in quick ? quick.entry : null;
+        return (
+          <FinSheet onClose={close} title={
+            !e ? t("fin_new_payment") : e.kind === "forecasts" ? t("fin_edit_recurring") : t("fin_edit_payment")}>
+            {error && <p className="fin-error">{error}</p>}
+            {e ? (
+              <PaymentForm kind={e.kind} row={e.p} tree={tree} onCancel={close}
+                           onSave={(k, b) => apply(api.financeUpdate(k, e.p.id, b)).then(done)} />
+            ) : (
+              <PaymentForm tree={tree} date={"date" in quick ? quick.date : undefined} onCancel={close}
+                           onSave={(k, b) => apply(api.financeCreate(k, b)).then(done)} />
+            )}
+          </FinSheet>
+        );
+      })()}
       {sheet && (
         <FinSheet title={sheetTitle[sheet]} onClose={closeSheet} action={
           <button className="ghost icon-only fin-add" title={t("fin_new")} aria-label={t("fin_new")}
@@ -291,7 +340,13 @@ function CategoryForm({ cat, tree, onSave, onCancel }: {
   const [name, setName] = useState(cat?.name ?? "");
   const [icon, setIcon] = useState(cat?.icon ?? "");
   const [parent, setParent] = useState<number | null>(cat?.parent_id ?? null);
-  const values = { name, icon, parent_id: parent };
+  const [kind, setKind] = useState<FinCategory["kind"]>(cat?.kind ?? "");
+  const values = { name, icon, parent_id: parent, kind };
+  // A new one put under an account is most likely an account too.
+  const pickParent = (id: number | null) => {
+    setParent(id);
+    if (!cat && id != null) setKind(tree.ordered.find((o) => o.cat.id === id)?.cat.kind ?? "");
+  };
   // Archiving asks first (in the app's dialog); bringing one back doesn't.
   // Either saves the form too.
   const [asking, setAsking] = useState(false);
@@ -307,7 +362,13 @@ function CategoryForm({ cat, tree, onSave, onCancel }: {
       <div className="fin-field">{t("fin_icon")}<IconPicker value={icon} onChange={setIcon} /></div>
       <label>{t("fin_name")}<input value={name} onChange={(e) => setName(e.target.value)} /></label>
       <label>{t("fin_parent")}
-        <CategorySelect tree={tree} value={parent} onChange={setParent} empty="—" exclude={cat?.id} />
+        <CategorySelect tree={tree} value={parent} onChange={pickParent} empty="—" exclude={cat?.id} />
+      </label>
+      <label>{t("fin_kind")}
+        <select value={kind} onChange={(e) => setKind(e.target.value as FinCategory["kind"])}>
+          <option value="">—</option>
+          <option value="account">{t("fin_kind_account")}</option>
+        </select>
       </label>
       <FormButtons onCancel={onCancel} archive={cat && { archived: cat.archived, onClick: archive }} />
       {asking && (
@@ -494,6 +555,8 @@ function CategoryCards({ cats, actions, form, onMove }: {
           {draggable && <span className="fin-cat-grip" aria-hidden>⠿</span>}
           <CatIcon icon={r.cat.icon} />
           <span className="fin-cat-name">{r.cat.name}</span>
+          {r.cat.kind === "account" &&
+            <span className="fin-kind-badge" title={t("fin_kind_account")} aria-label={t("fin_kind_account")}>{t("fin_kind_account")[0]}</span>}
           <span className="fin-cat-actions">{actions(r.cat.id)}</span>
         </div>
       )}
@@ -532,9 +595,11 @@ function CategoryCards({ cats, actions, form, onMove }: {
       </div>
       {archivedTops.length > 0 && (
         <div className="fin-drawer">
-          <button className="ghost fin-drawer-head" aria-expanded={drawer} onClick={() => setDrawer(!drawer)}>
+          <button className="fin-drawer-head" aria-expanded={drawer} onClick={() => setDrawer(!drawer)}>
+            <span className="fin-drawer-icon" aria-hidden>🗄️</span>
+            <span className="fin-drawer-label">{t("fin_archived_list")}</span>
+            <span className="fin-drawer-count">{archivedTops.length}</span>
             <span className={"fin-drawer-caret" + (drawer ? " open" : "")} aria-hidden>▾</span>
-            {t("fin_archived_list")} <span className="muted">({archivedTops.length})</span>
           </button>
           {drawer && (
             <div className="fin-cats fin-archived">
@@ -549,21 +614,26 @@ function CategoryCards({ cats, actions, form, onMove }: {
 }
 
 /** A payment (kind "executed") or a forecast: the same template, plus a date
- *  for one and a start and repetition for the other. */
-function PaymentForm({ kind, row, tree, onSave, onCancel }: {
-  kind: "executed" | "forecasts"; row?: FinExecuted | FinForecast; tree: Tree;
-  onSave: (body: object) => void; onCancel: () => void;
+ *  for one and a start and repetition for the other. A new one (no `kind`)
+ *  offers the repetition too, and saves as a forecast when it repeats or its
+ *  date is still to come, else as a payment. */
+function PaymentForm({ kind, row, tree, date: startDate, onSave, onCancel }: {
+  kind?: "executed" | "forecasts"; row?: FinExecuted | FinForecast; tree: Tree; date?: string;
+  onSave: (kind: "executed" | "forecasts", body: object) => void; onCancel: () => void;
 }) {
   const { t } = useT();
   const fc = kind === "forecasts" ? (row as FinForecast | undefined) : undefined;
   const ex = kind === "executed" ? (row as FinExecuted | undefined) : undefined;
-  const [date, setDate] = useState(ex?.date ?? fc?.start_date ?? today());
+  const [date, setDate] = useState(ex?.date ?? fc?.start_date ?? startDate ?? today());
+  // Opened from the calendar, it may sit far down the list: bring it into view.
+  const formRef = useRef<HTMLFormElement>(null);
+  useEffect(() => { formRef.current?.scrollIntoView({ block: "nearest" }); }, []);
   const [from, setFrom] = useState<number | null>(row?.from_id ?? null);
   const [to, setTo] = useState<number | null>(row?.to_id ?? null);
   const [amount, setAmount] = useState(row ? (row.amount_cents / 100).toFixed(2) : "");
   const [currency, setCurrency] = useState<Currency>(row?.currency ?? lastCurrency());
   const [why, setWhy] = useState(row?.justification ?? "");
-  const [freq, setFreq] = useState<RecurFreq | null>(fc ? fc.recur_freq : "monthly");
+  const [freq, setFreq] = useState<RecurFreq | null>(fc ? fc.recur_freq : null);
   const [interval, setInterval] = useState(String(fc?.recur_interval ?? 1));
   const [until, setUntil] = useState(fc?.recur_until ?? "");
   const [error, setError] = useState("");
@@ -572,18 +642,21 @@ function PaymentForm({ kind, row, tree, onSave, onCancel }: {
     <CategorySelect tree={tree} value={value} onChange={set} empty={t("fin_outside")} />;
 
   return (
-    <form className="fin-form fin-pay-form" onSubmit={(e) => {
+    <form className="fin-form fin-pay-form" ref={formRef} onSubmit={(e) => {
       e.preventDefault();
       const cents = toCents(amount);
       if (!(cents > 0)) { setError(t("fin_err_amount")); return; }
       writeCookie(CURRENCY_COOKIE, currency);
       const body = { from_id: from, to_id: to, amount_cents: cents, currency, justification: why };
-      onSave(kind === "executed" ? { ...body, date } : {
+      // A new one: repeating, or still to come, makes a forecast (it writes
+      // the payments as they fall due); anything else is a payment now.
+      const as = kind ?? (freq || date > today() ? "forecasts" : "executed");
+      onSave(as, as === "executed" ? { ...body, date } : {
         ...body, start_date: date, recur_freq: freq,
         recur_interval: parseInt(interval, 10) || 1, recur_until: freq && until ? until : null,
       });
     }}>
-      <label>{kind === "executed" ? t("fin_date") : t("fin_start")}
+      <label>{freq && kind !== "executed" ? t("fin_start") : t("fin_date")}
         <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
       </label>
       <label>{t("fin_from")}{pick(from, setFrom)}</label>
@@ -598,7 +671,7 @@ function PaymentForm({ kind, row, tree, onSave, onCancel }: {
         </span>
       </label>
       <label>{t("fin_justification")}<input value={why} onChange={(e) => setWhy(e.target.value)} /></label>
-      {kind === "forecasts" && <>
+      {kind !== "executed" && <>
         {/* How often, and every how many of those: the choices read "Every 4
             weeks" as the number changes. */}
         <label>{t("cal_repeat")}
@@ -630,10 +703,15 @@ function CategorySelect({ tree, value, onChange, empty, exclude }: {
 }) {
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLSpanElement>(null);
+  const btn = useRef<HTMLButtonElement>(null);
+  const pop = useRef<HTMLSpanElement>(null);
   useBackToClose(() => setOpen(false), open);
   useEffect(() => {
     if (!open) return;
-    const down = (e: PointerEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false); };
+    const down = (e: PointerEvent) => {
+      const at = e.target as Node;
+      if (!box.current?.contains(at) && !pop.current?.contains(at)) setOpen(false);
+    };
     document.addEventListener("pointerdown", down);
     return () => document.removeEventListener("pointerdown", down);
   }, [open]);
@@ -655,12 +733,12 @@ function CategorySelect({ tree, value, onChange, empty, exclude }: {
   const pick = (id: number | null) => { onChange(id); setOpen(false); };
   return (
     <span className="fin-cat-select" ref={box}>
-      <button type="button" className={"fin-cat-btn" + (open ? " active" : "")} onClick={() => setOpen(!open)}>
+      <button type="button" ref={btn} className={"fin-cat-btn" + (open ? " active" : "")} onClick={() => setOpen(!open)}>
         {value == null ? <span className="muted">{empty}</span> : tree.name(value)}
         <span className="fin-caret" aria-hidden>▾</span>
       </button>
       {open && (
-        <span className="fin-cat-list">
+        <Floating anchor={btn} ref={pop} className="fin-cat-list">
           <button type="button" className={value == null ? "active" : ""} onClick={() => pick(null)}>
             <span className="muted">{empty}</span>
           </button>
@@ -670,7 +748,7 @@ function CategorySelect({ tree, value, onChange, empty, exclude }: {
               <CatIcon icon={o.cat.icon} /> {o.cat.name}
             </button>
           ))}
-        </span>
+        </Floating>
       )}
     </span>
   );
