@@ -66,7 +66,6 @@ EXCLUDE = {
     "api/data/movies_cache",                 # transcodes and extracted subtitles, throwaway
     "api/data/images.sqlite",                # pictures' sizes, rescanned from the Images folder
     "api/data/music/covers",                 # album covers, downloaded again from Cover Art Archive
-    "api/data/music/searches.sqlite",        # MusicBrainz's answers, asked again (slowly) when needed
 }
 
 _STAMP_FMT = "%Y%m%d_%H%M%S"

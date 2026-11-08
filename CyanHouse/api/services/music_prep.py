@@ -21,13 +21,16 @@ by the song's own artist before "Various Artists", earliest first. The first
 is the proposal; the panel lists the rest to switch to before filing.
 
 MusicBrainz allows one request a second per client and asks each to say who
-it is (the User-Agent). Its answers are kept (SEARCHES), so no search is ever
-sent twice — not even after the rules below change.
+it is (the User-Agent). The last few hundred answers are kept in memory
+(_recent), so looking a song over in the panel doesn't ask again; nothing is
+written to disk, and a restart forgets them.
 """
 import json
 import re
 import shutil
+import copy
 import threading
+from collections import OrderedDict
 import time
 from pathlib import Path
 
@@ -49,10 +52,8 @@ CACHE_DIR = API_DATA_DIR / "music"
 # v4: "track" is the position on the disc, not the printed number (see
 # _options).
 # v5: one option per (album, recording), not per album — see _options.
-# MusicBrainz's answers, as it gave them, by the exact search sent: what
-# the rules make of them is worked out again every time, so changing the
-# rules never costs a second question.
-SEARCHES = CACHE_DIR / "searches.sqlite"
+# How many of MusicBrainz's latest answers are kept in memory.
+RECENT = 300
 COVERS = CACHE_DIR / "covers"
 # How many albums the panel is offered for one song…
 MAX_OPTIONS = 20
@@ -61,8 +62,8 @@ MAX_CANDIDATES = 80
 
 _mb_lock = threading.Lock()
 _mb_last = 0.0
-_db_lock = threading.Lock()
-_db = None
+_recent_lock = threading.Lock()
+_recent: "OrderedDict[str, object]" = OrderedDict()
 
 
 # ── what the song says it is ─────────────────────────────────────────────
@@ -178,14 +179,24 @@ def _lucene(s: str) -> str:
     return re.sub(r'([+\-&|!(){}\[\]^"~*?:\\/])', r"\\\1", s)
 
 
-def _searches():
-    global _db
-    if _db is None:
-        import sqlite3
-        CACHE_DIR.mkdir(parents=True, exist_ok=True)
-        _db = sqlite3.connect(SEARCHES, check_same_thread=False)
-        _db.execute("CREATE TABLE IF NOT EXISTS search (query TEXT PRIMARY KEY, answer TEXT, at REAL)")
-    return _db
+_MISS = object()
+
+
+def _cached(key: str):
+    """MusicBrainz's answer to `key` if it's among the latest, or _MISS."""
+    with _recent_lock:
+        if key not in _recent:
+            return _MISS
+        _recent.move_to_end(key)
+        return copy.deepcopy(_recent[key])   # a copy, as a fresh answer would be
+
+
+def _keep(key: str, answer) -> None:
+    with _recent_lock:
+        _recent[key] = answer
+        _recent.move_to_end(key)
+        while len(_recent) > RECENT:
+            _recent.popitem(last=False)
 
 
 def _mb_search(query: str, limit: int = 100) -> list[dict]:
@@ -193,15 +204,11 @@ def _mb_search(query: str, limit: int = 100) -> list[dict]:
     before; otherwise asked (_mb_ask) and kept. The same search asked for a
     different number of results is a different search."""
     key = query if limit == 100 else f"{limit}|{query}"
-    with _db_lock:
-        row = _searches().execute("SELECT answer FROM search WHERE query = ?", (key,)).fetchone()
-    if row:
-        return json.loads(row[0])
+    cached = _cached(key)
+    if cached is not _MISS:
+        return cached
     answer = _mb_ask(query, limit)
-    with _db_lock:
-        _searches().execute("INSERT OR REPLACE INTO search VALUES (?, ?, ?)",
-                            (key, json.dumps(answer, ensure_ascii=False), time.time()))
-        _searches().commit()
+    _keep(key, answer)
     return answer
 
 
@@ -237,10 +244,9 @@ def mb_get(path: str, params: dict) -> dict:
     or "release/<id>"), cached like the searches — keyed by the call itself
     — and spaced like them. None-free answers only: a 404 is kept as {}."""
     key = "get|" + path + "?" + "&".join(f"{k}={params[k]}" for k in sorted(params))
-    with _db_lock:
-        row = _searches().execute("SELECT answer FROM search WHERE query = ?", (key,)).fetchone()
-    if row:
-        return json.loads(row[0])
+    cached = _cached(key)
+    if cached is not _MISS:
+        return cached
     global _mb_last
     answer: dict = {}
     for attempt in range(5):
@@ -263,10 +269,7 @@ def mb_get(path: str, params: dict) -> dict:
         break
     else:
         raise PrepError("MusicBrainz is busy — try again in a moment", 503)
-    with _db_lock:
-        _searches().execute("INSERT OR REPLACE INTO search VALUES (?, ?, ?)",
-                            (key, json.dumps(answer, ensure_ascii=False), time.time()))
-        _searches().commit()
+    _keep(key, answer)
     return answer
 
 
@@ -538,7 +541,7 @@ def file_song(area_name: str, rel: str, opt: dict) -> dict:
 # Everything else stays in the inbox, with the reason it was not filed, for
 # the panel to show. A song is looked at once; it is looked at again only if
 # the file changes (size or time) or the rules do (RULES_VERSION) — and
-# MusicBrainz is not asked again either (SEARCHES).
+# MusicBrainz is asked again only if the answer is no longer in memory (_recent).
 AUTO_STATE = CACHE_DIR / "auto.json"
 # Raised whenever music_match's rules or searches change: a verdict reached
 # under older rules is judged again rather than kept as long as the file is.
@@ -613,10 +616,9 @@ def _mb_lookup(recording_id: str) -> dict:
     """A recording's full entry — every release it is on — cached like the
     searches (as "lookup|<id>"), so it too is asked only once."""
     key = f"lookup|{recording_id}"
-    with _db_lock:
-        row = _searches().execute("SELECT answer FROM search WHERE query = ?", (key,)).fetchone()
-    if row:
-        return json.loads(row[0])
+    cached = _cached(key)
+    if cached is not _MISS:
+        return cached
     global _mb_last
     answer: dict = {}
     for attempt in range(5):
@@ -638,10 +640,7 @@ def _mb_lookup(recording_id: str) -> dict:
         break
     else:
         raise PrepError("MusicBrainz is busy — try again in a moment", 503)
-    with _db_lock:
-        _searches().execute("INSERT OR REPLACE INTO search VALUES (?, ?, ?)",
-                            (key, json.dumps(answer, ensure_ascii=False), time.time()))
-        _searches().commit()
+    _keep(key, answer)
     return answer
 
 
