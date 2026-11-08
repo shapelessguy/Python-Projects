@@ -120,6 +120,11 @@ OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 # ── calendar service (self-contained: own DB) — no external account, local only
 CALENDAR_DB = Path(os.environ.get("CALENDAR_DB", API_DATA_DIR / "calendar.db"))
 
+# ── finance service (self-contained: own DB) — categories, forecasts, payments,
+# plus the ECB's daily EUR/USD rate (frankfurter.dev, no key)
+FINANCE_DB = Path(os.environ.get("FINANCE_DB", API_DATA_DIR / "finance.db"))
+FX_URL = os.environ.get("FX_URL", "https://api.frankfurter.dev/v1").strip()
+
 # ── movies service (on-demand ffmpeg transcode of a local film library) ───
 # No DB and no index: the library is the filesystem. MOVIES_DIR is scanned on
 # demand (cached for MOVIES_SCAN_TTL seconds), everything else is derived from

@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview"
+    "build": "node scripts/icon-sets.mjs && tsc && vite build",
+    "preview": "vite preview",
+    "icons": "node scripts/icon-sets.mjs"
   },
   "dependencies": {
     "dompurify": "^3.4.15",
@@ -19,6 +20,8 @@
     "tus-js-client": "^4.3.1"
   },
   "devDependencies": {
+    "@iconify-json/fluent-emoji-flat": "^1.2.6",
+    "@tabler/icons": "^3.50.0",
     "@types/dompurify": "^3.2.0",
     "@types/node": "^26.5.0",
     "@types/react": "^18.3.12",

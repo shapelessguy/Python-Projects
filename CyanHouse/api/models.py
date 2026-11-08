@@ -110,3 +110,43 @@ class CalendarPatch(BaseModel):
     name: Optional[str] = None
     color: Optional[str] = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")
     shared: Optional[StrictBool] = None
+
+
+# ── finance ──────────────────────────────────────────────────────────────────
+# One body per kind for both create and edit: the router passes on only the
+# fields that were sent (exclude_unset), so an explicit null -- "outside the
+# books", "no parent" -- still reaches the service, which checks the rest.
+Currency = Literal["EUR", "USD"]
+_ISO = r"^\d{4}-\d{2}-\d{2}$"
+
+
+class FinanceCategoryBody(BaseModel):
+    parent_id: Optional[int] = None
+    name: Optional[str] = None
+    icon: Optional[str] = None
+    sort: Optional[StrictInt] = None
+    archived: Optional[StrictBool] = None
+
+
+class FinanceOrderBody(BaseModel):
+    parent_id: Optional[StrictInt] = None
+    ids: list[StrictInt]
+
+
+class FinancePaymentBody(BaseModel):
+    from_id: Optional[int] = None
+    to_id: Optional[int] = None
+    amount_cents: Optional[StrictInt] = Field(default=None, gt=0)
+    currency: Optional[Currency] = None
+    justification: Optional[str] = None
+
+
+class FinanceExecutedBody(FinancePaymentBody):
+    date: Optional[str] = Field(default=None, pattern=_ISO)
+
+
+class FinanceForecastBody(FinancePaymentBody):
+    start_date: Optional[str] = Field(default=None, pattern=_ISO)
+    recur_freq: Optional[RecurFreq] = None
+    recur_interval: Optional[StrictInt] = Field(default=None, ge=1)
+    recur_until: Optional[str] = Field(default=None, pattern=_ISO)

@@ -232,6 +232,8 @@ export interface Versions {
   prep: number;
   /** Bumps when the recorder saves ticks, or a stock or its history arrives. */
   stocks: number;
+  /** Per user: any finance change, or the daily job writing forecasts. */
+  finance: number;
 }
 
 // null = every panel (the default, unrestricted); otherwise the explicit
@@ -682,8 +684,69 @@ export interface TmdbCandidate {
   poster: string | null;
 }
 
+// ── finance (api/services/finance.py) ─────────────────────────────────────
+export type Currency = "EUR" | "USD";
+
+export interface FinCategory {
+  id: number;
+  parent_id: number | null;
+  name: string;
+  icon: string;
+  sort: number;
+  archived: boolean;
+}
+
+/** from/to null: outside the books (money coming in from, or going out to,
+ *  nowhere). Amounts are whole cents. */
+export interface FinPayment {
+  id: number;
+  from_id: number | null;
+  to_id: number | null;
+  amount_cents: number;
+  currency: Currency;
+  justification: string;
+}
+
+export interface FinExecuted extends FinPayment {
+  date: string;
+}
+
+export interface FinForecast extends FinPayment {
+  start_date: string;
+  recur_freq: RecurFreq | null;
+  recur_interval: number;
+  recur_until: string | null;
+  /** The last due date already written as a payment. */
+  generated_until: string | null;
+}
+
+export interface FinSnapshot {
+  /** The finance counter (as /api/version's) this snapshot reflects. */
+  version: number;
+  categories: FinCategory[];
+  forecasts: FinForecast[];
+  /** Every payment, newest first. */
+  executed: FinExecuted[];
+}
+
+export type FinKind = "categories" | "forecasts" | "executed";
+
 export const api = {
   version: () => f("/api/version").then(j<Versions>),
+
+  // Every finance change replies with the full snapshot.
+  finance: () => f("/api/finance").then(j<FinSnapshot>),
+  financeCreate: (kind: FinKind, body: object) =>
+    f(`/api/finance/${kind}`,
+      { method: "POST", headers: JSON_HEADERS, body: JSON.stringify(body) }).then(j<FinSnapshot>),
+  financeUpdate: (kind: FinKind, id: number, body: object) =>
+    f(`/api/finance/${kind}/${id}`,
+      { method: "PATCH", headers: JSON_HEADERS, body: JSON.stringify(body) }).then(j<FinSnapshot>),
+  financeMove: (parent_id: number | null, ids: number[]) =>
+    f("/api/finance/categories/order",
+      { method: "PUT", headers: JSON_HEADERS, body: JSON.stringify({ parent_id, ids }) }).then(j<FinSnapshot>),
+  financeDelete: (kind: FinKind, id: number) =>
+    f(`/api/finance/${kind}/${id}`, { method: "DELETE" }).then(j<FinSnapshot>),
   me: () => f("/api/me").then(j<Me>),
   setPassword: (password: string) =>
     f("/api/password", { method: "PUT", headers: JSON_HEADERS, body: JSON.stringify({ password }) })
@@ -1047,7 +1110,7 @@ export function follow<T>(
  *  the last to leave stops it. Each panel picks the counters it cares about
  *  and refetches when those move. */
 const versionStore = {
-  value: { diary: 0, weather: 0, food: 0, forecast: 0, calendar: 0, prep: 0, stocks: 0 } as Versions,
+  value: { diary: 0, weather: 0, food: 0, forecast: 0, calendar: 0, prep: 0, stocks: 0, finance: 0 } as Versions,
   listeners: new Set<(v: Versions) => void>(),
   stop: null as AbortController | null,
 };

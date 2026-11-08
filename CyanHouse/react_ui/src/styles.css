@@ -524,6 +524,8 @@ button.link:hover { color: var(--text); }
 .ctl-audio:disabled { opacity: 0.5; cursor: default; }
 .ctl-sep { width: 100%; margin: 2px 0; border: 0; border-top: 1px solid var(--line); }
 /* ── personal ────────────────────────────────────────────── */
+/* The section tabs over Personal (Tables, Finance), in Media's tab style. */
+.personal-shell { display: flex; flex-direction: column; gap: 8px; }
 .personal { align-items: stretch; }
 .personal-main { flex: 1 1 auto; min-width: 0; }
 .month-nav { display: flex; align-items: center; gap: 10px; }
@@ -531,6 +533,180 @@ button.link:hover { color: var(--text); }
 .month-nav h2.go-today { cursor: pointer; border-radius: 6px; padding: 2px 6px; }
 .month-nav h2.go-today:hover { background: var(--panel-2); }
 .personal-tools { margin-left: auto; display: flex; gap: 4px; }
+.personal-tools .icon-pick > button { display: inline-flex; align-items: center; justify-content: center; padding: 5px 8px; }
+/* Finance: the three lists' buttons at the right end of Personal's tab row,
+   each list in a dialog (the whole screen on a phone). */
+.personal-tab-tools { margin-left: auto; display: flex; align-items: center; }
+.personal-tab-tools:empty { display: none; }
+.fin-tools { display: flex; gap: 4px; }
+.fin-tools button { display: inline-flex; align-items: center; }
+html.phone .personal-tabs { align-items: center; }
+html.phone .fin-tools button { width: 40px; height: 40px; padding: 0; justify-content: center; font-size: 1.15rem; }
+html.phone .fin-tools .mv-tablabel { display: none; }
+html.phone .fin-tools .mv-tabicon { margin-right: 0; }
+.modal.fin-sheet { width: min(1000px, 94vw); max-height: 88vh; display: flex; flex-direction: column; gap: 8px; }
+.fin-sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.fin-sheet-head h4 { margin: 0; }
+.fin-sheet-body { display: flex; flex-direction: column; gap: 8px; min-height: 0; overflow: auto; }
+html.phone .fin-sheet-body { flex: 1 1 auto; padding: 8px 12px 24px; }
+.panel.finance { flex-direction: column; align-items: stretch; gap: 18px; overflow-y: auto; }
+.fin-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.fin-head .month-nav h2, .fin-head .month-nav span { min-width: 140px; text-align: center; }
+.fin-form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 10px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+.fin-form label, .fin-form .fin-field { display: flex; flex-direction: column; gap: 3px; font-size: 0.85em; color: var(--muted); }
+.fin-form input:not([type="checkbox"]), .fin-form select, .fin-form .icon-picker-btn,
+.fin-form .fin-cat-btn { height: 34px; min-height: 0; box-sizing: border-box; color: var(--text); font-size: 0.95rem; }
+.fin-form .fin-short { width: 4.5em; }
+.fin-form .fin-amount { text-align: right; }
+/* A payment's or forecast's: a grid of even fields, the buttons a row of their own. */
+.fin-pay-form { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); align-items: end; }
+.fin-pay-form input:not([type="checkbox"]), .fin-pay-form select, .fin-pay-form .fin-cat-select,
+.fin-pay-form .fin-cat-btn { width: 100%; min-width: 0; }
+.fin-pay-form .fin-cat-select { display: block; }
+.fin-pay-form .fin-form-actions, .fin-pay-form .fin-error { grid-column: 1 / -1; }
+/* Two controls sharing a field: amount + currency, repeat + every. */
+.fin-pair { display: flex; align-items: center; gap: 6px; min-width: 0; }
+/* Sized by flex-basis, so no field's width rule (a phone's 100%) can upset them. */
+.fin-form .fin-pair > .fin-pair-main { flex: 1 1 0; min-width: 0; }
+.fin-form .fin-pair > .fin-pair-side { flex: 0 0 5.2em; min-width: 0; }
+/* The buttons: Archive at the left, Cancel and Save at the right, in colour. */
+.fin-form-actions { display: flex; align-items: center; gap: 8px; flex: 1 1 auto; }
+.fin-form-actions-end { display: flex; gap: 8px; margin-left: auto; }
+.fin-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 34px; padding: 0 12px; font-weight: 600; }
+.fin-btn.icon-only { width: 44px; height: 44px; padding: 0; }
+.fin-btn-save { color: #3fb950; border-color: color-mix(in srgb, #3fb950 55%, transparent); background: color-mix(in srgb, #3fb950 16%, var(--panel-2)); }
+.fin-btn-save:hover { background: color-mix(in srgb, #3fb950 28%, var(--panel-2)); }
+.fin-btn-cancel { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, transparent); background: color-mix(in srgb, var(--accent) 10%, var(--panel-2)); }
+.fin-btn-cancel:hover { background: color-mix(in srgb, var(--accent) 20%, var(--panel-2)); }
+.fin-btn-archive { color: #e3b341; border-color: color-mix(in srgb, #e3b341 50%, transparent); background: color-mix(in srgb, #e3b341 12%, var(--panel-2)); }
+.fin-btn-archive:hover { background: color-mix(in srgb, #e3b341 24%, var(--panel-2)); }
+/* Phone: finger-sized. A category's form: icon and name on the first row,
+ * Under on the next. A payment's: the label at each field's left. */
+html.phone .fin-form { flex-direction: column; align-items: stretch; gap: 8px; padding: 10px; min-width: 0; }
+html.phone .fin-form label, html.phone .fin-form .fin-field { font-size: 0.85rem; min-width: 0; }
+html.phone .fin-form input:not([type="checkbox"]), html.phone .fin-form select,
+html.phone .fin-form .fin-cat-btn { height: 40px; width: 100%; min-width: 0; font-size: 1rem; }
+html.phone .fin-form .fin-cat-select { display: block; }
+html.phone .fin-cat-form { display: grid; grid-template-columns: auto minmax(0, 1fr); }
+html.phone .fin-cat-form > :not(.fin-field):not(label:nth-of-type(1)) { grid-column: 1 / -1; }
+html.phone .fin-cat-form .icon-picker-btn { width: 48px; height: 40px; }
+html.phone .fin-pay-form { display: flex; }
+html.phone .fin-pay-form > label { display: grid; grid-template-columns: 4.8em minmax(0, 1fr); align-items: center; gap: 8px; }
+html.phone .fin-form-actions { margin-top: 2px; }
+/* Payments and forecasts as cards: from → to and the amount, the when and why under. */
+.fin-pay-card { padding-left: 14px; }
+.fin-more { align-self: center; margin-top: 4px; padding: 8px 18px; }
+.fin-pay-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; padding: 4px 0; }
+/* One line: each side its own icon and name, cut short with "…" if long. */
+.fin-pay-flow { display: flex; align-items: center; gap: 6px; min-width: 0; font-weight: 600; }
+.fin-pay-side { display: inline-flex; align-items: center; gap: 5px; min-width: 0; flex: 0 1 auto; }
+.fin-pay-side > .fin-pay-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fin-pay-side > :not(.fin-pay-name) { flex: none; }
+.fin-pay-arrow { flex: none; color: var(--muted); font-weight: 400; }
+.fin-pay-title { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fin-pay-meta { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 0.85em; color: var(--muted); }
+.fin-pay-when { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fin-pay-meta > :not(.fin-pay-when):not(.fin-pay-flow) { flex: none; }
+.fin-pay-meta .fin-pay-flow { flex: 0 0 auto; max-width: 60%; font-weight: 400; }
+.fin-pay-meta .cat-icon { width: 1.35em; height: 1.35em; }
+.fin-pay-amount { flex: none; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+html.phone .fin-sheet-page { min-width: 0; }
+/* The icon picker over the whole screen (a phone's): the grid takes the rest. */
+html.phone .icon-picker-full .icon-picker-pop {
+  position: static; width: auto; flex: 1 1 auto; min-height: 0;
+  padding: 0 12px 12px; border: 0; border-radius: 0; box-shadow: none; background: transparent;
+}
+html.phone .icon-picker-full { max-height: 100%; }
+html.phone .icon-picker-full .icon-picker-sets button, html.phone .icon-picker-full .icon-picker-head > * { min-height: 40px; font-size: 1rem; }
+html.phone .icon-picker-full .icon-picker-grid {
+  flex: 1 1 auto; min-height: 0; max-height: none; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 4px;
+}
+html.phone .icon-picker-full .icon-picker-grid button { height: 52px; font-size: 1.6em; }
+.fin-error { color: var(--danger, #e5484d); margin: 0; }
+/* The "+" for a new one, at the title's right: bare, like Calendar's. */
+.fin-add {
+  border: 0; background: transparent; color: var(--text); cursor: pointer;
+  font-size: 1.5rem; line-height: 1; padding: 0 8px; margin-left: auto;
+}
+.fin-add:hover { color: var(--accent); background: transparent; }
+.fin-sheet-head .fin-add + button { margin-left: 4px; }
+.fin-back-row { display: flex; align-items: stretch; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
+.fin-back-row .back-bar { flex: 1 1 auto; min-width: 0; border-bottom: 0; margin-bottom: 0; }
+html.phone .fin-back-row .fin-add { width: 48px; padding: 0; font-size: 1.7rem; }
+/* Categories: cards, a sub-category indented under its parent. */
+.fin-cats { display: flex; flex-direction: column; gap: 6px; }
+.fin-cat-list-box { position: relative; display: flex; flex-direction: column; gap: 6px; }
+.fin-cats.dragging { user-select: none; -webkit-user-select: none; }
+.fin-cat-float { position: absolute; right: 0; z-index: 3; display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
+.fin-cat-float .fin-cat-card { box-shadow: 0 8px 22px rgba(0, 0, 0, 0.5); border-color: color-mix(in srgb, var(--text) 35%, var(--line)); cursor: grabbing; }
+/* Where it would land: anchors on each level it can take, the picked one lit. */
+.fin-cat-gap { position: relative; }
+.fin-cat-anchor {
+  position: absolute; top: 50%; width: 10px; height: 10px; margin-top: -5px; border-radius: 50%;
+  border: 2px solid var(--muted); background: var(--bg); transition: transform 0.1s;
+}
+.fin-cat-anchor.on { border-color: var(--accent); background: var(--accent); transform: scale(1.25); }
+.fin-cat-slot {
+  position: absolute; top: 0; bottom: 0; right: 0;
+  border: 1px dashed color-mix(in srgb, var(--text) 30%, transparent); border-radius: 8px;
+  transition: left 0.1s;
+}
+.fin-cat-card { box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45); border-color: var(--accent); }
+.fin-cat-card {
+  display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 4px 6px 4px 12px;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2);
+}
+.fin-cat-grip {
+  flex: none; align-self: stretch; display: flex; align-items: center; padding: 0 10px 0 4px; margin-left: -8px;
+  color: var(--muted); font-size: 1.2rem; line-height: 1; cursor: grab; touch-action: none;
+}
+html:not(.phone) .fin-cat-grip { display: none; }
+.fin-cat-card.draggable { cursor: grab; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.fin-cat-card .cat-icon { width: 1.6em; height: 1.6em; font-size: 1.05rem; }
+.fin-cat-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fin-cat-actions { display: flex; gap: 2px; flex: none; }
+html.phone .fin-cat-actions button { width: 40px; height: 40px; padding: 0; }
+.fin-drawer { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 6px; }
+.fin-drawer-head { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; padding: 8px 6px; }
+.fin-drawer-caret { display: inline-block; transform: rotate(-90deg); transition: transform 0.15s; opacity: 0.7; }
+.fin-drawer-caret.open { transform: none; }
+.fin-archived { margin-top: 6px; }
+.fin-archived .fin-cat-card { opacity: 0.7; }
+.fin-cat-select { position: relative; display: inline-block; }
+.fin-cat-btn { display: inline-flex; align-items: center; gap: 6px; min-width: 10em; min-height: 2.1em; text-align: left; }
+.fin-cat-btn .fin-caret { margin-left: auto; opacity: 0.6; }
+.fin-cat-list {
+  position: absolute; z-index: 30; top: calc(100% + 4px); left: 0;
+  min-width: 100%; width: max-content; max-width: calc(100vw - 32px); max-height: 300px; overflow-y: auto;
+  display: flex; flex-direction: column; padding: 4px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25); font-size: 1rem;
+}
+.fin-cat-list button { display: flex; align-items: center; gap: 6px; text-align: left; border: none; background: none; padding: 5px 8px; border-radius: 6px; }
+.fin-cat-list button:hover, .fin-cat-list button.active { background: var(--panel-2); }
+/* A category's icon wherever it shows, and the picker for it (IconPicker.tsx). */
+.cat-icon { display: inline-block; width: 1.25em; height: 1.25em; flex: none; }
+.icon-picker { position: relative; display: inline-block; }
+.icon-picker-btn { display: inline-flex; align-items: center; justify-content: center; min-width: 2.4em; min-height: 2.1em; font-size: 1.1em; }
+.icon-picker-pop {
+  position: absolute; z-index: 30; top: calc(100% + 4px); left: 0;
+  width: min(360px, calc(100vw - 32px)); display: flex; flex-direction: column; gap: 6px;
+  padding: 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25); font-size: 1rem;
+}
+.icon-picker-sets { display: flex; gap: 4px; }
+.icon-picker-sets button { flex: 1; }
+.icon-picker-head { display: flex; gap: 6px; }
+.icon-picker-head input { flex: 1; min-width: 0; }
+.icon-picker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 2px; max-height: 320px; overflow-y: auto; }
+.icon-picker-grid button { display: inline-flex; align-items: center; justify-content: center; padding: 5px; font-size: 1.3em; }
+.icon-picker-end { grid-column: 1 / -1; height: 1px; }
+/* Day view: one row per column, its name on the left. */
+table.grid.day-grid { max-width: 720px; }
+table.grid.day-grid th { width: 40%; max-width: 260px; padding: 6px 8px; vertical-align: middle; text-align: left; }
+table.grid.day-grid td.text-col > .text-sizer,
+table.grid.day-grid td.text-col > textarea.cell-text { max-width: none; }
+table.grid.day-grid td.text-col > .text-sizer { min-height: 4.5em; }
 /* A button holding just an icon: square-ish, the icon centred. */
 button.icon-only { display: inline-flex; align-items: center; justify-content: center; padding: 5px 8px; }
 .col-order-list { list-style: none; margin: 8px 0 12px; padding: 0; max-height: 55vh; overflow: auto; }
@@ -546,8 +722,8 @@ button.icon-only { display: inline-flex; align-items: center; justify-content: c
   border: 1px solid var(--line);
   border-radius: 8px;
   overflow: auto;
-  max-height: calc(100vh - 130px);
-  max-height: calc(100dvh - 130px);
+  max-height: calc(100vh - 160px);
+  max-height: calc(100dvh - 160px);
 }
 table.grid { border-collapse: collapse; width: 100%; font-size: 0.86rem; }
 table.grid th, table.grid td {
@@ -563,7 +739,7 @@ table.grid thead th {
   background: var(--panel-2);
 }
 table.grid td { padding: 0; }
-table.grid td.date { padding: 3px 6px; }
+table.grid td.date { padding: 2px 6px; }
 /* Non-text cells: absolutely fill the cell, whatever height the row ends up
    being (driven by a wrapped text cell elsewhere in the row). */
 table.grid td.fill-col { position: relative; }
@@ -579,7 +755,7 @@ table.grid td.fill-col > input[type="number"]::-webkit-outer-spin-button,
 table.grid td.fill-col > input[type="number"]::-webkit-inner-spin-button {
   -webkit-appearance: none; margin: 0;
 }
-table.grid td.fill-col > input[type="checkbox"] { margin: 6px 8px; }
+table.grid td.fill-col > input[type="checkbox"] { margin: 4px 8px; }
 table.grid td.fill-col > select {
   position: absolute; inset: 0;
   box-sizing: border-box;
@@ -3050,6 +3226,10 @@ html.phone .switcher.compact .whoami { margin-left: 6px; }
 html.phone .whoami { padding-right: 0; }
 html.phone .whoami-name { max-width: 6em; }
 html.phone .content { padding: 10px 8px; }
+/* Personal's table takes what is left under the bar (6+44+6+1), the content's
+ * padding (10+10), the section tab (40, gap 8), the month row (40) and the
+ * table's own margin (10): no second scrollbar for the page. */
+html.phone .personal .table-wrap { max-height: calc(100vh - 175px); max-height: calc(100dvh - 175px); }
 /* A phone: the bar shows just the user's name, small, a button to the settings. */
 /* It sits straight in .switcher, so it must outrank the panel tabs' own
    `.switcher.compact > button` sizes (and the sideways column's). */
@@ -3099,7 +3279,7 @@ html.phone .settings-full-signout { display: flex; align-items: center; justify-
   html.phone .whoami .icon-btn { width: 24px; height: 32px; }
   /* No bar above the panel here: Personal's table takes the height it left,
      less the month row and the padding. */
-  html.phone .personal .table-wrap { max-height: calc(100vh - 76px); max-height: calc(100dvh - 76px); }
+  html.phone .personal .table-wrap { max-height: calc(100vh - 124px); max-height: calc(100dvh - 124px); }
   html.phone .content { flex: 1 1 auto; min-width: 0; }
   html.phone .app--fixed .content { min-height: 0; height: 100%; }
 }
@@ -3157,12 +3337,17 @@ html.phone .month-nav { gap: 4px; }
 html.phone .month-nav > button { padding: 8px 11px; min-height: 40px; }
 /* Square icon buttons: the calendar's view pick and calendars menu, Personal's tools. */
 html.phone .month-nav .cal-view-toggle .icon-pick > button,
+html.phone .month-nav .personal-tools .icon-pick > button,
 html.phone .month-nav .personal-tools > button,
 html.phone .month-nav .cal-calendars-btn { width: 40px; height: 40px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
 html.phone .month-nav h2 {
   min-width: 0; flex: 1 1 auto; font-size: 0.85rem;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+/* Personal: a fixed width for the month/day, so the arrows stay put whatever
+ * the label's length ("mag 2026", "settembre 2026", "sab 7 nov 2026"); the
+ * room left goes after ▶, before the tools. */
+html.phone .personal .month-nav h2 { flex: 0 1 128px; }
 html.phone .nav-text { display: none; }
 html.phone .month-nav .nav-icon { display: block; }
 html.phone .food-head { gap: 6px; }

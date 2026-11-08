@@ -2,14 +2,16 @@
 // drawn in currentColor so they follow the button's text colour -- emoji
 // render in whatever palette and size the phone's emoji font picks.
 
-export type IconName = "today" | "month" | "week" | "calendars" | "reorder" | "columns" | "search"
+export type IconName = "today" | "month" | "week" | "day" | "calendars" | "reorder" | "columns" | "search"
   | "mouse" | "pcSound" | "keyboard" | "left" | "right" | "winLeft" | "winRight" | "maximize" | "scroll"
   | "settings" | "prev" | "next" | "play" | "pause" | "moveTo" | "download" | "upload" | "music" | "trash" | "close"
-  | "block" | "eye" | "eyeOff" | "plus" | "edit" | "pie" | "all" | "clock" | "carrot" | "cart" | "lock" | "more" | "check" | "folderPlus";
+  | "block" | "eye" | "eyeOff" | "plus" | "edit" | "pie" | "all" | "clock" | "carrot" | "cart" | "lock" | "more" | "check" | "folderPlus" | "tick" | "archive" | "unarchive";
 
 const PATHS: Record<IconName, JSX.Element> = {
   today: <><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="2.5" fill="currentColor" /></>,
   month: <><rect x="3" y="4" width="18" height="17" rx="2" /><path d="M3 9h18M9 9v12M15 9v12M3 15h18" /></>,
+  // One day: the calendar page with a single block.
+  day: <><rect x="3" y="4" width="18" height="17" rx="2" /><path d="M3 9h18" /><rect x="8" y="12" width="8" height="6" rx="1" /></>,
   week: <><rect x="3" y="4" width="18" height="17" rx="2" /><path d="M3 9h18M7.5 9v12M12 9v12M16.5 9v12" /></>,
   calendars: <><path d="M12 3 2 8l10 5 10-5-10-5Z" /><path d="m2 12.5 10 5 10-5" /><path d="m2 17 10 5 10-5" /></>,
   reorder: <path d="M7 20V4M3 8l4-4 4 4M17 4v16M13 16l4 4 4-4" />,
@@ -46,6 +48,9 @@ const PATHS: Record<IconName, JSX.Element> = {
     <path d="M22 9s-1.3-2-3.5-2C16.9 7 15 9 15 9s1.3 2 3.5 2S22 9 22 9ZM15 2s-2 1.3-2 3.5S15 9 15 9s2-1.8 2-3.5C17 3.3 15 2 15 2Z" /></>,
   cart: <><circle cx="8" cy="20.5" r="1.3" /><circle cx="18" cy="20.5" r="1.3" /><path d="M2 3h2.5l2.4 11.4a2 2 0 0 0 2 1.6h8.9a2 2 0 0 0 1.9-1.5L21.5 7H5.6" /></>,
   more: <><circle cx="12" cy="5" r="1.6" fill="currentColor" /><circle cx="12" cy="12" r="1.6" fill="currentColor" /><circle cx="12" cy="19" r="1.6" fill="currentColor" /></>,
+  tick: <path d="M5 12.5l4.5 4.5L19 7.5" />,
+  archive: <><rect x="3" y="4" width="18" height="4" rx="1" /><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8M10 12h4" /></>,
+  unarchive: <><rect x="3" y="4" width="18" height="4" rx="1" /><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8M12 18v-6M9.5 14.5 12 12l2.5 2.5" /></>,
   check: <><rect x="3.5" y="3.5" width="17" height="17" rx="3" /><path d="M8 12.5l3 3 5-6" /></>,
   folderPlus: <><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" /><path d="M12 10.5v5M9.5 13h5" /></>,
   lock: <><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V7.5a4 4 0 0 1 8 0V11" /></>,

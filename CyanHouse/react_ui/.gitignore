@@ -3,3 +3,5 @@ dist/
 *.local
 .vite/
 *.tsbuildinfo
+public/tabler-icons.json
+public/fluent-icons.json
