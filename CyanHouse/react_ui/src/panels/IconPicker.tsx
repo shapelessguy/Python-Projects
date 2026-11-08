@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useBackToClose } from "../backClose";
 import { useT } from "../i18n";
@@ -14,6 +14,8 @@ import { Icon } from "./icons";
 //          stored by bare name ("pig-money").
 //   color: Microsoft's Fluent Emoji, flat (MIT), in their own colours;
 //          stored as "fluent:<name>" ("fluent:money-bag").
+// Or a picture of one's own (uploaded): shrunk here to a small PNG and
+// stored whole, as its data: URL.
 type IconSet = "line" | "color";
 type IconEntry = { name: string; category: string; tags: string; svg: string };
 
@@ -52,14 +54,49 @@ function parse(icon: string): { set: IconSet; name: string } | null {
   return null;
 }
 
+// An uploaded picture: drawn into a square this big (kept whole, centred,
+// see-through around it) and stored as a PNG data: URL.
+const IMAGE = "data:image/";
+const IMAGE_SIZE = 96;
+function shrink(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const k = IMAGE_SIZE / Math.max(img.naturalWidth, img.naturalHeight);
+      const w = Math.max(1, Math.round(img.naturalWidth * k)), h = Math.max(1, Math.round(img.naturalHeight * k));
+      const c = document.createElement("canvas");
+      c.width = c.height = IMAGE_SIZE;
+      c.getContext("2d")!.drawImage(img, (IMAGE_SIZE - w) / 2, (IMAGE_SIZE - h) / 2, w, h);
+      URL.revokeObjectURL(url);
+      resolve(c.toDataURL("image/png"));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("not an image")); };
+    img.src = url;
+  });
+}
+
 const keyOf = (set: IconSet, name: string) => (set === "color" ? FLUENT + name : name);
 
-function Svg({ set, svg }: { set: IconSet; svg: string }) {
+/** `fit` (a colour icon shown beside text): the view framed on what is
+ *  actually drawn, a square around its middle — Fluent's emojis sit higher
+ *  or lower in their 32px box from one to the next, so beside a line of
+ *  text they'd look out of line. */
+function Svg({ set, svg, fit = false }: { set: IconSet; svg: string; fit?: boolean }) {
+  const ref = useRef<SVGSVGElement>(null);
+  const [view, setView] = useState("0 0 32 32");
+  useLayoutEffect(() => {
+    if (!fit || set !== "color" || !ref.current) return;
+    const b = ref.current.getBBox();
+    if (!b.width || !b.height) return;   // not laid out (hidden): keep the box
+    const size = Math.max(b.width, b.height) * 1.04;
+    setView(`${b.x + b.width / 2 - size / 2} ${b.y + b.height / 2 - size / 2} ${size} ${size}`);
+  }, [fit, set, svg]);
   return set === "line" ? (
     <svg className="cat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
          strokeLinecap="round" strokeLinejoin="round" aria-hidden dangerouslySetInnerHTML={{ __html: svg }} />
   ) : (
-    <svg className="cat-icon" viewBox="0 0 32 32" aria-hidden dangerouslySetInnerHTML={{ __html: svg }} />
+    <svg ref={ref} className="cat-icon" viewBox={view} aria-hidden dangerouslySetInnerHTML={{ __html: svg }} />
   );
 }
 
@@ -68,8 +105,9 @@ export function CatIcon({ icon }: { icon: string }) {
   const parsed = parse(icon);
   const icons = useIconSet(parsed?.set ?? null);
   if (!icon) return null;
+  if (icon.startsWith(IMAGE)) return <img className="cat-icon" src={icon} alt="" />;
   if (!parsed) return <span className="cat-icon">{icon}</span>;
-  return <Svg set={parsed.set} svg={icons?.get(parsed.name)?.svg ?? ""} />;
+  return <Svg set={parsed.set} svg={icons?.get(parsed.name)?.svg ?? ""} fit />;
 }
 
 // The groups a budget mostly needs, shown first (in this order), before all the others.
@@ -151,7 +189,19 @@ export function IconPicker({ value, onChange }: { value: string; onChange: (icon
     </span>
     <span className="icon-picker-head">
       <input value={query} placeholder={t("fin_icon_search")} onChange={(e) => setQuery(e.target.value)} />
-      <button type="button" className="ghost" onClick={() => pick("")}>{t("fin_icon_none")}</button>
+      {/* A picture of one's own, then no icon at all. */}
+      <label className="icon-picker-tool" title={t("fin_icon_upload")} aria-label={t("fin_icon_upload")}>
+        <Icon name="upload" size={18} className="" />
+        <input type="file" accept="image/*" hidden onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = "";
+          if (file) shrink(file).then(pick).catch(() => {});
+        }} />
+      </label>
+      <button type="button" className="ghost icon-picker-tool" title={t("fin_icon_none")} aria-label={t("fin_icon_none")}
+              onClick={() => pick("")}>
+        <Icon name="close" size={18} className="" />
+      </button>
     </span>
     {!icons ? <span className="muted">{t("loading")}</span> : (
       <span className="icon-picker-grid" ref={grid}>
@@ -170,7 +220,7 @@ export function IconPicker({ value, onChange }: { value: string; onChange: (icon
   return (
     <span className="icon-picker" ref={box}>
       <button type="button" ref={btn} className={"ghost icon-picker-btn" + (open ? " active" : "")}
-              title={value || t("fin_icon_none")} onClick={() => setOpen(!open)}>
+              title={!value ? t("fin_icon_none") : value.startsWith(IMAGE) ? t("fin_icon_uploaded") : value} onClick={() => setOpen(!open)}>
         {value ? <CatIcon icon={value} /> : <span className="muted">—</span>}
       </button>
       {open && !phone && <Floating anchor={btn} ref={pop} className="icon-picker-pop" maxHeight={460}>{content}</Floating>}

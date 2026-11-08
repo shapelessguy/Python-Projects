@@ -1,7 +1,8 @@
 import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
-  api, Currency, FinCategory, FinExecuted, FinForecast, FinKind, FinSnapshot, RecurFreq, useVersionPoll,
+  api, Currency, FinCategory, FinExecuted, FinForecast, FinKind, FinLine, FinSnapshot, finSide, RecurFreq,
+  useVersionPoll,
 } from "../api";
 import { useBackToClose } from "../backClose";
 import { readCookie, writeCookie } from "../cookies";
@@ -11,13 +12,16 @@ import { usePhone } from "../narrow";
 import { Icon, IconName } from "./icons";
 import { CatIcon, IconPicker } from "./IconPicker";
 import { Floating } from "./Floating";
-import { CalEntry, DIR_COLOR, DIR_SIGN, directionBy, FinanceCalendar } from "./FinanceCalendar";
+import { CalEntry, DIR_COLOR, DIR_SIGN, effectBy, FinanceCalendar } from "./FinanceCalendar";
 
 // The currency picked last, offered first on the next new payment or
 // forecast (EUR until one is picked).
 const CURRENCY_COOKIE = "finance_currency";
 const lastCurrency = (): Currency => (readCookie(CURRENCY_COOKIE) === "USD" ? "USD" : "EUR");
 const CURRENCIES: Currency[] = ["EUR", "USD"];
+// A line with no category (money from or to the world outside one's own
+// categories: a shop, an employer) is drawn as this icon, with no word.
+const OUTSIDE_ICON = "fluent:globe-with-meridians";
 const FREQS: RecurFreq[] = ["daily", "weekly", "monthly", "yearly"];
 // "Every 4 weeks" when the step is above one, else "Weekly" (as Calendar's).
 const EVERY: Record<RecurFreq, Key> = {
@@ -85,6 +89,8 @@ export function FinancePanel({ toolsSlot }: { toolsSlot: HTMLElement | null }) {
   // A payment opened from the calendar — a new one on a day, or one tapped
   // (a recurring one's date edits its rule) — in a window of its own.
   const [quick, setQuick] = useState<{ date: string } | { entry: CalEntry } | null>(null);
+  // An account tapped in the calendar's bar: its payments, in a window.
+  const [statement, setStatement] = useState<number | null>(null);
   const [data, setData] = useState<FinSnapshot | null>(null);
   const [editing, setEditing] = useState<Editing>(null);
   const [sheet, setSheet] = useState<FinKind | null>(null);
@@ -97,10 +103,26 @@ export function FinancePanel({ toolsSlot }: { toolsSlot: HTMLElement | null }) {
   }, [versions.finance]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   const tree = useCategoryTree(data?.categories ?? []);
-  // Income, spending, transfer: by which side of a payment is an account.
-  const direction = useMemo(() => {
+  // An amount into another currency at a day's rate: the one in force then
+  // (the latest published on or before it; a day still to come, the newest).
+  const convert = useMemo(() => {
+    const rates = data?.eur_usd ?? [];   // dollars per euro
+    return (cents: number, from: Currency, to: Currency, date: string): number | null => {
+      if (from === to) return cents;
+      let lo = 0, hi = rates.length - 1, rate: number | null = null;
+      while (lo <= hi) {
+        const mid = (lo + hi) >> 1;
+        if (rates[mid][0] <= date) { rate = rates[mid][1]; lo = mid + 1; } else hi = mid - 1;
+      }
+      rate ??= rates.length ? rates[0][1] : null;
+      if (!rate) return null;
+      return Math.round(from === "EUR" ? cents * rate : cents / rate);
+    };
+  }, [data?.eur_usd]);
+  // Income, spending, transfer: by what a payment does to the accounts' money.
+  const effect = useMemo(() => {
     const accounts = new Set((data?.categories ?? []).filter((c) => c.kind === "account").map((c) => c.id));
-    return directionBy((id) => id != null && accounts.has(id));
+    return effectBy((id) => id != null && accounts.has(id));
   }, [data?.categories]);
 
   const phone = usePhone();
@@ -114,33 +136,39 @@ export function FinancePanel({ toolsSlot }: { toolsSlot: HTMLElement | null }) {
   const [deleting, setDeleting] = useState<{ kind: FinKind; id: number } | null>(null);
   const remove = (kind: FinKind, id: number) => setDeleting({ kind, id });
   const money = (cents: number, currency: Currency) =>
-    (cents / 100).toLocaleString(lang, { style: "currency", currency });
+    (cents / 100).toLocaleString(lang, { style: "currency", currency, currencyDisplay: "narrowSymbol" });
   const day = (iso: string) => new Date(iso + "T00:00:00").toLocaleDateString(lang);
   // A card's from or to: the category's own icon and name, its full path
   // ("Home › Rent") on hover. `small` (under a reason): just the icon, when
   // it has one.
   const side = (id: number | null, small = false) => {
     const o = id == null ? undefined : tree.ordered.find((x) => x.cat.id === id);
-    if (!o) return <span className="fin-pay-side"><em className="fin-pay-name muted">{id == null ? t("fin_outside") : "?"}</em></span>;
+    if (id == null) return <span className="fin-pay-side" title={t("fin_outside")}><CatIcon icon={OUTSIDE_ICON} /></span>;
+    if (!o) return <span className="fin-pay-side"><span className="fin-pay-name">?</span></span>;
     return (
       <span className="fin-pay-side" title={o.label}>
         <CatIcon icon={o.cat.icon} />{!(small && o.cat.icon) && <span className="fin-pay-name">{o.cat.name}</span>}
       </span>
     );
   };
-  // A payment or a forecast as a card, the amount at its right. On top its
+  // A payment or a forecast as a card, its total at its right. On top its
   // reason, when it has one, with `when` (its date, or how it repeats) and
-  // from → to under it, smaller; without one, from → to on top.
+  // from → to under it, smaller; without one, from → to on top. Split (a
+  // side with more lines than one): a line more, each one's amount.
   // A recurring one (a forecast: a rule, not a payment) is drawn apart:
   // dashed, see-through, with ↻ by its amount.
+  // From → To: each side's categories, as icons where they have one.
+  const flowOf = (p: FinExecuted | FinForecast, small = true) => (
+    <span className="fin-pay-flow">
+      {finSide(p, "from").map((l) => <span key={`f${l.category_id}`} className="fin-pay-side-wrap">{side(l.category_id, small)}</span>)}
+      <span className="fin-pay-arrow" aria-hidden>→</span>
+      {finSide(p, "to").map((l) => <span key={`t${l.category_id}`} className="fin-pay-side-wrap">{side(l.category_id, small)}</span>)}
+    </span>
+  );
   const payCard = (p: FinExecuted | FinForecast, when: (string | null | false)[], buttons: () => ReactNode, recurring = false) => {
-    const flow = (small: boolean) => (
-      <span className="fin-pay-flow">
-        {side(p.from_id, small)}
-        <span className="fin-pay-arrow" aria-hidden>→</span>
-        {side(p.to_id, small)}
-      </span>
-    );
+    const from = finSide(p, "from"), to = finSide(p, "to");
+    const flow = (small: boolean) => flowOf(p, small);
+    const split = [from, to].filter((ls) => ls.length > 1).flat();
     const whenText = when.filter(Boolean).join(" · ");
     return (
       <div key={p.id} className={"fin-cat-card fin-pay-card" + (recurring ? " recurring" : "")}>
@@ -150,9 +178,18 @@ export function FinancePanel({ toolsSlot }: { toolsSlot: HTMLElement | null }) {
             <span className="fin-pay-when">{whenText}</span>
             {p.justification && <>{whenText && <span aria-hidden>·</span>}{flow(true)}</>}
           </div>
+          {split.length > 0 && (
+            <div className="fin-pay-split">
+              {split.map((l) => (
+                <span key={`${l.side}${l.category_id}`} className="fin-pay-split-line">
+                  {side(l.category_id, true)}<span>{money(l.amount_cents, p.currency)}</span>
+                </span>
+              ))}
+            </div>
+          )}
         </div>
-        <span className="fin-pay-amount" style={{ color: DIR_COLOR[direction(p)] }}>
-          {recurring && <span className="fin-pay-recur" aria-hidden>↻</span>}{DIR_SIGN[direction(p)]}{money(p.amount_cents, p.currency)}
+        <span className="fin-pay-amount" style={{ color: DIR_COLOR[effect(p).dir] }}>
+          {recurring && <span className="fin-pay-recur" aria-hidden>↻</span>}{DIR_SIGN[effect(p).dir]}{money(effect(p).cents, p.currency)}
         </span>
         <span className="fin-cat-actions">{buttons()}</span>
       </div>
@@ -251,11 +288,17 @@ export function FinancePanel({ toolsSlot }: { toolsSlot: HTMLElement | null }) {
       {data ? (
         <FinanceCalendar
           executed={data.executed} forecasts={data.forecasts}
-          money={(p) => money(p.amount_cents, p.currency)}
-          direction={direction}
-          title={(p) => p.justification || catName(direction(p) === "out" ? p.to_id : direction(p) === "in" ? p.from_id : p.to_id)}
+          money={money}
+          convert={convert}
+          effect={effect}
+          flow={flowOf}
+          accounts={tree.ordered.map((o) => o.cat).filter((c) => c.kind === "account" && !c.archived)}
+          label={(id) => side(id, true)}
+          title={(p) => p.justification ||
+            finSide(p, effect(p).dir === "in" ? "from" : "to").map((l) => catName(l.category_id)).join(", ")}
           onAdd={(date) => { setError(""); setQuick({ date }); }}
           onOpen={(entry) => { setError(""); setQuick({ entry }); }}
+          onAccount={setStatement}
         />
       ) : <p className="muted">{error || t("loading")}</p>}
       {toolsSlot && createPortal(tools, toolsSlot)}
@@ -263,6 +306,45 @@ export function FinancePanel({ toolsSlot }: { toolsSlot: HTMLElement | null }) {
         <ConfirmDialog message={t("fin_confirm_delete")} yesLabel={t("delete")} danger onNo={() => setDeleting(null)}
                        onYes={() => { apply(api.financeDelete(deleting.kind, deleting.id)); setDeleting(null); }} />
       )}
+      {statement != null && data && (() => {
+        // Every payment touching the account, newest first: what it did to
+        // the account (+ in, − out, its own lines' amounts) and the balance
+        // after it, per currency.
+        const cat = data.categories.find((c) => c.id === statement);
+        const ascending = [...data.executed].reverse().filter((p) => p.lines.some((l) => l.category_id === statement));
+        const running: Partial<Record<Currency, number>> = {};
+        const rows = ascending.map((p) => {
+          const own = p.lines.filter((l) => l.category_id === statement)
+            .reduce((n, l) => n + (l.side === "to" ? l.amount_cents : -l.amount_cents), 0);
+          running[p.currency] = (running[p.currency] ?? 0) + own;
+          return { p, own, after: running[p.currency]! };
+        }).reverse();
+        return (
+          <FinSheet title={cat?.name ?? "?"} onClose={() => setStatement(null)}>
+            <div className="fin-cats">
+              {rows.map(({ p, own, after }) => (
+                <button key={p.id} type="button" className="fin-cat-card fin-pay-card fin-statement-row"
+                        onClick={() => { setError(""); setQuick({ entry: { key: `x${p.id}`, date: p.date, kind: "executed", planned: false, p } }); }}>
+                  <div className="fin-pay-main">
+                    {p.justification ? <div className="fin-pay-title">{p.justification}</div> : flowOf(p)}
+                    <div className="fin-pay-meta">
+                      <span className="fin-pay-when">{day(p.date)}</span>
+                      {p.justification && <><span aria-hidden>·</span>{flowOf(p)}</>}
+                    </div>
+                  </div>
+                  <span className="fin-statement-amounts">
+                    <span className="fin-pay-amount" style={{ color: DIR_COLOR[own >= 0 ? "in" : "out"] }}>
+                      {own >= 0 ? "+" : "−"}{money(Math.abs(own), p.currency)}
+                    </span>
+                    <span className="fin-statement-after">{money(after, p.currency)}</span>
+                  </span>
+                </button>
+              ))}
+              {!rows.length && <p className="muted">{t("fin_no_payments")}</p>}
+            </div>
+          </FinSheet>
+        );
+      })()}
       {quick && data && (() => {
         const close = () => { setQuick(null); setError(""); };
         const done = (ok: boolean) => { if (ok) setQuick(null); };
@@ -469,8 +551,6 @@ function CategoryCards({ cats, actions, form, onMove }: {
     const box = list.current, card = cards.current.get(cat.id);
     if (!box || !card) return;
     const id = e.pointerId, x0 = e.clientX, y0 = e.clientY, touch = e.pointerType !== "mouse";
-    // The grip (a phone's) starts at once; the rest of the card after a long press.
-    const now = !!(e.target as HTMLElement).closest(".fin-cat-grip");
     const grab = y0 - card.getBoundingClientRect().top;
     // It floats with everything under it: the gap is that tall.
     const under = flatten(shown, cat.id, 1, active);
@@ -496,9 +576,32 @@ function CategoryCards({ cats, actions, form, onMove }: {
       drop = { index, depth: d, min, max };
       setDrag({ id: cat.id, drop, top, height });
     };
-    const begin = () => { dragging.current = true; project(x0, y0); navigator.vibrate?.(15); };
-    const timer = touch && !now ? window.setTimeout(begin, 350) : 0;
-    if (touch && now) begin();
+    // Held near the top or bottom of the list's scrolling box, the box
+    // scrolls by itself (faster nearer the edge), so a card can go anywhere.
+    const scroller = (() => {
+      for (let n = box.parentElement; n; n = n.parentElement)
+        if (/(auto|scroll)/.test(getComputedStyle(n).overflowY) && n.scrollHeight > n.clientHeight) return n;
+      return null;
+    })();
+    let at = { x: x0, y: y0 }, frame = 0;
+    const EDGE = 56;
+    const autoScroll = () => {
+      frame = requestAnimationFrame(autoScroll);
+      if (!scroller) return;
+      const r = scroller.getBoundingClientRect();
+      const up = at.y - r.top, down = r.bottom - at.y;
+      const step = up < EDGE ? -Math.ceil((EDGE - Math.max(up, 0)) / 4)
+        : down < EDGE ? Math.ceil((EDGE - Math.max(down, 0)) / 4) : 0;
+      if (!step) return;
+      const before = scroller.scrollTop;
+      scroller.scrollTop += step;
+      if (scroller.scrollTop !== before) project(at.x, at.y);
+    };
+    const begin = () => {
+      dragging.current = true; project(x0, y0); navigator.vibrate?.(15);
+      frame = requestAnimationFrame(autoScroll);
+    };
+    const timer = touch ? window.setTimeout(begin, 350) : 0;
     const move = (ev: PointerEvent) => {
       if (ev.pointerId !== id) return;
       if (!dragging.current) {
@@ -506,11 +609,13 @@ function CategoryCards({ cats, actions, form, onMove }: {
         if (touch) { stop(); return; }   // moved before the long press: a scroll
         begin();
       }
+      at = { x: ev.clientX, y: ev.clientY };
       project(ev.clientX, ev.clientY);
     };
     const noMenu = (ev: Event) => ev.preventDefault();
     const stop = () => {
       window.clearTimeout(timer);
+      cancelAnimationFrame(frame);
       document.removeEventListener("pointermove", move);
       document.removeEventListener("pointerup", up);
       document.removeEventListener("pointercancel", cancel);
@@ -552,7 +657,6 @@ function CategoryCards({ cats, actions, form, onMove }: {
         <div ref={ghost ? undefined : (el) => { if (el) cards.current.set(r.cat.id, el); else cards.current.delete(r.cat.id); }}
              className={"fin-cat-card" + (draggable ? " draggable" : "")}
              onPointerDown={draggable ? (e) => startDrag(e, r.cat, r.depth) : undefined}>
-          {draggable && <span className="fin-cat-grip" aria-hidden>⠿</span>}
           <CatIcon icon={r.cat.icon} />
           <span className="fin-cat-name">{r.cat.name}</span>
           {r.cat.kind === "account" &&
@@ -613,10 +717,20 @@ function CategoryCards({ cats, actions, form, onMove }: {
   );
 }
 
+type Side = "from" | "to";
+// A line being edited: its category and amount as typed.
+type LineDraft = { cat: number | null; amount: string };
+const cents2text = (c: number) => (c / 100).toFixed(2);
+
 /** A payment (kind "executed") or a forecast: the same template, plus a date
  *  for one and a start and repetition for the other. A new one (no `kind`)
  *  offers the repetition too, and saves as a forecast when it repeats or its
- *  date is still to come, else as a payment. */
+ *  date is still to come, else as a payment.
+ *  Its two sides, From and To, are lists of lines, each a category and an
+ *  amount. From's amounts make the total; To's last line takes what its
+ *  others leave of it (so the sides always match, and a plain payment is one
+ *  amount typed). Picking a category with sub-categories offers to split the
+ *  line into them, in its place. */
 function PaymentForm({ kind, row, tree, date: startDate, onSave, onCancel }: {
   kind?: "executed" | "forecasts"; row?: FinExecuted | FinForecast; tree: Tree; date?: string;
   onSave: (kind: "executed" | "forecasts", body: object) => void; onCancel: () => void;
@@ -628,9 +742,13 @@ function PaymentForm({ kind, row, tree, date: startDate, onSave, onCancel }: {
   // Opened from the calendar, it may sit far down the list: bring it into view.
   const formRef = useRef<HTMLFormElement>(null);
   useEffect(() => { formRef.current?.scrollIntoView({ block: "nearest" }); }, []);
-  const [from, setFrom] = useState<number | null>(row?.from_id ?? null);
-  const [to, setTo] = useState<number | null>(row?.to_id ?? null);
-  const [amount, setAmount] = useState(row ? (row.amount_cents / 100).toFixed(2) : "");
+  const [lines, setLines] = useState<Record<Side, LineDraft[]>>(() => {
+    const of = (side: Side): LineDraft[] => {
+      const ls = row ? finSide(row, side) : [];
+      return ls.length ? ls.map((l) => ({ cat: l.category_id, amount: cents2text(l.amount_cents) })) : [{ cat: null, amount: "" }];
+    };
+    return { from: of("from"), to: of("to") };
+  });
   const [currency, setCurrency] = useState<Currency>(row?.currency ?? lastCurrency());
   const [why, setWhy] = useState(row?.justification ?? "");
   const [freq, setFreq] = useState<RecurFreq | null>(fc ? fc.recur_freq : null);
@@ -638,33 +756,119 @@ function PaymentForm({ kind, row, tree, date: startDate, onSave, onCancel }: {
   const [until, setUntil] = useState(fc?.recur_until ?? "");
   const [error, setError] = useState("");
 
-  const pick = (value: number | null, set: (v: number | null) => void) =>
-    <CategorySelect tree={tree} value={value} onChange={set} empty={t("fin_outside")} />;
+  const fromCents = lines.from.map((l) => toCents(l.amount));
+  const total = fromCents.reduce((n, c) => n + (c || 0), 0);
+  // Each side's lines in cents: From's as typed; To's last is the rest.
+  const centsOf = (side: Side): number[] => {
+    if (side === "from") return fromCents;
+    const firsts = lines.to.slice(0, -1).map((l) => toCents(l.amount));
+    return [...firsts, total - firsts.reduce((n, c) => n + (c || 0), 0)];
+  };
+  const isRest = (side: Side, i: number) => side === "to" && i === lines.to.length - 1;
+  const setSide = (side: Side, ls: LineDraft[]) => setLines((cur) => ({ ...cur, [side]: ls }));
+  const setLine = (side: Side, i: number, patch: Partial<LineDraft>) =>
+    setSide(side, lines[side].map((l, j) => (j === i ? { ...l, ...patch } : l)));
+  // A new line. On To, the one that was last (the rest) keeps the amount it
+  // had, now typed, and the new one takes the rest.
+  const addLine = (side: Side) => {
+    const now = centsOf(side), ls = lines[side];
+    setSide(side, [...ls.map((l, i) => (isRest(side, i) ? { ...l, amount: now[i] > 0 ? cents2text(now[i]) : "" } : l)),
+                   { cat: null, amount: "" }]);
+  };
+  const removeLine = (side: Side, i: number) => setSide(side, lines[side].filter((_, j) => j !== i));
+  const children = (id: number | null) =>
+    id == null ? [] : tree.ordered.filter((o) => o.cat.parent_id === id && !o.cat.archived).map((o) => o.cat);
+  // Split a line into its category's sub-categories, in its place (their
+  // amounts to fill in).
+  const splitLine = (side: Side, i: number) => {
+    const ls = lines[side];
+    const kids = children(ls[i].cat).filter((c) => !ls.some((l) => l.cat === c.id))
+      .map((c) => ({ cat: c.id, amount: "" }));
+    setSide(side, [...ls.slice(0, i), ...kids, ...ls.slice(i + 1)]);
+  };
+
+  const submit = () => {
+    if (!(total > 0)) return setError(t("fin_err_amount"));
+    // A line left empty or at zero is just left out; a side needs one above zero.
+    const out: FinLine[] = [];
+    for (const side of ["from", "to"] as Side[]) {
+      const cs = centsOf(side).map((c) => (Number.isNaN(c) ? 0 : c));
+      if (cs.some((c) => c < 0)) return setError(t("fin_err_lines"));
+      const kept = lines[side].map((l, i) => ({ cat: l.cat, cents: cs[i] })).filter((l) => l.cents > 0);
+      if (!kept.length) return setError(t("fin_err_lines"));
+      if (new Set(kept.map((l) => l.cat)).size !== kept.length) return setError(t("fin_err_dup"));
+      kept.forEach((l) => out.push({ side, category_id: l.cat, amount_cents: l.cents }));
+    }
+    const fromCats = out.filter((l) => l.side === "from").map((l) => l.category_id);
+    if (out.some((l) => l.side === "to" && fromCats.includes(l.category_id))) return setError(t("fin_err_dup"));
+    setError("");
+    writeCookie(CURRENCY_COOKIE, currency);
+    const body = { lines: out, currency, justification: why };
+    // A new one: repeating, or still to come, makes a forecast (it writes
+    // the payments as they fall due); anything else is a payment now.
+    const as = kind ?? (freq || date > today() ? "forecasts" : "executed");
+    onSave(as, as === "executed" ? { ...body, date } : {
+      ...body, start_date: date, recur_freq: freq,
+      recur_interval: parseInt(interval, 10) || 1, recur_until: freq && until ? until : null,
+    });
+  };
+
+  // A side: its lines (category, amount, ✕ once there are two), and under
+  // each the offer to split it (cut short if long) — and under the last, at
+  // the right, the "+" for another line.
+  const sideBlock = (side: Side) => {
+    const ls = lines[side], cs = centsOf(side);
+    return (
+      <div className="fin-lines">
+        <div className="fin-lines-head">{t(side === "from" ? "fin_from" : "fin_to")}</div>
+        {ls.map((ln, i) => {
+          const last = i === ls.length - 1;
+          const kids = children(ln.cat).filter((c) => !ls.some((l) => l.cat === c.id));
+          return (
+            <div key={i} className="fin-line-wrap">
+              <div className="fin-line">
+                <CategorySelect tree={tree} value={ln.cat} empty={<span title={t("fin_outside")}><CatIcon icon={OUTSIDE_ICON} /> —</span>}
+                                onChange={(cat) => setLine(side, i, { cat })} />
+                {isRest(side, i)
+                  ? <span className="fin-line-rest" title={t("fin_line_rest")}>{cs[i] > 0 ? cents2text(cs[i]) : "—"}</span>
+                  : <input className="fin-amount fin-line-amount" inputMode="decimal" value={ln.amount}
+                           aria-label={t("fin_amount")} onChange={(e) => setLine(side, i, { amount: e.target.value })} />}
+                {ls.length > 1 && (
+                  <button type="button" className="ghost icon-only fin-line-del" title={t("fin_remove_line")}
+                          aria-label={t("fin_remove_line")} onClick={() => removeLine(side, i)}>
+                    <Icon name="close" size={14} className="" />
+                  </button>
+                )}
+              </div>
+              {(kids.length > 0 || last) && (
+                <div className="fin-line-tools">
+                  {kids.length > 0 && (
+                    <button type="button" className="ghost fin-line-split" onClick={() => splitLine(side, i)}
+                            title={t("fin_split_into", { names: kids.map((c) => c.name).join(", ") })}>
+                      {t("fin_split_into", { names: kids.map((c) => c.name).join(", ") })}
+                    </button>
+                  )}
+                  {last && (
+                    <button type="button" className="ghost icon-only fin-line-add" title={t("fin_add_line")}
+                            aria-label={t("fin_add_line")} onClick={() => addLine(side)}>
+                      <Icon name="plus" size={16} className="" />
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
 
   return (
-    <form className="fin-form fin-pay-form" ref={formRef} onSubmit={(e) => {
-      e.preventDefault();
-      const cents = toCents(amount);
-      if (!(cents > 0)) { setError(t("fin_err_amount")); return; }
-      writeCookie(CURRENCY_COOKIE, currency);
-      const body = { from_id: from, to_id: to, amount_cents: cents, currency, justification: why };
-      // A new one: repeating, or still to come, makes a forecast (it writes
-      // the payments as they fall due); anything else is a payment now.
-      const as = kind ?? (freq || date > today() ? "forecasts" : "executed");
-      onSave(as, as === "executed" ? { ...body, date } : {
-        ...body, start_date: date, recur_freq: freq,
-        recur_interval: parseInt(interval, 10) || 1, recur_until: freq && until ? until : null,
-      });
-    }}>
+    <form className="fin-form fin-pay-form" ref={formRef} onSubmit={(e) => { e.preventDefault(); submit(); }}>
+      {/* The date and the currency share a row. */}
       <label>{freq && kind !== "executed" ? t("fin_start") : t("fin_date")}
-        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
-      </label>
-      <label>{t("fin_from")}{pick(from, setFrom)}</label>
-      <label>{t("fin_to")}{pick(to, setTo)}</label>
-      {/* The amount and its currency share a row. */}
-      <label>{t("fin_amount")}
         <span className="fin-pair">
-          <input className="fin-amount fin-pair-main" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} />
+          <input className="fin-pair-main" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
           <select className="fin-pair-side" value={currency} aria-label={t("fin_currency")} onChange={(e) => setCurrency(e.target.value as Currency)}>
             {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
@@ -686,8 +890,11 @@ function PaymentForm({ kind, row, tree, date: startDate, onSave, onCancel }: {
             </>}
           </span>
         </label>
-        {freq && <label>{t("cal_until_label")}<input type="date" value={until} onChange={(e) => setUntil(e.target.value)} /></label>}
+        {freq && <label>{t("cal_until_label")}
+          <input type="date" className={until ? "" : "fin-date-empty"} value={until} onChange={(e) => setUntil(e.target.value)} />
+        </label>}
       </>}
+      <div className="fin-sides">{sideBlock("from")}{sideBlock("to")}</div>
       {error && <span className="fin-error">{error}</span>}
       <FormButtons onCancel={onCancel} />
     </form>
@@ -699,7 +906,7 @@ function PaymentForm({ kind, row, tree, date: startDate, onSave, onCancel }: {
  *  tree of them all. `empty` names the no-category choice; `exclude` drops
  *  a category and everything under it (a category's own parent picker). */
 function CategorySelect({ tree, value, onChange, empty, exclude }: {
-  tree: Tree; value: number | null; onChange: (id: number | null) => void; empty: string; exclude?: number;
+  tree: Tree; value: number | null; onChange: (id: number | null) => void; empty: ReactNode; exclude?: number;
 }) {
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLSpanElement>(null);
@@ -734,7 +941,10 @@ function CategorySelect({ tree, value, onChange, empty, exclude }: {
   return (
     <span className="fin-cat-select" ref={box}>
       <button type="button" ref={btn} className={"fin-cat-btn" + (open ? " active" : "")} onClick={() => setOpen(!open)}>
-        {value == null ? <span className="muted">{empty}</span> : tree.name(value)}
+        {value == null ? <span className="muted">{empty}</span> : (() => {
+          const o = tree.ordered.find((x) => x.cat.id === value);
+          return o ? <><CatIcon icon={o.cat.icon} /><span className="fin-cat-btn-name" title={o.label}>{o.cat.name}</span></> : "?";
+        })()}
         <span className="fin-caret" aria-hidden>▾</span>
       </button>
       {open && (

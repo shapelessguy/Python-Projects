@@ -70,13 +70,21 @@ def _daily_loop() -> None:
 
 # ── endpoints ──────────────────────────────────────────────────────────────
 def _snapshot(conn, user: str) -> dict:
+    executed = finance.list_executed(conn, user)
+    forecasts = finance.list_forecasts(conn, user)
+    # The EUR -> USD rates the client needs to put dollars into euros: from
+    # the oldest dollar payment (or forecast) on, the newest one included.
+    usd = [p["date"] for p in executed if p["currency"] == "USD"] + \
+          [f["start_date"] for f in forecasts if f["currency"] == "USD"]
     return {
         # The finance counter this reflects: the client skips the refetch
         # its own change's bump would otherwise cause.
         "version": finance.version(conn, user),
         "categories": finance.list_categories(conn, user),
-        "forecasts": finance.list_forecasts(conn, user),
-        "executed": finance.list_executed(conn, user),
+        "forecasts": forecasts,
+        "executed": executed,
+        "eur_usd": finance.rates_since(conn, min(usd)) if usd else
+                   finance.rates_since(conn, date.today().isoformat()),
     }
 
 

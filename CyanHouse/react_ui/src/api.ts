@@ -699,16 +699,29 @@ export interface FinCategory {
   kind: "" | "account";
 }
 
-/** from/to null: outside the books (money coming in from, or going out to,
- *  nowhere). Amounts are whole cents. */
+/** One side of a payment: where (some of) its money came from or went to.
+ *  category_id null: outside the books (money coming in from, or going out
+ *  to, nowhere). Amounts are whole cents. */
+export interface FinLine {
+  side: "from" | "to";
+  category_id: number | null;
+  amount_cents: number;
+}
+
+/** Its lines' two sides add up to the same total. */
 export interface FinPayment {
   id: number;
-  from_id: number | null;
-  to_id: number | null;
-  amount_cents: number;
+  lines: FinLine[];
   currency: Currency;
   justification: string;
 }
+
+/** A payment's total: what its "from" side adds up to (as its "to" side does). */
+export const finTotal = (p: FinPayment) =>
+  p.lines.reduce((n, l) => n + (l.side === "from" ? l.amount_cents : 0), 0);
+/** The categories on one side of a payment, in order. */
+export const finSide = (p: FinPayment, side: "from" | "to") =>
+  p.lines.filter((l) => l.side === side);
 
 export interface FinExecuted extends FinPayment {
   date: string;
@@ -730,6 +743,9 @@ export interface FinSnapshot {
   forecasts: FinForecast[];
   /** Every payment, newest first. */
   executed: FinExecuted[];
+  /** EUR -> USD rates ([date, dollars per euro], oldest first) from the
+   *  one in force at the oldest dollar payment to the newest published. */
+  eur_usd: [string, number][];
 }
 
 export type FinKind = "categories" | "forecasts" | "executed";

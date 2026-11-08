@@ -1,5 +1,5 @@
-import { CSSProperties, useEffect, useMemo, useRef, useState } from "react";
-import { FinExecuted, FinForecast } from "../api";
+import { CSSProperties, ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { Currency, FinCategory, FinExecuted, FinForecast, finTotal } from "../api";
 import { useBackToClose } from "../backClose";
 import { readCookie, writeCookie } from "../cookies";
 import { useT } from "../i18n";
@@ -12,6 +12,7 @@ import { IconPick } from "./IconPick";
 
 const TODAY = new Date().toLocaleDateString("en-CA");
 const VIEW_COOKIE = "finance_view";
+const UNIT_COOKIE = "finance_unit";
 type ViewMode = "month" | "week";
 
 /** One payment on the calendar: written (a payment) or still to come (a
@@ -19,15 +20,24 @@ type ViewMode = "month" | "week";
 export type CalEntry = {
   key: string; date: string; kind: "executed" | "forecasts"; planned: boolean; p: FinExecuted | FinForecast;
 };
-/** What a payment does to one's own money, by which side is an account (a
- *  category of kind "account"): into one from elsewhere is income, out of
- *  one to elsewhere spending, from one to another a transfer; between two
- *  that aren't (a salary straight to a spending) it touches none. */
+/** What a payment does to one's own money (the categories of kind
+ *  "account"): what its accounts gained on the To side less what they lost
+ *  on the From side. More: income, by that much; less: spending, by that
+ *  much; even, with accounts in it: a transfer, of its total; no account in
+ *  it (a salary straight to a spending): it touches none, its total. */
 export type Dir = "in" | "out" | "move" | "none";
-export const directionBy = (isAccount: (id: number | null) => boolean) =>
-  (p: FinExecuted | FinForecast): Dir => {
-    const from = isAccount(p.from_id), to = isAccount(p.to_id);
-    return from && to ? "move" : to ? "in" : from ? "out" : "none";
+export type Effect = { dir: Dir; cents: number };
+export const effectBy = (isAccount: (id: number | null) => boolean) =>
+  (p: FinExecuted | FinForecast): Effect => {
+    let net = 0, accounts = false;
+    for (const l of p.lines) {
+      if (!isAccount(l.category_id)) continue;
+      accounts = true;
+      net += l.side === "to" ? l.amount_cents : -l.amount_cents;
+    }
+    if (net > 0) return { dir: "in", cents: net };
+    if (net < 0) return { dir: "out", cents: -net };
+    return { dir: accounts ? "move" : "none", cents: finTotal(p) };
   };
 export const DIR_COLOR: Record<Dir, string> = { in: "#3fb950", out: "#f85149", move: "#58a6ff", none: "#8b93a1" };
 export const DIR_SIGN: Record<Dir, string> = { in: "+", out: "−", move: "", none: "" };
@@ -62,29 +72,44 @@ function plannedDates(f: FinForecast, from: string, to: string): string[] {
  *  same bar, views and swipe). Forecasts' dates still to come show too,
  *  dashed. A day's "+" (or its window's, on a phone) adds one on that day;
  *  a payment opens it in the Payments list. */
-export function FinanceCalendar({ executed, forecasts, direction, money, title, onAdd, onOpen }: {
-  executed: FinExecuted[]; forecasts: FinForecast[]; direction: (p: FinExecuted | FinForecast) => Dir;
-  money: (p: FinExecuted | FinForecast) => string;
-  /** What a payment is called on the calendar: its reason, else the other side's name. */
+export function FinanceCalendar({ executed, forecasts, accounts, effect, money, convert, title, flow, label, onAdd, onOpen, onAccount }: {
+  executed: FinExecuted[]; forecasts: FinForecast[]; effect: (p: FinExecuted | FinForecast) => Effect;
+  /** An amount of the payment's currency, written out. */
+  money: (cents: number, currency: Currency) => string;
+  /** An amount put into another currency at the rate of `date` (null: no rate to go by). */
+  convert: (cents: number, from: Currency, to: Currency, date: string) => number | null;
+  /** The categories of kind "account", whose balances the bar under the calendar shows. */
+  accounts: FinCategory[];
+  /** A category as drawn there: its icon, or its name when it has none. */
+  label: (id: number) => ReactNode;
+  /** A payment in words, for its tooltip: its reason, else the other side's names. */
   title: (p: FinExecuted | FinForecast) => string;
+  /** From → To, as icons where the categories have one. */
+  flow: (p: FinExecuted | FinForecast) => ReactNode;
   onAdd: (date: string) => void; onOpen: (e: CalEntry) => void;
+  /** An account in the bar tapped: its payments. */
+  onAccount: (id: number) => void;
 }) {
   const { t, lang } = useT();
   const narrow = usePhone();
   const [view, setViewState] = useState<ViewMode>(() => (readCookie(VIEW_COOKIE) === "week" ? "week" : "month"));
   const setView = (v: ViewMode) => { setViewState(v); writeCookie(VIEW_COOKIE, v); };
+  // The currency the bar's sums are worked out in (picked at the top, remembered).
+  const [unit, setUnitState] = useState<Currency>(() => (readCookie(UNIT_COOKIE) === "USD" ? "USD" : "EUR"));
+  const setUnit = (c: Currency) => { setUnitState(c); writeCookie(UNIT_COOKIE, c); };
   const [anchor, setAnchor] = useState(TODAY);
   const [openDay, setOpenDay] = useState<string | null>(null);
   useBackToClose(() => setOpenDay(null), openDay != null);
   const touchAt = useRef<{ x: number; y: number } | null>(null);
 
-  // Down to the bottom of the screen, as Calendar's.
+  // Down to the bottom of the screen, as Calendar's, less the bar under it.
   const bodyRef = useRef<HTMLDivElement>(null);
+  const footRef = useRef<HTMLDivElement>(null);
   const [bodyHeight, setBodyHeight] = useState(480);
   useEffect(() => {
     const measure = () => {
-      const el = bodyRef.current;
-      if (el) setBodyHeight(Math.max(240, window.innerHeight - el.getBoundingClientRect().top - 32));
+      const el = bodyRef.current, foot = footRef.current?.offsetHeight ?? 0;
+      if (el) setBodyHeight(Math.max(240, window.innerHeight - el.getBoundingClientRect().top - 32 - foot));
     };
     measure();
     const ro = new ResizeObserver(measure);
@@ -105,19 +130,67 @@ export function FinanceCalendar({ executed, forecasts, direction, money, title, 
     return m;
   }, [executed, forecasts, first, last]);
 
+  // The bar under the calendar, for the period shown (the month, or the
+  // week): each account's balance at its end, and its income and spending —
+  // both counting the forecasts' dates still to come, as the calendar does.
+  // All in the picked currency (`unit`): a balance's other money at the rate
+  // of the period's end (what it's worth then), a payment's at the rate of
+  // its own day. Money with no rate to go by stays in its own currency.
+  const periodStart = view === "month" ? anchor.slice(0, 7) + "-01" : first;
+  const periodEnd = view === "month"
+    ? (() => { const [y, m] = anchor.split("-").map(Number); return new Date(y, m, 0).toLocaleDateString("en-CA"); })()
+    : last;
+  const summary = useMemo(() => {
+    const ids = new Set(accounts.map((a) => a.id));
+    const balance = new Map<number, Partial<Record<Currency, number>>>();
+    const flows: Record<"in" | "out", Partial<Record<Currency, number>>> = { in: {}, out: {} };
+    const count = (p: FinExecuted | FinForecast, date: string) => {
+      for (const l of p.lines) if (l.category_id != null && ids.has(l.category_id)) {
+        const b = balance.get(l.category_id) ?? {};
+        b[p.currency] = (b[p.currency] ?? 0) + (l.side === "to" ? l.amount_cents : -l.amount_cents);
+        balance.set(l.category_id, b);
+      }
+      if (date >= periodStart) {
+        const { dir, cents } = effect(p);
+        if (dir === "in" || dir === "out") {
+          const v = convert(cents, p.currency, unit, date), cur = v == null ? p.currency : unit;
+          flows[dir][cur] = (flows[dir][cur] ?? 0) + (v ?? cents);
+        }
+      }
+    };
+    for (const p of executed) if (p.date <= periodEnd) count(p, p.date);
+    for (const f of forecasts) for (const d of plannedDates(f, "", periodEnd)) count(f, d);
+    const inUnit = (by: Partial<Record<Currency, number>>, date: string) => {
+      const out: Partial<Record<Currency, number>> = {};
+      for (const [cur, c] of Object.entries(by) as [Currency, number][]) {
+        const v = convert(c, cur, unit, date);
+        if (v == null) out[cur] = (out[cur] ?? 0) + c;
+        else out[unit] = (out[unit] ?? 0) + v;
+      }
+      return out;
+    };
+    for (const [id, b] of balance) balance.set(id, inUnit(b, periodEnd));
+    return { balance, flows };
+  }, [executed, forecasts, accounts, effect, convert, unit, periodStart, periodEnd]);
+  const sum = money;
+  const amounts = (by: Partial<Record<Currency, number>>, sign = "") =>
+    (Object.entries(by) as [Currency, number][]).filter(([, c]) => c).map(([cur, c]) => sign + sum(c, cur)).join(" · ");
+
   const goPrev = () => setAnchor((a) => (view === "month" ? addMonths(a, -1) : addDays(a, -7)));
   const goNext = () => setAnchor((a) => (view === "month" ? addMonths(a, 1) : addDays(a, 7)));
   const headerLabel = view === "month" ? monthLabel(anchor.slice(0, 7), lang) : weekLabel(days, lang);
 
   const chip = (e: CalEntry, big = false) => {
-    const dir = direction(e.p);
+    const { dir, cents } = effect(e.p);
     return (
       <button key={e.key} className={"cal-event fin-cal-event" + (e.planned ? " planned" : "") + (big ? " big" : "")}
               style={{ borderLeftColor: DIR_COLOR[dir], "--cal-color": DIR_COLOR[dir] } as CSSProperties}
-              title={`${DIR_SIGN[dir]}${money(e.p)} ${title(e.p)}`}
+              title={`${DIR_SIGN[dir]}${money(cents, e.p.currency)} ${title(e.p)}`}
               onClick={(ev) => { ev.stopPropagation(); setOpenDay(null); onOpen(e); }}>
-        <span className="fin-cal-amount" style={{ color: DIR_COLOR[dir] }}>{e.planned ? "↻ " : ""}{DIR_SIGN[dir]}{money(e.p)}</span>
-        <span className="fin-cal-title">{title(e.p)}</span>
+        <span className="fin-cal-amount" style={{ color: DIR_COLOR[dir] }}>{e.planned ? "↻ " : ""}{DIR_SIGN[dir]}{money(cents, e.p.currency)}</span>
+        {/* Its reason, else From → To; with room (a week, a day's window), From → To after a reason too. */}
+        <span className="fin-cal-title">{e.p.justification || flow(e.p)}</span>
+        {big && e.p.justification && <span className="fin-cal-flow">{flow(e.p)}</span>}
       </button>
     );
   };
@@ -131,6 +204,11 @@ export function FinanceCalendar({ executed, forecasts, direction, money, title, 
           {headerLabel}
         </h2>
         <button onClick={goNext}>▶</button>
+        <select className="fin-unit" value={unit} title={t("fin_unit")} aria-label={t("fin_unit")}
+                onChange={(e) => setUnit(e.target.value as Currency)}>
+          <option value="EUR">€</option>
+          <option value="USD">$</option>
+        </select>
         <div className="cal-view-toggle">
           {narrow ? (
             <IconPick
@@ -201,6 +279,24 @@ export function FinanceCalendar({ executed, forecasts, direction, money, title, 
             })}
           </div>
         )}
+      </div>
+
+      <div className="fin-cal-foot" ref={footRef}>
+        <div className="fin-foot-accounts">
+          {accounts.map((a) => {
+            const text = amounts(summary.balance.get(a.id) ?? {}) || sum(0, unit);
+            return (
+              <button key={a.id} type="button" className="ghost fin-foot-account" title={`${a.name}: ${text}`}
+                      onClick={() => onAccount(a.id)}>
+                {label(a.id)}<span>{text}</span>
+              </button>
+            );
+          })}
+        </div>
+        <div className="fin-foot-totals">
+          <span style={{ color: DIR_COLOR.in }} title={t("fin_income")}>{amounts(summary.flows.in, "+") || "+" + sum(0, unit)}</span>
+          <span style={{ color: DIR_COLOR.out }} title={t("fin_spending")}>{amounts(summary.flows.out, "−") || "−" + sum(0, unit)}</span>
+        </div>
       </div>
 
       {openDay && (

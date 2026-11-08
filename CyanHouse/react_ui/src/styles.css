@@ -564,6 +564,45 @@ html.phone .fin-sheet-body { flex: 1 1 auto; padding: 8px 12px 24px; }
 .fin-pay-form .fin-cat-btn { width: 100%; min-width: 0; }
 .fin-pay-form .fin-cat-select { display: block; }
 .fin-pay-form .fin-form-actions, .fin-pay-form .fin-error { grid-column: 1 / -1; }
+/* From and To: side by side on a wide screen, one under the other on a phone.
+ * A line: its category, then (once the side has more than one) its amount —
+ * the last one's is what's left of the total, shown, not typed — and a ✕. */
+.fin-sides { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 16px; }
+html.phone .fin-sides { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+.fin-lines { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.fin-lines-head { font-size: 0.85rem; color: var(--muted); }
+.fin-line-wrap { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.fin-line { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.fin-form .fin-line .fin-cat-select { flex: 1 1 auto; min-width: 0; width: auto; display: block; }
+.fin-form .fin-line .fin-cat-btn { width: 100%; min-width: 0; }
+.fin-form .fin-line .fin-line-amount { flex: 0 0 6.5em; width: 6.5em; min-width: 0; }
+.fin-line-rest {
+  flex: 0 0 6.5em; box-sizing: border-box; padding: 0 8px; text-align: right; color: var(--muted);
+  font-variant-numeric: tabular-nums; border: 1px dashed var(--line); border-radius: 6px; line-height: 32px;
+}
+html.phone .fin-line-rest { line-height: 38px; }
+.fin-line-del { flex: none; width: 32px; height: 32px; padding: 0; }
+html.phone .fin-line-del { width: 40px; height: 40px; }
+/* Under a line: the offer to split it at the left (cut short), the "+" at the right. */
+.fin-line-tools { display: flex; align-items: center; gap: 8px; min-width: 0; min-height: 28px; }
+.fin-line-split {
+  flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  border: 0; background: transparent; padding: 2px 4px; font-size: 0.82rem; color: #58a6ff; cursor: pointer;
+}
+.fin-line-split:hover { text-decoration: underline; background: transparent; }
+/* Bare, not a box: it mustn't read as one of the form's buttons. */
+.fin-form .fin-line-add {
+  flex: none; margin-left: auto; width: 32px; height: 28px; padding: 0;
+  border: 0; background: transparent; color: var(--accent); opacity: 0.85;
+}
+.fin-form .fin-line-add:hover { opacity: 1; background: transparent; }
+html.phone .fin-form .fin-line-add { width: 40px; height: 30px; }
+.fin-cat-btn-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* A split payment's card: each line's amount, under the rest. */
+.fin-pay-split { display: flex; flex-wrap: wrap; gap: 2px 12px; font-size: 0.82em; color: var(--muted); }
+.fin-pay-split-line { display: inline-flex; align-items: center; gap: 4px; font-variant-numeric: tabular-nums; }
+.fin-pay-split-line .cat-icon { width: 1.2em; height: 1.2em; }
+.fin-pay-side-wrap { display: inline-flex; min-width: 0; }
 /* Two controls sharing a field: amount + currency, repeat + every. */
 .fin-pair { display: flex; align-items: center; gap: 6px; min-width: 0; }
 /* Sized by flex-basis, so no field's width rule (a phone's 100%) can upset them. */
@@ -592,7 +631,8 @@ html.phone .fin-cat-form > :not(.fin-field):not(label:nth-of-type(1)) { grid-col
 html.phone .fin-cat-form .icon-picker-btn { width: 48px; height: 40px; }
 html.phone .fin-pay-form { display: flex; }
 html.phone .fin-pay-form > label { display: grid; grid-template-columns: 4.8em minmax(0, 1fr); align-items: center; gap: 8px; }
-html.phone .fin-form-actions { margin-top: 2px; }
+/* Cancel and Save apart from the fields: a line and some room above them. */
+html.phone .fin-form-actions { margin-top: 10px; padding-top: 12px; border-top: 1px solid var(--line); }
 /* Payments and forecasts as cards: from → to and the amount, the when and why under. */
 .fin-pay-card { padding-left: 14px; }
 /* A recurring one: a rule, not a payment — dashed and see-through. */
@@ -616,6 +656,37 @@ html.phone .fin-form-actions { margin-top: 2px; }
 .fin-pay-main > .fin-pay-flow .cat-icon { width: 1.5em; height: 1.5em; }
 /* ── Finance's calendar (FinanceCalendar): Calendar's grid, payments as chips ── */
 .fin-calendar { display: flex; flex-direction: column; min-width: 0; }
+.fin-calendar .month-nav .fin-unit { flex: none; width: auto; min-width: 3.2em; font-weight: 600; }
+/* A phone keeps the bar's currency as last picked on a wide screen. */
+html.phone .fin-calendar .month-nav .fin-unit { display: none; }
+/* The month's weeks share the measured height, however short the window —
+ * a busy day scrolls in its cell — so the grid never runs under the bar. */
+.fin-calendar .cal-body { overflow: hidden; }
+.fin-calendar .cal-grid { grid-auto-rows: minmax(0, 1fr); }
+/* Under the calendar: the accounts' balances at the left (scrolling sideways
+ * if many), the period's income and spending at the right. */
+.fin-cal-foot {
+  display: flex; align-items: center; gap: 12px; margin-top: 8px; padding: 8px 10px;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--panel); font-size: 0.85rem;
+}
+.fin-foot-accounts { flex: 1 1 auto; min-width: 0; display: flex; gap: 14px; overflow-x: auto; scrollbar-width: none; }
+.fin-foot-account {
+  flex: none; display: inline-flex; align-items: center; gap: 5px; font-variant-numeric: tabular-nums;
+  border: 0; background: transparent; padding: 3px 6px; margin: -3px -6px; border-radius: 6px; color: var(--text); cursor: pointer;
+}
+.fin-foot-account:hover { background: var(--panel-2); }
+/* An account's payments: what each did to it, the balance after it under. */
+.fin-statement-row { width: 100%; text-align: left; cursor: pointer; color: var(--text); padding-right: 14px; }
+.fin-statement-row:hover { border-color: color-mix(in srgb, var(--text) 25%, var(--line)); }
+.fin-statement-amounts { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+.fin-statement-after { font-size: 0.8em; color: var(--muted); font-variant-numeric: tabular-nums; }
+/* An empty date shows its pattern greyed, not as if it were one; no spinners on numbers. */
+.fin-form input.fin-date-empty { color: var(--muted); }
+.fin-form input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+.fin-form input[type="number"]::-webkit-inner-spin-button, .fin-form input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.fin-foot-account .fin-pay-side { flex: none; }
+.fin-foot-totals { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 1px; font-weight: 600; font-variant-numeric: tabular-nums; }
+html:not(.phone) .fin-foot-totals { flex-direction: row; gap: 14px; }
 /* A busy day scrolls inside its cell; the chips keep their height. */
 .fin-calendar .cal-day { min-height: 0; overflow: hidden; }
 .fin-calendar .cal-events { flex: 1 1 auto; min-height: 0; overflow-y: auto; scrollbar-width: thin; }
@@ -623,6 +694,9 @@ html.phone .fin-form-actions { margin-top: 2px; }
 .cal-event.fin-cal-event { display: flex; gap: 6px; align-items: baseline; }
 .fin-cal-event .fin-cal-amount { flex: none; font-weight: 600; font-variant-numeric: tabular-nums; }
 .fin-cal-event .fin-cal-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fin-cal-event .fin-cal-title .fin-pay-flow, .fin-cal-flow .fin-pay-flow { font-weight: 400; gap: 4px; }
+.fin-cal-event .cat-icon { width: 1.25em; height: 1.25em; }
+.fin-cal-flow { flex: none; display: inline-flex; color: var(--muted); font-size: 0.9em; }
 .cal-event.fin-cal-event.planned { background: transparent; border: 1px dashed color-mix(in srgb, var(--cal-color) 55%, transparent); border-left-width: 3px; border-left-style: solid; opacity: 0.8; }
 .cal-event.fin-cal-event.big { font-size: 0.85rem; padding: 6px 8px; flex-direction: column; gap: 1px; }
 .cal-agenda .cal-event.fin-cal-event.big { flex-direction: row; gap: 10px; }
@@ -694,11 +768,6 @@ html.phone .fin-back-row .fin-add { width: 48px; padding: 0; font-size: 1.7rem; 
   display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 4px 6px 4px 12px;
   border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2);
 }
-.fin-cat-grip {
-  flex: none; align-self: stretch; display: flex; align-items: center; padding: 0 10px 0 4px; margin-left: -8px;
-  color: var(--muted); font-size: 1.2rem; line-height: 1; cursor: grab; touch-action: none;
-}
-html:not(.phone) .fin-cat-grip { display: none; }
 .fin-cat-card.draggable { cursor: grab; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 .fin-cat-card .cat-icon { width: 1.6em; height: 1.6em; font-size: 1.05rem; }
 .fin-kind-badge {
@@ -732,7 +801,7 @@ html.phone .fin-cat-actions button { width: 40px; height: 40px; padding: 0; }
 .fin-recurring { margin: 4px 0 4px; }
 .fin-archived .fin-cat-card { opacity: 0.7; }
 .fin-cat-select { position: relative; display: inline-block; }
-.fin-cat-btn { display: inline-flex; align-items: center; gap: 6px; min-width: 10em; min-height: 2.1em; text-align: left; }
+.fin-cat-btn { display: inline-flex; align-items: center; gap: 6px; min-width: 10em; min-height: 2.1em; text-align: left; overflow: hidden; white-space: nowrap; }
 .fin-cat-btn .fin-caret { margin-left: auto; opacity: 0.6; }
 .fin-cat-list {
   position: absolute; z-index: 30; top: calc(100% + 4px); left: 0;
@@ -744,7 +813,7 @@ html.phone .fin-cat-actions button { width: 40px; height: 40px; padding: 0; }
 .fin-cat-list button { display: flex; align-items: center; gap: 6px; text-align: left; border: none; background: none; padding: 5px 8px; border-radius: 6px; }
 .fin-cat-list button:hover, .fin-cat-list button.active { background: var(--panel-2); }
 /* A category's icon wherever it shows, and the picker for it (IconPicker.tsx). */
-.cat-icon { display: inline-block; width: 1.25em; height: 1.25em; flex: none; }
+.cat-icon { display: inline-block; width: 1.25em; height: 1.25em; flex: none; vertical-align: middle; }
 .icon-picker { position: relative; display: inline-block; }
 .icon-picker-btn { display: inline-flex; align-items: center; justify-content: center; min-width: 2.4em; min-height: 2.1em; font-size: 1.1em; }
 .icon-picker-pop {
@@ -757,6 +826,12 @@ html.phone .fin-cat-actions button { width: 40px; height: 40px; padding: 0; }
 .icon-picker-sets button { flex: 1; }
 .icon-picker-head { display: flex; gap: 6px; }
 .icon-picker-head input { flex: 1; min-width: 0; }
+.icon-picker-tool {
+  flex: none; display: inline-flex; align-items: center; justify-content: center; width: 36px; padding: 0;
+  border: 1px solid var(--line); border-radius: 6px; background: var(--panel-2); color: var(--text); cursor: pointer;
+}
+html.phone .icon-picker-full .icon-picker-head > .icon-picker-tool { width: 44px; }
+img.cat-icon { object-fit: contain; }
 .icon-picker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 2px; max-height: 320px; min-height: 0; flex: 1 1 auto; overflow-y: auto; }
 .icon-picker-pop { overflow: hidden; }
 .icon-picker-grid button { display: inline-flex; align-items: center; justify-content: center; padding: 5px; font-size: 1.3em; }

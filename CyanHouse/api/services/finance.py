@@ -13,10 +13,11 @@ Three tables per user, plus one shared:
     That alone tells a payment apart: into an account from elsewhere is
     income, out of one is spending, between two is a transfer.
   - finance_executed: what was actually paid — a self-contained snapshot
-    (date, from, to, amount, currency, justification). Nothing points into
-    it and it points at nothing but categories: editing or deleting a row is
-    all there is to moving or skipping a payment.
-  - finance_forecasts: a payment template plus a recurrence (the calendar's
+    (date, currency, justification) with its lines in finance_executed_lines.
+    Nothing points into it and it points at nothing but categories: editing
+    or deleting a row is all there is to moving or skipping a payment.
+  - finance_forecasts: a payment template (its lines in
+    finance_forecast_lines) plus a recurrence (the calendar's
     recur_freq / recur_interval / recur_until; no freq = a single date). The
     generator (run_forecasts) copies the template into finance_executed on
     every due date that has arrived and moves `generated_until` to it — its
@@ -27,11 +28,16 @@ Three tables per user, plus one shared:
     holidays — rate_on() takes the latest one on or before a date), filled
     from 1999 the first time and day by day after that (update_fx).
 
-`from_id` / `to_id` empty means outside the books: money coming in from
-nowhere (an opening balance, a salary) or going out to nowhere. They can't
-both be empty. Amounts are whole cents."""
+A payment's lines say where its money came from and went to: each is a side
+("from" / "to"), a category and an amount, and the two sides add up to the
+same total — so one bill can be split over several categories on either side
+(paid from two accounts, to light and gas). Which source paid which
+destination isn't recorded, only each side's amounts. A line with no category
+is outside the books: money coming in from nowhere (an opening balance, a
+salary) or going out to nowhere. Amounts are whole cents."""
 import json
 import sqlite3
+from datetime import datetime
 import urllib.request
 from contextlib import contextmanager
 from datetime import date, timedelta
@@ -55,9 +61,6 @@ CREATE INDEX IF NOT EXISTS idx_fin_cat_user ON finance_categories(username);
 CREATE TABLE IF NOT EXISTS finance_forecasts (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     username        TEXT NOT NULL,
-    from_id         INTEGER REFERENCES finance_categories(id),
-    to_id           INTEGER REFERENCES finance_categories(id),
-    amount_cents    INTEGER NOT NULL,
     currency        TEXT NOT NULL,
     justification   TEXT NOT NULL DEFAULT '',
     start_date      TEXT NOT NULL,
@@ -68,17 +71,30 @@ CREATE TABLE IF NOT EXISTS finance_forecasts (
     generated_until TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_fin_fc_user ON finance_forecasts(username);
+CREATE TABLE IF NOT EXISTS finance_forecast_lines (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    forecast_id  INTEGER NOT NULL REFERENCES finance_forecasts(id) ON DELETE CASCADE,
+    side         TEXT NOT NULL CHECK (side IN ('from', 'to')),
+    category_id  INTEGER REFERENCES finance_categories(id),   -- NULL: outside
+    amount_cents INTEGER NOT NULL CHECK (amount_cents > 0)
+);
+CREATE INDEX IF NOT EXISTS idx_fin_fc_lines ON finance_forecast_lines(forecast_id);
 CREATE TABLE IF NOT EXISTS finance_executed (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     username      TEXT NOT NULL,
     date          TEXT NOT NULL,
-    from_id       INTEGER REFERENCES finance_categories(id),
-    to_id         INTEGER REFERENCES finance_categories(id),
-    amount_cents  INTEGER NOT NULL,
     currency      TEXT NOT NULL,
     justification TEXT NOT NULL DEFAULT ''
 );
 CREATE INDEX IF NOT EXISTS idx_fin_ex_user_date ON finance_executed(username, date);
+CREATE TABLE IF NOT EXISTS finance_executed_lines (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    executed_id  INTEGER NOT NULL REFERENCES finance_executed(id) ON DELETE CASCADE,
+    side         TEXT NOT NULL CHECK (side IN ('from', 'to')),
+    category_id  INTEGER REFERENCES finance_categories(id),   -- NULL: outside
+    amount_cents INTEGER NOT NULL CHECK (amount_cents > 0)
+);
+CREATE INDEX IF NOT EXISTS idx_fin_ex_lines ON finance_executed_lines(executed_id);
 CREATE TABLE IF NOT EXISTS fx_rates (
     date  TEXT NOT NULL,
     base  TEXT NOT NULL,
@@ -99,7 +115,10 @@ _FX_FIRST_DAY = date(1999, 1, 4)   # the ECB's first published rate
 
 _CATEGORY_FIELDS = {"parent_id", "name", "icon", "sort", "archived", "kind"}
 CATEGORY_KINDS = {"", "account"}
-_PAYMENT_FIELDS = {"from_id", "to_id", "amount_cents", "currency", "justification"}
+_PAYMENT_FIELDS = {"lines", "currency", "justification"}
+# Each payment table's lines: (lines table, its column pointing at the payment).
+_LINES = {"finance_executed": ("finance_executed_lines", "executed_id"),
+          "finance_forecasts": ("finance_forecast_lines", "forecast_id")}
 _FORECAST_FIELDS = _PAYMENT_FIELDS | {"start_date", "recur_freq", "recur_interval", "recur_until"}
 _EXECUTED_FIELDS = _PAYMENT_FIELDS | {"date"}
 
@@ -120,6 +139,13 @@ def init_db() -> None:
     with connect() as conn:
         conn.executescript(_SCHEMA)
         _migrate(conn)
+        conn.commit()
+        # Rebuilding a table is done with foreign keys off (dropping the old
+        # one must not touch the lines pointing at its ids).
+        conn.execute("PRAGMA foreign_keys = OFF")
+        _migrate_lines(conn)
+        conn.commit()
+        conn.execute("PRAGMA foreign_keys = ON")
 
 
 def _migrate(conn: sqlite3.Connection) -> None:
@@ -128,6 +154,39 @@ def _migrate(conn: sqlite3.Connection) -> None:
     cat_cols = {r["name"] for r in conn.execute("PRAGMA table_info(finance_categories)")}
     if "kind" not in cat_cols:
         conn.execute("ALTER TABLE finance_categories ADD COLUMN kind TEXT NOT NULL DEFAULT ''")
+
+
+def _migrate_lines(conn: sqlite3.Connection) -> None:
+    """Payments and forecasts from before lines (one from_id, one to_id, one
+    amount each) become a header and two lines — a copy of the whole file
+    is kept next to it first. The tables are rebuilt without the old
+    columns, keeping their ids."""
+    old = [t for t in _LINES
+           if "from_id" in {r["name"] for r in conn.execute(f"PRAGMA table_info({t})")}]
+    if not old:
+        return
+    backup = f"{FINANCE_DB}.before-lines-{datetime.now():%Y%m%d-%H%M%S}"
+    with sqlite3.connect(backup) as dest:
+        conn.backup(dest)
+    header_cols = {
+        "finance_executed": "id, username, date, currency, justification",
+        "finance_forecasts": "id, username, currency, justification, start_date, recur_freq, "
+                             "recur_interval, recur_until, generated_until",
+    }
+    for table in old:
+        lines, key = _LINES[table]
+        for side, col in (("from", "from_id"), ("to", "to_id")):
+            conn.execute(f"INSERT INTO {lines}({key}, side, category_id, amount_cents) "
+                         f"SELECT id, '{side}', {col}, amount_cents FROM {table} ORDER BY id")
+        create = _SCHEMA[_SCHEMA.index(f"CREATE TABLE IF NOT EXISTS {table} ("):]
+        create = create[:create.index(");") + 2].replace(f"IF NOT EXISTS {table}", f"{table}_new")
+        conn.execute(create)
+        cols = header_cols[table]
+        conn.execute(f"INSERT INTO {table}_new({cols}) SELECT {cols} FROM {table}")
+        conn.execute(f"DROP TABLE {table}")
+        conn.execute(f"ALTER TABLE {table}_new RENAME TO {table}")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_fin_fc_user ON finance_forecasts(username)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_fin_ex_user_date ON finance_executed(username, date)")
 
 
 def version_key(user: str) -> str:
@@ -165,23 +224,51 @@ def _check_parent(conn: sqlite3.Connection, user: str, cat_id: int | None, paren
         p = _own_category(conn, user, p)["parent_id"]
 
 
+# An icon is a set's name, or a small uploaded picture stored whole as a data: URL.
+_ICON_MAX = 200_000
+
+
+def _check_icon(icon) -> None:
+    if not isinstance(icon, str) or len(icon) > _ICON_MAX:
+        raise FinanceError("icon must be text of at most 200 KB")
+
+
 def _check_kind(kind) -> None:
     if kind not in CATEGORY_KINDS:
         raise FinanceError(f"kind must be one of {sorted(CATEGORY_KINDS)}")
 
 
 def _check_payment(conn: sqlite3.Connection, user: str, rec: dict) -> None:
-    if rec["from_id"] is None and rec["to_id"] is None:
-        raise FinanceError("from and to can't both be empty")
-    if rec["from_id"] == rec["to_id"]:
-        raise FinanceError("from and to must differ")
-    for key in ("from_id", "to_id"):
-        if rec[key] is not None:
-            _own_category(conn, user, rec[key])
-    if not isinstance(rec["amount_cents"], int) or rec["amount_cents"] <= 0:
-        raise FinanceError("amount_cents must be a positive whole number")
+    """Its lines: at least one a side, the two sides adding up to the same
+    total, a category at most once a side and never on both, and not all of
+    it outside the books."""
     if rec["currency"] not in CURRENCIES:
         raise FinanceError(f"currency must be one of {sorted(CURRENCIES)}")
+    lines = rec["lines"]
+    if not isinstance(lines, list):
+        raise FinanceError("lines must be a list")
+    sides: dict[str, list] = {"from": [], "to": []}
+    totals = {"from": 0, "to": 0}
+    for ln in lines:
+        side, cat, cents = ln.get("side"), ln.get("category_id"), ln.get("amount_cents")
+        if side not in sides:
+            raise FinanceError("a line's side must be 'from' or 'to'")
+        if not isinstance(cents, int) or isinstance(cents, bool) or cents <= 0:
+            raise FinanceError("a line's amount_cents must be a positive whole number")
+        if cat is not None:
+            _own_category(conn, user, cat)
+        if cat in sides[side]:
+            raise FinanceError("a category can be on a side only once")
+        sides[side].append(cat)
+        totals[side] += cents
+    if not sides["from"] or not sides["to"]:
+        raise FinanceError("a payment needs at least one line on each side")
+    if totals["from"] != totals["to"]:
+        raise FinanceError("the from and to sides must add up to the same total")
+    if set(sides["from"]) & set(sides["to"]):
+        raise FinanceError("a category can't be on both sides")
+    if all(c is None for c in sides["from"] + sides["to"]):
+        raise FinanceError("a payment can't be all outside")
 
 
 def _check_recurrence(rec: dict) -> None:
@@ -206,7 +293,33 @@ def _get(conn: sqlite3.Connection, table: str, user: str, row_id: int) -> dict:
     row = conn.execute(f"SELECT * FROM {table} WHERE id = ? AND username = ?", (row_id, user)).fetchone()
     if row is None:
         raise FinanceError(f"{row_id} not found", 404)
-    return dict(row)
+    if table not in _LINES:
+        return dict(row)
+    return _with_lines(conn, table, [dict(row)])[0]
+
+
+def _with_lines(conn: sqlite3.Connection, table: str, rows: list[dict]) -> list[dict]:
+    """Each payment (or forecast) of `rows` with its `lines`, from-side first."""
+    lines, key = _LINES[table]
+    by_id: dict[int, list] = {r["id"]: [] for r in rows}
+    if by_id:
+        for ln in conn.execute(
+            f"SELECT {key} AS pid, side, category_id, amount_cents FROM {lines} "
+            f"WHERE {key} IN ({', '.join('?' * len(by_id))}) ORDER BY side, id", tuple(by_id),
+        ):
+            by_id[ln["pid"]].append({"side": ln["side"], "category_id": ln["category_id"],
+                                     "amount_cents": ln["amount_cents"]})
+    return [{**r, "lines": by_id[r["id"]]} for r in rows]
+
+
+def _write_lines(conn: sqlite3.Connection, table: str, row_id: int, lines: list[dict]) -> None:
+    """Replace a payment's (or forecast's) lines with `lines`."""
+    lt, key = _LINES[table]
+    conn.execute(f"DELETE FROM {lt} WHERE {key} = ?", (row_id,))
+    conn.executemany(
+        f"INSERT INTO {lt}({key}, side, category_id, amount_cents) VALUES(?, ?, ?, ?)",
+        [(row_id, ln["side"], ln.get("category_id"), ln["amount_cents"]) for ln in lines],
+    )
 
 
 def _insert(conn: sqlite3.Connection, table: str, user: str, rec: dict) -> int:
@@ -242,6 +355,7 @@ def create_category(conn: sqlite3.Connection, user: str, fields: dict) -> dict:
     rec["name"] = rec["name"].strip()
     rec["archived"] = int(bool(rec["archived"]))
     _check_kind(rec.get("kind", ""))
+    _check_icon(rec["icon"])
     _check_parent(conn, user, None, rec["parent_id"])
     rec.setdefault("sort", _next_sort(conn, user, rec["parent_id"]))
     new_id = _insert(conn, "finance_categories", user, rec)
@@ -264,6 +378,8 @@ def update_category(conn: sqlite3.Connection, user: str, cat_id: int, fields: di
         fields["archived"] = int(bool(fields["archived"]))
     if "kind" in fields:
         _check_kind(fields["kind"])
+    if "icon" in fields:
+        _check_icon(fields["icon"])
     _update(conn, "finance_categories", cat_id, fields)
     bump(conn, version_key(user))
     return _get(conn, "finance_categories", user, cat_id)
@@ -295,8 +411,8 @@ def delete_category(conn: sqlite3.Connection, user: str, cat_id: int) -> None:
     _own_category(conn, user, cat_id)
     used = conn.execute(
         "SELECT EXISTS(SELECT 1 FROM finance_categories WHERE parent_id = :id) "
-        "OR EXISTS(SELECT 1 FROM finance_executed WHERE from_id = :id OR to_id = :id) "
-        "OR EXISTS(SELECT 1 FROM finance_forecasts WHERE from_id = :id OR to_id = :id)",
+        "OR EXISTS(SELECT 1 FROM finance_executed_lines WHERE category_id = :id) "
+        "OR EXISTS(SELECT 1 FROM finance_forecast_lines WHERE category_id = :id)",
         {"id": cat_id},
     ).fetchone()[0]
     if used:
@@ -307,32 +423,40 @@ def delete_category(conn: sqlite3.Connection, user: str, cat_id: int) -> None:
 
 # ── executed payments ──────────────────────────────────────────────────────
 def list_executed(conn: sqlite3.Connection, user: str) -> list[dict]:
-    """Every payment, newest first."""
+    """Every payment with its lines, newest first."""
     rows = conn.execute(
         "SELECT * FROM finance_executed WHERE username = ? ORDER BY date DESC, id DESC", (user,),
     ).fetchall()
-    return [dict(r) for r in rows]
+    return _with_lines(conn, "finance_executed", [dict(r) for r in rows])
+
+
+def _header(rec: dict) -> dict:
+    return {k: v for k, v in rec.items() if k not in ("id", "username", "lines")}
 
 
 def create_executed(conn: sqlite3.Connection, user: str, fields: dict) -> dict:
     _unknown(fields, _EXECUTED_FIELDS)
-    rec = {"from_id": None, "to_id": None, "justification": "", **fields}
-    for key in ("date", "amount_cents", "currency"):
+    rec = {"justification": "", **fields}
+    for key in ("date", "lines", "currency"):
         if key not in rec:
             raise FinanceError(f"{key} is required")
     _iso(rec["date"], "date")
     _check_payment(conn, user, rec)
-    new_id = _insert(conn, "finance_executed", user, rec)
+    new_id = _insert(conn, "finance_executed", user, _header(rec))
+    _write_lines(conn, "finance_executed", new_id, rec["lines"])
     bump(conn, version_key(user))
     return _get(conn, "finance_executed", user, new_id)
 
 
 def update_executed(conn: sqlite3.Connection, user: str, row_id: int, fields: dict) -> dict:
+    """`lines`, when given, replace all of the payment's lines."""
     _unknown(fields, _EXECUTED_FIELDS)
     rec = {**_get(conn, "finance_executed", user, row_id), **fields}
     _iso(rec["date"], "date")
     _check_payment(conn, user, rec)
-    _update(conn, "finance_executed", row_id, fields)
+    _update(conn, "finance_executed", row_id, _header(fields))
+    if "lines" in fields:
+        _write_lines(conn, "finance_executed", row_id, fields["lines"])
     bump(conn, version_key(user))
     return _get(conn, "finance_executed", user, row_id)
 
@@ -348,31 +472,34 @@ def list_forecasts(conn: sqlite3.Connection, user: str) -> list[dict]:
     rows = conn.execute(
         "SELECT * FROM finance_forecasts WHERE username = ? ORDER BY start_date, id", (user,),
     ).fetchall()
-    return [dict(r) for r in rows]
+    return _with_lines(conn, "finance_forecasts", [dict(r) for r in rows])
 
 
 def create_forecast(conn: sqlite3.Connection, user: str, fields: dict) -> dict:
     _unknown(fields, _FORECAST_FIELDS)
-    rec = {"from_id": None, "to_id": None, "justification": "",
-           "recur_freq": None, "recur_interval": 1, "recur_until": None, **fields}
-    for key in ("start_date", "amount_cents", "currency"):
+    rec = {"justification": "", "recur_freq": None, "recur_interval": 1, "recur_until": None, **fields}
+    for key in ("start_date", "lines", "currency"):
         if key not in rec:
             raise FinanceError(f"{key} is required")
     _check_payment(conn, user, rec)
     _check_recurrence(rec)
-    new_id = _insert(conn, "finance_forecasts", user, rec)
+    new_id = _insert(conn, "finance_forecasts", user, _header(rec))
+    _write_lines(conn, "finance_forecasts", new_id, rec["lines"])
     bump(conn, version_key(user))
     run_forecasts(conn, user=user)   # a date already due shows up now, not tomorrow
     return _get(conn, "finance_forecasts", user, new_id)
 
 
 def update_forecast(conn: sqlite3.Connection, user: str, row_id: int, fields: dict) -> dict:
-    """Changes what future dates write; rows already written stay as they are."""
+    """Changes what future dates write; rows already written stay as they are.
+    `lines`, when given, replace all of the forecast's lines."""
     _unknown(fields, _FORECAST_FIELDS)
     rec = {**_get(conn, "finance_forecasts", user, row_id), **fields}
     _check_payment(conn, user, rec)
     _check_recurrence(rec)
-    _update(conn, "finance_forecasts", row_id, fields)
+    _update(conn, "finance_forecasts", row_id, _header(fields))
+    if "lines" in fields:
+        _write_lines(conn, "finance_forecasts", row_id, fields["lines"])
     bump(conn, version_key(user))
     run_forecasts(conn, user=user)
     return _get(conn, "finance_forecasts", user, row_id)
@@ -385,7 +512,7 @@ def delete_forecast(conn: sqlite3.Connection, user: str, row_id: int) -> None:
     bump(conn, version_key(user))
 
 
-def _due_dates(f: sqlite3.Row, after: date, through: date):
+def _due_dates(f: dict, after: date, through: date):
     """Due dates of one forecast in [after, through], each computed from the
     start (not from the previous one), so a monthly on the 31st comes back to
     the 31st after a short month."""
@@ -417,16 +544,15 @@ def run_forecasts(conn: sqlite3.Connection, today: date | None = None, user: str
     if user is not None:
         sql, args = sql + " WHERE username = ?", (user,)
     touched: set[str] = set()
-    for f in conn.execute(sql, args).fetchall():
+    for f in _with_lines(conn, "finance_forecasts", [dict(r) for r in conn.execute(sql, args)]):
         after = (date.fromisoformat(f["generated_until"]) + timedelta(days=1)
                  if f["generated_until"] else date.min)
         last = None
         for d in _due_dates(f, after, today):
-            _insert(conn, "finance_executed", f["username"], {
-                "date": d.isoformat(), "from_id": f["from_id"], "to_id": f["to_id"],
-                "amount_cents": f["amount_cents"], "currency": f["currency"],
-                "justification": f["justification"],
+            new_id = _insert(conn, "finance_executed", f["username"], {
+                "date": d.isoformat(), "currency": f["currency"], "justification": f["justification"],
             })
+            _write_lines(conn, "finance_executed", new_id, f["lines"])
             last = d
         if last is not None:
             conn.execute("UPDATE finance_forecasts SET generated_until = ? WHERE id = ?",
@@ -471,6 +597,18 @@ def update_fx(today: date | None = None) -> int:
         added += len(rates)
         start = end + timedelta(days=1)
     return added
+
+
+def rates_since(conn: sqlite3.Connection, day: str) -> list[list]:
+    """Every EUR -> USD rate from the one in force on `day` (the latest on or
+    before it) to the newest, oldest first, as [date, rate] pairs."""
+    start = conn.execute(
+        "SELECT MAX(date) FROM fx_rates WHERE base = ? AND quote = ? AND date <= ?", (*_FX_PAIR, day),
+    ).fetchone()[0] or day
+    return [[r["date"], r["rate"]] for r in conn.execute(
+        "SELECT date, rate FROM fx_rates WHERE base = ? AND quote = ? AND date >= ? ORDER BY date",
+        (*_FX_PAIR, start),
+    )]
 
 
 def rate_on(conn: sqlite3.Connection, day: str, base: str = "EUR", quote: str = "USD") -> float | None:

@@ -134,10 +134,14 @@ class FinanceOrderBody(BaseModel):
     ids: list[StrictInt]
 
 
+class FinanceLine(BaseModel):
+    side: Literal["from", "to"]
+    category_id: Optional[int] = None
+    amount_cents: StrictInt = Field(gt=0)
+
+
 class FinancePaymentBody(BaseModel):
-    from_id: Optional[int] = None
-    to_id: Optional[int] = None
-    amount_cents: Optional[StrictInt] = Field(default=None, gt=0)
+    lines: Optional[list[FinanceLine]] = None
     currency: Optional[Currency] = None
     justification: Optional[str] = None
 

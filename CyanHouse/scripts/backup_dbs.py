@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Backup of CyanHouse's entire data/ directory (not just the .db files --
-food images, weather/forecast caches, everything under it) to OneDrive via
-rclone.
+"""Backup of CyanHouse's data/ directory (not just the .db files -- food
+images, picked video frames, everything that can't be had again) to OneDrive
+via rclone. What can be rebuilt (caches, thumbnails, downloaded covers) is
+left out: see EXCLUDE.
 
 Triggered by a `@reboot` entry in cyanserver's crontab (not on every API
 process restart -- deliberately not tied to api/main.py, since this backend
@@ -56,10 +57,17 @@ SRC_DIR = PROJECT_DIR / "data"
 STAGE_DIR = Path.home() / "backups" / "cyanhouse"
 DEBOUNCE_MINUTES = 30
 RETENTION_BUCKET_EDGES_DAYS = [0, 1, 2, 4, 8, 16]  # 5 buckets -> up to 5 kept
-# Direct children of SRC_DIR to skip entirely -- just the weather/forecast
-# cache today, which is fetched fresh from public APIs on demand and isn't
-# worth backing up.
-EXCLUDE_TOP_LEVEL = {"forecast"}
+# Paths under SRC_DIR (a file, or a folder and all in it) not backed up:
+# whatever is rebuilt by itself or fetched again on demand. A backup is for
+# what would be lost; these are well over a gigabyte that wouldn't be.
+EXCLUDE = {
+    "forecast",                              # weather/forecast data, fetched from public APIs
+    "api/data/thumbs",                       # Images' thumbnails, remade from the pictures
+    "api/data/movies_cache",                 # transcodes and extracted subtitles, throwaway
+    "api/data/images.sqlite",                # pictures' sizes, rescanned from the Images folder
+    "api/data/music/covers",                 # album covers, downloaded again from Cover Art Archive
+    "api/data/music/searches.sqlite",        # MusicBrainz's answers, asked again (slowly) when needed
+}
 
 _STAMP_FMT = "%Y%m%d_%H%M%S"
 
@@ -75,16 +83,18 @@ def backup_db(src: Path, dst: Path) -> None:
         dst_conn.close()
 
 
+excluded = {Path(p).parts for p in EXCLUDE}
+
+
 def copy_tree(src_root: Path, dst_root: Path) -> list[str]:
     """Every file under src_root into dst_root, preserving relative layout,
-    except EXCLUDE_TOP_LEVEL's direct children. Returns the list of relative
-    paths copied."""
+    except what EXCLUDE names. Returns the list of relative paths copied."""
     copied = []
     for src in src_root.rglob("*"):
         if not src.is_file():
             continue
         rel = src.relative_to(src_root)
-        if rel.parts[0] in EXCLUDE_TOP_LEVEL:
+        if any(rel.parts[:n] in excluded for n in range(1, len(rel.parts) + 1)):
             continue
         dst = dst_root / rel
         dst.parent.mkdir(parents=True, exist_ok=True)

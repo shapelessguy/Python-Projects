@@ -719,9 +719,8 @@ export function CalendarPanel() {
                   weekday: "long", day: "numeric", month: "long",
                 })}
               </span>
-              <button className="ghost" onClick={() => { setDraft(blankDraft(selectedDay, defaultCalendarId)); setDescEditing("shown"); }}>
-                {t("cal_add")}
-              </button>
+              <button className="ghost icon-only fin-add" title={t("cal_add_event")} aria-label={t("cal_add_event")}
+                      onClick={() => { setDraft(blankDraft(selectedDay, defaultCalendarId)); setDescEditing("shown"); }}>+</button>
             </div>
             {(eventsByDate[selectedDay] ?? []).length === 0 && <p className="muted small">{t("cal_no_events")}</p>}
             {(eventsByDate[selectedDay] ?? []).map((e) => (
