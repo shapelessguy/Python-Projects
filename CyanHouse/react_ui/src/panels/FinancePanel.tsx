@@ -12,7 +12,7 @@ import { usePhone } from "../narrow";
 import { Icon, IconName } from "./icons";
 import { CatIcon, IconPicker } from "./IconPicker";
 import { Floating } from "./Floating";
-import { CalEntry, Dir, DIR_COLOR, DIR_SIGN, effectBy, FinanceCalendar } from "./FinanceCalendar";
+import { CalEntry, Dir, DIR_COLOR, DIR_SIGN, effectBy, FinanceCalendar, Worth } from "./FinanceCalendar";
 import { FinanceCharts } from "./FinanceCharts";
 
 // The currency picked last, offered first on the next new payment or
@@ -123,6 +123,15 @@ export function FinancePanel({ toolsSlot }: { toolsSlot: HTMLElement | null }) {
     api.finance().then(setData).catch((e) => setError(String(e.message ?? e)));
   }, [versions.finance]);   // eslint-disable-line react-hooks/exhaustive-deps
 
+  // With an investment category: the Stocks portfolio's worth day by day,
+  // fetched again with every change here.
+  const investing = !!data?.categories.some((c) => c.kind === "investment");
+  const [worth, setWorth] = useState<Worth | null>(null);
+  useEffect(() => {
+    if (!investing) return;
+    api.portfolio().then((p) => setWorth({ index: p.history.index, value: p.history.value })).catch(() => {});
+  }, [investing, data?.version]);
+
   const tree = useCategoryTree(data?.categories ?? []);
   // Every tag in use, most used first: what the tag field suggests.
   const allTags = useMemo(() => {
@@ -148,10 +157,25 @@ export function FinancePanel({ toolsSlot }: { toolsSlot: HTMLElement | null }) {
     };
   }, [data?.eur_usd]);
   // Income, spending, transfer: by what a payment does to the accounts' money.
+  // A category one spends on: one whose top-level category has, over every
+  // payment, had more money sent to it from the accounts than back from it
+  // (Auto: what Mara gives back for the car is less spending, not income).
   const effect = useMemo(() => {
-    const accounts = new Set((data?.categories ?? []).filter((c) => c.kind === "account").map((c) => c.id));
-    return effectBy((id) => id != null && accounts.has(id));
-  }, [data?.categories]);
+    const cats = data?.categories ?? [];
+    const accounts = new Set(cats.filter((c) => c.kind !== "").map((c) => c.id));
+    const isAccount = (id: number | null) => id != null && accounts.has(id);
+    const parent = new Map(cats.map((c) => [c.id, c.parent_id]));
+    const rootOf = (id: number) => { let r = id; while (parent.get(r) != null) r = parent.get(r)!; return r; };
+    const spent = new Map<number, number>();   // per top-level category: sent to it less given back
+    for (const p of data?.executed ?? []) {
+      if (!p.lines.some((l) => isAccount(l.category_id))) continue;
+      for (const l of p.lines) if (l.category_id != null && !isAccount(l.category_id)) {
+        const r = rootOf(l.category_id);
+        spent.set(r, (spent.get(r) ?? 0) + (l.side === "to" ? l.amount_cents : -l.amount_cents));
+      }
+    }
+    return effectBy(isAccount, (id) => (spent.get(rootOf(id)) ?? 0) > 0);
+  }, [data?.categories, data?.executed]);
 
   const phone = usePhone();
   // True when it went through (a form over the calendar then closes).
@@ -379,7 +403,8 @@ export function FinancePanel({ toolsSlot }: { toolsSlot: HTMLElement | null }) {
           convert={convert}
           effect={effect}
           flow={flowOf}
-          accounts={tree.ordered.map((o) => o.cat).filter((c) => c.kind === "account" && !c.archived)}
+          accounts={tree.ordered.map((o) => o.cat).filter((c) => c.kind !== "" && !c.archived)}
+          worth={worth}
           label={(id) => side(id)}
           title={(p) => p.justification ||
             finSide(p, effect(p).dir === "in" ? "from" : "to").map((l) => catName(l.category_id)).join(", ")}
@@ -453,7 +478,7 @@ export function FinancePanel({ toolsSlot }: { toolsSlot: HTMLElement | null }) {
         );
       })()}
       {charts && data && (
-        <FinanceCharts data={data} effect={effect} convert={convert} onClose={() => setCharts(false)} />
+        <FinanceCharts data={data} worth={worth} effect={effect} convert={convert} onClose={() => setCharts(false)} />
       )}
       {sheet && (
         <FinSheet title={sheetTitle[sheet]} onClose={closeSheet} action={<>
@@ -516,6 +541,10 @@ function FinSheet({ title, onClose, action, wide, children }: {
   );
 }
 
+type Kind = FinCategory["kind"];
+const KIND_LABEL: Record<Exclude<Kind, "">, Key> = { account: "fin_kind_account", investment: "fin_kind_investment" };
+const NEXT_KIND: Record<Kind, Kind> = { "": "account", account: "investment", investment: "" };
+
 function CategoryForm({ cat, tree, onSave, onCancel }: {
   cat?: FinCategory; tree: Tree; onSave: (body: object) => void; onCancel: () => void;
 }) {
@@ -544,14 +573,15 @@ function CategoryForm({ cat, tree, onSave, onCancel }: {
     }}>
       <div className="fin-field">{t("fin_icon")}<IconPicker value={icon} onChange={setIcon} /></div>
       <label>{t("fin_name")}<input value={name} onChange={(e) => setName(e.target.value)} /></label>
-      {/* One type for now, so a toggle: its initial, lit when it's an account. */}
+      {/* The type, a tap stepping through them: none, account, investment.
+          Its initial, lit when it's one (an account's when it's none). */}
       <div className="fin-cat-under">
         <label>{t("fin_parent")}
           <CategorySelect tree={tree} value={parent} onChange={pickParent} empty="—" exclude={cat?.id} />
         </label>
-        <button type="button" className={"fin-kind-toggle" + (kind === "account" ? " on" : "")}
-                aria-pressed={kind === "account"} title={t("fin_kind_account")} aria-label={t("fin_kind_account")}
-                onClick={() => setKind(kind === "account" ? "" : "account")}>{t("fin_kind_account")[0]}</button>
+        <button type="button" className={"fin-kind-toggle" + (kind ? " on " + kind : "")}
+                aria-pressed={kind !== ""} title={t(KIND_LABEL[kind || "account"])} aria-label={t(KIND_LABEL[kind || "account"])}
+                onClick={() => setKind(NEXT_KIND[kind])}>{t(KIND_LABEL[kind || "account"])[0]}</button>
       </div>
       <FormButtons onCancel={onCancel} archive={cat && { archived: cat.archived, onClick: archive }} />
       {asking && (
@@ -763,8 +793,9 @@ function CategoryCards({ cats, actions, form, onMove }: {
              onPointerDown={draggable ? (e) => startDrag(e, r.cat, r.depth) : undefined}>
           <CatIcon icon={r.cat.icon} />
           <span className="fin-cat-name">{r.cat.name}</span>
-          {r.cat.kind === "account" &&
-            <span className="fin-kind-badge" title={t("fin_kind_account")} aria-label={t("fin_kind_account")}>{t("fin_kind_account")[0]}</span>}
+          {r.cat.kind &&
+            <span className={"fin-kind-badge " + r.cat.kind} title={t(KIND_LABEL[r.cat.kind])}
+                  aria-label={t(KIND_LABEL[r.cat.kind])}>{t(KIND_LABEL[r.cat.kind])[0]}</span>}
           <span className="fin-cat-actions">{actions(r.cat.id)}</span>
         </div>
       )}

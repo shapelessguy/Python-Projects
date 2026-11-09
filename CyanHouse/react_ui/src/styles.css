@@ -420,6 +420,8 @@ html.phone .env-controls--open .env-controls-head {
 .fin-charts .env-tab-body { flex: 1 1 auto; min-height: 0; }
 .fin-charts .env-charts { padding-right: 6px; }
 .fin-charts .chart-block { margin-bottom: 18px; }
+/* A tooltip near a chart's edge goes past it rather than being cut. */
+.fin-charts .js-plotly-plot .plotly .main-svg { overflow: visible; }
 /* Sankey's bars sit on fractional pixels: snapped, so they don't shimmer
    sideways when hovering redraws them. */
 .fin-charts .node-rect { shape-rendering: crispEdges; }
@@ -873,6 +875,10 @@ html.phone .fin-sheet-tools-gap { width: 14px; flex: none; }
 }
 html.phone .fin-kind-toggle { margin-bottom: 3px; }   /* centred on the 40px field */
 .fin-kind-toggle.on { color: #58a6ff; background: color-mix(in srgb, #58a6ff 14%, transparent); border-color: color-mix(in srgb, #58a6ff 40%, transparent); }
+/* An investment's: violet, an account's blue. */
+.fin-kind-toggle.on.investment, .fin-kind-badge.investment {
+  color: #bc8cff; background: color-mix(in srgb, #bc8cff 14%, transparent); border-color: color-mix(in srgb, #bc8cff 40%, transparent);
+}
 .fin-cat-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fin-cat-actions { display: flex; gap: 2px; flex: none; }
 html.phone .fin-cat-actions button { width: 40px; height: 40px; padding: 0; }

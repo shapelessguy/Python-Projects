@@ -382,6 +382,7 @@ export const it: Dict = {
   fin_icon_line: "Linee",
   fin_parent: "Sotto",
   fin_archived_list: "Archiviate",
+  fin_kind_investment: "Investimento",
   fin_kind_account: "Conto",
   fin_outside: "Esterno",
   fin_from: "Da",

@@ -8,7 +8,7 @@ import { readCookie, writeCookie } from "../cookies";
 import { Key, num, plotSeparators, useT } from "../i18n";
 import { Icon } from "./icons";
 import { addDays } from "./CalendarPanel";
-import { DIR_COLOR, Effect, plannedDates } from "./FinanceCalendar";
+import { DIR_COLOR, Effect, flowOf, plannedDates, Worth, worthOn } from "./FinanceCalendar";
 
 const Plot = createPlotlyComponent(Plotly);
 
@@ -66,8 +66,10 @@ type Entry = { date: string; p: FinExecuted | FinForecast; planned: boolean };
  *  (the balance's line goes on dashed past today). Amounts in the picked
  *  currency, each at its own day's rate (a balance at the day it's drawn
  *  for); with no rate at all, as they are. */
-export function FinanceCharts({ data, effect, convert, onClose }: {
+export function FinanceCharts({ data, worth, effect, convert, onClose }: {
   data: FinSnapshot;
+  /** The Stocks portfolio's worth, for the investments' line (null: none). */
+  worth: Worth | null;
   effect: (p: FinExecuted | FinForecast) => Effect;
   convert: (cents: number, from: Currency, to: Currency, date: string) => number | null;
   onClose: () => void;
@@ -101,7 +103,11 @@ export function FinanceCharts({ data, effect, convert, onClose }: {
   };
 
   const cats = useMemo(() => new Map(data.categories.map((c) => [c.id, c])), [data.categories]);
+  // An account's money is in the balance; an investment's is one's own too
+  // (paying into it is a transfer), counted at the portfolio's worth.
   const isAccount = (id: number | null) => id != null && cats.get(id)?.kind === "account";
+  const isOwn = (id: number | null) => id != null && !!cats.get(id)?.kind;
+  const investment = data.categories.find((c) => c.kind === "investment" && !c.archived);
   const nameOf = (id: string) => (id === OUTSIDE ? t("fin_outside") : cats.get(Number(id))?.name ?? "?");
   const rootOf = (id: number | null): string => {
     if (id == null) return OUTSIDE;
@@ -151,6 +157,8 @@ export function FinanceCharts({ data, effect, convert, onClose }: {
     const dates = new Set<string>([from, until]);
     if (from < TODAY && TODAY < until) dates.add(TODAY);
     for (let j = i; j < all.length; j++) dates.add(all[j].date);
+    // The portfolio's trading days too, so the total follows its worth.
+    if (investment && worth) for (const d of worth.index) if (d >= from && d <= until) dates.add(d);
     const series = new Map<number, number[]>();
     const xs = [...dates].sort();
     xs.forEach((d, k) => {
@@ -161,8 +169,10 @@ export function FinanceCharts({ data, effect, convert, onClose }: {
         series.set(id, s);
       }
     });
-    return { xs, series };
-  }, [all, from, until, unit, cats]);   // eslint-disable-line react-hooks/exhaustive-deps
+    // The investments' worth on each of those days (null: none).
+    const invested = investment && worth ? xs.map((d) => amt(worthOn(worth, d), "EUR", d)) : null;
+    return { xs, series, invested };
+  }, [all, from, until, unit, cats, worth]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── income and spending per bucket, by category ──
   const flows = useMemo(() => {
@@ -173,17 +183,17 @@ export function FinanceCharts({ data, effect, convert, onClose }: {
     for (const e of inRange) {
       const k = index.get(bucketOf(e.date, group));
       if (k == null) continue;
-      const { dir, cents } = effect(e.p);
-      if (dir !== "in" && dir !== "out") continue;
-      (dir === "in" ? income : spending)[k] += amt(cents, e.p.currency, e.date);
+      const ef = effect(e.p), f = flowOf(ef);
+      if (!f) continue;
+      (f.as === "in" ? income : spending)[k] += f.sign * amt(ef.cents, e.p.currency, e.date);
       // Where it went (spending: the To side's non-accounts) or came from
-      // (income: the From side's).
+      // (income: the From side's); money given back, the other way round.
       for (const l of e.p.lines) {
-        if (isAccount(l.category_id) || l.side !== (dir === "out" ? "to" : "from")) continue;
-        const v = amt(l.amount_cents, e.p.currency, e.date), id = l.category_id == null ? OUTSIDE : String(l.category_id);
-        const by = dir === "out" ? spentBy : earnedBy;
+        if (isOwn(l.category_id) || l.side !== (ef.dir === "out" ? "to" : "from")) continue;
+        const v = f.sign * amt(l.amount_cents, e.p.currency, e.date), id = l.category_id == null ? OUTSIDE : String(l.category_id);
+        const by = f.as === "out" ? spentBy : earnedBy;
         by.set(id, (by.get(id) ?? 0) + v);
-        if (dir === "out") {
+        if (f.as === "out") {
           const root = rootOf(l.category_id), s = spentByRoot.get(root) ?? buckets.map(() => 0);
           s[k] += v;
           spentByRoot.set(root, s);
@@ -197,17 +207,19 @@ export function FinanceCharts({ data, effect, convert, onClose }: {
   const sankey = useMemo(() => {
     const links = new Map<string, number>();
     for (const e of inRange) {
-      const { dir } = effect(e.p);
-      if (dir !== "in" && dir !== "out") continue;
+      const f = flowOf(effect(e.p));
+      if (!f) continue;
       const total = e.p.lines.reduce((n, l) => n + (l.side === "from" ? l.amount_cents : 0), 0);
       if (!total) continue;
       // A side's lines share the other's in proportion.
       for (const a of e.p.lines) for (const b of e.p.lines) {
         if (a.side !== "from" || b.side !== "to") continue;
-        const accA = isAccount(a.category_id), accB = isAccount(b.category_id);
+        const accA = isOwn(a.category_id), accB = isOwn(b.category_id);
         if (accA === accB) continue;   // a transfer, or no money of one's own
-        const key = accA ? `a${a.category_id}>o${rootOf(b.category_id)}` : `i${rootOf(a.category_id)}>a${b.category_id}`;
-        links.set(key, (links.get(key) ?? 0) + amt(a.amount_cents * b.amount_cents / total, e.p.currency, e.date));
+        // Money given back takes off the link it would have gone the other way.
+        const acc = accA ? a.category_id : b.category_id, other = rootOf(accA ? b.category_id : a.category_id);
+        const key = f.as === "out" ? `a${acc}>o${other}` : `i${other}>a${acc}`;
+        links.set(key, (links.get(key) ?? 0) + f.sign * amt(a.amount_cents * b.amount_cents / total, e.p.currency, e.date));
       }
     }
     return links;
@@ -243,7 +255,7 @@ export function FinanceCharts({ data, effect, convert, onClose }: {
   );
 
   const balanceChart = () => {
-    const { xs, series } = balance;
+    const { xs, series, invested } = balance;
     const past = xs.filter((d) => d <= TODAY).length;
     const traces: PlotParams["data"] = [];
     const line = (name: string, ys: number[], style: object, extra: object) => {
@@ -259,10 +271,12 @@ export function FinanceCharts({ data, effect, convert, onClose }: {
     // tap on the legend shows one).
     const ids = [...series.keys()].filter((id) => series.get(id)!.some((v) => Math.abs(v) >= 0.005))
       .sort((a, b) => (cats.get(a)?.sort ?? 0) - (cats.get(b)?.sort ?? 0));
-    const total = xs.map((_, k) => [...series.values()].reduce((n, s) => n + s[k], 0));
+    const total = xs.map((_, k) => [...series.values()].reduce((n, s) => n + s[k], invested?.[k] ?? 0));
     line(t("fin_total"), total, { color: "#e6edf3", width: 2.5 }, {});
     for (const id of ids)
       line(cats.get(id)?.name ?? "?", series.get(id)!, { width: 1.5 }, cats.get(id)?.archived ? { visible: "legendonly" } : {});
+    // The investments: the portfolio's worth, in the total too.
+    if (investment && invested) line(investment.name, invested, { width: 1.5, color: "#bc8cff" }, {});
     return plot("balance", traces, { xaxis: { gridcolor: "#333", type: "date", automargin: true } }, 380);
   };
 
@@ -280,7 +294,9 @@ export function FinanceCharts({ data, effect, convert, onClose }: {
   // A sunburst of the category tree: each one's own amount and its sub-categories'.
   const sunburst = (key: ChartKey, by: Map<string, number>) => {
     const total = new Map<string, number>();
-    for (const [id, v] of by) {
+    // A category given back more than was spent on it in the period counts as none.
+    for (const [id, net] of by) {
+      const v = Math.max(net, 0);
       let c: string | undefined = id;
       while (c) {
         total.set(c, (total.get(c) ?? 0) + v);
@@ -346,7 +362,8 @@ export function FinanceCharts({ data, effect, convert, onClose }: {
               customdata: nodeAmounts, hoverlabel: tip, hovertemplate: "%{label}<br>%{customdata}<extra></extra>" },
       link: { source, target, value, color: linkColors, customdata: value.map(write), hoverlabel: tip,
               hovertemplate: "%{source.label} → %{target.label}<br>%{customdata}<extra></extra>" },
-    }], { margin: { l: 8, r: 8, t: 8, b: 8 }, showlegend: false, hovermode: "closest" }, height);
+    // Room below for a bottom node's tooltip (the charts' last; nothing under it to spill on).
+    }], { margin: { l: 8, r: 8, t: 8, b: 56 }, showlegend: false, hovermode: "closest" }, height);
   };
 
   const short = (iso: string) =>

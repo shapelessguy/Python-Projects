@@ -1,5 +1,5 @@
 import { CSSProperties, ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Currency, FinCategory, FinExecuted, FinForecast, finTotal } from "../api";
+import { Currency, FinCategory, FinExecuted, FinForecast, finSide, finTotal } from "../api";
 import { useBackToClose } from "../backClose";
 import { readCookie, writeCookie } from "../cookies";
 import { num, useT } from "../i18n";
@@ -22,13 +22,17 @@ export type CalEntry = {
   key: string; date: string; kind: "executed" | "forecasts"; planned: boolean; p: FinExecuted | FinForecast;
 };
 /** What a payment does to one's own money (the categories of kind
- *  "account"): what its accounts gained on the To side less what they lost
+ *  "account" or "investment"): what its accounts gained on the To side less what they lost
  *  on the From side. More: income, by that much; less: spending, by that
  *  much; even, with accounts in it: a transfer, of its total; no account in
- *  it (a salary straight to a spending): it touches none, its total. */
+ *  it (a salary straight to a spending): it touches none, its total.
+ *  `back`: money given back -- coming in from categories one spends on (a
+ *  share of the car's cost, a refund), or going out to ones one earns from
+ *  -- which counts as that much less spending (or income), not as income
+ *  (or spending). */
 export type Dir = "in" | "out" | "move" | "none";
-export type Effect = { dir: Dir; cents: number };
-export const effectBy = (isAccount: (id: number | null) => boolean) =>
+export type Effect = { dir: Dir; cents: number; back: boolean };
+export const effectBy = (isAccount: (id: number | null) => boolean, isSpending: (id: number) => boolean) =>
   (p: FinExecuted | FinForecast): Effect => {
     let net = 0, accounts = false;
     for (const l of p.lines) {
@@ -36,10 +40,33 @@ export const effectBy = (isAccount: (id: number | null) => boolean) =>
       accounts = true;
       net += l.side === "to" ? l.amount_cents : -l.amount_cents;
     }
-    if (net > 0) return { dir: "in", cents: net };
-    if (net < 0) return { dir: "out", cents: -net };
-    return { dir: accounts ? "move" : "none", cents: finTotal(p) };
+    if (net === 0) return { dir: accounts ? "move" : "none", cents: finTotal(p), back: false };
+    const dir = net > 0 ? "in" : "out";
+    // The other side's categories (none of them outside): all spent on, for
+    // money coming in; all earned from, for money going out.
+    const others = finSide(p, dir === "in" ? "from" : "to").filter((l) => !isAccount(l.category_id));
+    const back = others.length > 0 &&
+      others.every((l) => l.category_id != null && isSpending(l.category_id) === (dir === "in"));
+    return { dir, cents: Math.abs(net), back };
   };
+/** Where a payment's effect counts in the income and spending sums, and
+ *  with which sign: money given back counts against the other one. */
+export const flowOf = (e: Effect): { as: "in" | "out"; sign: 1 | -1 } | null =>
+  e.dir !== "in" && e.dir !== "out" ? null
+    : e.back ? { as: e.dir === "in" ? "out" : "in", sign: -1 } : { as: e.dir, sign: 1 };
+/** The Stocks portfolio's worth, day by day (its `history`, in euros), for
+ *  the categories of kind "investment". */
+export type Worth = { index: string[]; value: number[] };
+/** Its worth on `date` in euro cents: the last trading day's on or before it
+ *  (0 before the first, the latest after the last). */
+export const worthOn = (w: Worth, date: string): number => {
+  let lo = 0, hi = w.index.length - 1, at = -1;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    if (w.index[mid] <= date) { at = mid; lo = mid + 1; } else hi = mid - 1;
+  }
+  return at < 0 ? 0 : Math.round(w.value[at] * 100);
+};
 export const DIR_COLOR: Record<Dir, string> = { in: "#3fb950", out: "#f85149", move: "#58a6ff", none: "#8b93a1" };
 export const DIR_SIGN: Record<Dir, string> = { in: "+", out: "−", move: "", none: "" };
 
@@ -73,14 +100,17 @@ export function plannedDates(f: FinForecast, from: string, to: string): string[]
  *  same bar, views and swipe). Forecasts' dates still to come show too,
  *  dashed. A day's "+" (or its window's, on a phone) adds one on that day;
  *  a payment opens it in the Payments list. */
-export function FinanceCalendar({ executed, forecasts, accounts, effect, money, convert, title, flow, label, onAdd, onOpen, onAccount }: {
+export function FinanceCalendar({ executed, forecasts, accounts, worth, effect, money, convert, title, flow, label, onAdd, onOpen, onAccount }: {
   executed: FinExecuted[]; forecasts: FinForecast[]; effect: (p: FinExecuted | FinForecast) => Effect;
   /** An amount of the payment's currency, written out. */
   money: (cents: number, currency: Currency) => string;
   /** An amount put into another currency at the rate of `date` (null: no rate to go by). */
   convert: (cents: number, from: Currency, to: Currency, date: string) => number | null;
-  /** The categories of kind "account", whose balances the bar under the calendar shows. */
+  /** The categories of kind "account" and "investment", whose balances the
+   *  bar under the calendar shows (an investment's: the portfolio's worth). */
   accounts: FinCategory[];
+  /** The portfolio's worth (null: not loaded yet). */
+  worth: Worth | null;
   /** A category as drawn there: its icon, or its name when it has none. */
   label: (id: number) => ReactNode;
   /** A payment in words, for its tooltip: its reason, else the other side's names. */
@@ -152,10 +182,10 @@ export function FinanceCalendar({ executed, forecasts, accounts, effect, money, 
         balance.set(l.category_id, b);
       }
       if (date >= periodStart) {
-        const { dir, cents } = effect(p);
-        if (dir === "in" || dir === "out") {
-          const v = convert(cents, p.currency, unit, date), cur = v == null ? p.currency : unit;
-          flows[dir][cur] = (flows[dir][cur] ?? 0) + (v ?? cents);
+        const e = effect(p), f = flowOf(e);
+        if (f) {
+          const v = convert(e.cents, p.currency, unit, date), cur = v == null ? p.currency : unit;
+          flows[f.as][cur] = (flows[f.as][cur] ?? 0) + f.sign * (v ?? e.cents);
         }
       }
     };
@@ -171,8 +201,13 @@ export function FinanceCalendar({ executed, forecasts, accounts, effect, money, 
       return out;
     };
     for (const [id, b] of balance) balance.set(id, inUnit(b, periodEnd));
+    // An investment is worth what the portfolio is (at the period's end, or
+    // today's for one still to come), whatever was paid into it.
+    const at = periodEnd < TODAY ? periodEnd : TODAY;
+    for (const a of accounts) if (a.kind === "investment")
+      balance.set(a.id, worth ? inUnit({ EUR: worthOn(worth, at) }, at) : {});
     return { balance, flows };
-  }, [executed, forecasts, accounts, effect, convert, unit, periodStart, periodEnd]);
+  }, [executed, forecasts, accounts, worth, effect, convert, unit, periodStart, periodEnd]);
   // On a phone, above 200 (either way) whole units only: the bar is narrow.
   const sum = (cents: number, cur: Currency) => narrow && Math.abs(cents) > 20000
     ? num(Math.round(cents / 100), lang, { style: "currency", currency: cur, currencyDisplay: "narrowSymbol", maximumFractionDigits: 0 })

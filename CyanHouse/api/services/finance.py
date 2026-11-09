@@ -9,9 +9,11 @@ Three tables per user, plus one shared:
     column. `sort` is the order among siblings. A category that has been used
     is archived rather than deleted, so old payments keep their names.
     `kind` says what a category is: "account" holds the user's own money (a
-    bank, a wallet), "" is anything else (a spending, an income source).
-    That alone tells a payment apart: into an account from elsewhere is
-    income, out of one is spending, between two is a transfer.
+    bank, a wallet), "investment" too but in shares (the Stocks portfolio:
+    its worth is the portfolio's, not what its payments add up to, and it
+    stays out of the accounts' totals), "" is anything else (a spending, an
+    income source). That alone tells a payment apart: into an account from
+    elsewhere is income, out of one is spending, between two is a transfer.
   - finance_executed: what was actually paid — a self-contained snapshot
     (date, currency, justification) with its lines in finance_executed_lines.
     Nothing points into it and it points at nothing but categories: editing
@@ -136,7 +138,7 @@ _FX_PAIR = ("EUR", "USD")
 _FX_FIRST_DAY = date(1999, 1, 4)   # the ECB's first published rate
 
 _CATEGORY_FIELDS = {"parent_id", "name", "icon", "sort", "archived", "kind"}
-CATEGORY_KINDS = {"", "account"}
+CATEGORY_KINDS = {"", "account", "investment"}
 _PAYMENT_FIELDS = {"lines", "currency", "justification", "tags"}
 # Each payment table's lines: (lines table, its column pointing at the payment).
 _LINES = {"finance_executed": ("finance_executed_lines", "executed_id"),

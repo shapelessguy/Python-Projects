@@ -391,6 +391,7 @@ export const en = {
   fin_icon_line: "Line",
   fin_parent: "Under",
   fin_archived_list: "Archived",
+  fin_kind_investment: "Investment",
   fin_kind_account: "Account",
   fin_outside: "Outside",
   fin_from: "From",

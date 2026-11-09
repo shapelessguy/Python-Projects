@@ -694,9 +694,11 @@ export interface FinCategory {
   icon: string;
   sort: number;
   archived: boolean;
-  /** "account": holds the user's own money (a bank, a wallet); "": anything
-   *  else. Payments in and out of accounts are income and spending. */
-  kind: "" | "account";
+  /** "account": holds the user's own money (a bank, a wallet);
+   *  "investment": so does this, in shares -- worth what the Stocks portfolio
+   *  is, and left out of the accounts' totals; "": anything else. Payments in
+   *  and out of the two are income and spending. */
+  kind: "" | "account" | "investment";
 }
 
 /** One side of a payment: where (some of) its money came from or went to.
