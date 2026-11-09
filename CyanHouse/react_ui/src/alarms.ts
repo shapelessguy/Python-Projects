@@ -8,6 +8,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { api, CalendarEvent, useVersionPoll } from "./api";
 import { send } from "./native";
+import type { Key } from "./i18n";
+
+/** The lead times an event's form offers, in minutes before the start
+ *  (MAX_LEAD_DAYS covers the longest). */
+export const ALARM_LEADS = [0, 1, 5, 10, 15, 30, 60, 1440];
+
+export function alarmLeadLabel(m: number, t: (k: Key, v?: Record<string, string | number>) => string): string {
+  if (m % 1440 === 0 && m) return t("alarm_lead_day", { n: m / 1440 });
+  if (m % 60 === 0 && m) return t("alarm_lead_hour", { n: m / 60 });
+  return t("alarm_lead_min", { n: m });
+}
 
 export interface DueAlarm {
   key: string; // "<id>@<occurrence start_date>" -- stable identity for this occurrence

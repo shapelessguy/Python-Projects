@@ -7,6 +7,7 @@ import { ConfirmDialog } from "../ConfirmDialog";
 import { Icon } from "./icons";
 import { IconPick } from "./IconPick";
 import { TimeField } from "./TimeField";
+import { ALARM_LEADS, alarmLeadLabel } from "../alarms";
 import { useBackToClose } from "../backClose";
 import { Key, useT } from "../i18n";
 
@@ -179,16 +180,6 @@ interface Draft {
   // recurring-ness, so a stale value from before the flip would otherwise
   // make an unrelated edit fail with a 400 the form has no way to explain).
   origRecurring: boolean;
-}
-
-/** The lead times the form offers, in minutes before the start (alarms.ts's
- *  MAX_LEAD_DAYS covers the longest). */
-const ALARM_LEADS = [0, 1, 5, 10, 15, 30, 60, 1440];
-
-function alarmLeadLabel(m: number, t: (k: Key, v?: Record<string, string | number>) => string): string {
-  if (m % 1440 === 0 && m) return t("alarm_lead_day", { n: m / 1440 });
-  if (m % 60 === 0 && m) return t("alarm_lead_hour", { n: m / 60 });
-  return t("alarm_lead_min", { n: m });
 }
 
 const blankDraft = (date: string, calendarId: number, start = "09:00", end = "10:00", allDay = true): Draft => ({

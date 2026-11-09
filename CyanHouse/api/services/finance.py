@@ -50,6 +50,8 @@ from datetime import date, timedelta
 
 from api.config import FINANCE_DB, FX_URL
 from api.db import bump, connect as _connect, get_version
+from api.models import EventIn
+from api.services import calendar as cal
 from api.services.calendar import _add_months
 
 _SCHEMA = """
@@ -74,7 +76,9 @@ CREATE TABLE IF NOT EXISTS finance_forecasts (
     recur_interval  INTEGER NOT NULL DEFAULT 1,
     recur_until     TEXT,
     -- the last due date already written to finance_executed (NULL: none yet)
-    generated_until TEXT
+    generated_until TEXT,
+    -- its event in the Calendar (NULL: none), kept in step by _sync_event
+    calendar_event_id INTEGER
 );
 CREATE INDEX IF NOT EXISTS idx_fin_fc_user ON finance_forecasts(username);
 CREATE TABLE IF NOT EXISTS finance_forecast_lines (
@@ -147,7 +151,7 @@ _LINES = {"finance_executed": ("finance_executed_lines", "executed_id"),
 _TAGS = {"finance_executed": ("finance_executed_tags", "executed_id"),
          "finance_forecasts": ("finance_forecast_tags", "forecast_id")}
 _TAG_MAX = 100
-_FORECAST_FIELDS = _PAYMENT_FIELDS | {"start_date", "recur_freq", "recur_interval", "recur_until"}
+_FORECAST_FIELDS = _PAYMENT_FIELDS | {"start_date", "recur_freq", "recur_interval", "recur_until", "calendar"}
 _EXECUTED_FIELDS = _PAYMENT_FIELDS | {"date"}
 
 
@@ -182,6 +186,9 @@ def _migrate(conn: sqlite3.Connection) -> None:
     cat_cols = {r["name"] for r in conn.execute("PRAGMA table_info(finance_categories)")}
     if "kind" not in cat_cols:
         conn.execute("ALTER TABLE finance_categories ADD COLUMN kind TEXT NOT NULL DEFAULT ''")
+    fc_cols = {r["name"] for r in conn.execute("PRAGMA table_info(finance_forecasts)")}
+    if "calendar_event_id" not in fc_cols:
+        conn.execute("ALTER TABLE finance_forecasts ADD COLUMN calendar_event_id INTEGER")
 
 
 def _migrate_lines(conn: sqlite3.Connection) -> None:
@@ -505,7 +512,7 @@ def list_executed(conn: sqlite3.Connection, user: str) -> list[dict]:
 
 
 def _header(rec: dict) -> dict:
-    return {k: v for k, v in rec.items() if k not in ("id", "username", "lines", "tags")}
+    return {k: v for k, v in rec.items() if k not in ("id", "username", "lines", "tags", "calendar")}
 
 
 def create_executed(conn: sqlite3.Connection, user: str, fields: dict) -> dict:
@@ -548,10 +555,70 @@ def delete_executed(conn: sqlite3.Connection, user: str, row_id: int) -> None:
 
 # ── forecasts ──────────────────────────────────────────────────────────────
 def list_forecasts(conn: sqlite3.Connection, user: str) -> list[dict]:
+    """Each with its `calendar`: its event's calendar and alarm, or None —
+    none, or deleted from the Calendar since."""
     rows = conn.execute(
         "SELECT * FROM finance_forecasts WHERE username = ? ORDER BY start_date, id", (user,),
     ).fetchall()
-    return _with_lines(conn, "finance_forecasts", [dict(r) for r in rows])
+    ids = [r["calendar_event_id"] for r in rows if r["calendar_event_id"] is not None]
+    events = {}
+    if ids:
+        with cal.connect() as cconn:
+            events = cal.event_settings(cconn, user, ids)
+    return [{**f, "calendar": events.get(f["calendar_event_id"])}
+            for f in _with_lines(conn, "finance_forecasts", [dict(r) for r in rows])]
+
+
+def calendar_open(user: str) -> bool:
+    """Whether `user` has the Calendar, so a forecast of theirs may have an event there."""
+    from api.auth import visible_panels
+    vis = visible_panels(user)
+    return vis is None or "calendar" in vis
+
+
+def _sync_event(conn: sqlite3.Connection, user: str, row_id: int, link: dict | None) -> None:
+    """Keep forecast `row_id`'s event in the Calendar in step with it: `link`
+    ({calendar_id, alarm, alarm_lead, time}) makes or rewrites it — the same
+    dates and repetition, titled by its reason (else From → To), its amount
+    as description, unless `link` brings its own `title` and `description`
+    (the client's, in its language) — at `time` when it has an alarm (all
+    day otherwise); None removes it."""
+    f = _get(conn, "finance_forecasts", user, row_id)
+    event_id = f["calendar_event_id"]
+    if link is not None and not calendar_open(user):
+        raise FinanceError("the Calendar isn't open to you", 403)
+    try:
+        with cal.connect() as cconn:
+            if link is None:
+                if event_id is not None:
+                    cal.drop_event(cconn, user, event_id)
+                new_id = None
+            else:
+                names = {c["id"]: c["name"] for c in list_categories(conn, user)}
+                side = lambda s: ", ".join(names.get(ln["category_id"], "") for ln in f["lines"]
+                                           if ln["side"] == s and ln["category_id"] is not None)
+                title = f["justification"].strip() or f"{side('from') or '…'} → {side('to') or '…'}"
+                total = sum(ln["amount_cents"] for ln in f["lines"] if ln["side"] == "from")
+                timed = bool(link.get("alarm") and link.get("time"))
+                if timed:
+                    h, m = map(int, link["time"].split(":"))
+                    end = min(h * 60 + m + 30, 23 * 60 + 59)
+                    if end <= h * 60 + m:
+                        raise FinanceError("the alarm's time must be before 23:59")
+                new_id = cal.put_event(cconn, user, event_id, EventIn(
+                    title=link.get("title") or title,
+                    description=link.get("description") or f"{total / 100:.2f} {f['currency']}",
+                    start_date=f["start_date"], end_date=f["start_date"], all_day=not timed,
+                    start_time=link["time"] if timed else None,
+                    end_time=f"{end // 60:02d}:{end % 60:02d}" if timed else None,
+                    calendar_id=link["calendar_id"], recur_freq=f["recur_freq"],
+                    recur_interval=f["recur_interval"], recur_until=f["recur_until"],
+                    alarm=bool(link.get("alarm")), alarm_lead=link.get("alarm_lead") or 0,
+                ))
+    except cal.CalendarError as e:
+        raise FinanceError(str(e), e.status_code)
+    if new_id != event_id:
+        _update(conn, "finance_forecasts", row_id, {"calendar_event_id": new_id})
 
 
 def create_forecast(conn: sqlite3.Connection, user: str, fields: dict) -> dict:
@@ -566,6 +633,8 @@ def create_forecast(conn: sqlite3.Connection, user: str, fields: dict) -> dict:
     new_id = _insert(conn, "finance_forecasts", user, _header(rec))
     _write_lines(conn, "finance_forecasts", new_id, rec["lines"])
     _write_tags(conn, "finance_forecasts", user, new_id, tags)
+    if rec.get("calendar"):
+        _sync_event(conn, user, new_id, rec["calendar"])
     bump(conn, version_key(user))
     run_forecasts(conn, user=user)   # a date already due shows up now, not tomorrow
     return _get(conn, "finance_forecasts", user, new_id)
@@ -573,9 +642,12 @@ def create_forecast(conn: sqlite3.Connection, user: str, fields: dict) -> dict:
 
 def update_forecast(conn: sqlite3.Connection, user: str, row_id: int, fields: dict) -> dict:
     """Changes what future dates write; rows already written stay as they are.
-    `lines`, when given, replace all of the forecast's lines."""
+    `lines`, when given, replace all of the forecast's lines. `calendar`,
+    when given, links it to an event in the Calendar or (None) unlinks it;
+    a linked one's event follows every change."""
     _unknown(fields, _FORECAST_FIELDS)
-    rec = {**_get(conn, "finance_forecasts", user, row_id), **fields}
+    old = _get(conn, "finance_forecasts", user, row_id)
+    rec = {**old, **fields}
     _check_payment(conn, user, rec)
     _check_recurrence(rec)
     _update(conn, "finance_forecasts", row_id, _header(fields))
@@ -583,14 +655,24 @@ def update_forecast(conn: sqlite3.Connection, user: str, row_id: int, fields: di
         _write_lines(conn, "finance_forecasts", row_id, fields["lines"])
     if "tags" in fields:
         _write_tags(conn, "finance_forecasts", user, row_id, _clean_tags(fields["tags"]))
+    if "calendar" in fields:
+        _sync_event(conn, user, row_id, fields["calendar"])
+    elif old["calendar_event_id"] is not None and calendar_open(user):
+        # Still linked: the event takes the new dates, title and amount, its
+        # calendar and alarm as they are now.
+        with cal.connect() as cconn:
+            link = cal.event_settings(cconn, user, [old["calendar_event_id"]]).get(old["calendar_event_id"])
+        if link:
+            _sync_event(conn, user, row_id, link)
     bump(conn, version_key(user))
     run_forecasts(conn, user=user)
     return _get(conn, "finance_forecasts", user, row_id)
 
 
 def delete_forecast(conn: sqlite3.Connection, user: str, row_id: int) -> None:
-    """Stops future dates; rows already written stay."""
-    _get(conn, "finance_forecasts", user, row_id)
+    """Stops future dates; rows already written stay. Its event in the
+    Calendar goes with it."""
+    _sync_event(conn, user, row_id, None)
     conn.execute("DELETE FROM finance_forecasts WHERE id = ?", (row_id,))
     _prune_tags(conn, user)
     bump(conn, version_key(user))

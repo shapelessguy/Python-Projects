@@ -27,20 +27,20 @@ function TimeOverlay({ value, onPick, onClose }: {
         <div className="muted small">{t("cal_hour")}</div>
         <div className="time-grid hours">
           {HOURS.map((h) => (
-            <button key={h} className={h === hour ? "" : "ghost"} onClick={() => setHour(h)}>{pad(h)}</button>
+            <button type="button" key={h} className={h === hour ? "" : "ghost"} onClick={() => setHour(h)}>{pad(h)}</button>
           ))}
         </div>
         <div className="muted small">{t("cal_minutes")}</div>
         <div className="time-grid minutes">
           {MINUTES.map((m) => (
-            <button key={m} className={m === m0 ? "" : "ghost"} onClick={() => onPick(`${pad(hour)}:${pad(m)}`)}>
+            <button type="button" key={m} className={m === m0 ? "" : "ghost"} onClick={() => onPick(`${pad(hour)}:${pad(m)}`)}>
               :{pad(m)}
             </button>
           ))}
         </div>
         <div className="row-actions">
-          <button onClick={() => onPick(`${pad(hour)}:${pad(m0)}`)}>{t("cal_set")}</button>
-          <button className="ghost" onClick={onClose}>{t("cancel")}</button>
+          <button type="button" onClick={() => onPick(`${pad(hour)}:${pad(m0)}`)}>{t("cal_set")}</button>
+          <button type="button" className="ghost" onClick={onClose}>{t("cancel")}</button>
         </div>
       </div>
     </div>

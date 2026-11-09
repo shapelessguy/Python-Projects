@@ -1,9 +1,10 @@
 import { CSSProperties, ReactNode, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
-  api, Currency, FinCategory, FinExecuted, FinForecast, FinKind, FinLine, FinSnapshot, finSide, RecurFreq,
-  useVersionPoll,
+  api, Calendar, Currency, FinCalendarLink, FinCategory, FinExecuted, FinForecast, FinKind, FinLine, FinSnapshot,
+  finSide, RecurFreq, useVersionPoll,
 } from "../api";
+import { ALARM_LEADS, alarmLeadLabel } from "../alarms";
 import { useBackToClose } from "../backClose";
 import { readCookie, writeCookie } from "../cookies";
 import { Key, num, useT } from "../i18n";
@@ -14,6 +15,7 @@ import { CatIcon, IconPicker } from "./IconPicker";
 import { Floating } from "./Floating";
 import { CalEntry, Dir, DIR_COLOR, DIR_SIGN, effectBy, FinanceCalendar, Worth } from "./FinanceCalendar";
 import { FinanceCharts } from "./FinanceCharts";
+import { TimeField } from "./TimeField";
 
 // The currency picked last, offered first on the next new payment or
 // forecast (EUR until one is picked).
@@ -244,7 +246,7 @@ export function FinancePanel({ toolsSlot }: { toolsSlot: HTMLElement | null }) {
           )}
         </div>
         <span className="fin-pay-amount" style={{ color: DIR_COLOR[effect(p).dir] }}>
-          {recurring && <span className="fin-pay-recur" aria-hidden>↻</span>}{DIR_SIGN[effect(p).dir]}{money(effect(p).cents, p.currency)}
+          {recurring && <span className="fin-pay-recur" aria-hidden>↻{(p as FinForecast).calendar?.alarm && "🔔"}</span>}{DIR_SIGN[effect(p).dir]}{money(effect(p).cents, p.currency)}
         </span>
         <span className="fin-cat-actions">{buttons()}</span>
       </div>
@@ -867,7 +869,7 @@ function PaymentForm({ kind, row, tree, allTags, date: startDate, onSave, onCanc
   kind?: "executed" | "forecasts"; row?: FinExecuted | FinForecast; tree: Tree; allTags: string[]; date?: string;
   onSave: (kind: "executed" | "forecasts", body: object) => void; onCancel: () => void; onDelete?: () => void;
 }) {
-  const { t } = useT();
+  const { t, lang } = useT();
   const fc = kind === "forecasts" ? (row as FinForecast | undefined) : undefined;
   const ex = kind === "executed" ? (row as FinExecuted | undefined) : undefined;
   const [date, setDate] = useState(ex?.date ?? fc?.start_date ?? startDate ?? today());
@@ -888,6 +890,23 @@ function PaymentForm({ kind, row, tree, allTags, date: startDate, onSave, onCanc
   const [freq, setFreq] = useState<RecurFreq | null>(fc ? fc.recur_freq : null);
   const [interval, setInterval] = useState(String(fc?.recur_interval ?? 1));
   const [until, setUntil] = useState(fc?.recur_until ?? "");
+  // A repeating one's event in the Calendar: ticked, where, and its alarm.
+  // The calendars it may go in (null: the Calendar isn't open to this user,
+  // so no offer — and, as its panel is hidden, its API is never asked).
+  const [calendars, setCalendars] = useState<Calendar[] | null>(null);
+  useEffect(() => {
+    let alive = true;
+    api.me()
+      .then((me) => (me.visible_panels == null || me.visible_panels.includes("calendar") ? api.calendars() : null))
+      .then((cs) => alive && setCalendars(cs && cs.filter((c) => c.level !== "see")), () => alive && setCalendars(null));
+    return () => { alive = false; };
+  }, []);
+  const [inCal, setInCal] = useState(!!fc?.calendar);
+  const [link, setLink] = useState<FinCalendarLink>(() => fc?.calendar
+    ? { ...fc.calendar, time: fc.calendar.time ?? "09:00" }
+    : { calendar_id: 0, alarm: true, alarm_lead: 0, time: "09:00" });
+  // A new link goes in the first calendar offered (one's Default).
+  const calId = calendars?.some((c) => c.id === link.calendar_id) ? link.calendar_id : calendars?.[0]?.id;
   const [error, setError] = useState("");
 
   const fromCents = lines.from.map((l) => toCents(l.amount));
@@ -942,9 +961,29 @@ function PaymentForm({ kind, row, tree, allTags, date: startDate, onSave, onCanc
     // A new one: repeating, or still to come, makes a forecast (it writes
     // the payments as they fall due); anything else is a payment now.
     const as = kind ?? (freq || date > today() ? "forecasts" : "executed");
+    // Its event: only a repeating one's, and only while there is a calendar
+    // to put it in (left as it is when the Calendar couldn't be asked).
+    // Its body: the reason, the tags, then each side's lines one under the other.
+    const eventText = () => {
+      const name = (id: number | null) =>
+        id == null ? t("fin_outside") : tree.ordered.find((o) => o.cat.id === id)?.cat.name ?? "?";
+      const amount = (c: number) =>
+        num(c / 100, lang, { style: "currency", currency, currencyDisplay: "narrowSymbol" });
+      const side = (s: Side) => [`${t(s === "from" ? "fin_from" : "fin_to")}:`,
+        ...out.filter((l) => l.side === s).map((l) => `${name(l.category_id)}: ${amount(l.amount_cents)}`)];
+      return [
+        ...(why.trim() ? [`${t("fin_justification")}: ${why.trim()}`] : []),
+        ...(body.tags.length ? [`${t("fin_tags")}: ${body.tags.join(", ")}`] : []),
+        ...(why.trim() || body.tags.length ? [""] : []),
+        ...side("from"), "", ...side("to"),
+      ].join("\n");
+    };
+    const calendar = !(freq && inCal) ? { calendar: null } : calId != null ? {
+      calendar: { ...link, calendar_id: calId, title: t("fin_event_title"), description: eventText() },
+    } : {};
     onSave(as, as === "executed" ? { ...body, date } : {
       ...body, start_date: date, recur_freq: freq,
-      recur_interval: parseInt(interval, 10) || 1, recur_until: freq && until ? until : null,
+      recur_interval: parseInt(interval, 10) || 1, recur_until: freq && until ? until : null, ...calendar,
     });
   };
 
@@ -1035,6 +1074,35 @@ function PaymentForm({ kind, row, tree, allTags, date: startDate, onSave, onCanc
         {freq && <label className="fin-f-until">{t("cal_until_label")}
           <input type="date" className={until ? "" : "fin-date-empty"} value={until} onChange={(e) => setUntil(e.target.value)} />
         </label>}
+        {/* A repeating one can be an event in the Calendar too: which
+            calendar, and its alarm (at a time of day, so it rings then). */}
+        {freq && calendars && calendars.length > 0 && <>
+          <label className="fin-f-incal" title={t("fin_in_calendar_hint")}>
+            <input type="checkbox" checked={inCal} onChange={(e) => setInCal(e.target.checked)} />
+            {t("fin_in_calendar")}
+          </label>
+          {inCal && <div className="fin-f-calrow">
+            <label className="fin-f-calendar">{t("panel_calendar")}
+              <select value={calId} onChange={(e) => setLink({ ...link, calendar_id: Number(e.target.value) })}>
+                {calendars.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </label>
+            <div className="fin-field fin-f-alarm">{t("alarm_one")}
+              <span className="fin-pair">
+                <select className="fin-pair-main" aria-label={t("alarm_one")}
+                        title={link.alarm ? t("alarm_before") : t("alarm_none")}
+                        value={link.alarm ? String(link.alarm_lead) : "off"}
+                        onChange={(e) => setLink(e.target.value === "off"
+                          ? { ...link, alarm: false }
+                          : { ...link, alarm: true, alarm_lead: Number(e.target.value) })}>
+                  <option value="off">🔕</option>
+                  {ALARM_LEADS.map((m) => <option key={m} value={m}>🔔 {alarmLeadLabel(m, t)}</option>)}
+                </select>
+                {link.alarm && <TimeField value={link.time ?? "09:00"} onChange={(time) => setLink({ ...link, time })} />}
+              </span>
+            </div>
+          </div>}
+        </>}
       </>}
       <div className="fin-sides">{sideBlock("from")}{sideBlock("to")}</div>
       {error && <span className="fin-error">{error}</span>}

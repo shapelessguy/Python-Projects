@@ -751,6 +751,55 @@ def update_event(conn: sqlite3.Connection, user: str, event_id: int, body: Event
     return list_month(conn, user, start_date[:7])
 
 
+def put_event(conn: sqlite3.Connection, user: str, event_id: int | None, body: EventIn) -> int:
+    """For another module keeping an event of its own in step with something
+    of its own (Finance's recurring payments): creates the event, or makes
+    the one `event_id` names match `body` whole — its alarm's ack and snooze
+    kept unless it moved. One deleted meanwhile, or on a calendar no longer
+    shared with `user`, is made anew. Returns the event's id."""
+    if event_id is not None:
+        try:
+            row = _get_editable(conn, user, event_id)
+        except CalendarError as e:
+            if e.status_code != 404:
+                raise
+        else:
+            patch = body.model_dump(exclude={"alarm_ack"})
+            if (row["recur_freq"] is None) != (body.recur_freq is None):
+                patch["alarm_ack"] = ""   # its shape depends on recurring-ness
+            update_event(conn, user, event_id, EventPatch(**patch))
+            return event_id
+    _validate_new_event(conn, user, body)
+    new_id = _insert_event(conn, user, body)
+    bump(conn, _VERSION_KEY)
+    return new_id
+
+
+def event_settings(conn: sqlite3.Connection, user: str, ids: list[int]) -> dict[int, dict]:
+    """Of the events `ids` names, those still there for `user`: where each
+    is filed and its alarm — what put_event's caller shows of it."""
+    levels = _calendar_levels(conn, user)
+    if not ids or not levels:
+        return {}
+    rows = conn.execute(
+        "SELECT id, calendar_id, all_day, start_time, alarm, alarm_lead, title, description FROM calendar_events "
+        f"WHERE id IN ({','.join('?' * len(ids))}) AND calendar_id IN ({','.join('?' * len(levels))})",
+        (*ids, *levels),
+    ).fetchall()
+    return {r["id"]: {"calendar_id": r["calendar_id"], "alarm": bool(r["alarm"]), "alarm_lead": r["alarm_lead"],
+                      "time": None if r["all_day"] else r["start_time"],
+                      "title": r["title"], "description": r["description"]} for r in rows}
+
+
+def drop_event(conn: sqlite3.Connection, user: str, event_id: int) -> None:
+    """put_event's undo: the whole event goes, if still there."""
+    try:
+        delete_event(conn, user, event_id)
+    except CalendarError as e:
+        if e.status_code != 404:
+            raise
+
+
 def delete_event(conn: sqlite3.Connection, user: str, event_id: int, occurrence: str | None = None) -> dict:
     """`occurrence` ("delete this event", only meaningful for a recurring
     series) adds that one date to recur_exceptions instead of removing the

@@ -627,6 +627,20 @@ html:not(.phone) .fin-pay-form > .fin-f-tags { flex: 2 1 16em; }
 html:not(.phone) .fin-pay-form > .fin-f-repeat { flex: 0 1 12em; }
 html:not(.phone) .fin-pay-form > .fin-f-repeat.on { flex-basis: 19em; }   /* + every how many */
 html:not(.phone) .fin-pay-form > .fin-f-until { flex: 0 1 8.5em; }
+html:not(.phone) .fin-pay-form > .fin-f-incal { flex: 0 0 auto; }
+/* Its calendar and alarm: a row of their own under the rest. */
+html:not(.phone) .fin-f-calrow { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 10px; }
+html:not(.phone) .fin-f-calrow > .fin-f-calendar { flex: 0 1 14em; }
+html:not(.phone) .fin-f-calrow > .fin-f-alarm { flex: 0 1 16em; }
+html.phone .fin-f-calrow { display: contents; }
+/* Its event in the Calendar: a tick with its words, as tall as the fields
+   beside it; the calendar and the alarm (its time beside it) only once ticked. */
+.fin-form .fin-f-incal {
+  flex-direction: row; align-items: center; gap: 10px; height: 34px; padding: 0 4px;
+  color: var(--text); font-size: 0.95rem; cursor: pointer; user-select: none;
+}
+.fin-form .fin-f-incal input[type="checkbox"] { flex: none; width: 18px; height: 18px; margin: 0; cursor: pointer; }
+.fin-form .fin-f-alarm .time-field { flex: 0 0 5.6em; box-sizing: border-box; height: 34px; color: var(--text); font-size: 0.95rem; }
 /* From and To: side by side on a wide screen, one under the other on a phone.
  * A line: its category, then (once the side has more than one) its amount —
  * the last one's is what's left of the total, shown, not typed — and a ✕. */
@@ -699,7 +713,9 @@ html.phone .fin-cat-form { display: grid; grid-template-columns: auto minmax(0, 
 html.phone .fin-cat-form > :not(.fin-field):not(label:nth-of-type(1)) { grid-column: 1 / -1; }
 html.phone .fin-cat-form .icon-picker-btn { width: 48px; height: 40px; }
 html.phone .fin-pay-form { display: flex; }
-html.phone .fin-pay-form > label { display: grid; grid-template-columns: 4.8em minmax(0, 1fr); align-items: center; gap: 8px; }
+html.phone .fin-pay-form > label, html.phone .fin-f-calrow > label, html.phone .fin-f-calrow > .fin-f-alarm { display: grid; grid-template-columns: 4.8em minmax(0, 1fr); align-items: center; gap: 8px; }
+html.phone .fin-pay-form > label.fin-f-incal { display: flex; height: 40px; margin: 4px 0; font-size: 1rem; }
+html.phone .fin-form .fin-f-incal input[type="checkbox"] { width: 22px; height: 22px; }
 /* Cancel and Save apart from the fields: a line and some room above them. */
 html.phone .fin-form-actions { margin-top: 10px; padding-top: 12px; border-top: 1px solid var(--line); }
 /* Payments and forecasts as cards: from → to and the amount, the when and why under. */
@@ -3592,6 +3608,7 @@ html.phone .modal.event-form .field .description-view { min-height: 72px; max-he
 html.phone .modal.event-form .row-actions button { flex: 1 1 0; min-height: 46px; font-size: 0.95rem; }
 html.phone .modal.event-form input:not([type="checkbox"]), html.phone .modal.event-form select,
 html.phone .modal.event-form .time-field { min-height: 40px; }
+html.phone .fin-form .fin-f-alarm .time-field { height: 40px; }
 html.phone .time-grid button { min-height: 38px; }
 html.phone .modal.event-form label.check-row { min-height: 40px; font-size: 0.95rem; }
 html.phone .modal.event-form label.check-row input { width: 20px; height: 20px; }

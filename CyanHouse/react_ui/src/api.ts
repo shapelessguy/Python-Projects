@@ -738,6 +738,20 @@ export interface FinForecast extends FinPayment {
   recur_until: string | null;
   /** The last due date already written as a payment. */
   generated_until: string | null;
+  /** Its event in the Calendar (null: none, or deleted there since). */
+  calendar: FinCalendarLink | null;
+}
+
+/** A forecast's event in the Calendar: where it is filed, and its alarm —
+ *  `alarm_lead` minutes before `time` (all day when there is no alarm). */
+export interface FinCalendarLink {
+  calendar_id: number;
+  alarm: boolean;
+  alarm_lead: number;
+  time: string | null;
+  /** The event's own, as the form wrote them (in the language it was in). */
+  title?: string;
+  description?: string;
 }
 
 export interface FinSnapshot {

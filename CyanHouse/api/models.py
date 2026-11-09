@@ -151,8 +151,22 @@ class FinanceExecutedBody(FinancePaymentBody):
     date: Optional[str] = Field(default=None, pattern=_ISO)
 
 
+class FinanceCalendarLink(BaseModel):
+    """A forecast's event in the Calendar: where, and its alarm — rung
+    `alarm_lead` minutes before `time` on each due date."""
+    calendar_id: StrictInt
+    alarm: StrictBool = False
+    alarm_lead: int = Field(default=0, ge=0, le=10080)
+    time: Optional[str] = Field(default=None, pattern=r"^\d{2}:\d{2}$")
+    # Written by the client, in its language; left out, made up here.
+    title: Optional[str] = Field(default=None, min_length=1)
+    description: Optional[str] = None
+
+
 class FinanceForecastBody(FinancePaymentBody):
     start_date: Optional[str] = Field(default=None, pattern=_ISO)
     recur_freq: Optional[RecurFreq] = None
     recur_interval: Optional[StrictInt] = Field(default=None, ge=1)
     recur_until: Optional[str] = Field(default=None, pattern=_ISO)
+    # Explicit null unlinks.
+    calendar: Optional[FinanceCalendarLink] = None
