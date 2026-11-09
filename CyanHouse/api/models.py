@@ -127,6 +127,8 @@ class FinanceCategoryBody(BaseModel):
     sort: Optional[StrictInt] = None
     archived: Optional[StrictBool] = None
     kind: Optional[str] = None
+    initial_cents: Optional[StrictInt] = None
+    initial_currency: Optional[str] = None
 
 
 class FinanceOrderBody(BaseModel):

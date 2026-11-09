@@ -389,6 +389,7 @@ export const de: Dict = {
   fin_to: "An",
   fin_amount: "Betrag",
   fin_currency: "Währung",
+  fin_initial: "Anfangsbestand",
   fin_justification: "Zweck",
   fin_pick_month: "Monat wählen",
   fin_show_all: "Alle zeigen ({n})",

@@ -389,6 +389,7 @@ export const it: Dict = {
   fin_to: "A",
   fin_amount: "Importo",
   fin_currency: "Valuta",
+  fin_initial: "Saldo iniziale",
   fin_justification: "Causale",
   fin_pick_month: "Scegli il mese",
   fin_show_all: "Mostra tutti ({n})",

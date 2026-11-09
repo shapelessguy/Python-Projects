@@ -699,6 +699,9 @@ export interface FinCategory {
    *  is, and left out of the accounts' totals; "": anything else. Payments in
    *  and out of the two are income and spending. */
   kind: "" | "account" | "investment";
+  /** What an account held before its first payment: its balance starts here. */
+  initial_cents: number;
+  initial_currency: Currency;
 }
 
 /** One side of a payment: where (some of) its money came from or went to.

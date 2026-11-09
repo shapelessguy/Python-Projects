@@ -217,6 +217,10 @@ export function FinanceCharts({ data, ordered, tags, worth, effect, convert, onC
   // ── the balance: each account's, and all of them together, day by day ──
   const balance = useMemo(() => {
     const running = new Map<number, Partial<Record<Currency, number>>>();
+    // An account starts from what it held before its first payment (unless
+    // the filter leaves it out).
+    for (const c of data.categories) if (c.kind === "account" && c.initial_cents && !catOut(c.id))
+      running.set(c.id, { [c.initial_currency]: c.initial_cents });
     const apply = (e: Entry) => {
       for (const l of e.p.lines) if (isAccount(l.category_id)) {
         const b = running.get(l.category_id!) ?? {};
@@ -244,7 +248,7 @@ export function FinanceCharts({ data, ordered, tags, worth, effect, convert, onC
     // The investments' worth on each of those days (null: none).
     const invested = investment && worth ? xs.map((d) => amt(worthOn(worth, d), "EUR", d)) : null;
     return { xs, series, invested };
-  }, [all, from, until, unit, cats, worth]);   // eslint-disable-line react-hooks/exhaustive-deps
+  }, [all, from, until, unit, cats, worth, exCats]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── income and spending per bucket, by category ──
   const flows = useMemo(() => {

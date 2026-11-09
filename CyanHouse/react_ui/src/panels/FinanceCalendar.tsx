@@ -203,6 +203,9 @@ export function FinanceCalendar({ executed, forecasts, accounts, worth, effect, 
   const summary = useMemo(() => {
     const ids = new Set(accounts.map((a) => a.id));
     const balance = new Map<number, Partial<Record<Currency, number>>>();
+    // An account starts from what it held before its first payment.
+    for (const a of accounts) if (a.kind === "account" && a.initial_cents)
+      balance.set(a.id, { [a.initial_currency]: a.initial_cents });
     const flows: Record<"in" | "out", Partial<Record<Currency, number>>> = { in: {}, out: {} };
     const count = (p: FinExecuted | FinForecast, date: string) => {
       for (const l of p.lines) if (l.category_id != null && ids.has(l.category_id)) {

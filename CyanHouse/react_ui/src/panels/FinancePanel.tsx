@@ -420,6 +420,7 @@ export function FinancePanel({ toolsSlot }: { toolsSlot: HTMLElement | null }) {
         const cat = data.categories.find((c) => c.id === statement);
         const ascending = [...data.executed].reverse().filter((p) => p.lines.some((l) => l.category_id === statement));
         const running: Partial<Record<Currency, number>> = {};
+        if (cat?.kind === "account" && cat.initial_cents) running[cat.initial_currency] = cat.initial_cents;
         const rows = ascending.map((p) => {
           const own = p.lines.filter((l) => l.category_id === statement)
             .reduce((n, l) => n + (l.side === "to" ? l.amount_cents : -l.amount_cents), 0);
@@ -552,7 +553,11 @@ function CategoryForm({ cat, tree, onSave, onCancel }: {
   const [icon, setIcon] = useState(cat?.icon ?? "");
   const [parent, setParent] = useState<number | null>(cat?.parent_id ?? null);
   const [kind, setKind] = useState<FinCategory["kind"]>(cat?.kind ?? "");
-  const values = { name, icon, parent_id: parent, kind };
+  const [initial, setInitial] = useState(cat?.initial_cents ? cents2text(cat.initial_cents) : "");
+  const [initialCur, setInitialCur] = useState<Currency>(cat?.initial_currency ?? lastCurrency());
+  // Only an account starts from an amount (an investment is worth the portfolio).
+  const initialCents = kind === "account" && initial.trim() ? toCents(initial) : 0;
+  const values = { name, icon, parent_id: parent, kind, initial_cents: initialCents, initial_currency: initialCur };
   // A new one put under an account is most likely an account too.
   const pickParent = (id: number | null) => {
     setParent(id);
@@ -568,6 +573,7 @@ function CategoryForm({ cat, tree, onSave, onCancel }: {
   return (
     <form className="fin-form fin-cat-form" onSubmit={(e) => {
       e.preventDefault();
+      if (Number.isNaN(initialCents)) return;
       onSave(values);
     }}>
       <div className="fin-field">{t("fin_icon")}<IconPicker value={icon} onChange={setIcon} /></div>
@@ -582,6 +588,18 @@ function CategoryForm({ cat, tree, onSave, onCancel }: {
                 aria-pressed={kind !== ""} title={t(KIND_LABEL[kind || "account"])} aria-label={t(KIND_LABEL[kind || "account"])}
                 onClick={() => setKind(NEXT_KIND[kind])}>{t(KIND_LABEL[kind || "account"])[0]}</button>
       </div>
+      {kind === "account" && (
+        <label>{t("fin_initial")}
+          <span className="fin-pair">
+            <input className="fin-pair-main fin-amount" inputMode="decimal" value={initial} placeholder="0,00"
+                   aria-invalid={Number.isNaN(initialCents)} onChange={(e) => setInitial(e.target.value)} />
+            <select className="fin-pair-side" value={initialCur} aria-label={t("fin_currency")}
+                    onChange={(e) => setInitialCur(e.target.value as Currency)}>
+              {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </span>
+        </label>
+      )}
       <FormButtons onCancel={onCancel} archive={cat && { archived: cat.archived, onClick: archive }} />
       {asking && (
         <ConfirmDialog message={t("fin_confirm_archive")} yesLabel={t("fin_archive")} onNo={() => setAsking(false)}

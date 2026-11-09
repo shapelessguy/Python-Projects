@@ -398,6 +398,7 @@ export const en = {
   fin_to: "To",
   fin_amount: "Amount",
   fin_currency: "Currency",
+  fin_initial: "Starting balance",
   fin_justification: "Reason",
   fin_pick_month: "Pick a month",
   fin_show_all: "Show all ({n})",

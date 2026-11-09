@@ -14,6 +14,8 @@ Three tables per user, plus one shared:
     stays out of the accounts' totals), "" is anything else (a spending, an
     income source). That alone tells a payment apart: into an account from
     elsewhere is income, out of one is spending, between two is a transfer.
+    `initial_cents` in `initial_currency` is what an account held before its
+    first payment: its balance starts there.
   - finance_executed: what was actually paid — a self-contained snapshot
     (date, currency, justification) with its lines in finance_executed_lines.
     Nothing points into it and it points at nothing but categories: editing
@@ -63,7 +65,9 @@ CREATE TABLE IF NOT EXISTS finance_categories (
     icon      TEXT NOT NULL DEFAULT '',
     sort      INTEGER NOT NULL DEFAULT 0,
     archived  INTEGER NOT NULL DEFAULT 0,
-    kind      TEXT NOT NULL DEFAULT ''
+    kind      TEXT NOT NULL DEFAULT '',
+    initial_cents    INTEGER NOT NULL DEFAULT 0,
+    initial_currency TEXT NOT NULL DEFAULT 'EUR'
 );
 CREATE INDEX IF NOT EXISTS idx_fin_cat_user ON finance_categories(username);
 CREATE TABLE IF NOT EXISTS finance_forecasts (
@@ -141,7 +145,7 @@ _RECUR_FREQS = {"daily", "weekly", "monthly", "yearly"}
 _FX_PAIR = ("EUR", "USD")
 _FX_FIRST_DAY = date(1999, 1, 4)   # the ECB's first published rate
 
-_CATEGORY_FIELDS = {"parent_id", "name", "icon", "sort", "archived", "kind"}
+_CATEGORY_FIELDS = {"parent_id", "name", "icon", "sort", "archived", "kind", "initial_cents", "initial_currency"}
 CATEGORY_KINDS = {"", "account", "investment"}
 _PAYMENT_FIELDS = {"lines", "currency", "justification", "tags"}
 # Each payment table's lines: (lines table, its column pointing at the payment).
@@ -186,6 +190,9 @@ def _migrate(conn: sqlite3.Connection) -> None:
     cat_cols = {r["name"] for r in conn.execute("PRAGMA table_info(finance_categories)")}
     if "kind" not in cat_cols:
         conn.execute("ALTER TABLE finance_categories ADD COLUMN kind TEXT NOT NULL DEFAULT ''")
+    if "initial_cents" not in cat_cols:
+        conn.execute("ALTER TABLE finance_categories ADD COLUMN initial_cents INTEGER NOT NULL DEFAULT 0")
+        conn.execute("ALTER TABLE finance_categories ADD COLUMN initial_currency TEXT NOT NULL DEFAULT 'EUR'")
     fc_cols = {r["name"] for r in conn.execute("PRAGMA table_info(finance_forecasts)")}
     if "calendar_event_id" not in fc_cols:
         conn.execute("ALTER TABLE finance_forecasts ADD COLUMN calendar_event_id INTEGER")
@@ -271,6 +278,13 @@ def _check_icon(icon) -> None:
 def _check_kind(kind) -> None:
     if kind not in CATEGORY_KINDS:
         raise FinanceError(f"kind must be one of {sorted(CATEGORY_KINDS)}")
+
+
+def _check_initial(fields: dict) -> None:
+    if "initial_cents" in fields and (type(fields["initial_cents"]) is not int):
+        raise FinanceError("initial_cents must be a whole number of cents")
+    if "initial_currency" in fields and fields["initial_currency"] not in CURRENCIES:
+        raise FinanceError(f"initial_currency must be one of {sorted(CURRENCIES)}")
 
 
 def _check_payment(conn: sqlite3.Connection, user: str, rec: dict) -> None:
@@ -436,6 +450,7 @@ def create_category(conn: sqlite3.Connection, user: str, fields: dict) -> dict:
     rec["name"] = rec["name"].strip()
     rec["archived"] = int(bool(rec["archived"]))
     _check_kind(rec.get("kind", ""))
+    _check_initial(rec)
     _check_icon(rec["icon"])
     _check_parent(conn, user, None, rec["parent_id"])
     rec.setdefault("sort", _next_sort(conn, user, rec["parent_id"]))
@@ -459,6 +474,7 @@ def update_category(conn: sqlite3.Connection, user: str, cat_id: int, fields: di
         fields["archived"] = int(bool(fields["archived"]))
     if "kind" in fields:
         _check_kind(fields["kind"])
+    _check_initial(fields)
     if "icon" in fields:
         _check_icon(fields["icon"])
     _update(conn, "finance_categories", cat_id, fields)
