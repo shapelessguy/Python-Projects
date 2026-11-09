@@ -209,7 +209,7 @@ function loadZoom(): number {
 
 export function FoodPanel() {
   const { t, lang } = useT();
-  const { food } = useVersionPoll();
+  const { food } = useVersionPoll("food");
   const [data, setData] = useState<FoodData | null>(null);
   const [error, setError] = useState<string | null>(null);
   // Categories start collapsed; `expanded` holds the ones the user has opened,

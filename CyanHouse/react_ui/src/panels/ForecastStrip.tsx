@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import createPlotlyComponent from "react-plotly.js/factory";
 import Plotly from "plotly.js-dist-min";
 import { api, City, ForecastResponse } from "../api";
-import { useT } from "../i18n";
+import { plotSeparators, useT } from "../i18n";
 import { usePhone } from "../narrow";
 import { ChartPager, PagedChart } from "./ChartPager";
 
@@ -181,6 +181,7 @@ export function ForecastStrip({ allCities, selected, forecastVersion }: Props) {
   const baseLayout = {
     height: 190,
     margin: { l: 44, r: 12, t: 32, b: 28 },
+    separators: plotSeparators(),
     paper_bgcolor: "rgba(0,0,0,0)",
     plot_bgcolor: "rgba(0,0,0,0)",
     font: { color: "#bbb", size: 11 },

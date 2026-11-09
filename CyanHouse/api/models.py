@@ -1,6 +1,6 @@
 from typing import Any, Literal, Optional
 
-from pydantic import BaseModel, Field, StrictBool, StrictInt
+from pydantic import BaseModel, Field, StrictBool, StrictInt, StrictStr
 
 ColType = Literal["number", "text", "bool", "enum"]
 RecurFreq = Literal["daily", "weekly", "monthly", "yearly"]
@@ -144,6 +144,7 @@ class FinancePaymentBody(BaseModel):
     lines: Optional[list[FinanceLine]] = None
     currency: Optional[Currency] = None
     justification: Optional[str] = None
+    tags: Optional[list[StrictStr]] = None
 
 
 class FinanceExecutedBody(FinancePaymentBody):

@@ -223,12 +223,20 @@ class Recorder:
 
         Pages are not a fixed size, so keep asking until a page brings nothing
         new, or until we reach `target` (the trade count from the index feed).
+        A page can hold only order-book records and no trade (a busy stock's
+        first page in the morning: one record), so the next page is asked
+        after the page's last record, whatever it is.
         """
         total = 0
-        while target is None or st.last_id < target:
-            data = fetch_json(f"umsaetze.php?isin={st.isin}&id={st.last_id}")
+        cursor = st.last_id
+        while target is None or cursor < target:
+            data = fetch_json(f"umsaetze.php?isin={st.isin}&id={cursor}")
             if not data:
                 break
+            ids = [int(rec["id"]) for rec in data if str(rec.get("id", "")).isdigit()]
+            if not ids or max(ids) <= cursor:
+                break
+            cursor = max(ids)
             rows = []
             for rec in data:
                 # Records carrying 'umsatz' are executed trades; the rest are
@@ -245,8 +253,6 @@ class Recorder:
                 append_rows(self.trades_path(st.isin), TRADE_FIELDS, rows)
                 st.last_id = rows[-1][0]
                 total += len(rows)
-            if not rows:
-                break
         if total:
             log(f"  {st.isin} +{total} trades (last id {st.last_id})")
         return total

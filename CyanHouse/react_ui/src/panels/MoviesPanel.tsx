@@ -285,7 +285,7 @@ export function MoviesPanel() {
   const [openBatch, setOpenBatch] = useState("");
   const [space, setSpace] = useState<
     { name: string; mount: string; path: string; total: number; free: number } | null>(null);
-  const versions = useVersionPoll();
+  const versions = useVersionPoll("prep");
   // What the lists here follow: the server's change counter, settled. Every
   // file of a move of fifty moves it; reading the listings again fifty times
   // (in every open browser) made the move itself wait.

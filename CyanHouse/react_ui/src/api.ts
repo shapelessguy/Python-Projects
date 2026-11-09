@@ -714,6 +714,8 @@ export interface FinPayment {
   lines: FinLine[];
   currency: Currency;
   justification: string;
+  /** Free words to find it by (a person, a thing), in the order given. */
+  tags: string[];
 }
 
 /** A payment's total: what its "from" side adds up to (as its "to" side does). */
@@ -790,6 +792,10 @@ export const api = {
   /** `amount`: what all the shares cost or brought, in €. */
   addTransaction: (t: { isin: string; date: string; shares: number; amount: number }) =>
     f("/api/stocks/portfolio", { method: "POST", headers: JSON_HEADERS, body: JSON.stringify(t) })
+      .then(j<object>),
+  /** `amount` null: at the day's close. */
+  updateTransaction: (id: number, t: { isin: string; date: string; shares: number; amount: number | null }) =>
+    f(`/api/stocks/portfolio/${id}`, { method: "PUT", headers: JSON_HEADERS, body: JSON.stringify(t) })
       .then(j<object>),
   deleteTransaction: (id: number) =>
     f(`/api/stocks/portfolio/${id}`, { method: "DELETE" }).then(j<object>),
@@ -1156,13 +1162,16 @@ function subscribeVersions(listener: (v: Versions) => void): () => void {
   };
 }
 
-/** The counters, kept current: see versionStore. */
-export function useVersionPoll(): Versions {
+/** The counters, kept current: see versionStore. Only the ones named make
+ *  the caller re-render (the stocks' counter, say, moves with every trade
+ *  the recorder saves -- no reason to redraw Finance's charts). */
+export function useVersionPoll(...keys: (keyof Versions)[]): Versions {
   const [v, setV] = useState<Versions>(versionStore.value);
   useEffect(() => {
-    setV(versionStore.value);
-    return subscribeVersions(setV);
-  }, []);
+    const take = (next: Versions) => setV((prev) => (keys.some((k) => prev[k] !== next[k]) ? next : prev));
+    take(versionStore.value);
+    return subscribeVersions(take);
+  }, []);   // eslint-disable-line react-hooks/exhaustive-deps
   return v;
 }
 

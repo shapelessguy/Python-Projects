@@ -5,7 +5,8 @@
 export type IconName = "today" | "month" | "week" | "day" | "calendars" | "reorder" | "columns" | "search"
   | "mouse" | "pcSound" | "keyboard" | "left" | "right" | "winLeft" | "winRight" | "maximize" | "scroll"
   | "settings" | "prev" | "next" | "play" | "pause" | "moveTo" | "download" | "upload" | "music" | "trash" | "close"
-  | "block" | "eye" | "eyeOff" | "plus" | "edit" | "pie" | "all" | "clock" | "carrot" | "cart" | "lock" | "more" | "check" | "folderPlus" | "tick" | "archive" | "unarchive";
+  | "block" | "eye" | "eyeOff" | "plus" | "edit" | "pie" | "all" | "clock" | "carrot" | "cart" | "lock" | "more" | "check" | "folderPlus" | "tick" | "archive" | "unarchive"
+  | "categories" | "payments" | "chart" | "income" | "spending" | "transfer";
 
 const PATHS: Record<IconName, JSX.Element> = {
   today: <><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="2.5" fill="currentColor" /></>,
@@ -58,6 +59,12 @@ const PATHS: Record<IconName, JSX.Element> = {
   all: <path d="M12 20V9M7 14l5-5 5 5M5 4h14" />,
   pie: <><path d="M21 12A9 9 0 1 1 12 3v9Z" /><path d="M15 3.5A9 9 0 0 1 20.5 9H15Z" /></>,
   edit: <path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16Z M13.5 6.5l4 4" />,
+  categories: <><rect x="4" y="4" width="6" height="6" rx="1" /><rect x="14" y="4" width="6" height="6" rx="1" /><rect x="4" y="14" width="6" height="6" rx="1" /><circle cx="17" cy="17" r="3" /></>,
+  payments: <><path d="M10 6h10M10 12h10M10 18h10" /><circle cx="5" cy="6" r="1.3" fill="currentColor" /><circle cx="5" cy="12" r="1.3" fill="currentColor" /><circle cx="5" cy="18" r="1.3" fill="currentColor" /></>,
+  chart: <path d="M4 20h16M6 20v-6M10 20V8M14 20v-9M18 20V5" />,
+  income: <path d="M3 17l6-6 4 4 8-8M15 7h6v6" />,
+  spending: <path d="M3 7l6 6 4-4 8 8M15 17h6v-6" />,
+  transfer: <path d="M4 9h15M15 5l4 4-4 4M20 15H5M9 11l-4 4 4 4" />,
   settings: <><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></>,
 };
 

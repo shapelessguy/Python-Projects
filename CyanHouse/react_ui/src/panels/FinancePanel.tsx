@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { CSSProperties, ReactNode, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   api, Currency, FinCategory, FinExecuted, FinForecast, FinKind, FinLine, FinSnapshot, finSide, RecurFreq,
@@ -6,19 +6,21 @@ import {
 } from "../api";
 import { useBackToClose } from "../backClose";
 import { readCookie, writeCookie } from "../cookies";
-import { Key, useT } from "../i18n";
+import { Key, num, useT } from "../i18n";
 import { ConfirmDialog } from "../ConfirmDialog";
 import { usePhone } from "../narrow";
 import { Icon, IconName } from "./icons";
 import { CatIcon, IconPicker } from "./IconPicker";
 import { Floating } from "./Floating";
-import { CalEntry, DIR_COLOR, DIR_SIGN, effectBy, FinanceCalendar } from "./FinanceCalendar";
+import { CalEntry, Dir, DIR_COLOR, DIR_SIGN, effectBy, FinanceCalendar } from "./FinanceCalendar";
+import { FinanceCharts } from "./FinanceCharts";
 
 // The currency picked last, offered first on the next new payment or
 // forecast (EUR until one is picked).
 const CURRENCY_COOKIE = "finance_currency";
 const lastCurrency = (): Currency => (readCookie(CURRENCY_COOKIE) === "USD" ? "USD" : "EUR");
 const CURRENCIES: Currency[] = ["EUR", "USD"];
+const SYMBOL: Record<Currency, string> = { EUR: "€", USD: "$" };
 // A line with no category (money from or to the world outside one's own
 // categories: a shop, an employer) is drawn as this icon, with no word.
 const OUTSIDE_ICON = "fluent:globe-with-meridians";
@@ -34,6 +36,8 @@ const today = () => new Date().toLocaleDateString("en-CA");
 // All payments are loaded (for searching and totals); the list draws this
 // many at a time, newest first, and "Load more" draws the next lot.
 const PAGE = 30;
+// An account's payments (tapped in the calendar's bar): this many, then "Show all".
+const STATEMENT_PAGE = 50;
 
 // "12,50" or "12.50" -> 1250; anything else -> NaN.
 function toCents(text: string): number {
@@ -72,10 +76,19 @@ type Editing = { kind: FinKind; id: number | null } | null;   // id null: a new 
 // The three lists, each opened over the page from its button.
 // Two lists: categories, and payments (the recurring ones — forecasts — in a
 // drawer at the payments' top).
-const SHEETS: { kind: FinKind; icon: string }[] = [
-  { kind: "categories", icon: "🗂️" },
-  { kind: "executed", icon: "🧾" },
+const SHEETS: { kind: FinKind; icon: IconName }[] = [
+  { kind: "categories", icon: "categories" },
+  { kind: "executed", icon: "payments" },
 ];
+// The payments sheet's filters: what a payment does to the accounts' money.
+// A payment touching no account ("none") goes with the transfers.
+type Shown = "in" | "move" | "out";
+const FILTERS: { dir: Shown; icon: IconName; label: Key }[] = [
+  { dir: "in", icon: "income", label: "fin_income" },
+  { dir: "move", icon: "transfer", label: "fin_transfers" },
+  { dir: "out", icon: "spending", label: "fin_spending" },
+];
+const shownAs = (d: Dir): Shown => (d === "none" ? "move" : d);
 
 /** Personal's Finance section. The three lists — categories, forecasts, the
  *  payments — open over the page from buttons on Personal's tab row
@@ -83,7 +96,7 @@ const SHEETS: { kind: FinKind; icon: string }[] = [
  *  calendar (still to come). */
 export function FinancePanel({ toolsSlot }: { toolsSlot: HTMLElement | null }) {
   const { t, lang } = useT();
-  const versions = useVersionPoll();
+  const versions = useVersionPoll("finance");
   const [shown, setShown] = useState(PAGE);
   const [recurringOpen, setRecurringOpen] = useState(false);
   // A payment opened from the calendar — a new one on a day, or one tapped
@@ -91,9 +104,17 @@ export function FinancePanel({ toolsSlot }: { toolsSlot: HTMLElement | null }) {
   const [quick, setQuick] = useState<{ date: string } | { entry: CalEntry } | null>(null);
   // An account tapped in the calendar's bar: its payments, in a window.
   const [statement, setStatement] = useState<number | null>(null);
+  // Its first STATEMENT_PAGE payments, until "Show all".
+  const [statementAll, setStatementAll] = useState(false);
   const [data, setData] = useState<FinSnapshot | null>(null);
   const [editing, setEditing] = useState<Editing>(null);
   const [sheet, setSheet] = useState<FinKind | null>(null);
+  const [charts, setCharts] = useState(false);
+  // The payments sheet's filters (all on) and search (closed).
+  const [dirs, setDirs] = useState<Set<Shown>>(new Set(["in", "move", "out"]));
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  useEffect(() => setShown(PAGE), [dirs, query]);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -103,6 +124,13 @@ export function FinancePanel({ toolsSlot }: { toolsSlot: HTMLElement | null }) {
   }, [versions.finance]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   const tree = useCategoryTree(data?.categories ?? []);
+  // Every tag in use, most used first: what the tag field suggests.
+  const allTags = useMemo(() => {
+    const n = new Map<string, number>();
+    for (const p of [...(data?.executed ?? []), ...(data?.forecasts ?? [])])
+      for (const tag of p.tags) n.set(tag, (n.get(tag) ?? 0) + 1);
+    return [...n.keys()].sort((a, b) => n.get(b)! - n.get(a)! || a.localeCompare(b));
+  }, [data?.executed, data?.forecasts]);
   // An amount into another currency at a day's rate: the one in force then
   // (the latest published on or before it; a day still to come, the newest).
   const convert = useMemo(() => {
@@ -136,7 +164,7 @@ export function FinancePanel({ toolsSlot }: { toolsSlot: HTMLElement | null }) {
   const [deleting, setDeleting] = useState<{ kind: FinKind; id: number } | null>(null);
   const remove = (kind: FinKind, id: number) => setDeleting({ kind, id });
   const money = (cents: number, currency: Currency) =>
-    (cents / 100).toLocaleString(lang, { style: "currency", currency, currencyDisplay: "narrowSymbol" });
+    num(cents / 100, lang, { style: "currency", currency, currencyDisplay: "narrowSymbol" });
   const day = (iso: string) => new Date(iso + "T00:00:00").toLocaleDateString(lang);
   // A card's from or to: the category's own icon and name, its full path
   // ("Home › Rent") on hover. `small` (under a reason): just the icon, when
@@ -178,6 +206,9 @@ export function FinancePanel({ toolsSlot }: { toolsSlot: HTMLElement | null }) {
             <span className="fin-pay-when">{whenText}</span>
             {p.justification && <>{whenText && <span aria-hidden>·</span>}{flow(true)}</>}
           </div>
+          {p.tags.length > 0 && (
+            <div className="fin-pay-tags">{p.tags.map((tag) => <span key={tag} className="fin-tag">{tag}</span>)}</div>
+          )}
           {split.length > 0 && (
             <div className="fin-pay-split">
               {split.map((l) => (
@@ -213,10 +244,18 @@ export function FinancePanel({ toolsSlot }: { toolsSlot: HTMLElement | null }) {
       {SHEETS.map((s) => (
         <button key={s.kind} className={sheet === s.kind ? "active" : ""} title={sheetTitle[s.kind]}
                 aria-label={sheetTitle[s.kind]} onClick={() => openSheet(s.kind)}>
-          <span className="mv-tabicon" aria-hidden>{s.icon}</span>
+          <Icon name={s.icon} size={phone ? 20 : 16} className="mv-tabicon" />
           <span className="mv-tablabel">{sheetTitle[s.kind]}</span>
         </button>
       ))}
+      {/* For a wide screen, for now. */}
+      {!phone && (
+        <button className={charts ? "active" : ""} title={t("fin_charts")} aria-label={t("fin_charts")}
+                onClick={() => setCharts(true)}>
+          <Icon name="chart" size={16} className="mv-tabicon" />
+          <span className="mv-tablabel">{t("fin_charts")}</span>
+        </button>
+      )}
     </span>
   );
 
@@ -230,6 +269,45 @@ export function FinancePanel({ toolsSlot }: { toolsSlot: HTMLElement | null }) {
     <button className="ghost" onClick={() => setEditing({ kind, id })}>{t("edit")}</button>
     <button className="ghost" onClick={() => remove(kind, id)}>{t("delete")}</button>
   </>;
+
+  // A payment or forecast the sheet's filters let through: its kind of
+  // effect switched on, and the search (every word) in its reason, its tags
+  // or one of its categories' paths ("Home" finds "Home › Rent").
+  const words = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const passes = (p: FinExecuted | FinForecast) => {
+    if (!dirs.has(shownAs(effect(p).dir))) return false;
+    if (!words.length) return true;
+    const text = [p.justification ?? "", ...p.tags,
+      ...p.lines.map((l) => tree.ordered.find((o) => o.cat.id === l.category_id)?.label ?? t("fin_outside"))]
+      .join(" ").toLowerCase();
+    return words.every((w) => text.includes(w));
+  };
+  const filtering = dirs.size < FILTERS.length || words.length > 0;
+  const toggleDir = (d: Shown) => {
+    const next = new Set(dirs);
+    if (next.has(d)) next.delete(d); else next.add(d);
+    setDirs(next);
+  };
+  // At the payments sheet's title: the three filters, the search, the "+".
+  // On a phone, a row of their own under the title, the filters wide.
+  const payTools = (
+    <span className="fin-sheet-tools">
+      {FILTERS.map((f) => (
+        <button key={f.dir} className={"ghost icon-only fin-filter" + (dirs.has(f.dir) ? " on" : "")}
+                style={{ "--fin-dir": DIR_COLOR[f.dir] } as CSSProperties}
+                title={t(f.label)} aria-label={t(f.label)} aria-pressed={dirs.has(f.dir)}
+                onClick={() => toggleDir(f.dir)}>
+          <Icon name={f.icon} size={18} className="" />
+        </button>
+      ))}
+      <span className="fin-sheet-tools-gap" aria-hidden />
+      <button className={"ghost icon-only fin-filter-search" + (searchOpen || query ? " active" : "")}
+              title={t("search")} aria-label={t("search")} aria-expanded={searchOpen || !!query}
+              onClick={() => { if (searchOpen || query) { setQuery(""); setSearchOpen(false); } else setSearchOpen(true); }}>
+        <Icon name="search" size={18} className="" />
+      </button>
+    </span>
+  );
 
   const body = (kind: FinKind) => {
     if (!data) return <p className="muted">{error || t("loading")}</p>;
@@ -247,36 +325,45 @@ export function FinancePanel({ toolsSlot }: { toolsSlot: HTMLElement | null }) {
     // Payments, under a closed drawer of the recurring ones. One "+" and one
     // form for both: what it repeats (and when) decides which it saves.
     const forecastCard = (fc: FinForecast) => isEditing("forecasts", fc.id) ? (
-      <PaymentForm key={fc.id} kind="forecasts" row={fc} tree={tree}
+      <PaymentForm key={fc.id} kind="forecasts" row={fc} tree={tree} allTags={allTags}
                    onSave={(_, b) => save("forecasts", fc.id, b)} onCancel={close} />
     ) : payCard(fc, [
       fc.recur_freq ? repeatText(t, fc.recur_freq, fc.recur_interval) : day(fc.start_date),
       fc.recur_freq && `${t("fin_since")} ${day(fc.start_date)}` + (fc.recur_until ? ` → ${day(fc.recur_until)}` : ""),
       fc.generated_until && `${t("fin_written_until")} ${day(fc.generated_until)}`,
     ], () => actions("forecasts", fc.id), true);
+    const forecasts = data.forecasts.filter(passes);
+    const executed = data.executed.filter(passes);
     return <>
+      {phone && payTools}
+      {(searchOpen || query) && (
+        <input type="search" className="fin-search" placeholder={t("fin_search")} aria-label={t("fin_search")}
+               value={query} onChange={(e) => setQuery(e.target.value)}
+               onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); setQuery(""); setSearchOpen(false); } }} />
+      )}
       {isEditing("executed", null) &&
-        <PaymentForm tree={tree} onSave={(k, b) => save(k, null, b)} onCancel={close} />}
-      {data.forecasts.length > 0 && (
+        <PaymentForm tree={tree} allTags={allTags} onSave={(k, b) => save(k, null, b)} onCancel={close} />}
+      {forecasts.length > 0 && (
         <div className="fin-drawer fin-drawer-top">
           <button className="fin-drawer-head" aria-expanded={recurringOpen} onClick={() => setRecurringOpen(!recurringOpen)}>
             <span className="fin-drawer-icon" aria-hidden>🔁</span>
             <span className="fin-drawer-label">{t("fin_recurring")}</span>
-            <span className="fin-drawer-count">{data.forecasts.length}</span>
+            <span className="fin-drawer-count">{forecasts.length}</span>
             <span className={"fin-drawer-caret" + (recurringOpen ? " open" : "")} aria-hidden>▾</span>
           </button>
-          {recurringOpen && <div className="fin-cats fin-recurring">{data.forecasts.map(forecastCard)}</div>}
+          {recurringOpen && <div className="fin-cats fin-recurring">{forecasts.map(forecastCard)}</div>}
         </div>
       )}
       <div className="fin-cats">
-        {data.executed.slice(0, shown).map((ex) => isEditing("executed", ex.id) ? (
-          <PaymentForm key={ex.id} kind="executed" row={ex} tree={tree}
+        {executed.slice(0, shown).map((ex) => isEditing("executed", ex.id) ? (
+          <PaymentForm key={ex.id} kind="executed" row={ex} tree={tree} allTags={allTags}
                        onSave={(_, b) => save("executed", ex.id, b)} onCancel={close} />
         ) : payCard(ex, [day(ex.date)], () => actions("executed", ex.id)))}
-        {!data.executed.length && !isEditing("executed", null) && <p className="muted">{t("fin_no_payments")}</p>}
-        {shown < data.executed.length && (
+        {!executed.length && !isEditing("executed", null) &&
+          <p className="muted">{t(filtering && data.executed.length ? "fin_no_match" : "fin_no_payments")}</p>}
+        {shown < executed.length && (
           <button className="ghost fin-more" onClick={() => setShown(shown + PAGE)}>
-            {t("fin_load_more", { n: data.executed.length - shown })}
+            {t("fin_load_more", { n: executed.length - shown })}
           </button>
         )}
       </div>
@@ -293,19 +380,15 @@ export function FinancePanel({ toolsSlot }: { toolsSlot: HTMLElement | null }) {
           effect={effect}
           flow={flowOf}
           accounts={tree.ordered.map((o) => o.cat).filter((c) => c.kind === "account" && !c.archived)}
-          label={(id) => side(id, true)}
+          label={(id) => side(id)}
           title={(p) => p.justification ||
             finSide(p, effect(p).dir === "in" ? "from" : "to").map((l) => catName(l.category_id)).join(", ")}
           onAdd={(date) => { setError(""); setQuick({ date }); }}
           onOpen={(entry) => { setError(""); setQuick({ entry }); }}
-          onAccount={setStatement}
+          onAccount={(id) => { setStatementAll(false); setStatement(id); }}
         />
       ) : <p className="muted">{error || t("loading")}</p>}
       {toolsSlot && createPortal(tools, toolsSlot)}
-      {deleting && (
-        <ConfirmDialog message={t("fin_confirm_delete")} yesLabel={t("delete")} danger onNo={() => setDeleting(null)}
-                       onYes={() => { apply(api.financeDelete(deleting.kind, deleting.id)); setDeleting(null); }} />
-      )}
       {statement != null && data && (() => {
         // Every payment touching the account, newest first: what it did to
         // the account (+ in, − out, its own lines' amounts) and the balance
@@ -322,7 +405,7 @@ export function FinancePanel({ toolsSlot }: { toolsSlot: HTMLElement | null }) {
         return (
           <FinSheet title={cat?.name ?? "?"} onClose={() => setStatement(null)}>
             <div className="fin-cats">
-              {rows.map(({ p, own, after }) => (
+              {(statementAll ? rows : rows.slice(0, STATEMENT_PAGE)).map(({ p, own, after }) => (
                 <button key={p.id} type="button" className="fin-cat-card fin-pay-card fin-statement-row"
                         onClick={() => { setError(""); setQuick({ entry: { key: `x${p.id}`, date: p.date, kind: "executed", planned: false, p } }); }}>
                   <div className="fin-pay-main">
@@ -341,6 +424,11 @@ export function FinancePanel({ toolsSlot }: { toolsSlot: HTMLElement | null }) {
                 </button>
               ))}
               {!rows.length && <p className="muted">{t("fin_no_payments")}</p>}
+              {!statementAll && rows.length > STATEMENT_PAGE && (
+                <button className="ghost fin-more" onClick={() => setStatementAll(true)}>
+                  {t("fin_show_all", { n: rows.length })}
+                </button>
+              )}
             </div>
           </FinSheet>
         );
@@ -350,27 +438,40 @@ export function FinancePanel({ toolsSlot }: { toolsSlot: HTMLElement | null }) {
         const done = (ok: boolean) => { if (ok) setQuick(null); };
         const e = "entry" in quick ? quick.entry : null;
         return (
-          <FinSheet onClose={close} title={
+          <FinSheet wide onClose={close} title={
             !e ? t("fin_new_payment") : e.kind === "forecasts" ? t("fin_edit_recurring") : t("fin_edit_payment")}>
             {error && <p className="fin-error">{error}</p>}
             {e ? (
-              <PaymentForm kind={e.kind} row={e.p} tree={tree} onCancel={close}
-                           onSave={(k, b) => apply(api.financeUpdate(k, e.p.id, b)).then(done)} />
+              <PaymentForm kind={e.kind} row={e.p} tree={tree} allTags={allTags} onCancel={close}
+                           onSave={(k, b) => apply(api.financeUpdate(k, e.p.id, b)).then(done)}
+                           onDelete={() => remove(e.kind, e.p.id)} />
             ) : (
-              <PaymentForm tree={tree} date={"date" in quick ? quick.date : undefined} onCancel={close}
+              <PaymentForm tree={tree} allTags={allTags} date={"date" in quick ? quick.date : undefined} onCancel={close}
                            onSave={(k, b) => apply(api.financeCreate(k, b)).then(done)} />
             )}
           </FinSheet>
         );
       })()}
+      {charts && data && (
+        <FinanceCharts data={data} effect={effect} convert={convert} onClose={() => setCharts(false)} />
+      )}
       {sheet && (
-        <FinSheet title={sheetTitle[sheet]} onClose={closeSheet} action={
+        <FinSheet title={sheetTitle[sheet]} onClose={closeSheet} action={<>
+          {sheet === "executed" && !phone && payTools}
           <button className="ghost icon-only fin-add" title={t("fin_new")} aria-label={t("fin_new")}
                   onClick={() => { setError(""); setEditing({ kind: sheet, id: null }); }}>+</button>
-        }>
+        </>}>
           {error && <p className="fin-error">{error}</p>}
           {body(sheet)}
         </FinSheet>
+      )}
+      {/* Last, so it sits over a sheet or the form it was asked from. */}
+      {deleting && (
+        <ConfirmDialog message={t("fin_confirm_delete")} yesLabel={t("delete")} danger onNo={() => setDeleting(null)}
+                       onYes={() => {
+                         apply(api.financeDelete(deleting.kind, deleting.id));
+                         setDeleting(null); setEditing(null); setQuick(null);
+                       }} />
       )}
     </div>
   );
@@ -379,8 +480,8 @@ export function FinancePanel({ toolsSlot }: { toolsSlot: HTMLElement | null }) {
 /** One list over the page: a dialog on a wide screen, the whole screen with
  *  a back bar on a phone. Back closes it either way. `action` sits at the
  *  title's right (a "+" for a new one). */
-function FinSheet({ title, onClose, action, children }: {
-  title: string; onClose: () => void; action?: ReactNode; children: ReactNode;
+function FinSheet({ title, onClose, action, wide, children }: {
+  title: string; onClose: () => void; action?: ReactNode; wide?: boolean; children: ReactNode;
 }) {
   const { t } = useT();
   const narrow = usePhone();
@@ -401,7 +502,7 @@ function FinSheet({ title, onClose, action, children }: {
   );
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal fin-sheet" onClick={(e) => e.stopPropagation()}>
+      <div className={"modal fin-sheet" + (wide ? " wide" : "")} onClick={(e) => e.stopPropagation()}>
         <div className="fin-sheet-head">
           <h4>{title}</h4>
           {action}
@@ -443,15 +544,15 @@ function CategoryForm({ cat, tree, onSave, onCancel }: {
     }}>
       <div className="fin-field">{t("fin_icon")}<IconPicker value={icon} onChange={setIcon} /></div>
       <label>{t("fin_name")}<input value={name} onChange={(e) => setName(e.target.value)} /></label>
-      <label>{t("fin_parent")}
-        <CategorySelect tree={tree} value={parent} onChange={pickParent} empty="—" exclude={cat?.id} />
-      </label>
-      <label>{t("fin_kind")}
-        <select value={kind} onChange={(e) => setKind(e.target.value as FinCategory["kind"])}>
-          <option value="">—</option>
-          <option value="account">{t("fin_kind_account")}</option>
-        </select>
-      </label>
+      {/* One type for now, so a toggle: its initial, lit when it's an account. */}
+      <div className="fin-cat-under">
+        <label>{t("fin_parent")}
+          <CategorySelect tree={tree} value={parent} onChange={pickParent} empty="—" exclude={cat?.id} />
+        </label>
+        <button type="button" className={"fin-kind-toggle" + (kind === "account" ? " on" : "")}
+                aria-pressed={kind === "account"} title={t("fin_kind_account")} aria-label={t("fin_kind_account")}
+                onClick={() => setKind(kind === "account" ? "" : "account")}>{t("fin_kind_account")[0]}</button>
+      </div>
       <FormButtons onCancel={onCancel} archive={cat && { archived: cat.archived, onClick: archive }} />
       {asking && (
         <ConfirmDialog message={t("fin_confirm_archive")} yesLabel={t("fin_archive")} onNo={() => setAsking(false)}
@@ -462,10 +563,11 @@ function CategoryForm({ cat, tree, onSave, onCancel }: {
 }
 
 /** A form's buttons: Cancel and Save at the right, and — editing a category —
- *  Archive (or Restore) at the left. Icons on a phone, icon and word on a
- *  wide screen. */
-function FormButtons({ onCancel, archive }: {
-  onCancel: () => void; archive?: { archived: boolean; onClick: () => void };
+ *  Archive (or Restore) at the left. A form in its own sheet (a payment
+ *  opened from the calendar) has Delete in Cancel's place: the sheet's
+ *  close button cancels. Icons on a phone, icon and word on a wide screen. */
+function FormButtons({ onCancel, archive, onDelete }: {
+  onCancel: () => void; archive?: { archived: boolean; onClick: () => void }; onDelete?: () => void;
 }) {
   const { t } = useT();
   const phone = usePhone();
@@ -481,7 +583,9 @@ function FormButtons({ onCancel, archive }: {
         ? button("fin-btn-archive", "unarchive", t("fin_unarchive"), { type: "button", onClick: archive.onClick })
         : button("fin-btn-archive", "archive", t("fin_archive"), { type: "button", onClick: archive.onClick }))}
       <span className="fin-form-actions-end">
-        {button("fin-btn-cancel", "close", t("cancel"), { type: "button", onClick: onCancel })}
+        {onDelete
+          ? button("fin-btn-delete", "trash", t("delete"), { type: "button", onClick: onDelete })
+          : button("fin-btn-cancel", "close", t("cancel"), { type: "button", onClick: onCancel })}
         {button("fin-btn-save", "tick", t("save"), { type: "submit" })}
       </span>
     </div>
@@ -731,9 +835,9 @@ const cents2text = (c: number) => (c / 100).toFixed(2);
  *  others leave of it (so the sides always match, and a plain payment is one
  *  amount typed). Picking a category with sub-categories offers to split the
  *  line into them, in its place. */
-function PaymentForm({ kind, row, tree, date: startDate, onSave, onCancel }: {
-  kind?: "executed" | "forecasts"; row?: FinExecuted | FinForecast; tree: Tree; date?: string;
-  onSave: (kind: "executed" | "forecasts", body: object) => void; onCancel: () => void;
+function PaymentForm({ kind, row, tree, allTags, date: startDate, onSave, onCancel, onDelete }: {
+  kind?: "executed" | "forecasts"; row?: FinExecuted | FinForecast; tree: Tree; allTags: string[]; date?: string;
+  onSave: (kind: "executed" | "forecasts", body: object) => void; onCancel: () => void; onDelete?: () => void;
 }) {
   const { t } = useT();
   const fc = kind === "forecasts" ? (row as FinForecast | undefined) : undefined;
@@ -751,6 +855,8 @@ function PaymentForm({ kind, row, tree, date: startDate, onSave, onCancel }: {
   });
   const [currency, setCurrency] = useState<Currency>(row?.currency ?? lastCurrency());
   const [why, setWhy] = useState(row?.justification ?? "");
+  const [tags, setTags] = useState<string[]>(row?.tags ?? []);
+  const [tagDraft, setTagDraft] = useState("");
   const [freq, setFreq] = useState<RecurFreq | null>(fc ? fc.recur_freq : null);
   const [interval, setInterval] = useState(String(fc?.recur_interval ?? 1));
   const [until, setUntil] = useState(fc?.recur_until ?? "");
@@ -803,7 +909,8 @@ function PaymentForm({ kind, row, tree, date: startDate, onSave, onCancel }: {
     if (out.some((l) => l.side === "to" && fromCats.includes(l.category_id))) return setError(t("fin_err_dup"));
     setError("");
     writeCookie(CURRENCY_COOKIE, currency);
-    const body = { lines: out, currency, justification: why };
+    // A tag still being typed counts too.
+    const body = { lines: out, currency, justification: why, tags: addTag(tags, tagDraft) };
     // A new one: repeating, or still to come, makes a forecast (it writes
     // the payments as they fall due); anything else is a payment now.
     const as = kind ?? (freq || date > today() ? "forecasts" : "executed");
@@ -829,10 +936,16 @@ function PaymentForm({ kind, row, tree, date: startDate, onSave, onCancel }: {
               <div className="fin-line">
                 <CategorySelect tree={tree} value={ln.cat} empty={<span title={t("fin_outside")}><CatIcon icon={OUTSIDE_ICON} /> —</span>}
                                 onChange={(cat) => setLine(side, i, { cat })} />
+                {/* The payment's currency shown in each amount, typed or worked out. */}
                 {isRest(side, i)
-                  ? <span className="fin-line-rest" title={t("fin_line_rest")}>{cs[i] > 0 ? cents2text(cs[i]) : "—"}</span>
-                  : <input className="fin-amount fin-line-amount" inputMode="decimal" value={ln.amount}
-                           aria-label={t("fin_amount")} onChange={(e) => setLine(side, i, { amount: e.target.value })} />}
+                  ? <span className="fin-line-rest" title={t("fin_line_rest")}>
+                      <span className="fin-money-sym">{SYMBOL[currency]}</span>{cs[i] > 0 ? cents2text(cs[i]) : "—"}
+                    </span>
+                  : <span className="fin-money">
+                      <span className="fin-money-sym" aria-hidden>{SYMBOL[currency]}</span>
+                      <input className="fin-amount fin-line-amount" inputMode="decimal" value={ln.amount} placeholder="0,00"
+                             aria-label={`${t("fin_amount")} (${currency})`} onChange={(e) => setLine(side, i, { amount: e.target.value })} />
+                    </span>}
                 {ls.length > 1 && (
                   <button type="button" className="ghost icon-only fin-line-del" title={t("fin_remove_line")}
                           aria-label={t("fin_remove_line")} onClick={() => removeLine(side, i)}>
@@ -866,7 +979,7 @@ function PaymentForm({ kind, row, tree, date: startDate, onSave, onCancel }: {
   return (
     <form className="fin-form fin-pay-form" ref={formRef} onSubmit={(e) => { e.preventDefault(); submit(); }}>
       {/* The date and the currency share a row. */}
-      <label>{freq && kind !== "executed" ? t("fin_start") : t("fin_date")}
+      <label className="fin-f-date">{freq && kind !== "executed" ? t("fin_start") : t("fin_date")}
         <span className="fin-pair">
           <input className="fin-pair-main" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
           <select className="fin-pair-side" value={currency} aria-label={t("fin_currency")} onChange={(e) => setCurrency(e.target.value as Currency)}>
@@ -874,11 +987,12 @@ function PaymentForm({ kind, row, tree, date: startDate, onSave, onCancel }: {
           </select>
         </span>
       </label>
-      <label>{t("fin_justification")}<input value={why} onChange={(e) => setWhy(e.target.value)} /></label>
+      <label className="fin-f-why">{t("fin_justification")}<input value={why} onChange={(e) => setWhy(e.target.value)} /></label>
+      <TagField tags={tags} onChange={setTags} draft={tagDraft} onDraft={setTagDraft} all={allTags} />
       {kind !== "executed" && <>
         {/* How often, and every how many of those: the choices read "Every 4
             weeks" as the number changes. */}
-        <label>{t("cal_repeat")}
+        <label className={"fin-f-repeat" + (freq ? " on" : "")}>{t("cal_repeat")}
           <span className="fin-pair">
             <select className="fin-pair-main" value={freq ?? ""} onChange={(e) => setFreq((e.target.value || null) as RecurFreq | null)}>
               <option value="">{t("cal_no_repeat")}</option>
@@ -890,14 +1004,129 @@ function PaymentForm({ kind, row, tree, date: startDate, onSave, onCancel }: {
             </>}
           </span>
         </label>
-        {freq && <label>{t("cal_until_label")}
+        {freq && <label className="fin-f-until">{t("cal_until_label")}
           <input type="date" className={until ? "" : "fin-date-empty"} value={until} onChange={(e) => setUntil(e.target.value)} />
         </label>}
       </>}
       <div className="fin-sides">{sideBlock("from")}{sideBlock("to")}</div>
       {error && <span className="fin-error">{error}</span>}
-      <FormButtons onCancel={onCancel} />
+      <FormButtons onCancel={onCancel} onDelete={onDelete} />
     </form>
+  );
+}
+
+// The tag box's typing room kept beside the chips, and the gap between them (px, as the CSS).
+const TAG_INPUT_MIN = 96, TAG_GAP = 4;
+
+/** `tags` with `text` added: trimmed, and not when empty or already there
+ *  (letter case aside — the server keeps one spelling of a tag too). */
+function addTag(tags: string[], text: string): string[] {
+  const tag = text.trim();
+  return !tag || tags.some((x) => x.toLowerCase() === tag.toLowerCase()) ? tags : [...tags, tag];
+}
+
+/** A payment's tags as chips (✕ takes one off), then a box to type another:
+ *  Enter or ";" adds it, Backspace in the empty box takes the last one off.
+ *  Tags already used elsewhere that hold what is typed are offered under it:
+ *  ↑ ↓ move through them, Enter takes the one lit, Esc closes them.
+ *  Collapsed to one line: the chips that fit, then "+N" for the rest, which
+ *  opens them all (wrapping) until "−" folds them back. */
+function TagField({ tags, onChange, draft, onDraft, all }: {
+  tags: string[]; onChange: (tags: string[]) => void; draft: string; onDraft: (text: string) => void; all: string[];
+}) {
+  const { t } = useT();
+  const id = useId();
+  const [open, setOpen] = useState(false);
+  const [lit, setLit] = useState(-1);   // the offer ↑ ↓ are on (-1: none, Enter adds what is typed)
+  const box = useRef<HTMLSpanElement>(null);
+  const pop = useRef<HTMLSpanElement>(null);
+  const measure = useRef<HTMLSpanElement>(null);
+  const [expanded, setExpanded] = useState(false);
+  const [fit, setFit] = useState(tags.length);   // chips shown while collapsed
+  // How many chips fit on the line beside the typing box (and "+N", if any
+  // are left out), from an unseen copy of them all.
+  useLayoutEffect(() => {
+    const el = box.current, m = measure.current;
+    if (!el || !m) return;
+    const count = () => {
+      const cs = getComputedStyle(el);
+      const room = el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - TAG_INPUT_MIN;
+      const kids = [...m.children] as HTMLElement[];
+      const plus = kids.pop()!.offsetWidth + TAG_GAP;
+      let used = 0, k = 0;
+      for (; k < kids.length; k++) {
+        const next = used + kids[k].offsetWidth + TAG_GAP;
+        if (next + (k + 1 < kids.length ? plus : 0) > room) break;
+        used = next;
+      }
+      setFit(k);
+    };
+    count();
+    const ro = new ResizeObserver(count);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [tags]);
+  const visible = expanded ? tags : tags.slice(0, fit);
+  useEffect(() => { pop.current?.children[lit]?.scrollIntoView({ block: "nearest" }); }, [lit]);
+  const q = draft.trim().toLowerCase();
+  const offers = q ? all.filter((x) => x.toLowerCase().includes(q) && !tags.some((y) => y.toLowerCase() === x.toLowerCase())).slice(0, 8) : [];
+  const shown = open && offers.length > 0;
+  useBackToClose(() => setOpen(false), shown);
+  const add = (text: string) => { onChange(addTag(tags, text)); onDraft(""); setLit(-1); };
+  return (
+    <label htmlFor={id} className="fin-f-tags">{t("fin_tags")}
+      <span className={"fin-tags-box" + (expanded ? " expanded" : "")} ref={box}>
+        <span className="fin-tags-measure" ref={measure} aria-hidden>
+          {tags.map((tag) => <span key={tag} className="fin-tag">{tag}<span className="fin-tag-del"><Icon name="close" size={12} className="" /></span></span>)}
+          <span className="fin-tag fin-tag-more">+{tags.length}</span>
+        </span>
+        {visible.map((tag) => (
+          <span key={tag} className="fin-tag">
+            {tag}
+            <button type="button" className="fin-tag-del" title={t("fin_remove_tag")} aria-label={t("fin_remove_tag")}
+                    onClick={() => onChange(tags.filter((x) => x !== tag))}>
+              <Icon name="close" size={12} className="" />
+            </button>
+          </span>
+        ))}
+        {!expanded && fit < tags.length && (
+          <button type="button" className="fin-tag fin-tag-more" title={tags.slice(fit).join(", ")}
+                  onClick={() => setExpanded(true)}>+{tags.length - fit}</button>
+        )}
+        {expanded && fit < tags.length && (
+          <button type="button" className="fin-tag fin-tag-more" title={t("fin_tags_fold")} aria-label={t("fin_tags_fold")}
+                  onClick={() => setExpanded(false)}>−</button>
+        )}
+        <input id={id} className="fin-tags-input" value={draft} autoComplete="off"
+               onChange={(e) => {
+                 // Typed or pasted ";" ends a tag ("Dodi; 2" makes two).
+                 const parts = e.target.value.split(";");
+                 if (parts.length > 1) {
+                   onChange(parts.slice(0, -1).reduce(addTag, tags));
+                   onDraft(parts[parts.length - 1]);
+                 } else onDraft(e.target.value);
+                 setOpen(true);
+                 setLit(-1);
+               }}
+               onKeyDown={(e) => {
+                 if (shown && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
+                   e.preventDefault();
+                   const n = offers.length, step = e.key === "ArrowDown" ? 1 : -1;
+                   setLit((i) => (i < 0 ? (step > 0 ? 0 : n - 1) : (i + step + n) % n));
+                 } else if (e.key === "Escape" && shown) { e.preventDefault(); e.stopPropagation(); setOpen(false); setLit(-1); }
+                 else if (e.key === "Enter") { e.preventDefault(); add(shown && offers[lit] ? offers[lit] : draft); }
+                 else if (e.key === "Backspace" && !draft && tags.length) onChange(tags.slice(0, -1));
+               }}
+               onBlur={(e) => { if (!pop.current?.contains(e.relatedTarget as Node)) { setOpen(false); setLit(-1); } }} />
+      </span>
+      {shown && (
+        <Floating anchor={box} ref={pop} className="fin-cat-list">
+          {offers.map((x, i) => (
+            <button type="button" key={x} className={i === lit ? "active" : ""} onMouseEnter={() => setLit(i)} onMouseDown={(e) => e.preventDefault()} onClick={() => { add(x); setOpen(false); }}>{x}</button>
+          ))}
+        </Floating>
+      )}
+    </label>
   );
 }
 

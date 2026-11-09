@@ -122,7 +122,7 @@ export function PersonalPanel() {
 
 function PersonalTables() {
   const { t, lang } = useT();
-  const { diary } = useVersionPoll();
+  const { diary } = useVersionPoll("diary");
   const narrow = usePhone();
   const [view, setViewState] = useState<ViewMode>(loadView);
   const [month, setMonth] = useState(currentMonth);
@@ -208,25 +208,25 @@ function PersonalTables() {
         <div className="month-nav">
           {view === "month" ? (
             <>
-              <button onClick={() => setMonth((m) => addMonths(m, -1))}>◀</button>
+              <button className="nav-arrow" onClick={() => setMonth((m) => addMonths(m, -1))}>◀</button>
               {/* The month itself goes back to this month: no Today button. */}
               <h2 className="go-today" role="button" tabIndex={0} title={t("env_today")}
                   onClick={() => setMonth(currentMonth())}
                   onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setMonth(currentMonth()); } }}>
                 {monthLabel(month, lang)}
               </h2>
-              <button onClick={() => setMonth((m) => addMonths(m, 1))}>▶</button>
+              <button className="nav-arrow" onClick={() => setMonth((m) => addMonths(m, 1))}>▶</button>
             </>
           ) : (
             <>
-              <button onClick={() => setDay((d) => addDays(d, -1))}>◀</button>
+              <button className="nav-arrow" onClick={() => setDay((d) => addDays(d, -1))}>◀</button>
               {/* The day itself goes back to today. */}
               <h2 className="go-today" role="button" tabIndex={0} title={t("env_today")}
                   onClick={() => setDay(todayIso())}
                   onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setDay(todayIso()); } }}>
                 {dayLabel(day, lang, narrow)}
               </h2>
-              <button onClick={() => setDay((d) => addDays(d, 1))}>▶</button>
+              <button className="nav-arrow" onClick={() => setDay((d) => addDays(d, 1))}>▶</button>
             </>
           )}
           {/* The table's own tools, held at the right of the bar. */}

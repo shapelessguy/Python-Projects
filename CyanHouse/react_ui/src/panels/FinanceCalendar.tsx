@@ -1,12 +1,13 @@
-import { CSSProperties, ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { CSSProperties, ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Currency, FinCategory, FinExecuted, FinForecast, finTotal } from "../api";
 import { useBackToClose } from "../backClose";
 import { readCookie, writeCookie } from "../cookies";
-import { useT } from "../i18n";
+import { num, useT } from "../i18n";
 import { usePhone } from "../narrow";
 import {
   addDays, addMonths, dayLabel, isWeekend, monthGrid, monthLabel, weekDays, weekLabel, weekdayNames,
 } from "./CalendarPanel";
+import { Floating } from "./Floating";
 import { Icon } from "./icons";
 import { IconPick } from "./IconPick";
 
@@ -52,7 +53,7 @@ function addMonthsTo(d: string, months: number): string {
 
 /** A forecast's dates in [from, to] not written yet — each counted from the
  *  start, as the server does, so a monthly on the 31st returns to the 31st. */
-function plannedDates(f: FinForecast, from: string, to: string): string[] {
+export function plannedDates(f: FinForecast, from: string, to: string): string[] {
   const out: string[] = [];
   const after = f.generated_until ?? "";
   for (let k = 0; ; k++) {
@@ -172,13 +173,41 @@ export function FinanceCalendar({ executed, forecasts, accounts, effect, money, 
     for (const [id, b] of balance) balance.set(id, inUnit(b, periodEnd));
     return { balance, flows };
   }, [executed, forecasts, accounts, effect, convert, unit, periodStart, periodEnd]);
-  const sum = money;
+  // On a phone, above 200 (either way) whole units only: the bar is narrow.
+  const sum = (cents: number, cur: Currency) => narrow && Math.abs(cents) > 20000
+    ? num(Math.round(cents / 100), lang, { style: "currency", currency: cur, currencyDisplay: "narrowSymbol", maximumFractionDigits: 0 })
+    : money(cents, cur);
   const amounts = (by: Partial<Record<Currency, number>>, sign = "") =>
     (Object.entries(by) as [Currency, number][]).filter(([, c]) => c).map(([cur, c]) => sign + sum(c, cur)).join(" · ");
+
+  // On a phone, accounts whose icon, name and balance don't all fit across
+  // drop the name of each one that has an icon (measured with names shown).
+  const accountsRef = useRef<HTMLDivElement>(null);
+  const [compact, setCompact] = useState(false);
+  useLayoutEffect(() => {
+    const el = accountsRef.current;
+    if (!el) return;
+    const measure = () => {
+      if (!narrow) return setCompact(false);
+      const had = el.classList.contains("compact");
+      el.classList.remove("compact");
+      const over = el.scrollWidth > el.clientWidth + 1;
+      if (had) el.classList.add("compact");
+      setCompact(over);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [narrow, accounts, summary]);
 
   const goPrev = () => setAnchor((a) => (view === "month" ? addMonths(a, -1) : addDays(a, -7)));
   const goNext = () => setAnchor((a) => (view === "month" ? addMonths(a, 1) : addDays(a, 7)));
   const headerLabel = view === "month" ? monthLabel(anchor.slice(0, 7), lang) : weekLabel(days, lang);
+  // Months that have payments ("2019-05"): dotted in the month picker.
+  const busyMonths = useMemo(() => new Set(executed.map((p) => p.date.slice(0, 7))), [executed]);
+  // Picked: that month's 1st (a week view shows the week holding it).
+  const goMonth = (year: number, month: number) => setAnchor(`${year}-${String(month).padStart(2, "0")}-01`);
 
   const chip = (e: CalEntry, big = false) => {
     const { dir, cents } = effect(e.p);
@@ -198,12 +227,13 @@ export function FinanceCalendar({ executed, forecasts, accounts, effect, money, 
   return (
     <div className="fin-calendar">
       <div className="month-nav">
-        <button onClick={goPrev}>◀</button>
+        <button className="nav-arrow" onClick={goPrev}>◀</button>
         <h2 className="go-today" role="button" tabIndex={0} title={t("env_today")} onClick={() => setAnchor(TODAY)}
             onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setAnchor(TODAY); } }}>
           {headerLabel}
         </h2>
-        <button onClick={goNext}>▶</button>
+        <button className="nav-arrow" onClick={goNext}>▶</button>
+        {!narrow && <MonthPicker value={anchor.slice(0, 7)} busy={busyMonths} onPick={goMonth} />}
         <select className="fin-unit" value={unit} title={t("fin_unit")} aria-label={t("fin_unit")}
                 onChange={(e) => setUnit(e.target.value as Currency)}>
           <option value="EUR">€</option>
@@ -282,7 +312,7 @@ export function FinanceCalendar({ executed, forecasts, accounts, effect, money, 
       </div>
 
       <div className="fin-cal-foot" ref={footRef}>
-        <div className="fin-foot-accounts">
+        <div className={"fin-foot-accounts" + (compact ? " compact" : "")} ref={accountsRef}>
           {accounts.map((a) => {
             const text = amounts(summary.balance.get(a.id) ?? {}) || sum(0, unit);
             return (
@@ -293,7 +323,9 @@ export function FinanceCalendar({ executed, forecasts, accounts, effect, money, 
             );
           })}
         </div>
-        <div className="fin-foot-totals">
+        {/* The balances are to date; these two are the period shown's own. */}
+        <div className="fin-foot-totals" title={headerLabel}>
+          {!narrow && <span className="fin-foot-period">{headerLabel}</span>}
           <span style={{ color: DIR_COLOR.in }} title={t("fin_income")}>{amounts(summary.flows.in, "+") || "+" + sum(0, unit)}</span>
           <span style={{ color: DIR_COLOR.out }} title={t("fin_spending")}>{amounts(summary.flows.out, "−") || "−" + sum(0, unit)}</span>
         </div>
@@ -314,4 +346,55 @@ export function FinanceCalendar({ executed, forecasts, accounts, effect, money, 
       )}
     </div>
   );
+}
+
+/** A calendar icon opening a year's twelve months: ‹ › step the year, a
+ *  month picked goes there. The shown month is filled, today's ringed, and
+ *  one with payments has a dot. */
+function MonthPicker({ value, busy, onPick }: {
+  value: string; busy: Set<string>; onPick: (year: number, month: number) => void;
+}) {
+  const { t, lang } = useT();
+  const [open, setOpen] = useState(false);
+  const [year, setYear] = useState(+value.slice(0, 4));
+  const btn = useRef<HTMLButtonElement>(null);
+  const pop = useRef<HTMLSpanElement>(null);
+  useBackToClose(() => setOpen(false), open);
+  useEffect(() => {
+    if (!open) return;
+    const down = (e: PointerEvent) => {
+      const at = e.target as Node;
+      if (!btn.current?.contains(at) && !pop.current?.contains(at)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", down);
+    return () => document.removeEventListener("pointerdown", down);
+  }, [open]);
+  const names = useMemo(
+    () => Array.from({ length: 12 }, (_, m) => new Date(2000, m, 1).toLocaleDateString(lang, { month: "short" }).replace(".", "")),
+    [lang]);
+  const key = (m: number) => `${year}-${String(m).padStart(2, "0")}`;
+  return <>
+    <button ref={btn} className={"icon-only fin-month-btn" + (open ? " active" : "")} title={t("fin_pick_month")}
+            aria-label={t("fin_pick_month")} onClick={() => { setYear(+value.slice(0, 4)); setOpen(!open); }}>
+      <Icon name="month" size={18} className="" />
+    </button>
+    {open && (
+      <Floating anchor={btn} ref={pop} className="fin-month-pop">
+        <span className="fin-month-year">
+          <button className="ghost icon-only" aria-label="−1" onClick={() => setYear(year - 1)}>‹</button>
+          <strong>{year}</strong>
+          <button className="ghost icon-only" aria-label="+1" onClick={() => setYear(year + 1)}>›</button>
+        </span>
+        <span className="fin-month-grid">
+          {names.map((name, i) => (
+            <button key={i}
+                    className={"ghost" + (key(i + 1) === value ? " active" : "") + (key(i + 1) === TODAY.slice(0, 7) ? " today" : "")}
+                    onClick={() => { onPick(year, i + 1); setOpen(false); }}>
+              {name}{busy.has(key(i + 1)) && <i className="fin-month-dot" aria-hidden />}
+            </button>
+          ))}
+        </span>
+      </Floating>
+    )}
+  </>;
 }

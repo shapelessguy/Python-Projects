@@ -391,9 +391,9 @@ def portfolio(user: str = Depends(require_user)):
     }
 
 
-@router.post("/portfolio")
-async def add_transaction(body: TransactionIn, user: str = Depends(require_user)):
-    """A stock neither watched nor held yet goes onto the watchlist first, so
+async def _checked(body: "TransactionIn", user: str) -> tuple[str, str, float | None]:
+    """The transaction's ISIN, day and price per share, once it makes sense.
+    A stock neither watched nor held yet goes onto the watchlist first, so
     its chart -- and its prices -- get downloaded."""
     isin = _isin(body.isin)
     try:
@@ -409,8 +409,27 @@ async def add_transaction(body: TransactionIn, user: str = Depends(require_user)
     each = body.amount / abs(body.shares) if body.amount is not None else None
     if isin not in _watchlists().get(user, set()):
         await _watch(user, isin)
+    return isin, day.isoformat(), each
+
+
+@router.post("/portfolio")
+async def add_transaction(body: TransactionIn, user: str = Depends(require_user)):
+    isin, day, each = await _checked(body, user)
     try:
-        store.add_transaction(user, isin, day.isoformat(), body.shares, each)
+        store.add_transaction(user, isin, day, body.shares, each)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    _forget_lists()
+    _bump(users=[user])
+    return {}
+
+
+@router.put("/portfolio/{tid}")
+async def update_transaction(tid: int, body: TransactionIn, user: str = Depends(require_user)):
+    isin, day, each = await _checked(body, user)
+    try:
+        if not store.update_transaction(user, tid, isin, day, body.shares, each):
+            raise HTTPException(404, "no such transaction")
     except ValueError as e:
         raise HTTPException(422, str(e))
     _forget_lists()

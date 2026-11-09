@@ -5,7 +5,7 @@ import Plotly from "plotly.js-dist-min";
 import { api, City, EnvBootstrap, SeriesResponse, useVersionPoll, Variable } from "../api";
 import { ForecastStrip } from "./ForecastStrip";
 import { OverviewBoard } from "./OverviewBoard";
-import { isKey, Key, useT } from "../i18n";
+import { isKey, Key, plotSeparators, useT } from "../i18n";
 import { useBackToClose } from "../backClose";
 import { Icon } from "./icons";
 import { ChartPager } from "./ChartPager";
@@ -135,7 +135,7 @@ function saveOverviewRange(r: OverviewRange): void {
 
 export function EnvironmentPanel() {
   const { t, lang } = useT();
-  const { weather, forecast } = useVersionPoll();
+  const { weather, forecast } = useVersionPoll("weather", "forecast");
   const [boot, setBoot] = useState<EnvBootstrap | null>(null);
   const [cities, setCities] = useState<Set<string>>(loadCities);
   const [vars, setVars] = useState<Set<string>>(new Set());
@@ -272,6 +272,7 @@ export function EnvironmentPanel() {
   const chartLayout = {
     height: 220,
     margin: { l: 44, r: 12, t: 32, b: 30 },
+    separators: plotSeparators(),
     paper_bgcolor: "rgba(0,0,0,0)",
     plot_bgcolor: "rgba(0,0,0,0)",
     font: { color: "#bbb" },
@@ -514,7 +515,7 @@ function groupBy(vars: Variable[]): Record<string, Variable[]> {
  *  (WeatherPopup.tsx). */
 export function OverviewView({ cities, pickerSlot = null }: { cities: City[]; pickerSlot?: HTMLElement | null }) {
   const { t } = useT();
-  const { forecast } = useVersionPoll();
+  const { forecast } = useVersionPoll("forecast");
   const [saved, setCity] = useState<string>(loadOverviewCity);
   const [range, setRange] = useState<OverviewRange>(loadOverviewRange);
   // The remembered city, while there is one by that name; else the default.

@@ -281,7 +281,7 @@ export function CalendarPanel() {
   const { t, lang } = useT();
   // The calendar whose sharing is being edited (CalendarShareDialog).
   const [sharingCal, setSharingCal] = useState<Calendar | null>(null);
-  const { calendar } = useVersionPoll();
+  const { calendar } = useVersionPoll("calendar");
   const [view, setViewState] = useState<ViewMode>(loadView);
   const setView = (v: ViewMode) => {
     setViewState(v);
@@ -542,14 +542,14 @@ export function CalendarPanel() {
       )}
       <div className="calendar-main">
         <div className="month-nav">
-          <button onClick={goPrev}>◀</button>
+          <button className="nav-arrow" onClick={goPrev}>◀</button>
           {/* The date itself goes back to today: no Today button, more room for the others. */}
           <h2 className="go-today" role="button" tabIndex={0} title={t("env_today")}
               onClick={() => setAnchor(TODAY)}
               onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setAnchor(TODAY); } }}>
             {headerLabel}
           </h2>
-          <button onClick={goNext}>▶</button>
+          <button className="nav-arrow" onClick={goNext}>▶</button>
           {/* Words on a wide screen, icons on a phone (styles.css swaps
               .nav-text for .nav-icon), so the bar stays one row. */}
           {/* On a phone the views are one button opening a list of them, as in Media. */}

@@ -308,6 +308,23 @@ def add_transaction(user, isin, day, shares, price=None):
                      (user, isin, day, shares, price))
 
 
+def update_transaction(user, tid, isin, day, shares, price=None):
+    """As add_transaction, in place of transaction `tid`. Returns whether
+    there was such a transaction."""
+    isin = normalise_isin(isin)
+    rows = transactions(user)
+    if not any(r["id"] == tid for r in rows):
+        return False
+    rows = [r for r in rows if r["id"] != tid] + [{"isin": isin, "date": day, "shares": shares, "id": tid}]
+    rows.sort(key=lambda r: (r["date"], r["shares"] < 0, r["id"]))
+    if not _never_short(rows):
+        raise ValueError("more shares sold than held")
+    with db() as conn:
+        conn.execute("UPDATE portfolio SET isin=?, date=?, shares=?, price=? WHERE username=? AND id=?",
+                     (isin, day, shares, price, user, tid))
+    return True
+
+
 def delete_transaction(user, tid):
     """Refused (ValueError) when a later sell would then sell more than is held.
     Returns whether there was such a transaction."""

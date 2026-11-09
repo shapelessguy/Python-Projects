@@ -71,7 +71,7 @@ function latestDueOccurrencePerEvent(events: CalendarEvent[], now: number): Cale
  *  just be a request the backend 403s for no visible reason (api/auth.py's
  *  require_panel). Disabled, this fetches nothing and reports no due alarms. */
 export function useDueAlarms(enabled: boolean) {
-  const { calendar } = useVersionPoll();
+  const { calendar } = useVersionPoll("calendar");
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   // Whether `events` holds an answer yet: "nothing due" means something only then.
   const [fetched, setFetched] = useState(false);

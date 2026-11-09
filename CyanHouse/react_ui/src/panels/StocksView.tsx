@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import createPlotlyComponent from "react-plotly.js/factory";
 import Plotly from "plotly.js-dist-min";
 import { api, Portfolio, PortfolioTotals, Stock, StockBars, StockResample, StocksList, StockTicks, Transaction, useVersionPoll } from "../api";
-import { useT } from "../i18n";
+import { num, plotSeparators, useT } from "../i18n";
 import { useBackToClose } from "../backClose";
 import { ConfirmDialog } from "../ConfirmDialog";
 import { Icon } from "./icons";
@@ -166,18 +166,18 @@ function ticksOf(isin: string, today: string): StockBars | null {
 }
 
 function price(v: number, lang: string): string {
-  return v.toLocaleString(lang, { minimumFractionDigits: 2, maximumFractionDigits: v < 1 ? 4 : 2 });
+  return num(v, lang, { minimumFractionDigits: 2, maximumFractionDigits: v < 1 ? 4 : 2 });
 }
 
 /** Euros with a sign: "+1.234,50 €", "−987,00 €" (whole euros if `round`). */
 function signed(v: number, lang: string, round = false): string {
   const digits = round ? 0 : 2;
-  const abs = Math.abs(v).toLocaleString(lang, { minimumFractionDigits: digits, maximumFractionDigits: digits });
+  const abs = num(Math.abs(v), lang, { minimumFractionDigits: digits, maximumFractionDigits: digits });
   return `${v < 0 ? "−" : "+"}${abs} €`;
 }
 
 function shares(v: number, lang: string): string {
-  return v.toLocaleString(lang, { maximumFractionDigits: 4 });
+  return num(v, lang, { maximumFractionDigits: 4 });
 }
 
 const PF_REFRESH_MS = 60_000;
@@ -288,7 +288,7 @@ function markers(txs: Transaction[], d: StockBars, weekly: boolean, span: number
  *  the weather tabs. */
 export function StocksView({ pickerSlot }: { pickerSlot: HTMLElement | null }) {
   const { t, lang } = useT();
-  const { stocks: version } = useVersionPoll();
+  const { stocks: version } = useVersionPoll("stocks");
   const narrow = usePhone();
   const [list, setList] = useState<StocksList | null>(null);
   const [hidden, setHidden] = useState<Set<string>>(() => {
@@ -535,7 +535,8 @@ export function StocksView({ pickerSlot }: { pickerSlot: HTMLElement | null }) {
       layout: {
         height: 240,
         margin: { l: 48, r: 12, t: 8, b: 40 },
-        paper_bgcolor: "rgba(0,0,0,0)",
+        separators: plotSeparators(),
+    paper_bgcolor: "rgba(0,0,0,0)",
         plot_bgcolor: "rgba(0,0,0,0)",
         font: { color: "#bbb" },
         showlegend: false,
@@ -566,7 +567,7 @@ export function StocksView({ pickerSlot }: { pickerSlot: HTMLElement | null }) {
     const pct = s.last != null && s.prev_close ? ((s.last - s.prev_close) / s.prev_close) * 100 : null;
     return (
       <b className={pct == null ? "" : pct < 0 ? "pf-down" : "pf-up"}>
-        {pct == null ? "" : `${pct < 0 ? "−" : "+"}${Math.abs(pct).toLocaleString(lang, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`}
+        {pct == null ? "" : `${pct < 0 ? "−" : "+"}${num(Math.abs(pct), lang, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`}
       </b>
     );
   };
@@ -895,7 +896,7 @@ function PortfolioSummary({ pf, metric, onMetric, year, onYear, fill }: {
   const last = y(metric)[x.length - 1] ?? 0;
   const color = metric === "value" ? VALUE_LINE : last < 0 ? DOWN : UP;
   const label = (m: (typeof METRICS)[number]) => t(m.label as "pf_value");
-  const taxLabel = `${t("pf_tax_due")} ${pf.tax_rate.toLocaleString(lang)}%`;
+  const taxLabel = `${t("pf_tax_due")} ${num(pf.tax_rate, lang)}%`;
 
   const data = [
     ...(metric === "value" ? [{
@@ -916,6 +917,7 @@ function PortfolioSummary({ pf, metric, onMetric, year, onYear, fill }: {
   ];
   const layout = {
     margin: { l: 56, r: 12, t: 8, b: 40 },
+    separators: plotSeparators(),
     paper_bgcolor: "rgba(0,0,0,0)",
     plot_bgcolor: "rgba(0,0,0,0)",
     font: { color: "#bbb" },
@@ -1068,11 +1070,13 @@ function ClosedPositions({ pf, onClose }: { pf: Portfolio; onClose: () => void }
 
 /** The portfolio's overlays look like the tabs' settings panel: a title and
  *  ✕, sections under small headings; over the whole screen on a phone. */
-function PfPanel({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
+function PfPanel({ title, onClose, children, className = "" }: {
+  title: string; onClose: () => void; children: ReactNode; className?: string;
+}) {
   const { t } = useT();
   return createPortal(
     <div className="modal-backdrop pf-backdrop" onClick={onClose}>
-      <aside className="pf-panel" onClick={(e) => e.stopPropagation()}>
+      <aside className={"pf-panel " + className} onClick={(e) => e.stopPropagation()}>
         <div className="pf-head">
           <span>{title}</span>
           <button className="pf-close" onClick={onClose} title={t("close")} aria-label={t("close")}>
@@ -1096,8 +1100,8 @@ function PL({ v }: { v: number | null }) {
  *  after that day's transactions, and no more than any later balance (a
  *  later sale must still be covered). Counts as the server does: by date,
  *  a day's buys before its sells, a new one after those already there. */
-function sellable(txs: Transaction[], isin: string, day: string): number {
-  const rows = txs.filter((tx) => tx.isin === isin)
+function sellable(txs: Transaction[], isin: string, day: string, except?: number): number {
+  const rows = txs.filter((tx) => tx.isin === isin && tx.id !== except)
     .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : (a.shares < 0 ? 1 : 0) - (b.shares < 0 ? 1 : 0) || a.id - b.id));
   let held = 0;
   let max = Infinity;
@@ -1132,33 +1136,60 @@ function PortfolioTransactions({ pf, stocks, today, reload, onClose }: {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [deleting, setDeleting] = useState<Transaction | null>(null);
+  // The transaction the form edits (null: a new one).
+  const [editing, setEditing] = useState<Transaction | null>(null);
   useBackToClose(onClose);
 
   const isNew = pick === "" || !choices.some((c) => c.isin === pick);
   const isin = isNew ? newIsin.trim() : pick;
-  const max = isNew ? 0 : sellable(pf.transactions, isin, day);
+  const max = isNew ? 0 : sellable(pf.transactions, isin, day, editing?.id);
   const selling = !buy && !isNew;
   const n = selling && all ? max : parseFloat(count.replace(",", "."));
   const amount = parseFloat(total.replace(",", "."));
-  const ready = !!isin && !!day && n > 0 && amount > 0 && !busy && !(selling && n > max + 1e-9) && !(!buy && isNew);
+  // One counted at the day's close may stay so: no total.
+  const atClose = !!editing && !editing.exact && !total.trim();
+  const ready = !!isin && !!day && n > 0 && (amount > 0 || atClose) && !busy && !(selling && n > max + 1e-9) && !(!buy && isNew);
 
   const submit = () => {
     if (!ready) return;
     setBusy(true);
     setError("");
-    api.addTransaction({ isin, date: day, shares: buy ? n : -n, amount })
+    const tx = { isin, date: day, shares: buy ? n : -n, amount };
+    (editing ? api.updateTransaction(editing.id, { ...tx, amount: atClose ? null : amount }) : api.addTransaction(tx))
       .then(() => {
         setCount("");
         setTotal("");
         setAll(false);
+        setEditing(null);
         if (isNew) { setNewIsin(""); setPick(isin.toUpperCase()); }
         return reload();
       })
       .catch((e: Error) => setError(e.message))
       .finally(() => setBusy(false));
   };
+  // Into the form, to change it.
+  const edit = (tx: Transaction) => {
+    setEditing(tx);
+    setError("");
+    setPick(choices.some((c) => c.isin === tx.isin) ? tx.isin : "");
+    setNewIsin(choices.some((c) => c.isin === tx.isin) ? "" : tx.isin);
+    setDay(tx.date);
+    setBuy(tx.shares > 0);
+    setAll(false);
+    setCount(String(Math.abs(tx.shares)));
+    setTotal(tx.exact && tx.amount != null ? String(tx.amount) : "");
+  };
+  const cancelEdit = () => {
+    setEditing(null);
+    setCount("");
+    setTotal("");
+    setAll(false);
+    setDay(today);
+    setBuy(true);
+  };
   const remove = (tx: Transaction) => {
     setDeleting(null);
+    if (editing?.id === tx.id) cancelEdit();
     setError("");
     api.deleteTransaction(tx.id).then(reload).catch((e: Error) => setError(e.message));
   };
@@ -1167,9 +1198,9 @@ function PortfolioTransactions({ pf, stocks, today, reload, onClose }: {
       { n: shares(Math.abs(tx.shares), lang), p: tx.price == null ? "—" : price(tx.price, lang) })}`;
 
   return (
-    <PfPanel title={t("pf_transactions")} onClose={onClose}>
+    <PfPanel title={t("pf_transactions")} onClose={onClose} className="pf-panel--wide">
       <section>
-        <h3>{t("pf_new")}</h3>
+        <h3>{t(editing ? "pf_edit" : "pf_new")}</h3>
         <form className="pf-add" onSubmit={(e) => { e.preventDefault(); submit(); }}>
           <select value={isNew ? "" : pick} onChange={(e) => setPick(e.target.value)}>
             {choices.map((c) => <option key={c.isin} value={c.isin}>{c.name}</option>)}
@@ -1198,9 +1229,16 @@ function PortfolioTransactions({ pf, stocks, today, reload, onClose }: {
                    placeholder={t("pf_shares")}
                    onChange={(e) => setCount(e.target.value)} />
             <input type="number" min={0} step="any" inputMode="decimal" value={total}
-                   placeholder={t("pf_total")} onChange={(e) => setTotal(e.target.value)} />
-            <button type="submit" className="pf-icon-btn" disabled={!ready} title={t("stk_add")} aria-label={t("stk_add")}>
-              {busy ? "…" : <Icon name="plus" size={16} className="" />}
+                   placeholder={editing && !editing.exact ? t("pf_total_close") : t("pf_total")}
+                   onChange={(e) => setTotal(e.target.value)} />
+            {editing && (
+              <button type="button" className="pf-icon-btn" onClick={cancelEdit} title={t("cancel")} aria-label={t("cancel")}>
+                <Icon name="close" size={16} className="" />
+              </button>
+            )}
+            <button type="submit" className="pf-icon-btn" disabled={!ready}
+                    title={t(editing ? "save" : "stk_add")} aria-label={t(editing ? "save" : "stk_add")}>
+              {busy ? "…" : <Icon name={editing ? "tick" : "plus"} size={16} className="" />}
             </button>
           </div>
         </form>
@@ -1212,7 +1250,7 @@ function PortfolioTransactions({ pf, stocks, today, reload, onClose }: {
         <div className="pf-txlist pf-scroll">
         {pf.transactions.length === 0 && <p className="muted small pf-empty">{t("pf_none")}</p>}
         {pf.transactions.map((tx) => (
-          <div key={tx.id} className="pf-tx">
+          <div key={tx.id} className={"pf-tx" + (editing?.id === tx.id ? " pf-tx--editing" : "")}>
             <span className="pf-tx-what" title={tx.isin}>
               <span className="stk-name">{tx.name}</span>
               <span className="unit">
@@ -1224,6 +1262,9 @@ function PortfolioTransactions({ pf, stocks, today, reload, onClose }: {
               {tx.shares > 0 ? "+" : "−"}{shares(Math.abs(tx.shares), lang)}
             </span>
             <span>{tx.amount == null ? "—" : signed(tx.shares > 0 ? tx.amount : -tx.amount, lang, true)}</span>
+            <button className="ghost stk-remove" onClick={() => edit(tx)} title={t("pf_edit")} aria-label={t("pf_edit")}>
+              <Icon name="edit" size={14} className="" />
+            </button>
             <button className="ghost stk-remove" onClick={() => setDeleting(tx)}
                     title={t("pf_delete")} aria-label={t("pf_delete")}>
               <Icon name="close" size={14} className="" />

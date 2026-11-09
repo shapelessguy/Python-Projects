@@ -24,6 +24,10 @@ Three tables per user, plus one shared:
     own bookmark, so running again never writes a date twice. It knows
     nothing of what happens to those rows afterwards. A forecast created with
     a start in the past writes every date already due at once.
+  - finance_tags: the user's tags, each name once (letter case aside), on
+    payments through finance_executed_tags and on forecasts through
+    finance_forecast_tags (a forecast's are copied onto what it writes). A
+    tag nothing carries any more is dropped.
   - fx_rates: the ECB's daily EUR -> USD reference rate (no weekends or
     holidays — rate_on() takes the latest one on or before a date), filled
     from 1999 the first time and day by day after that (update_fx).
@@ -95,6 +99,24 @@ CREATE TABLE IF NOT EXISTS finance_executed_lines (
     amount_cents INTEGER NOT NULL CHECK (amount_cents > 0)
 );
 CREATE INDEX IF NOT EXISTS idx_fin_ex_lines ON finance_executed_lines(executed_id);
+CREATE TABLE IF NOT EXISTS finance_tags (
+    id       INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL,
+    name     TEXT NOT NULL COLLATE NOCASE,
+    UNIQUE (username, name)
+);
+CREATE TABLE IF NOT EXISTS finance_executed_tags (
+    executed_id INTEGER NOT NULL REFERENCES finance_executed(id) ON DELETE CASCADE,
+    tag_id      INTEGER NOT NULL REFERENCES finance_tags(id),
+    PRIMARY KEY (executed_id, tag_id)
+);
+CREATE INDEX IF NOT EXISTS idx_fin_ex_tags_tag ON finance_executed_tags(tag_id);
+CREATE TABLE IF NOT EXISTS finance_forecast_tags (
+    forecast_id INTEGER NOT NULL REFERENCES finance_forecasts(id) ON DELETE CASCADE,
+    tag_id      INTEGER NOT NULL REFERENCES finance_tags(id),
+    PRIMARY KEY (forecast_id, tag_id)
+);
+CREATE INDEX IF NOT EXISTS idx_fin_fc_tags_tag ON finance_forecast_tags(tag_id);
 CREATE TABLE IF NOT EXISTS fx_rates (
     date  TEXT NOT NULL,
     base  TEXT NOT NULL,
@@ -115,10 +137,14 @@ _FX_FIRST_DAY = date(1999, 1, 4)   # the ECB's first published rate
 
 _CATEGORY_FIELDS = {"parent_id", "name", "icon", "sort", "archived", "kind"}
 CATEGORY_KINDS = {"", "account"}
-_PAYMENT_FIELDS = {"lines", "currency", "justification"}
+_PAYMENT_FIELDS = {"lines", "currency", "justification", "tags"}
 # Each payment table's lines: (lines table, its column pointing at the payment).
 _LINES = {"finance_executed": ("finance_executed_lines", "executed_id"),
           "finance_forecasts": ("finance_forecast_lines", "forecast_id")}
+# ... and its tags: (link table, its column pointing at the payment).
+_TAGS = {"finance_executed": ("finance_executed_tags", "executed_id"),
+         "finance_forecasts": ("finance_forecast_tags", "forecast_id")}
+_TAG_MAX = 100
 _FORECAST_FIELDS = _PAYMENT_FIELDS | {"start_date", "recur_freq", "recur_interval", "recur_until"}
 _EXECUTED_FIELDS = _PAYMENT_FIELDS | {"date"}
 
@@ -271,6 +297,20 @@ def _check_payment(conn: sqlite3.Connection, user: str, rec: dict) -> None:
         raise FinanceError("a payment can't be all outside")
 
 
+def _clean_tags(tags) -> list[str]:
+    """Trimmed, the empty ones dropped, each once (letter case aside: the
+    first spelling stays), in the order given."""
+    if not isinstance(tags, list) or not all(isinstance(t, str) for t in tags):
+        raise FinanceError("tags must be a list of text")
+    out: list[str] = []
+    for t in (t.strip() for t in tags):
+        if len(t) > _TAG_MAX:
+            raise FinanceError(f"a tag can be at most {_TAG_MAX} characters")
+        if t and t.casefold() not in {o.casefold() for o in out}:
+            out.append(t)
+    return out
+
+
 def _check_recurrence(rec: dict) -> None:
     start = _iso(rec["start_date"], "start_date")
     if rec["recur_freq"] is None:
@@ -299,17 +339,49 @@ def _get(conn: sqlite3.Connection, table: str, user: str, row_id: int) -> dict:
 
 
 def _with_lines(conn: sqlite3.Connection, table: str, rows: list[dict]) -> list[dict]:
-    """Each payment (or forecast) of `rows` with its `lines`, from-side first."""
+    """Each payment (or forecast) of `rows` with its `lines`, from-side
+    first, and its `tags` (names, in the order they were given)."""
     lines, key = _LINES[table]
+    links, tkey = _TAGS[table]
     by_id: dict[int, list] = {r["id"]: [] for r in rows}
+    tags: dict[int, list] = {r["id"]: [] for r in rows}
     if by_id:
+        marks = ", ".join("?" * len(by_id))
         for ln in conn.execute(
             f"SELECT {key} AS pid, side, category_id, amount_cents FROM {lines} "
-            f"WHERE {key} IN ({', '.join('?' * len(by_id))}) ORDER BY side, id", tuple(by_id),
+            f"WHERE {key} IN ({marks}) ORDER BY side, id", tuple(by_id),
         ):
             by_id[ln["pid"]].append({"side": ln["side"], "category_id": ln["category_id"],
                                      "amount_cents": ln["amount_cents"]})
-    return [{**r, "lines": by_id[r["id"]]} for r in rows]
+        for tg in conn.execute(
+            f"SELECT l.{tkey} AS pid, t.name FROM {links} l JOIN finance_tags t ON t.id = l.tag_id "
+            f"WHERE l.{tkey} IN ({marks}) ORDER BY l.rowid", tuple(by_id),
+        ):
+            tags[tg["pid"]].append(tg["name"])
+    return [{**r, "lines": by_id[r["id"]], "tags": tags[r["id"]]} for r in rows]
+
+
+def _write_tags(conn: sqlite3.Connection, table: str, user: str, row_id: int, names: list[str]) -> None:
+    """Replace a payment's (or forecast's) tags with `names` (already
+    cleaned): a name the user has never used becomes a new tag, one already
+    there (letter case aside) is reused as it was first spelt."""
+    links, key = _TAGS[table]
+    conn.execute(f"DELETE FROM {links} WHERE {key} = ?", (row_id,))
+    for name in names:
+        conn.execute("INSERT OR IGNORE INTO finance_tags(username, name) VALUES(?, ?)", (user, name))
+        tag_id = conn.execute("SELECT id FROM finance_tags WHERE username = ? AND name = ?",
+                              (user, name)).fetchone()[0]
+        conn.execute(f"INSERT OR IGNORE INTO {links}({key}, tag_id) VALUES(?, ?)", (row_id, tag_id))
+    _prune_tags(conn, user)
+
+
+def _prune_tags(conn: sqlite3.Connection, user: str) -> None:
+    """A tag no payment or forecast carries any more goes."""
+    conn.execute(
+        "DELETE FROM finance_tags WHERE username = ? "
+        "AND id NOT IN (SELECT tag_id FROM finance_executed_tags) "
+        "AND id NOT IN (SELECT tag_id FROM finance_forecast_tags)", (user,),
+    )
 
 
 def _write_lines(conn: sqlite3.Connection, table: str, row_id: int, lines: list[dict]) -> None:
@@ -431,7 +503,7 @@ def list_executed(conn: sqlite3.Connection, user: str) -> list[dict]:
 
 
 def _header(rec: dict) -> dict:
-    return {k: v for k, v in rec.items() if k not in ("id", "username", "lines")}
+    return {k: v for k, v in rec.items() if k not in ("id", "username", "lines", "tags")}
 
 
 def create_executed(conn: sqlite3.Connection, user: str, fields: dict) -> dict:
@@ -442,8 +514,10 @@ def create_executed(conn: sqlite3.Connection, user: str, fields: dict) -> dict:
             raise FinanceError(f"{key} is required")
     _iso(rec["date"], "date")
     _check_payment(conn, user, rec)
+    tags = _clean_tags(rec.get("tags", []))
     new_id = _insert(conn, "finance_executed", user, _header(rec))
     _write_lines(conn, "finance_executed", new_id, rec["lines"])
+    _write_tags(conn, "finance_executed", user, new_id, tags)
     bump(conn, version_key(user))
     return _get(conn, "finance_executed", user, new_id)
 
@@ -457,6 +531,8 @@ def update_executed(conn: sqlite3.Connection, user: str, row_id: int, fields: di
     _update(conn, "finance_executed", row_id, _header(fields))
     if "lines" in fields:
         _write_lines(conn, "finance_executed", row_id, fields["lines"])
+    if "tags" in fields:
+        _write_tags(conn, "finance_executed", user, row_id, _clean_tags(fields["tags"]))
     bump(conn, version_key(user))
     return _get(conn, "finance_executed", user, row_id)
 
@@ -464,6 +540,7 @@ def update_executed(conn: sqlite3.Connection, user: str, row_id: int, fields: di
 def delete_executed(conn: sqlite3.Connection, user: str, row_id: int) -> None:
     _get(conn, "finance_executed", user, row_id)
     conn.execute("DELETE FROM finance_executed WHERE id = ?", (row_id,))
+    _prune_tags(conn, user)
     bump(conn, version_key(user))
 
 
@@ -483,8 +560,10 @@ def create_forecast(conn: sqlite3.Connection, user: str, fields: dict) -> dict:
             raise FinanceError(f"{key} is required")
     _check_payment(conn, user, rec)
     _check_recurrence(rec)
+    tags = _clean_tags(rec.get("tags", []))
     new_id = _insert(conn, "finance_forecasts", user, _header(rec))
     _write_lines(conn, "finance_forecasts", new_id, rec["lines"])
+    _write_tags(conn, "finance_forecasts", user, new_id, tags)
     bump(conn, version_key(user))
     run_forecasts(conn, user=user)   # a date already due shows up now, not tomorrow
     return _get(conn, "finance_forecasts", user, new_id)
@@ -500,6 +579,8 @@ def update_forecast(conn: sqlite3.Connection, user: str, row_id: int, fields: di
     _update(conn, "finance_forecasts", row_id, _header(fields))
     if "lines" in fields:
         _write_lines(conn, "finance_forecasts", row_id, fields["lines"])
+    if "tags" in fields:
+        _write_tags(conn, "finance_forecasts", user, row_id, _clean_tags(fields["tags"]))
     bump(conn, version_key(user))
     run_forecasts(conn, user=user)
     return _get(conn, "finance_forecasts", user, row_id)
@@ -509,6 +590,7 @@ def delete_forecast(conn: sqlite3.Connection, user: str, row_id: int) -> None:
     """Stops future dates; rows already written stay."""
     _get(conn, "finance_forecasts", user, row_id)
     conn.execute("DELETE FROM finance_forecasts WHERE id = ?", (row_id,))
+    _prune_tags(conn, user)
     bump(conn, version_key(user))
 
 
@@ -553,6 +635,7 @@ def run_forecasts(conn: sqlite3.Connection, today: date | None = None, user: str
                 "date": d.isoformat(), "currency": f["currency"], "justification": f["justification"],
             })
             _write_lines(conn, "finance_executed", new_id, f["lines"])
+            _write_tags(conn, "finance_executed", f["username"], new_id, f["tags"])
             last = d
         if last is not None:
             conn.execute("UPDATE finance_forecasts SET generated_until = ? WHERE id = ?",

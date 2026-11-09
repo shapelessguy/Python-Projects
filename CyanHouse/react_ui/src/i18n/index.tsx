@@ -61,6 +61,17 @@ export function translate(key: Key, vars?: Record<string, string | number>): str
   return fill(LANGUAGES.find((l) => l.code === current)?.dict ?? en, key, vars);
 }
 
+/** A number in the language's way, but the thousands always grouped with a
+ *  raised tick (48’374.55 / 48’374,55), whatever the language uses. */
+const GROUP = "’";
+export function num(v: number, lang: string, opts?: Intl.NumberFormatOptions): string {
+  // "always": Italian would leave 4 digits ungrouped (1234,50).
+  const o = { useGrouping: "always", ...opts } as Intl.NumberFormatOptions;
+  return new Intl.NumberFormat(lang, o).formatToParts(v).map((p) => (p.type === "group" ? GROUP : p.value)).join("");
+}
+/** The same for Plotly's charts: its layout's `separators` (decimal, then thousands). */
+export const plotSeparators = (): string => (current === "en" ? "." : ",") + GROUP;
+
 export function useLanguage(): string {
   return useSyncExternalStore(subscribe, () => current);
 }
