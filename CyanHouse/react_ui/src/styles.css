@@ -420,12 +420,42 @@ html.phone .env-controls--open .env-controls-head {
 .fin-charts .env-tab-body { flex: 1 1 auto; min-height: 0; }
 .fin-charts .env-charts { padding-right: 6px; }
 .fin-charts .chart-block { margin-bottom: 18px; }
+.fin-charts .env-title .fin-unit { flex: none; width: auto; min-width: 3.2em; font-weight: 600; }
+.fin-charts .env-controls .fin-search { animation: none; }
+/* The panel doesn't scroll: the categories' and tags' lists share what the
+ * other sections leave, each scrolling in its own share. */
+.fin-charts .env-controls { display: flex; flex-direction: column; overflow: hidden; }
+.fin-charts .env-controls > section { flex: none; }
+.fin-charts .env-controls > .fin-filter-section { flex: 1 1 0; min-height: 90px; display: flex; flex-direction: column; }
+.fin-chart-filter { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+.fin-chart-filter .check { white-space: nowrap; }
+.fin-chart-filter .check:has(input:disabled) { opacity: 0.5; cursor: default; }
+.fin-chart-filter-all { display: flex; gap: 6px; margin-bottom: 4px; }
+.fin-chart-filter-all button { flex: 1; padding: 2px 0; font-size: 0.75rem; }
+/* A phone: the whole screen; a row of tab icons, the currency, the gear and
+ * close; two charts sharing the rest. The settings over it all, the filter
+ * lists sharing their height as on a wide screen. */
+html.phone .modal-backdrop:has(> .fin-charts) { padding: 0; }
+html.phone .modal.fin-charts {
+  width: 100vw; max-width: 100vw; height: 100dvh; max-height: 100dvh;
+  border: none; border-radius: 0; padding: 8px 10px; overflow: hidden;
+}
+html.phone .fin-charts .env-tab-body { display: flex; }
+html.phone .fin-charts .env-charts { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; overflow: hidden; padding-right: 0; }
+html.phone .fin-charts .env-controls.env-controls--open { display: flex; }
+.fin-charts-phone-head { flex: none; display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+.fin-charts-tabs { flex: 1 1 auto; display: flex; gap: 4px; }
+.fin-charts-tabs button { width: 44px; height: 36px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+.fin-charts-tabs button.active { background: var(--accent); border-color: var(--accent); }
+.fin-charts-phone-head .fin-unit { flex: none; width: auto; min-width: 3.2em; font-weight: 600; }
+.fin-charts-phone-head > .icon-only { width: 36px; height: 36px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
 /* A tooltip near a chart's edge goes past it rather than being cut. */
 .fin-charts .js-plotly-plot .plotly .main-svg { overflow: visible; }
 /* Sankey's bars sit on fractional pixels: snapped, so they don't shimmer
    sideways when hovering redraws them. */
 .fin-charts .node-rect { shape-rendering: crispEdges; }
 .fin-charts-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 12px; }
+.fin-charts-pair > .chart-block { min-width: 0; }
 /* ── forecast strip ──────────────────────────────────────── */
 /* No card around it: it sits straight on the panel like the charts. */
 .forecast-strip { margin: 6px 0 20px; }
@@ -3836,6 +3866,8 @@ html.phone .cal-grid { gap: 2px; grid-auto-rows: minmax(0, 1fr); }
 html.phone .cal-day { padding: 2px 3px; gap: 2px; border-radius: 6px; cursor: pointer; overflow: hidden; }
 html.phone .cal-day.selected { outline: 2px solid var(--text); outline-offset: -2px; }
 html.phone .cal-add { display: none; }
+/* Finance: a long press on a day adds a payment -- no text selection or callout. */
+html.phone .fin-calendar .cal-day, html.phone .fin-calendar .fin-week-day { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 html.phone .cal-grid .cal-event {
   pointer-events: none;
   height: 4px; padding: 0; font-size: 0; border-left: none; border-radius: 2px;

@@ -98,7 +98,8 @@ export function plannedDates(f: FinForecast, from: string, to: string): string[]
 
 /** The Finance page: the payments on a month or a week, as Calendar's (the
  *  same bar, views and swipe). Forecasts' dates still to come show too,
- *  dashed. A day's "+" (or its window's, on a phone) adds one on that day;
+ *  dashed. A day's "+" (on a phone, its window's, or a long press on the
+ *  day) adds one on that day;
  *  a payment opens it in the Payments list. */
 export function FinanceCalendar({ executed, forecasts, accounts, worth, effect, money, convert, title, flow, label, onAdd, onOpen, onAccount }: {
   executed: FinExecuted[]; forecasts: FinForecast[]; effect: (p: FinExecuted | FinForecast) => Effect;
@@ -132,6 +133,34 @@ export function FinanceCalendar({ executed, forecasts, accounts, worth, effect, 
   const [openDay, setOpenDay] = useState<string | null>(null);
   useBackToClose(() => setOpenDay(null), openDay != null);
   const touchAt = useRef<{ x: number; y: number } | null>(null);
+  // A phone: a finger held on a day (still, half a second) adds a payment on
+  // it; the tap its lifting would make is swallowed.
+  const press = useRef<{ x: number; y: number; timer: number } | null>(null);
+  const pressed = useRef(false);
+  const unpress = () => { if (press.current) clearTimeout(press.current.timer); press.current = null; };
+  const longPress = (date: string) => !narrow ? {} : {
+    onTouchStart: (e: React.TouchEvent) => {
+      unpress();
+      pressed.current = false;
+      const { clientX: x, clientY: y } = e.touches[0];
+      press.current = { x, y, timer: window.setTimeout(() => {
+        press.current = null;
+        pressed.current = true;
+        navigator.vibrate?.(15);
+        onAdd(date);
+      }, 500) };
+    },
+    onTouchMove: (e: React.TouchEvent) => {
+      const p = press.current;
+      if (p && Math.hypot(e.touches[0].clientX - p.x, e.touches[0].clientY - p.y) > 10) unpress();
+    },
+    onTouchEnd: unpress,
+    onTouchCancel: unpress,
+    onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
+    onClickCapture: (e: React.MouseEvent) => {
+      if (pressed.current) { pressed.current = false; e.stopPropagation(); e.preventDefault(); }
+    },
+  };
 
   // Down to the bottom of the screen, as Calendar's, less the bar under it.
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -313,7 +342,7 @@ export function FinanceCalendar({ executed, forecasts, accounts, worth, effect, 
               <div key={date}
                    className={"cal-day" + (date.slice(0, 7) === anchor.slice(0, 7) ? "" : " out") +
                      (date === TODAY ? " today" : "") + (isWeekend(date) ? " weekend" : "")}
-                   onClick={narrow ? () => setOpenDay(date) : undefined}
+                   onClick={narrow ? () => setOpenDay(date) : undefined} {...longPress(date)}
                    onDoubleClick={narrow ? undefined : (e) => e.target === e.currentTarget && setOpenDay(date)}>
                 <div className="cal-day-head">
                   <span className="cal-daynum">{Number(date.slice(8))}</span>
@@ -330,7 +359,8 @@ export function FinanceCalendar({ executed, forecasts, accounts, worth, effect, 
               const { weekday, num } = dayLabel(date, lang);
               const list = byDate[date] ?? [];
               return (
-                <div key={date} className={"fin-week-day" + (date === TODAY ? " today" : "") + (isWeekend(date) ? " weekend" : "")}>
+                <div key={date} className={"fin-week-day" + (date === TODAY ? " today" : "") + (isWeekend(date) ? " weekend" : "")}
+                     {...longPress(date)}>
                   <div className="fin-week-head">
                     <span className="fin-week-label">{weekday} <b>{num}</b></span>
                     <button className="cal-add fin-week-add" title={t("fin_new")} onClick={() => onAdd(date)}>+</button>

@@ -272,14 +272,11 @@ export function FinancePanel({ toolsSlot }: { toolsSlot: HTMLElement | null }) {
           <span className="mv-tablabel">{sheetTitle[s.kind]}</span>
         </button>
       ))}
-      {/* For a wide screen, for now. */}
-      {!phone && (
-        <button className={charts ? "active" : ""} title={t("fin_charts")} aria-label={t("fin_charts")}
-                onClick={() => setCharts(true)}>
-          <Icon name="chart" size={16} className="mv-tabicon" />
-          <span className="mv-tablabel">{t("fin_charts")}</span>
-        </button>
-      )}
+      <button className={charts ? "active" : ""} title={t("fin_charts")} aria-label={t("fin_charts")}
+              onClick={() => setCharts(true)}>
+        <Icon name="chart" size={phone ? 20 : 16} className="mv-tabicon" />
+        <span className="mv-tablabel">{t("fin_charts")}</span>
+      </button>
     </span>
   );
 
@@ -478,7 +475,7 @@ export function FinancePanel({ toolsSlot }: { toolsSlot: HTMLElement | null }) {
         );
       })()}
       {charts && data && (
-        <FinanceCharts data={data} worth={worth} effect={effect} convert={convert} onClose={() => setCharts(false)} />
+        <FinanceCharts data={data} ordered={tree.ordered} tags={allTags} worth={worth} effect={effect} convert={convert} onClose={() => setCharts(false)} />
       )}
       {sheet && (
         <FinSheet title={sheetTitle[sheet]} onClose={closeSheet} action={<>
