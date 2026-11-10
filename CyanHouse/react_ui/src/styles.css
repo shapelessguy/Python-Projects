@@ -432,6 +432,8 @@ html.phone .env-controls--open .env-controls-head {
 .fin-chart-filter .check:has(input:disabled) { opacity: 0.5; cursor: default; }
 .fin-chart-filter-all { display: flex; gap: 6px; margin-bottom: 4px; }
 .fin-chart-filter-all button { flex: 1; padding: 2px 0; font-size: 0.75rem; }
+.fin-chart-filter-all button.icon-only { flex: none; width: 26px; display: inline-flex; align-items: center; justify-content: center; }
+.fin-chart-filter-find { flex: none; height: 30px; margin-bottom: 4px; }
 /* A phone: the whole screen; a row of tab icons, the currency, the gear and
  * close; two charts sharing the rest. The settings over it all, the filter
  * lists sharing their height as on a wide screen. */

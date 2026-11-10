@@ -385,6 +385,7 @@ export const it: Dict = {
   fin_kind_investment: "Investimento",
   fin_kind_account: "Conto",
   fin_outside: "Esterno",
+  fin_untagged: "Senza tag",
   fin_from: "Da",
   fin_to: "A",
   fin_amount: "Importo",

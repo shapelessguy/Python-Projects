@@ -55,6 +55,8 @@ const PAGES: { icon: IconName; label: Key; charts: ChartKey[] }[] = [
 // Income and spending over time: this many top-level categories, the rest as Other.
 const TOP = 8;
 const OUTSIDE = "outside";
+/** The tags filter's entry for a payment with no tag ("\0": no tag is spelt so). */
+const UNTAGGED = "\0untagged";
 
 const monthsBack = (n: number) => {
   const [y, m, d] = TODAY.split("-").map(Number);
@@ -169,12 +171,25 @@ export function FinanceCharts({ data, ordered, tags, worth, effect, convert, onC
     return false;
   };
   const parentOut = (c: FinCategory) => c.parent_id != null && catOut(c.parent_id);
+  // A search over each list (every word in the name), behind an icon at its
+  // buttons; while one is on, "All" and "None" tick and untick what it shows.
+  const [catFind, setCatFind] = useState<string | null>(null);
+  const [tagFind, setTagFind] = useState<string | null>(null);
+  const finds = (find: string | null, name: string) =>
+    (find ?? "").trim().toLowerCase().split(/\s+/).filter(Boolean).every((w) => name.toLowerCase().includes(w));
+  const shownCats = ordered.filter((o) => finds(catFind, o.cat.name));
+  const showOutside = finds(catFind, t("fin_outside"));
+  const shownTags = tags.filter((tag) => finds(tagFind, tag));
+  const showUntagged = finds(tagFind, t("fin_untagged"));
+  const shownTagKeys = () => [...shownTags, ...(showUntagged ? [UNTAGGED] : [])];
+  const catSearching = !!catFind?.trim(), tagSearching = !!tagFind?.trim();
+  const shownCatKeys = () => [...(showOutside ? [OUTSIDE] : []), ...shownCats.map((o) => String(o.cat.id))];
 
   // Every payment up to `until` the filter lets through, oldest first, with
   // the forecasts' dates still to come.
   const all = useMemo(() => {
     const kept = (p: FinExecuted | FinForecast) =>
-      !p.lines.some((l) => catOut(l.category_id)) && !p.tags.some((tag) => exTags.has(tag));
+      !p.lines.some((l) => catOut(l.category_id)) && (p.tags.length ? !p.tags.some((tag) => exTags.has(tag)) : !exTags.has(UNTAGGED));
     const out: Entry[] = [];
     for (const p of data.executed) if (p.date <= until && kept(p)) out.push({ date: p.date, p, planned: false });
     for (const f of data.forecasts) if (kept(f)) for (const d of plannedDates(f, "", until)) out.push({ date: d, p: f, planned: true });
@@ -234,7 +249,9 @@ export function FinanceCharts({ data, ordered, tags, worth, effect, convert, onC
     if (from < TODAY && TODAY < until) dates.add(TODAY);
     for (let j = i; j < all.length; j++) dates.add(all[j].date);
     // The portfolio's trading days too, so the total follows its worth.
-    if (investment && worth) for (const d of worth.index) if (d >= from && d <= until) dates.add(d);
+    // None if the filter leaves every investment category out.
+    const investing = investment && worth && data.categories.some((c) => c.kind === "investment" && !catOut(c.id));
+    if (investing) for (const d of worth.index) if (d >= from && d <= until) dates.add(d);
     const series = new Map<number, number[]>();
     const xs = [...dates].sort();
     xs.forEach((d, k) => {
@@ -246,7 +263,7 @@ export function FinanceCharts({ data, ordered, tags, worth, effect, convert, onC
       }
     });
     // The investments' worth on each of those days (null: none).
-    const invested = investment && worth ? xs.map((d) => amt(worthOn(worth, d), "EUR", d)) : null;
+    const invested = investing ? xs.map((d) => amt(worthOn(worth, d), "EUR", d)) : null;
     return { xs, series, invested };
   }, [all, from, until, unit, cats, worth, exCats]);   // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -482,6 +499,21 @@ export function FinanceCharts({ data, ordered, tags, worth, effect, convert, onC
   );
   const go = (to: number) => setPage(Math.max(0, Math.min(PAGES.length - 1, to)));
 
+  // The icon opening a list's search, as the payments sheet's; again, it
+  // closes and empties it.
+  const findToggle = (find: string | null, set: (v: string | null) => void) => (
+    <button className={"ghost icon-only fin-filter-search" + (find != null ? " active" : "")}
+            title={t("search")} aria-label={t("search")} aria-expanded={find != null}
+            onClick={() => set(find != null ? null : "")}>
+      <Icon name="search" size={14} className="" />
+    </button>
+  );
+  const findBox = (find: string | null, set: (v: string | null) => void) => find != null && (
+    <input type="search" className="fin-search fin-chart-filter-find" placeholder={t("search")} aria-label={t("search")}
+           value={find} onChange={(e) => set(e.target.value)}
+           onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); set(find ? "" : null); } }} />
+  );
+
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal fin-charts" onClick={(e) => e.stopPropagation()}>
@@ -521,41 +553,56 @@ export function FinanceCharts({ data, ordered, tags, worth, effect, convert, onC
             <section className="fin-filter-section">
               <h3>{t("fin_categories")}</h3>
               <div className="fin-chart-filter-all">
-                <button className="ghost" onClick={() => setExCats(new Set())}>{t("fin_filter_all")}</button>
-                <button className="ghost" onClick={() => setExCats(new Set([OUTSIDE, ...ordered.filter((o) => o.depth === 0).map((o) => String(o.cat.id))]))}>
+                <button className="ghost" onClick={() => setExCats(catSearching
+                  ? new Set([...exCats].filter((k) => !shownCatKeys().includes(k))) : new Set())}>{t("fin_filter_all")}</button>
+                <button className="ghost" onClick={() => setExCats(catSearching
+                  ? new Set([...exCats, ...shownCatKeys()])
+                  : new Set([OUTSIDE, ...ordered.filter((o) => o.depth === 0).map((o) => String(o.cat.id))]))}>
                   {t("fin_filter_none")}
                 </button>
+                {findToggle(catFind, setCatFind)}
               </div>
+              {findBox(catFind, setCatFind)}
               <div className="fin-chart-filter">
-                {ordered.map(({ cat, depth }) => (
-                  <label key={cat.id} className={"check" + (cat.archived ? " muted" : "")} style={{ paddingLeft: depth * 16 }}>
+                {shownCats.map(({ cat, depth }) => (
+                  <label key={cat.id} className={"check" + (cat.archived ? " muted" : "")} style={{ paddingLeft: (catSearching ? 0 : depth) * 16 }}>
                     <input type="checkbox" checked={!catOut(cat.id)} disabled={parentOut(cat)}
                            onChange={(e) => setExCats(flip(exCats, String(cat.id), e.target.checked))} />
                     {cat.name}
                   </label>
                 ))}
-                <label className="check">
+                {showOutside && <label className="check">
                   <input type="checkbox" checked={!exCats.has(OUTSIDE)}
                          onChange={(e) => setExCats(flip(exCats, OUTSIDE, e.target.checked))} />
                   {t("fin_outside")}
-                </label>
+                </label>}
               </div>
             </section>
             {tags.length > 0 && (
               <section className="fin-filter-section">
                 <h3>{t("fin_tags")}</h3>
                 <div className="fin-chart-filter-all">
-                  <button className="ghost" onClick={() => setExTags(new Set())}>{t("fin_filter_all")}</button>
-                  <button className="ghost" onClick={() => setExTags(new Set(tags))}>{t("fin_filter_none")}</button>
+                  <button className="ghost" onClick={() => setExTags(tagSearching
+                    ? new Set([...exTags].filter((k) => !shownTagKeys().includes(k))) : new Set())}>{t("fin_filter_all")}</button>
+                  <button className="ghost" onClick={() => setExTags(new Set(tagSearching ? [...exTags, ...shownTagKeys()] : [...tags, UNTAGGED]))}>
+                    {t("fin_filter_none")}
+                  </button>
+                  {findToggle(tagFind, setTagFind)}
                 </div>
+                {findBox(tagFind, setTagFind)}
                 <div className="fin-chart-filter">
-                  {tags.map((tag) => (
+                  {shownTags.map((tag) => (
                     <label key={tag} className="check">
                       <input type="checkbox" checked={!exTags.has(tag)}
                              onChange={(e) => setExTags(flip(exTags, tag, e.target.checked))} />
                       {tag}
                     </label>
                   ))}
+                  {showUntagged && <label className="check">
+                    <input type="checkbox" checked={!exTags.has(UNTAGGED)}
+                           onChange={(e) => setExTags(flip(exTags, UNTAGGED, e.target.checked))} />
+                    {t("fin_untagged")}
+                  </label>}
                 </div>
               </section>
             )}

@@ -394,6 +394,7 @@ export const en = {
   fin_kind_investment: "Investment",
   fin_kind_account: "Account",
   fin_outside: "Outside",
+  fin_untagged: "No tag",
   fin_from: "From",
   fin_to: "To",
   fin_amount: "Amount",
