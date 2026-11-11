@@ -283,6 +283,8 @@ class Candidate:
     folder: Path
     video: Path
     subs: list[Path] = field(default_factory=list)
+    # Audio files beside it: more audio tracks (movies.AUDIO_TRACK_EXT).
+    audio: list[Path] = field(default_factory=list)
     junk: list[Path] = field(default_factory=list)
     extra_videos: list[Path] = field(default_factory=list)
     # One of several films in the same folder (a collection): it is named
@@ -329,7 +331,7 @@ def scan(root: Path) -> list[Candidate]:
             continue
         if not entry.is_dir():
             continue
-        vids, subs, junk = [], [], []
+        vids, subs, dubs, junk = [], [], [], []
         for f in sorted(set(entry.rglob("*"))):
             if not f.is_file():
                 continue
@@ -343,6 +345,8 @@ def scan(root: Path) -> list[Candidate]:
                 vids.append(f)
             elif ext in SUB_EXT or ext == ".sub":
                 subs.append(f)
+            elif ext in movies.AUDIO_TRACK_EXT:
+                dubs.append(f)
             elif ext in JUNK_EXT or f.name.lower() in JUNK_NAMES:
                 junk.append(f)
         if not vids:
@@ -354,11 +358,12 @@ def scan(root: Path) -> list[Candidate]:
             # the last film leaves, which then clears the folder as usual.
             for film in films:
                 out.append(Candidate(folder=entry, video=film, shared=True,
-                                     subs=[s for s in subs if _owned_by(s, films) == film]))
+                                     subs=[s for s in subs if _owned_by(s, films) == film],
+                                     audio=[a for a in dubs if _owned_by(a, films) == film]))
             continue
         # The biggest file is the film; the rest are samples and extras.
         vids.sort(key=lambda p: p.stat().st_size, reverse=True)
-        out.append(Candidate(folder=entry, video=vids[0], subs=subs,
+        out.append(Candidate(folder=entry, video=vids[0], subs=subs, audio=dubs,
                              junk=junk, extra_videos=vids[1:]))
     return out
 
@@ -498,6 +503,21 @@ def analyse(candidate: Candidate) -> dict:
             "language": _code_for(lang) if lang else "",
             "language_guessed": bool(lang),
             "flags": flags, "delay_ms": 0, "default": False,
+        })
+
+    # Audio files the same way, keyed as the player keys them (movies.info),
+    # so its row in the track table is this track. The muxers take them as
+    # inputs of their own, like an external subtitle.
+    for path in candidate.audio:
+        lang, _ = movies.parse_sub_name(path.name, candidate.video.stem)
+        tracks.append({
+            "key": f"folder:{path.name}", "type": "audio", "external": str(path),
+            "codec": path.suffix.lstrip(".").lower(),
+            "label": f"{path.name}",
+            "keep": True,
+            "language": _code_for(lang) if lang else "",
+            "language_guessed": bool(lang),
+            "delay_ms": 0, "default": False,
         })
 
     tracks = _one_per_language(_drop_unlabelled(tracks))
@@ -1122,7 +1142,8 @@ def build_remux_mkvmerge(plan: dict, output: Path) -> list[str]:
     cmd += flags
     cmd += [str(src)]
 
-    # Each external subtitle is its own input; inside it the track is always 0.
+    # Each external subtitle or audio file is its own input; inside it the
+    # track is always 0.
     for t in kept:
         if not t.get("external"):
             continue

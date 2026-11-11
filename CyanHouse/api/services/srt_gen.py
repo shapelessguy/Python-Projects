@@ -85,7 +85,9 @@ def _url(path: str) -> str:
 def _extract(video: Path, track: dict, out: Path, duration: float, report, cancelled) -> None:
     """One audio track, as the service wants it, with its progress reported."""
     cmd = [FFMPEG, "-y", "-nostdin", "-hide_banner", "-loglevel", "error",
-           "-i", str(video), "-map", f"0:{track['index']}", *AUDIO_ARGS,
+           # An audio file beside the film is read itself.
+           "-i", track.get("external") or str(video),
+           "-map", "0:a:0" if track.get("external") else f"0:{track['index']}", *AUDIO_ARGS,
            "-progress", "pipe:1", "-nostats", str(out)]
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0)
     report(pid=proc.pid)

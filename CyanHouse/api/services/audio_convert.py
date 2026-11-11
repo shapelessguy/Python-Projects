@@ -10,8 +10,10 @@ only once ffmpeg has finished cleanly, so a stopped or failed conversion
 never leaves a truncated MP3 that looks like a finished one — and the FLAC
 is only deleted after that rename, so there is never a moment with neither.
 """
+import collections
 import re
 import subprocess
+import threading
 from pathlib import Path
 
 TEMP_PREFIX = ".converting-"
@@ -59,6 +61,12 @@ def convert(src: Path, report, cancelled) -> Path:
            "-map_metadata", "0", "-id3v2_version", "3",
            "-progress", "pipe:1", "-f", "mp3", str(tmp)]
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    # Drained as it comes, keeping the end for the error: a file that has
+    # ffmpeg complain once per packet would otherwise fill the pipe and stop
+    # ffmpeg dead.
+    tail: collections.deque[str] = collections.deque(maxlen=5)
+    drain = threading.Thread(target=lambda: tail.extend(proc.stderr), daemon=True)
+    drain.start()
     report(pid=proc.pid)
     last = -1
     try:
@@ -69,8 +77,9 @@ def convert(src: Path, report, cancelled) -> Path:
                 if pct != last:
                     last = pct
                     report(percent=pct)
-        err = proc.stderr.read() if proc.stderr else ""
         proc.wait()
+        drain.join(timeout=5)
+        err = "".join(tail)
     finally:
         report(pid=None)
     if cancelled() or proc.returncode != 0:

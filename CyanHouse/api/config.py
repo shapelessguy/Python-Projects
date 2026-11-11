@@ -176,6 +176,11 @@ MUSIC_STAGING: dict = {n: c for n, c in STAGING.items() if c.get("type") == "mus
 # or a staging entry's name, meaning either half of it); "*" is anywhere.
 # A folder with no rule may move anywhere (see movie_prep.may_move_between).
 LIBRARY_MOVES: dict = _SETTINGS.get("library_moves", {})
+# The staging entry whose output receives the audio and subtitle tracks
+# pulled out of videos ("Extract tracks", api/services/track_extract.py) —
+# an entry with only an output, so it is a tab of its own. Unset or unknown
+# means the tool is not offered.
+EXTRACT_TO = str(_SETTINGS.get("extract_to") or "").strip()
 # MusicBrainz asks every client to say who it is, with a way to reach them.
 MUSICBRAINZ_CONTACT = os.environ.get("MUSICBRAINZ_CONTACT", "").strip()
 MOVIES_CACHE_DIR = Path(os.environ.get("MOVIES_CACHE_DIR", API_DATA_DIR / "movies_cache"))

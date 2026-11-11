@@ -507,7 +507,15 @@ export interface TreeAction {
   upload?: (dt: DataTransfer, to: string) => void;
   /** Create an empty folder called `name` inside `parent` ("" is the root). */
   mkdir: (parent: string, name: string) => void;
+  /** The selection bar's tools, offered in the context menu too — each
+   *  absent where it is not allowed. Given files, never folders. */
+  download?: (paths: string[]) => void;
+  convertMp3?: (paths: string[]) => void;
+  extractTracks?: (paths: string[]) => void;
 }
+
+/** Lines a tree may have and still start with its top-level folders open. */
+const OPEN_MAX = 20;
 
 export function FileTree({
   area, files, query, activePath, activeMovieId, canEdit, onPick, marks, onPlay, actions,
@@ -564,12 +572,15 @@ export function FileTree({
   const shown = useMemo(() => filterTree(roots, q), [roots, q]);
 
   // Top level open, deeper closed: enough to see what a folder holds without
-  // a wall of episodes from every series at once.
+  // a wall of episodes from every series at once. Past OPEN_MAX lines in all
+  // (every file and folder, as if all were open), everything starts closed:
+  // even the top level would be a wall then.
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const seeded = useRef(false);
   useEffect(() => {
     if (seeded.current || !files.length) return;
     seeded.current = true;
+    if (files.length > OPEN_MAX) return;
     setExpanded(new Set(files.filter((f) => f.kind === "folder" && !f.folder).map((f) => f.path)));
   }, [files]);
 
@@ -1151,6 +1162,13 @@ export function FileTree({
         const mayManage = (many ? targets.map((p) => files.find((x) => x.path === p) ?? null) : [file])
           .every((x) => x !== null && allows(x, "manage"));
         const mayAdd = allows(file, "add");
+        // The files the tools act on: a folder stands for everything in it,
+        // as ticking it ticks everything in it.
+        const inside = files.filter((f) => f.kind !== "folder"
+          && targets.some((p) => f.path === p || f.path.startsWith(p + "/")));
+        const flacs = inside.filter((f) => f.path.toLowerCase().endsWith(".flac")).map((f) => f.path);
+        const videos = inside.filter((f) => f.kind === "video").map((f) => f.path);
+        const count = (n: number) => (many || file.kind === "folder" ? ` (${n})` : "");
         return (
           <div className="mv-menu" style={{ left: menu.x, top: menu.y }}
                onClick={(e) => e.stopPropagation()}>
@@ -1204,6 +1222,21 @@ export function FileTree({
                 >
                   {t("ig_move_to")}
                 </button>
+                {actions.download && (
+                  <button onClick={() => { actions.download!(targets); setMenu(null); }}>
+                    {t("st_download")}
+                  </button>
+                )}
+                {actions.convertMp3 && flacs.length > 0 && (
+                  <button onClick={() => { actions.convertMp3!(flacs); setMenu(null); }}>
+                    {t("st_convert_mp3")}{count(flacs.length)}
+                  </button>
+                )}
+                {actions.extractTracks && videos.length > 0 && (
+                  <button onClick={() => { actions.extractTracks!(videos); setMenu(null); }}>
+                    {t("st_extract_tracks")}{count(videos.length)}
+                  </button>
+                )}
                 <button onClick={() => { navigator.clipboard?.writeText(targets.join("\n")); setMenu(null); }}>
                   {t(many ? "st_copy_paths" : "st_copy_path")}
                 </button>

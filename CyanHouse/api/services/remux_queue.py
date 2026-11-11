@@ -20,7 +20,9 @@ without one.
 The same queue, and the same worker, also turn FLAC files into MP3s
 ("convert" jobs, api/services/audio_convert.py): one job per selection,
 one step per file — another long disk-bound task that belongs to the
-server rather than to the browser that asked.
+server rather than to the browser that asked. So do "extract" jobs, which
+copy every audio and subtitle track of the picked videos out into the
+extraction folder (api/services/track_extract.py), one step per video.
 
 The queue is kept on disk as it changes. This process reloads itself when
 its code changes, which cuts off a running mux; on startup the leftover
@@ -29,6 +31,7 @@ the front of the queue to run again.
 """
 import json
 import os
+import re
 import signal
 import threading
 import time
@@ -36,7 +39,7 @@ import uuid
 from pathlib import Path
 
 from api.config import MOVIES_DATA_DIR
-from api.services import audio_convert, movie_prep, prep_configs, srt_gen
+from api.services import audio_convert, movie_prep, prep_configs, srt_gen, track_extract
 from api.services.movie_prep import PrepError
 
 # Finished jobs kept for display, newest first, until cleared.
@@ -49,6 +52,15 @@ _jobs: list[dict] = []
 _cond = threading.Condition()
 
 ACTIVE = ("queued", "running")
+
+
+def _in_order(paths: list[str]) -> list[str]:
+    """`paths` without repeats, in the order they would be watched: by path,
+    numbers by value, so Season 2 is before Season 10 and E9 before E10.
+    The browser sends them in the order they were ticked, which for a ticked
+    folder is not this."""
+    key = lambda p: [int(x) if x.isdigit() else x for x in re.split(r"(\d+)", p.lower())]
+    return sorted(dict.fromkeys(p.strip("/") for p in paths), key=key)
 
 
 class _Stopped(Exception):
@@ -175,7 +187,7 @@ def enqueue_convert(area_name: str, paths: list[str], user: str) -> dict:
     with _cond:
         busy = {(j["area"], f) for j in _jobs
                 if j.get("kind") == "convert" and j["state"] in ACTIVE for f in j["files"]}
-    for rel in dict.fromkeys(p.strip("/") for p in paths):
+    for rel in _in_order(paths):
         if not audio_convert.is_flac(rel):
             continue
         src = movie_prep.resolve_entry(area_name, rel)
@@ -206,6 +218,77 @@ def enqueue_convert(area_name: str, paths: list[str], user: str) -> dict:
             # at the MP3s it made itself.
             "converted": [],
             "problems": [],
+            "by": user,
+            "created": time.time(),
+            "started": None,
+            "finished": None,
+            "state": "queued",
+            "phase": "",
+            "step": 0,
+            "steps": len(files),
+            "step_label": "",
+            "detail": "",
+            "percent": None,
+            "error": "",
+            "output": "",
+            "temp": "",
+            "pid": None,
+            "attempts": 0,
+            "cancel": False,
+        }
+        _jobs.append(job)
+        _persist()
+        _cond.notify_all()
+        snapshot = _public(job)
+    movie_prep._bump()
+    return {"queued": [snapshot], "skipped": skipped}
+
+
+def enqueue_extract(area_name: str, paths: list[str], user: str) -> dict:
+    """Queue the videos among `paths` (relative to the area) to have their
+    audio and subtitle tracks extracted, as one job. Folders are ignored, as
+    for a conversion. Videos waiting in another extraction are left out and
+    said so. Whether a video's tracks are extracted already is the job's to
+    find out, as it reaches it: knowing it here means probing every video,
+    and for a whole series that is half a minute before the answer."""
+    track_extract.root()   # raises when there is nowhere to put them
+    if area_name == track_extract.output_key():
+        raise PrepError("the tracks are extracted from somewhere else into this folder")
+    files, skipped = [], []
+    with _cond:
+        busy = {(j["area"], f) for j in _jobs
+                if j.get("kind") == "extract" and j["state"] in ACTIVE for f in j["files"]}
+    for rel in _in_order(paths):
+        if not track_extract.is_video(rel):
+            continue
+        src = movie_prep.resolve_entry(area_name, rel)
+        name = Path(rel).name
+        if not src.is_file():
+            skipped.append({"folder": name, "reason": "not a file"})
+        elif (area_name, rel) in busy:
+            skipped.append({"folder": name, "reason": "already queued"})
+        else:
+            files.append(rel)
+    if not files:
+        return {"queued": [], "skipped": skipped}
+    parents = {str(Path(f).parent) for f in files}
+    folder = Path(parents.pop()).name if len(parents) == 1 else f"{len(parents) + 1} folders"
+    with _cond:
+        job = {
+            "id": uuid.uuid4().hex[:10],
+            "kind": "extract",
+            "area": area_name,
+            "fingerprint": "",
+            "movie_id": "",
+            "target": Path(files[0]).name if len(files) == 1 else f"{len(files)} videos",
+            "folder": folder or "/",
+            "files": files,
+            # The ones finished, as for a conversion.
+            "extracted": [],
+            "problems": [],
+            # The temporary files of the video being extracted, for a
+            # restart to clear.
+            "temps": [],
             "by": user,
             "created": time.time(),
             "started": None,
@@ -267,7 +350,7 @@ def remove(job_id: str) -> dict:
         if not j:
             raise PrepError("no such remux", 404)
         if j["state"] == "running":
-            if j.get("phase") not in ("", "generating", "muxing", "converting"):
+            if j.get("phase") not in ("", "generating", "muxing", "converting", "extracting"):
                 raise PrepError("it is finishing up — too late to stop it", 409)
             j["cancel"] = True
             pid = j.get("pid")
@@ -303,7 +386,7 @@ def job_area(job_id: str) -> str:
 
 
 def job_kind(job_id: str) -> str:
-    """"remux" or "convert"."""
+    """"remux", "convert" or "extract"."""
     with _cond:
         j = _find(job_id)
         if not j:
@@ -328,7 +411,7 @@ def _worker() -> None:
                        percent=0, error="", attempts=job.get("attempts", 0) + 1)
             _persist()
         movie_prep._bump()
-        (_convert if job.get("kind") == "convert" else _run)(job)
+        {"convert": _convert, "extract": _extract}.get(job.get("kind"), _run)(job)
         _trim()
 
 
@@ -450,6 +533,57 @@ def _convert(job: dict) -> None:
         movie_prep._bump()
 
 
+def _extract(job: dict) -> None:
+    """Each video of the job in turn, like a conversion: one that fails does
+    not hold up the rest; the job fails at the end, naming them."""
+    def report(**fields):
+        if "percent" in fields:
+            fields["percent"] = int(((job["step"] - 1) + fields["percent"] / 100) / job["steps"] * 100)
+        _update(job, **fields)
+        if fields.get("pid") and job.get("cancel"):
+            try:
+                os.kill(fields["pid"], signal.SIGTERM)
+            except OSError:
+                pass
+
+    cancelled = lambda: bool(job.get("cancel"))
+    problems = list(job.get("problems") or [])
+    try:
+        for i, rel in enumerate(job["files"], 1):
+            if cancelled():
+                raise _Stopped()
+            if rel in job.get("extracted", []):
+                continue
+            _update(job, phase="extracting", step=i, step_label=Path(rel).name,
+                    percent=int((i - 1) / job["steps"] * 100))
+            try:
+                src = movie_prep.resolve_entry(job["area"], rel)
+                written = track_extract.extract(src, rel, report, cancelled,
+                                                lambda paths: _update(job, temps=paths))
+                _update(job, extracted=job.get("extracted", []) + [rel])
+                if written:
+                    movie_prep._bump(written[0].parent)
+            except InterruptedError:
+                raise _Stopped()
+            except Exception as e:
+                problems.append(f"{Path(rel).name}: {e}"[:200])
+                _update(job, problems=problems, temps=[])
+        if problems:
+            done = len(job.get("extracted", []))
+            raise RuntimeError(f"{done} of {job['steps']} extracted. " + "; ".join(problems))
+        _update(job, state="done", phase="done", percent=100, finished=time.time(),
+                pid=None, detail="", step_label="")
+    except Exception as e:  # a job fails; the worker never does
+        if job.get("cancel") or isinstance(e, _Stopped):
+            _update(job, state="cancelled", phase="", detail="", finished=time.time(),
+                    pid=None, temps=[], error="stopped")
+        else:
+            _update(job, state="failed", phase="", detail="", finished=time.time(), pid=None,
+                    temps=[], error=str(e)[:500])
+    finally:
+        movie_prep._bump()
+
+
 def _trim() -> None:
     with _cond:
         finished = sorted((j for j in _jobs if j["state"] not in ACTIVE),
@@ -488,6 +622,13 @@ def _recover() -> None:
                 pass
         if j.get("temp"):
             movie_prep._unlink(Path(j["temp"]))
+        for t in j.get("temps") or []:
+            movie_prep._unlink(Path(t))
+            try:
+                track_extract._drop_empty_up(Path(t).parent, track_extract.root())
+            except PrepError:
+                pass
+        j["temps"] = []
         if j.get("output"):
             movie_prep._drop_if_empty(Path(j["output"]).parent)
         if j.get("cancel"):

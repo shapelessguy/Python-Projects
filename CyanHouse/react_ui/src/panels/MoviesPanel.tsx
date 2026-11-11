@@ -257,6 +257,8 @@ export function MoviesPanel() {
   const [source, setSource] = useState("");
   const [sources, setSources] = useState<MovieSource[]>([]);
   const [languages, setLanguages] = useState<{ code: string; name: string }[]>([]);
+  // Where "Extract tracks" writes, when this user may; null hides the button.
+  const [extractTo, setExtractTo] = useState<string | null>(null);
   // One listing per visible pane, keyed by source key.
   const [listings, setListings] = useState<Record<string, StagedFile[]>>({});
   const [paneErrors, setPaneErrors] = useState<Record<string, string>>({});
@@ -465,7 +467,7 @@ export function MoviesPanel() {
   // secrets.json moves the tabs rather than waiting for a page reload.
   useEffect(() => {
     api.prepAreas()
-      .then((r) => { setSources(r.sources); setLanguages(r.languages); })
+      .then((r) => { setSources(r.sources); setLanguages(r.languages); setExtractTo(r.extract_to ?? null); })
       .catch(() => {});
   }, [prepVersion]);
 
@@ -757,6 +759,20 @@ export function MoviesPanel() {
     } catch (e) { failed(e); }
   };
 
+  /** Queue the picked videos to have their tracks extracted, in the background. */
+  const extractTracks = async (area: string, paths: string[]) => {
+    setTreeNote(null);
+    try {
+      const r = await api.prepExtractTracks(area, paths);
+      loadJobs();
+      const n = r.queued[0]?.steps ?? 0;
+      const left = r.skipped.map((x) => `${x.folder} (${serverText(x.reason)})`);
+      say((n ? tn("mv_extracting", n) : tr("mv_nothing_extract")) +
+          (left.length ? `. ${tr("mv_left_out", { list: left.join("; ") })}` : ""), n === 0);
+      if (n) setPicked(new Set());
+    } catch (e) { failed(e); }
+  };
+
   const isMusicInbox = (key: string) =>
     sources.some((x) => x.key === key && x.kind === "inbox" && x.type === "music");
   const songsIn = (area: string, list = listings[area] ?? []) =>
@@ -806,6 +822,7 @@ export function MoviesPanel() {
     ((j.steps ?? 0) > 1 && j.step ? `${j.step}/${j.steps} · ` : "") + (
       j.phase === "generating" ? tr("st_subtitles", { label: j.step_label ?? "" }) + (j.detail ? `: ${serverText(j.detail)}` : "")
         : j.kind === "convert" ? tr("mv_to_mp3", { name: j.step_label || j.target })
+        : j.kind === "extract" ? tr("mv_extracting_from", { name: j.step_label || j.target })
         : j.phase === "verifying" ? tr("mv_checking", { name: j.target })
         : j.phase === "tidying" ? tr("mv_moving", { name: j.target })
         : tr("mv_remuxing", { name: j.target }));
@@ -891,6 +908,12 @@ export function MoviesPanel() {
     },
     moveTo: (paths: string[], toArea: string) =>
       moveMany(area, paths, toArea, "", labelOf(toArea)),
+    // Where the selection bar offers them, and nowhere else.
+    download: canEditArea(area)
+      ? (paths: string[]) => api.prepDownload(area, paths, (m) => say(m, true)) : undefined,
+    convertMp3: canEditArea(area) ? (paths: string[]) => convertMp3(area, paths) : undefined,
+    extractTracks: canEditArea(area) && extractTo && area !== extractTo
+      ? (paths: string[]) => extractTracks(area, paths) : undefined,
   };
   };
 
@@ -1881,11 +1904,11 @@ export function MoviesPanel() {
         {narrow && tab !== INTRO && !external && <>{sizeCtl}{!uploadInCrumbs && toolUpload}{viewPick}<span className="mv-srcsep" aria-hidden /></>}
         {/* The remux queue, at the far end of the tab row: visible from
             every tab whatever is selected, because it is happening on
-            the server regardless. The running one is shown outright; the
-            button opens the whole queue. */}
+            the server regardless. The running one is shown outright; it
+            and the button beside it open the whole queue. */}
         <div className="mv-queue">
           {running && (
-            <button className="mv-jobpill" onClick={() => switchTab(running.area)}
+            <button className="mv-jobpill" onClick={(e) => { e.stopPropagation(); setQueueOpen((o) => !o); }}
                     title={`${running.target}\n${tr("mv_job_from", { folder: running.folder })}`}>
               <span className="mv-ring" aria-hidden />
               <span className="mv-jobtext">{phaseText(running)}</span>
@@ -1936,7 +1959,7 @@ export function MoviesPanel() {
                     </span>
                     <button
                       className="ghost mv-qx"
-                      disabled={(j.state === "running" && !["generating", "muxing", "converting", ""].includes(j.phase))
+                      disabled={(j.state === "running" && !["generating", "muxing", "converting", "extracting", ""].includes(j.phase))
                                 || ((j.state === "running" || j.state === "queued") && !canEditArea(j.area))}
                       title={j.state === "running" ? tr("st_stop_title")
                         : j.state === "queued" ? tr("st_unqueue_title") : tr("clear")}
@@ -2197,6 +2220,21 @@ export function MoviesPanel() {
                   onClick={() => convertMp3(pickedArea, flacs)}
                 >
                   <Icon name="music" size={16} className="" />{flacs.length ? <small>{flacs.length}</small> : null}
+                </button>
+              );
+            })()}
+            {extractTo && pickedArea !== extractTo && (() => {
+              const kinds = new Map((listings[pickedArea] ?? []).map((f) => [f.path, f.kind]));
+              const videos = [...picked].filter((p) => kinds.get(p) === "video");
+              return (
+                <button
+                  disabled={!videos.length || !!bulkBusy}
+                  title={videos.length
+                    ? tr("mv_extract_title", { n: videos.length })
+                    : tr("mv_extract_select")}
+                  onClick={() => extractTracks(pickedArea, videos)}
+                >
+                  <Icon name="extract" size={16} className="" />{videos.length ? <small>{videos.length}</small> : null}
                 </button>
               );
             })()}
@@ -2602,6 +2640,10 @@ function FilmDialog({ onClose, children }: { onClose: () => void; children: Reac
   );
 }
 
+/** The languages nearly every track is in, first in the language pickers
+ *  (by the codes the files keep: ger, not deu); the rest follow a divider. */
+const TOP_LANGUAGES = ["ita", "eng", "ger"];
+
 /** Every audio and subtitle track of a film, in one table.
  *
  *  The left column is what you are listening to / reading right now; the
@@ -2679,9 +2721,10 @@ function TrackTable({
         onChange={(e) => onLanguage!(t.key, e.target.value)}
       >
         <option value="">{tr("mv_drop")}</option>
-        {languages!.map((l) => (
-          <option key={l.code} value={l.code}>{l.name} ({l.code})</option>
-        ))}
+        {[...TOP_LANGUAGES.flatMap((c) => languages!.filter((l) => l.code === c)), null,
+          ...languages!.filter((l) => !TOP_LANGUAGES.includes(l.code))].map((l) => l
+          ? <option key={l.code} value={l.code}>{l.name} ({l.code})</option>
+          : <option key="-" disabled>──────────</option>)}
       </select>
     );
 

@@ -25,6 +25,16 @@
         "downloads"
       ]
     },
+    "Audio extraction": {
+      "type": "film",
+      "icon": "🎚️",
+      "output": "/path/to/extracted/tracks",
+      "description": {
+        "en": "The audio and subtitle tracks pulled out of videos with **Extract tracks** in a folder's selection bar, each as it was in the video (no re-encoding), named **Episode.ita.ac3**, **Episode.eng.srt** and so on, in the same folders as the videos they came from.",
+        "it": "Le tracce audio e sottotitoli estratte dai video con **Estrai tracce** nella barra della selezione, ognuna com'era nel video (senza ricodifica), chiamate **Episodio.ita.ac3**, **Episodio.eng.srt** e così via, nelle stesse cartelle dei video da cui vengono.",
+        "de": "Die Ton- und Untertitelspuren, die mit **Spuren extrahieren** in der Auswahlleiste aus Videos geholt wurden, jede so, wie sie im Video war (ohne Neukodierung), benannt als **Folge.ita.ac3**, **Folge.eng.srt** usw., in denselben Ordnern wie die Videos, aus denen sie stammen."
+      }
+    },
     "Audio": {
       "type": "music",
       "icon": "🎧",
@@ -56,5 +66,6 @@
     "Movies": [
       "downloads"
     ]
-  }
+  },
+  "extract_to": "Audio extraction"
 }

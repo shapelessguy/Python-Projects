@@ -6,7 +6,7 @@ export type IconName = "today" | "month" | "week" | "day" | "calendars" | "reord
   | "mouse" | "pcSound" | "keyboard" | "left" | "right" | "winLeft" | "winRight" | "maximize" | "scroll"
   | "settings" | "prev" | "next" | "play" | "pause" | "moveTo" | "download" | "upload" | "music" | "trash" | "close"
   | "block" | "eye" | "eyeOff" | "plus" | "edit" | "pie" | "all" | "clock" | "carrot" | "cart" | "lock" | "more" | "check" | "folderPlus" | "tick" | "archive" | "unarchive"
-  | "categories" | "payments" | "chart" | "income" | "spending" | "transfer";
+  | "categories" | "payments" | "chart" | "income" | "spending" | "transfer" | "extract";
 
 const PATHS: Record<IconName, JSX.Element> = {
   today: <><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="2.5" fill="currentColor" /></>,
@@ -38,6 +38,8 @@ const PATHS: Record<IconName, JSX.Element> = {
   download: <path d="M12 4v11M7 10l5 5 5-5M5 20h14" />,
   upload: <path d="M12 15V4M7 9l5-5 5 5M5 20h14" />,
   music: <><path d="M9 18V5l11-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="17" cy="16" r="3" /></>,
+  // A video's tracks pulled out of it: a film frame, a sound wave leaving it.
+  extract: <><rect x="2" y="5" width="11" height="14" rx="1.5" /><path d="M5 5v14M10 5v14" /><path d="M16 9v6M19 7v10M22 10v4" /></>,
   trash: <path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6" />,
   close: <path d="M6 6l12 12M18 6 6 18" />,
   block: <><circle cx="12" cy="12" r="8.5" /><path d="M6 6l12 12" /></>,

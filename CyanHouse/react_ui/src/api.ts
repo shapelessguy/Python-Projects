@@ -616,8 +616,9 @@ export interface PrepTrack {
 export interface RemuxJob {
   id: string;
   /** Absent on remuxes; "convert" for a FLAC-to-MP3 job, whose `target`
-   *  names the files and whose steps are one per file. */
-  kind?: "convert";
+   *  names the files and whose steps are one per file; "extract" for
+   *  pulling the tracks out of videos, one step per video. */
+  kind?: "convert" | "extract";
   /** The inbox it came from; also the tab it belongs to. */
   area: string;
   fingerprint: string;
@@ -913,7 +914,7 @@ export const api = {
     }).catch(() => {}),
 
   // ── movie preparation (staging folders) ────────────────────────────
-  prepAreas: () => f("/api/prep/areas").then(j<{ areas: StagingArea[]; sources: MovieSource[]; tmdb: boolean; languages: { code: string; name: string }[] }>),
+  prepAreas: () => f("/api/prep/areas").then(j<{ areas: StagingArea[]; sources: MovieSource[]; tmdb: boolean; languages: { code: string; name: string }[]; extract_to: string | null }>),
   prepAccess: (area: string, path: string) =>
     f("/api/prep/access?" + new URLSearchParams({ area, path }))
       .then(j<{ path: string; rule: AccessRule; access: FolderAccess; users: string[] }>),
@@ -1038,6 +1039,12 @@ export const api = {
    *  replacing its FLAC — one job in the same queue as the remuxes. */
   prepConvertMp3: (area: string, paths: string[]) =>
     f("/api/prep/convert_mp3?" + new URLSearchParams({ area }), {
+      method: "POST", headers: JSON_HEADERS, body: JSON.stringify({ paths }),
+    }).then(j<{ queued: RemuxJob[]; skipped: { folder: string; reason: string }[] }>),
+  /** Queue the picked videos to have every audio and subtitle track copied
+   *  out into the extraction folder — one job in the same queue. */
+  prepExtractTracks: (area: string, paths: string[]) =>
+    f("/api/prep/extract_tracks?" + new URLSearchParams({ area }), {
       method: "POST", headers: JSON_HEADERS, body: JSON.stringify({ paths }),
     }).then(j<{ queued: RemuxJob[]; skipped: { folder: string; reason: string }[] }>),
   /** Save the picked files and folders: one file as it is, more as one

@@ -75,6 +75,11 @@ VIDEO_EXT = {
     ".mpg", ".mpeg", ".m2ts", ".ts", ".flv", ".ogv", ".divx",
 }
 SUB_EXT = {".srt", ".ass", ".ssa", ".vtt", ".sub"}
+# Audio files beside a film that are one more audio track of it — a dub
+# downloaded on its own, or one pulled out of another release ("Extract
+# tracks", api/services/track_extract.py). The first audio stream of each.
+AUDIO_TRACK_EXT = {".aac", ".ac3", ".eac3", ".dts", ".thd", ".truehd", ".flac", ".mka",
+                   ".mp3", ".m4a", ".opus", ".ogg", ".wav"}
 # Bitmap subtitle codecs: these can only ever be overlaid, never converted to
 # text, which is why the subtitle kind decides the whole filter chain below.
 IMAGE_SUB_CODECS = {"hdmv_pgs_subtitle", "dvd_subtitle", "dvb_subtitle", "xsub"}
@@ -370,6 +375,44 @@ def _label(kind: str, n: int, codec: str, tags: dict, extra: str = "") -> str:
     return f"{n + 1}. " + " · ".join(bits)
 
 
+def _owned_beside(video: Path, wanted: set[str]) -> list[Path]:
+    """The files beside `video` with an extension in `wanted` that belong to
+    it: all of them when it is the folder's only video, else those named
+    after it, the longest matching stem winning (see _folder_subs)."""
+    try:
+        entries = sorted(set(video.parent.iterdir()), key=lambda p: p.name.lower())
+    except OSError:
+        return []
+    videos, found = [], []
+    for entry in entries:
+        try:
+            if not entry.is_file():
+                continue
+        except OSError:
+            continue
+        ext = entry.suffix.lower()
+        if ext in VIDEO_EXT:
+            videos.append(entry)
+        elif ext in wanted and not entry.name.startswith("."):
+            found.append(entry)
+    if len(videos) <= 1:
+        return found
+    return [f for f in found if max(
+        (v for v in videos if f.stem.lower().startswith(v.stem.lower())),
+        key=lambda v: len(v.stem), default=None) == video]
+
+
+def _folder_audio(video: Path) -> list[dict]:
+    """Audio files sitting next to the film, each one more audio track, its
+    language read from the name as a subtitle's is."""
+    out = []
+    for entry in _owned_beside(video, AUDIO_TRACK_EXT):
+        lang, _ = parse_sub_name(entry.name, video.stem)
+        out.append({"path": entry, "name": entry.name, "language": lang,
+                    "format": entry.suffix.lstrip(".").upper()})
+    return out
+
+
 def _folder_subs(video: Path) -> list[dict]:
     """Subtitle files sitting next to the film, the way a desktop player finds
     them — including the ones that aren't text.
@@ -623,8 +666,9 @@ def info(movie_id: str) -> dict:
     # of the key: an .srt dropped into the folder later changes nothing
     # about the video, and would otherwise not be seen until a restart.
     sidecars = _folder_subs(path)
+    dubs = _folder_audio(path)
     key = f"{path}|{st.st_mtime_ns}|{st.st_size}|" + "|".join(
-        f"{f['name']}:{_stamp(f['path'])}" for f in sidecars)
+        f"{f['name']}:{_stamp(f['path'])}" for f in sidecars + dubs)
     with _probe_lock:
         hit = _probe_cache.get(key)
     if hit:
@@ -703,6 +747,17 @@ def info(movie_id: str) -> dict:
                     ),
                 }
             )
+
+    for found in dubs:
+        n = len(audio)
+        audio.append({
+            "id": n,
+            "key": f"folder:{found['name']}",
+            "external": str(found["path"]),
+            "language": found["language"],
+            "label": _sub_label(n, found["language"], found["format"], [], "folder", found["name"]),
+            "default": False,
+        })
 
     for found in sidecars:
         n = len(subs)
@@ -981,6 +1036,15 @@ def build_command(path: Path, meta: dict, start: float, audio: int | None,
         if start > 0:
             cmd += ["-ss", f"{start:.3f}"]
         cmd += ["-i", chosen["external"]]
+    # An audio file beside the film is an input of its own too, seeked the
+    # same way.
+    track = audio if audio is not None and 0 <= audio < len(meta["audio"]) else 0
+    dub = meta["audio"][track].get("external") if meta["audio"] else None
+    if dub:
+        audio_in = 2 if chosen and chosen["kind"] == "image" and chosen["external"] else 1
+        if start > 0:
+            cmd += ["-ss", f"{start:.3f}"]
+        cmd += ["-i", dub]
 
     if not remux:
         cmd += ["-filter_complex",
@@ -990,11 +1054,10 @@ def build_command(path: Path, meta: dict, start: float, audio: int | None,
         cmd += ["-map", "0:v:0"]
 
     if meta["audio"]:
-        track = audio if audio is not None and 0 <= audio < len(meta["audio"]) else 0
         # Downmix to stereo: browsers can decode 5.1 AAC but most people are
         # listening on two channels, where a straight passthrough buries the
         # dialogue in the centre channel.
-        cmd += ["-map", f"0:a:{track}"]
+        cmd += ["-map", f"{audio_in}:a:0" if dub else f"0:a:{track}"]
         if audio_delay:
             # Positive means the audio should arrive later, so it is padded
             # with that much silence; negative means it is running late

@@ -26,7 +26,7 @@ from fastapi.responses import FileResponse, Response, StreamingResponse
 from starlette.concurrency import run_in_threadpool
 
 from api.auth import has_permission, may_see_media, require_media_area, require_permission, require_user
-from api.services import folder_access, movie_prep, movies, remux_queue, tmdb, zip_download
+from api.services import folder_access, movie_prep, movies, remux_queue, tmdb, track_extract, zip_download
 
 router = APIRouter(prefix="/api/prep", tags=["prep"], dependencies=[Depends(require_media_area)])
 
@@ -71,7 +71,21 @@ async def list_areas(user: str = Depends(require_user)):
             # rather than a free-text box -- a typo there is a track the
             # muxer refuses, discovered only at the end of a mux.
             "languages": movie_prep.language_options(),
+            # The folder "Extract tracks" writes into, when this user may
+            # write there; absent, the button is not offered.
+            "extract_to": _extract_target(user),
             }
+
+
+def _extract_target(user: str) -> str | None:
+    key = track_extract.output_key()
+    if key is None:
+        return None
+    try:
+        may_change(user, key)
+    except HTTPException:
+        return None
+    return key
 
 
 @router.get("/scan")
@@ -146,6 +160,28 @@ async def convert_mp3(
         raise _wrap(e)
 
 
+@router.post("/extract_tracks", status_code=202)
+async def extract_tracks(
+    area: str = Query(...),
+    paths: list[str] = Body(..., embed=True),
+    user: str = Depends(require_user),
+):
+    """Queue the videos among `paths` to have every audio and subtitle track
+    copied out into the extraction folder, in the same folders as here.
+    Anyone who may see them and write into that folder may ask."""
+    key = track_extract.output_key()
+    if key is None:
+        raise HTTPException(503, "no extraction folder configured (extract_to in config.json)")
+    may_change(user, key)
+    for path in paths:
+        _shared(user, area, path, "see")
+        _not_encrypted(area, path)
+    try:
+        return await run_in_threadpool(remux_queue.enqueue_extract, area, paths, user)
+    except movie_prep.PrepError as e:
+        raise _wrap(e)
+
+
 @router.get("/jobs")
 async def remux_jobs(user: str = Depends(require_user)):
     """The queue: what is running, what is waiting, and what has finished —
@@ -165,6 +201,9 @@ async def remove_job(job_id: str, user: str = Depends(require_user)):
         where, kind = remux_queue.job_area(job_id), remux_queue.job_kind(job_id)
         if kind == "convert":
             may_change(user, where)
+        elif kind == "extract":
+            _may_see(user, where)
+            may_change(user, track_extract.output_key() or where)
         else:
             may_move(user, where, movie_prep.output_of(where))
         return await run_in_threadpool(remux_queue.remove, job_id)
