@@ -1,4 +1,4 @@
-
+﻿
 using Microsoft.Win32;
 using System.Runtime.InteropServices;
 using System.Security.Policy;
@@ -16,6 +16,13 @@ namespace KeyboardHotkeys
         System.Windows.Forms.Timer clearRegistry;
         private NotifyIcon trayIcon;
         private ContextMenuStrip trayMenu;
+
+        // The Timer opens in this process: SHOW_ALARM's key opens it here directly, and CyanManager
+        // (its Run button, the LLM, the API) sets this event to have it opened.
+        public const string ShowTimerEvent = "CyanManager.ShowTimer";
+        public const string ShowTimerFunction = "show_alarm";
+        private EventWaitHandle? showTimer;
+        private RegisteredWaitHandle? showTimerWait;
 
         public HiddenWin()
         {
@@ -50,6 +57,44 @@ namespace KeyboardHotkeys
 
             };
             InitializeTrayIcon();
+
+            showTimer = new EventWaitHandle(false, EventResetMode.AutoReset, ShowTimerEvent);
+            showTimerWait = ThreadPool.RegisterWaitForSingleObject(showTimer, (_, _) =>
+            {
+                if (IsHandleCreated) BeginInvoke(OpenTimer);
+            }, null, -1, false);
+            FormClosed += (_, _) => { showTimerWait?.Unregister(null); showTimer?.Dispose(); };
+
+            ApplyTheme();  // HiddenWin.Theme.cs
+
+            EventHandler? warm = null;
+            warm = (_, _) => { Application.Idle -= warm; WarmUpTimer(); };
+            Application.Idle += warm;
+        }
+
+        private void OpenTimer()
+        {
+            // A timer not started yet gives way to the new one, before the new one opens: closed after,
+            // its window handed the focus to another and the new one, losing it, closed as well.
+            foreach (var old in Application.OpenForms.OfType<global::Timer.TimerWin>().Where(t => !t.Started).ToList())
+                old.Close();
+            var timer = new global::Timer.TimerWin();
+            timer.Show();
+        }
+
+        /// <summary>
+        /// Builds and draws a Timer once, unseen, right after start: the first one opened otherwise took
+        /// seconds (its code compiled, its fonts loaded) instead of a tenth of one.
+        /// </summary>
+        private void WarmUpTimer()
+        {
+            try
+            {
+                using var timer = new global::Timer.TimerWin();
+                using var bmp = new Bitmap(Math.Max(1, timer.Width), Math.Max(1, timer.Height));
+                timer.DrawToBitmap(bmp, new Rectangle(Point.Empty, bmp.Size));
+            }
+            catch { }
         }
 
         private string getFunction()
@@ -128,7 +173,12 @@ namespace KeyboardHotkeys
 
         private void InitializeTrayIcon()
         {
-            trayMenu = new ContextMenuStrip();
+            trayMenu = new ContextMenuStrip
+            {
+                Renderer = new ToolStripProfessionalRenderer(new DarkMenuColors()),
+                ForeColor = TextColor,
+                Font = new Font("Segoe UI", 9.75F),
+            };
             trayMenu.Items.Add("Open", null, (s, e) => ShowForm());
             trayMenu.Items.Add(new ToolStripSeparator());
             trayMenu.Items.Add("Exit", null, (s, e) => ExitApp());
@@ -156,7 +206,7 @@ namespace KeyboardHotkeys
 
                     Keys k = (Keys)hotkey.key;
                     string modifiers = getFriendlyModifiers((KeyModifier)hotkey.modifier);
-                    modifiers += k.ToString();
+                    modifiers += KeyName(k);
 
                     var item = new ListViewItem(modifiers);
                     item.SubItems.Add(kvp.Key);
@@ -168,6 +218,7 @@ namespace KeyboardHotkeys
                     }
                 }
             }
+            LayoutUi();  // the list's count
         }
         
         private string getFriendlyModifiers(KeyModifier modifier, Keys excludeKey = Keys.None)
@@ -178,11 +229,12 @@ namespace KeyboardHotkeys
             bool shift = (modifier & KeyModifier.Shift) != 0;
             bool win = (modifier & KeyModifier.WinKey) != 0;
 
+            // As the page writes them: "Ctrl + Alt + Num 6"
             string modifiers = "";
-            if (shift && excludeKey != Keys.ShiftKey) modifiers += "Shift +";
-            if (ctrl && excludeKey != Keys.ControlKey) modifiers += "Ctrl +";
-            if (alt && excludeKey != Keys.Menu) modifiers += "Alt +";
-            if (win && excludeKey != Keys.LWin) modifiers += "Win +";
+            if (ctrl && excludeKey != Keys.ControlKey) modifiers += "Ctrl + ";
+            if (alt && excludeKey != Keys.Menu) modifiers += "Alt + ";
+            if (shift && excludeKey != Keys.ShiftKey) modifiers += "Shift + ";
+            if (win && excludeKey != Keys.LWin) modifiers += "Win + ";
             return modifiers;
         }
         private void writeKeyText(Keys key, KeyModifier modifier)
@@ -196,11 +248,7 @@ namespace KeyboardHotkeys
             else
             {
                 string modifiers = getFriendlyModifiers(modifier, key);
-                modifiers += " ";
-                string key_str = key.ToString();
-                if (key_str.EndsWith("Key")) key_str = key_str.Substring(0, key_str.Length - 3);
-                if (key_str == "Menu") key_str = "Alt";
-                keyRevealer.Text = modifiers + key_str;
+                keyRevealer.Text = modifiers + KeyName(key);
                 keyID.Text = ((int)key).ToString();
                 modifierID.Text = ((int)modifier).ToString();
             }
@@ -224,6 +272,10 @@ namespace KeyboardHotkeys
         private static extern bool RegisterHotKey(IntPtr hWnd, int id, int fsModifiers, int vk);
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
+
+        [DllImport("user32.dll")]
+        private static extern bool AllowSetForegroundWindow(int dwProcessId);
+        private const int ASFW_ANY = -1;
 
         enum KeyModifier
         {
@@ -258,6 +310,15 @@ namespace KeyboardHotkeys
 
                             if ((int)key == keyId && (int)modifier == modId)
                             {
+                                // This process got the key press, so Windows lets it hand the foreground on:
+                                // a window the function opens (the Timer, started by CyanManager, which got
+                                // no input) may then take focus instead of only flashing its title bar.
+                                AllowSetForegroundWindow(ASFW_ANY);
+                                if (kvp.Key == ShowTimerFunction)
+                                {
+                                    OpenTimer();  // here, at once: no round trip through CyanManager
+                                    return;
+                                }
                                 setFunction(kvp.Key);
                                 lastSentTime = DateTime.UtcNow;
                                 return;

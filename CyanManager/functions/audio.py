@@ -56,8 +56,23 @@ def get_step(cur_vol, direction):
     return (next_vol - cur_vol_int) / 100
 
 
+SHOW_TIMER_EVENT = "CyanManager.ShowTimer"  # KeyboardHotkeys.exe opens a Timer when it is set
+
+
 def show_alarm(signal, verbose=False):
     """Open the alarm timer."""
+    # The Timer lives in KeyboardHotkeys.exe (the Hotkeys service), already running: it opens at
+    # once there. Only without it, a Timer.exe of its own, which takes a moment to start.
+    import ctypes
+    kernel32 = ctypes.windll.kernel32
+    kernel32.OpenEventW.restype = ctypes.c_void_p
+    event = kernel32.OpenEventW(0x0002, False, SHOW_TIMER_EVENT)  # EVENT_MODIFY_STATE
+    if event:
+        try:
+            kernel32.SetEvent(ctypes.c_void_p(event))
+            return
+        finally:
+            kernel32.CloseHandle(ctypes.c_void_p(event))
     subprocess.Popen([TIMER_EXE])
 
 

@@ -23,4 +23,13 @@
     </EmbeddedResource>
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- The Timer (CyanManager/tools/Timer) runs inside this always-running process: it opens at once,
+         and with the focus this process got from the key press. Timer.exe stays as SHOW_ALARM's fallback. -->
+    <Compile Include="../../../../../tools/Timer/Timer/TimerWin.cs" Link="Timer\TimerWin.cs" />
+    <Compile Include="../../../../../tools/Timer/Timer/TimerWin.Designer.cs" Link="Timer\TimerWin.Designer.cs">
+      <DependentUpon>TimerWin.cs</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
 </Project>

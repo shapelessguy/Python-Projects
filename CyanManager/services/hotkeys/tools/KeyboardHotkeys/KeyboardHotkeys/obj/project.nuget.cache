@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "3n/WNkz7vkg=",
+  "dgSpecHash": "me+XNF3Fkxg=",
   "success": true,
-  "projectFilePath": "C:\\Users\\shape\\Documents\\codebase\\sharedCode\\CyanManager\\tools\\KeyboardHotkeys\\KeyboardHotkeys\\KeyboardHotkeys.csproj",
+  "projectFilePath": "C:\\Users\\shape\\Documents\\codebase\\sharedCode\\CyanManager\\services\\hotkeys\\tools\\KeyboardHotkeys\\KeyboardHotkeys\\KeyboardHotkeys.csproj",
   "expectedPackageFiles": [],
   "logs": []
 }
