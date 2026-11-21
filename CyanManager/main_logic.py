@@ -1,10 +1,41 @@
+import ctypes
+
+# Per-monitor DPI aware, before any import: pywinbox (under pywinctl/pymonctl) makes an unaware
+# process system-aware on import, and a system-aware one sees every screen through the primary's
+# zoom: with a 150% screen primary, ORDER's sizes and positions on the 100% ones came out 1.5x off.
+# Per-monitor, every coordinate is in pixels, as MultiMonitorTool's screens are.
+try:
+    ctypes.windll.user32.SetProcessDpiAwarenessContext(ctypes.c_void_p(-4))  # PER_MONITOR_AWARE_V2
+except (AttributeError, OSError):
+    try:
+        ctypes.windll.shcore.SetProcessDpiAwareness(2)  # PROCESS_PER_MONITOR_DPI_AWARE (before 1703)
+    except (AttributeError, OSError):
+        pass
+
+# One CyanManager at a time: a second one finds this mutex taken, opens the page of the running one
+# and leaves, before loading anything. Windows frees it when the process ends, even by a crash.
+# An elevated one's mutex is denied to a normal second one (ERROR_ACCESS_DENIED): taken all the same.
+_kernel32 = ctypes.windll.kernel32
+_kernel32.CreateMutexW.restype = ctypes.c_void_p
+_INSTANCE_MUTEX = _kernel32.CreateMutexW(None, False, "Local\\CyanManager.SingleInstance")
+if not _INSTANCE_MUTEX or _kernel32.GetLastError() == 183:  # ERROR_ALREADY_EXISTS
+    print("CyanManager is already running: opening its page instead")
+    try:
+        import os as _os
+        import webbrowser
+        from dotenv import dotenv_values
+        _env = dotenv_values(_os.path.join(_os.path.dirname(_os.path.abspath(__file__)), ".env"))
+        webbrowser.open(f"http://localhost:{(_env.get('WEB_PORT') or '8000').strip()}")
+    except Exception:
+        pass
+    raise SystemExit(0)
+
 import os
 import json
 import threading
 import datetime
 import traceback
 import sys
-import ctypes
 import pkgutil
 
 # PyQt5 bundles an old Microsoft C++ runtime (msvcp140 14.26). Whichever copy
