@@ -17,6 +17,8 @@ const PATHS = {
   sliders: "M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0M14 4v4M8 10v4M16 16v4",
   key: "M15 9a3 3 0 11-6 0 3 3 0 016 0zM12 12v9M12 17h3M12 20h2",
   check: "M5 12l5 5 9-10",
+  move: "M12 4v16M4 12h16M9 7l3-3 3 3M9 17l3 3 3-3M7 9l-3 3 3 3M17 9l3 3-3 3",
+  resize: "M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5",
   x: "M6 6l12 12M18 6L6 18",
 } as const;
 

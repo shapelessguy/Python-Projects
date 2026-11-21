@@ -995,12 +995,15 @@ button {
   border-radius: var(--radius);
 }
 
+.nudge {
+  justify-content: space-around;
+}
+
 .nudge-group {
-  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .dpad {
@@ -1009,9 +1012,16 @@ button {
     ". up ."
     "left . right"
     ". down .";
-  grid-template-columns: repeat(3, 30px);
-  grid-template-rows: repeat(3, 30px);
-  gap: 3px;
+  grid-template-columns: repeat(3, 32px);
+  grid-template-rows: repeat(3, 32px);
+  gap: 4px;
+}
+
+.dpad .center {
+  grid-area: 2 / 2;
+  display: grid;
+  place-content: center;
+  color: var(--muted);
 }
 
 .dpad button,

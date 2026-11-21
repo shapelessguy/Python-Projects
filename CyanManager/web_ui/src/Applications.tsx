@@ -318,6 +318,9 @@ function AppDetail({
                 <button className="left" title="Move left" onClick={() => nudge("x", -1)}>
                   <Icon name="left" />
                 </button>
+                <span className="center">
+                  <Icon name="move" />
+                </span>
                 <button className="right" title="Move right" onClick={() => nudge("x", 1)}>
                   <Icon name="right" />
                 </button>
@@ -328,8 +331,23 @@ function AppDetail({
             </div>
             <div className="nudge-group">
               <span className="field-label">Size</span>
-              <Stepper label="Width" onMinus={() => nudge("width", -1)} onPlus={() => nudge("width", 1)} />
-              <Stepper label="Height" onMinus={() => nudge("height", -1)} onPlus={() => nudge("height", 1)} />
+              <div className="dpad">
+                <button className="up" title="Shorter" onClick={() => nudge("height", -1)}>
+                  <Icon name="minus" />
+                </button>
+                <button className="left" title="Narrower" onClick={() => nudge("width", -1)}>
+                  <Icon name="minus" />
+                </button>
+                <span className="center" title="Width: left and right · Height: top and bottom">
+                  <Icon name="resize" />
+                </span>
+                <button className="right" title="Wider" onClick={() => nudge("width", 1)}>
+                  <Icon name="plus" />
+                </button>
+                <button className="down" title="Taller" onClick={() => nudge("height", 1)}>
+                  <Icon name="plus" />
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -411,19 +429,5 @@ function Field({
       </span>
       {children}
     </label>
-  );
-}
-
-function Stepper({ label, onMinus, onPlus }: { label: string; onMinus: () => void; onPlus: () => void }) {
-  return (
-    <div className="stepper">
-      <button title={`Decrease ${label.toLowerCase()}`} onClick={onMinus}>
-        <Icon name="minus" />
-      </button>
-      <span>{label}</span>
-      <button title={`Increase ${label.toLowerCase()}`} onClick={onPlus}>
-        <Icon name="plus" />
-      </button>
-    </div>
   );
 }
