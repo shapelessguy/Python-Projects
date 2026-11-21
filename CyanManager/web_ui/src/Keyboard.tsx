@@ -10,8 +10,14 @@ interface Binding {
   description: string | null;
 }
 
+interface FunctionInfo {
+  name: string;
+  description: string | null;
+}
+
 interface Hotkeys {
   bindings: Binding[];
+  functions: FunctionInfo[];
   active: boolean;
   error?: string;
 }
@@ -124,12 +130,14 @@ export const modsText = (mods: number) =>
 export const comboText = (b: Binding) =>
   [modsText(b.modifiers), KEY_NAME.get(b.vk) ?? `Key ${b.vk}`].filter(Boolean).join(" + ");
 
-/** Functions bound to keys by the Hotkeys service, on a keyboard. */
+/** The profile's hotkeys on a keyboard: click a key to see, add, change or remove what it runs. */
 export function Keyboard() {
-  const { data } = usePoll<Hotkeys>("/api/hotkeys", 3000);
+  const toast = useToast();
+  const { data, reload } = usePoll<Hotkeys>("/api/hotkeys", 3000);
   // null: every layer; a number: only bindings with exactly those modifiers
   const [layer, setLayer] = useState<number | null>(null);
   const [selected, setSelected] = useState<number | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const bindings = data?.bindings ?? [];
   const layers = useMemo(() => [...new Set(bindings.map((b) => b.modifiers))].sort((a, b) => a - b), [bindings]);
@@ -142,7 +150,32 @@ export function Keyboard() {
 
   if (!data) return <div className="empty">Loading…</div>;
 
-  const listed = selected === null ? bindings.filter(inLayer) : (byKey.get(selected) ?? []).filter(inLayer);
+  const save = async (next: Binding[], done: string) => {
+    setSaving(true);
+    try {
+      await api("PUT", "/api/hotkeys", {
+        bindings: next.map(({ vk, modifiers, function: f }) => ({ vk, modifiers, function: f })),
+      });
+      toast(data.active ? `${done} · keyboard hotkeys restarting` : done);
+    } catch (e) {
+      toast(errorText(e), true);
+    }
+    await reload();
+    setSaving(false);
+  };
+  const same = (a: Binding, b: { vk: number; modifiers: number }) => a.vk === b.vk && a.modifiers === b.modifiers;
+  const change = (b: Binding, fn: string) =>
+    save(
+      bindings.map((x) => (same(x, b) ? { ...x, function: fn } : x)),
+      `${comboText(b)} → ${fn}`,
+    );
+  const remove = (b: Binding) => save(bindings.filter((x) => !same(x, b)), `${comboText(b)} removed`);
+  const add = (vk: number, modifiers: number, fn: string) => {
+    const b = { vk, modifiers, function: fn, description: null };
+    return save([...bindings.filter((x) => !same(x, b)), b], `${comboText(b)} → ${fn}`);
+  };
+
+  const listed = selected === null ? bindings.filter(inLayer) : byKey.get(selected) ?? [];
   const sorted = [...listed].sort((a, b) => a.modifiers - b.modifiers || a.vk - b.vk);
 
   return (
@@ -190,8 +223,8 @@ export function Keyboard() {
                 key={i}
                 className={cls}
                 style={style}
-                title={all.map((b) => `${comboText(b)} → ${b.function}`).join("\n") || k.name}
-                onClick={() => setSelected(selected === k.vk || !all.length ? null : k.vk)}
+                title={all.map((b) => `${comboText(b)} → ${b.function}`).join("\n") || `${k.name}: click to bind`}
+                onClick={() => setSelected(selected === k.vk ? null : k.vk)}
               >
                 <span className="cap">
                   <span className="key-label">{k.label}</span>
@@ -210,25 +243,82 @@ export function Keyboard() {
 
       <div className="card bindings">
         <header className="card-head">
-          <h3>{selected === null ? "All bindings" : `${KEY_NAME.get(selected) ?? selected}`}</h3>
-          {selected !== null && (
+          <h3>{selected === null ? "All bindings" : (KEY_NAME.get(selected) ?? `Key ${selected}`)}</h3>
+          {selected === null ? (
+            <span className="muted-note">Click a key to bind it</span>
+          ) : (
             <button className="btn small" onClick={() => setSelected(null)}>
               Show all
             </button>
           )}
         </header>
         <div className="binding-list">
-          {sorted.map((b, i) => (
-            <BindingRow key={`${b.vk}-${b.modifiers}-${i}`} b={b} />
+          {sorted.map((b) => (
+            <BindingRow
+              key={`${b.vk}-${b.modifiers}`}
+              b={b}
+              functions={data.functions}
+              disabled={saving}
+              onChange={(fn) => change(b, fn)}
+              onRemove={() => remove(b)}
+            />
           ))}
-          {sorted.length === 0 && <div className="empty">Nothing bound here.</div>}
+          {sorted.length === 0 && (
+            <div className="empty">{selected === null ? "Nothing bound here." : "This key runs nothing yet."}</div>
+          )}
         </div>
+        {selected !== null && (
+          <AddBinding
+            key={selected}
+            vk={selected}
+            initialMods={layer ?? 0}
+            bindings={bindings}
+            functions={data.functions}
+            disabled={saving}
+            onAdd={add}
+          />
+        )}
       </div>
     </div>
   );
 }
 
-function BindingRow({ b }: { b: Binding }) {
+function FunctionSelect({
+  value,
+  functions,
+  onChange,
+  disabled,
+}: {
+  value: string;
+  functions: FunctionInfo[];
+  onChange: (name: string) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <select className="fn-select" value={value} disabled={disabled} onChange={(e) => onChange(e.target.value)}>
+      {value === "" && <option value="">Choose a function…</option>}
+      {functions.map((f) => (
+        <option key={f.name} value={f.name} title={f.description ?? undefined}>
+          {f.name}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+function BindingRow({
+  b,
+  functions,
+  disabled,
+  onChange,
+  onRemove,
+}: {
+  b: Binding;
+  functions: FunctionInfo[];
+  disabled: boolean;
+  onChange: (fn: string) => void;
+  onRemove: () => void;
+}) {
   const toast = useToast();
   const [busy, setBusy] = useState(false);
   const run = async () => {
@@ -252,11 +342,64 @@ function BindingRow({ b }: { b: Binding }) {
           ))}
       </span>
       <span className="binding-fn">
-        <span className="fn-name">{b.function}</span>
-        {b.description && <span className="fn-desc">{b.description}</span>}
+        <FunctionSelect value={b.function} functions={functions} onChange={onChange} disabled={disabled} />
       </span>
-      <button className="icon-btn" title={`Run ${b.function}`} onClick={run} disabled={busy}>
+      <span className={`hint ${b.description ? "" : "none"}`} title={b.description ?? undefined}>
+        ?
+      </span>
+      <button className="icon-btn run" title={`Run ${b.function}`} onClick={run} disabled={busy}>
         {busy ? <span className="spinner" /> : <Icon name="play" size={12} />}
+      </button>
+      <button className="icon-btn remove" title="Remove this binding" onClick={onRemove} disabled={disabled}>
+        <Icon name="trash" size={14} />
+      </button>
+    </div>
+  );
+}
+
+/** A new binding on the selected key: its modifiers and the function it runs. */
+function AddBinding({
+  vk,
+  initialMods,
+  bindings,
+  functions,
+  disabled,
+  onAdd,
+}: {
+  vk: number;
+  initialMods: number;
+  bindings: Binding[];
+  functions: FunctionInfo[];
+  disabled: boolean;
+  onAdd: (vk: number, modifiers: number, fn: string) => Promise<void>;
+}) {
+  const [mods, setMods] = useState(initialMods);
+  const [fn, setFn] = useState("");
+  const taken = bindings.find((b) => b.vk === vk && b.modifiers === mods);
+
+  return (
+    <div className="add-binding">
+      <span className="field-label">Add</span>
+      <div className="mod-toggles">
+        {MOD_NAMES.map(([bit, name]) => (
+          <button key={bit} className={`chip ${mods & bit ? "on" : ""}`} onClick={() => setMods(mods ^ bit)}>
+            {name}
+          </button>
+        ))}
+        <kbd>{KEY_NAME.get(vk) ?? `Key ${vk}`}</kbd>
+      </div>
+      <FunctionSelect value={fn} functions={functions} onChange={setFn} />
+      <button
+        className="btn accent"
+        disabled={disabled || !fn}
+        title={taken ? `Replaces ${taken.function}` : undefined}
+        onClick={async () => {
+          await onAdd(vk, mods, fn);
+          setFn("");
+        }}
+      >
+        <Icon name="add" />
+        {taken ? `Replace ${taken.function}` : "Bind"}
       </button>
     </div>
   );

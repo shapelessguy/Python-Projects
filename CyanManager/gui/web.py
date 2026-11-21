@@ -298,21 +298,41 @@ def create_app(signal, ui_manager) -> FastAPI:
         text = repr(result) if result is not None else ""
         return {"ok": True, "result": text[:2000]}
 
+    HOTKEYS_SERVICE = "Hotkeys"
+
     @app.get("/api/hotkeys")
     def hotkeys():
-        """The keys the Hotkeys service binds (services/hotkeys/service.py HOTKEYS), for the keyboard view."""
-        try:
-            from services.hotkeys.service import HOTKEYS, NAME
-        except Exception as e:
-            return {"bindings": [], "active": False, "error": f"{e.__class__.__name__}: {e}"}
+        """The profile's hotkeys, for the keyboard view, and every function one can be bound to."""
         functions = signal.reg_functions.get_functions()
-        tm = signal.thread_managers.get(NAME)
+        tm = signal.thread_managers.get(HOTKEYS_SERVICE)
         return {
-            "bindings": [{"vk": vk, "modifiers": mod, "function": name,
-                          "description": getattr(functions.get(name), "description", None)}
-                         for vk, mod, name in HOTKEYS],
+            "bindings": [{"vk": h["key"], "modifiers": h.get("modifiers", 0), "function": h["function"],
+                          "description": getattr(functions.get(h["function"]), "description", None)}
+                         for h in signal.get_hotkeys()],
+            "functions": [{"name": n, "description": f.description} for n, f in functions.items()],
             "active": bool(tm and tm.is_alive() and not tm.to_kill),
         }
+
+    @app.put("/api/hotkeys")
+    def save_hotkeys(body: dict):
+        """The whole list of bindings ({vk, modifiers, function}); the Hotkeys service then restarts the keyboard exe."""
+        functions = signal.reg_functions.get_functions()
+        hotkeys, seen = [], set()
+        for b in body.get("bindings") or []:
+            try:
+                key, mods, name = int(b["vk"]), int(b.get("modifiers", 0)), str(b["function"])
+            except (KeyError, TypeError, ValueError):
+                return JSONResponse({"error": f"not a binding: {b}"}, status_code=400)
+            if not 0 < key < 256 or not 0 <= mods < 16:
+                return JSONResponse({"error": f"no such key: {key} with modifiers {mods}"}, status_code=400)
+            if name not in functions:
+                return JSONResponse({"error": f"no function {name}"}, status_code=400)
+            if (key, mods) in seen:
+                return JSONResponse({"error": "the same keys are bound twice"}, status_code=409)
+            seen.add((key, mods))
+            hotkeys.append({"key": key, "modifiers": mods, "function": name})
+        signal.set_hotkeys(hotkeys)
+        return {"ok": True}
 
     # ---- Applications ----
 

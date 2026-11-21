@@ -108,11 +108,15 @@ function FunctionRow({ name, description }: { name: string; description: string 
   };
 
   return (
-    <button className={`fn ${state}`} onClick={run} disabled={state === "running"} title={description ?? name}>
+    <button className={`fn ${state}`} onClick={run} disabled={state === "running"} title={`Run ${name}`}>
       <span className="fn-text">
         <span className="fn-name">{name}</span>
-        {description && <span className="fn-desc">{description}</span>}
       </span>
+      {description && (
+        <span className="hint" title={description}>
+          ?
+        </span>
+      )}
       <span className="fn-run">
         {state === "running" ? (
           <span className="spinner" />

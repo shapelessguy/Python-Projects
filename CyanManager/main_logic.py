@@ -163,6 +163,27 @@ class Signal:
                 self._preferences = json.load(file)
         else:
             raise Exception(f"File {profile_path} not found!")
+        if "hotkeys" not in self._preferences:
+            # A profile from before hotkeys were kept in it: it starts from default.json's
+            self._preferences["hotkeys"] = self.default_hotkeys()
+            self.save_preferences()
+        self.hotkeys_version = getattr(self, "hotkeys_version", 0) + 1
+
+    def default_hotkeys(self):
+        try:
+            with open(os.path.join(CONFIGURATIONS_PATH, "default.json"), "r") as file:
+                return json.load(file).get("hotkeys", [])
+        except (OSError, ValueError):
+            return []
+
+    def get_hotkeys(self):
+        """[{"key": virtual-key code, "modifiers": 1 Alt | 2 Ctrl | 4 Shift | 8 Win, "function": registered name}]"""
+        return json.loads(json.dumps(self._preferences.get("hotkeys", [])))
+
+    def set_hotkeys(self, hotkeys: list):
+        self._preferences["hotkeys"] = hotkeys
+        self.save_preferences()
+        self.hotkeys_version += 1  # the Hotkeys service restarts the keyboard exe with them
     
     def get_applications(self):
         applications = json.loads(json.dumps(self._preferences["applications"]))

@@ -44,6 +44,7 @@ def assign_chrome(processes, app_exe_names):
 
 
 def get_apps_status(signal, verbose=False):
+    """The configured applications, each with its running process and window, if any."""
     pythoncom.CoInitialize()
     c = wmi.WMI()
 
@@ -105,6 +106,7 @@ def resolve_all_guids(path_str):
 
 
 def get_uwp_apps(signal, verbose=False):
+    """The Start menu's apps and their IDs, which app:<name> paths launch."""
     # PowerShell writes in the console's OEM code page unless told otherwise: a
     # name like "Grüße" then fails to decode and stdout comes back as None.
     ps_command = "[Console]::OutputEncoding = [Text.Encoding]::UTF8; Get-StartApps | Select-Object Name,AppID | ConvertTo-Json"
@@ -187,6 +189,7 @@ def start_app(signal, app, app_name_map=None):
 
 
 def startup_applications(signal, verbose=False, app_names=[]):
+    """Start the applications marked to start with CyanManager (or those in app_names) that are not running."""
     started_apps = []
     try:
         app_name_map = get_uwp_apps(signal, False)
@@ -204,6 +207,7 @@ def startup_applications(signal, verbose=False, app_names=[]):
 
 
 def kill_application(signal, verbose=False, application=None):
+    """Close an application: end its process, or close its window."""
     if verbose:
         print(f"Killing application: {application.name}")
     if application is None:
@@ -233,6 +237,7 @@ def kill_application(signal, verbose=False, application=None):
 
 
 def get_threads_status(signal, verbose=False):
+    """Whether each CyanManager service is running."""
     status = {name: bool(tm.is_alive()) for name, tm in signal.thread_managers.items()}
     if verbose:
         for n, s in status.items():
@@ -269,6 +274,7 @@ def _proc_name(win):
 
 
 def find_windows(signal, verbose=False, discover=False):
+    """The window of each configured application, matched by title keywords or process (discover: every window)."""
     windows = []
     for win in pwc.getAllWindows():
         try:

@@ -32,49 +32,63 @@ def send_tv(signal, verbose, value, notify_):
 # ---------------------------------------------------------
 
 def lights_on(signal, verbose=False, notify_=True):
+    """Turn on the UV/plant lights."""
     send_light_config(signal, verbose, "on", notify_)
 
 def lights_off(signal, verbose=False, notify_=True):
+    """Turn off the UV/plant lights."""
     send_light_config(signal, verbose, "off", notify_)
 
 def lights_auto(signal, verbose=False, notify_=True):
+    """Set the UV/plant lights to their automatic schedule."""
     send_light_config(signal, verbose, "auto", notify_)
 
 # ---------------------------------------------------------
 
 def top_power(signal, verbose=False, notify_=True):
+    """Toggle the ceiling light's power."""
     send_top(signal, verbose, "w", notify_)
 
 def top_leds(signal, verbose=False, notify_=True):
+    """Toggle the ceiling light's RGB LED mode."""
     send_top(signal, verbose, "rgb", notify_)
 
 def top_bright_plus(signal, verbose=False, notify_=True):
+    """Make the ceiling light brighter."""
     send_top(signal, verbose, "bright+", notify_)
 
 def top_bright_minus(signal, verbose=False, notify_=True):
+    """Make the ceiling light dimmer."""
     send_top(signal, verbose, "bright-", notify_)
 
 def top_cold_plus(signal, verbose=False, notify_=True):
+    """Make the ceiling light's white colder."""
     send_top(signal, verbose, "cold+", notify_)
 
 def top_cold_less(signal, verbose=False, notify_=True):
+    """Make the ceiling light's white warmer."""
     send_top(signal, verbose, "cold-", notify_)
 
 def top_col_loop(signal, verbose=False, notify_=True):
+    """Cycle the ceiling light through its colours."""
     send_top(signal, verbose, "col_loop", notify_)
 
 def top_col_change(signal, verbose=False, notify_=True):
+    """Change the ceiling light's colour."""
     send_top(signal, verbose, "col_change", notify_)
 
 def top_heart(signal, verbose=False, notify_=True):
+    """Set the ceiling light to the favourite theme."""
     send_top(signal, verbose, "heart", notify_)
 
 # ---------------------------------------------------------
 
 def strips_on(signal, verbose=False, notify_=True):
+    """Turn on the LED strips."""
     send_strips(signal, verbose, "on", notify_)
 
 def strips_off(signal, verbose=False, notify_=True):
+    """Turn off the LED strips."""
     send_strips(signal, verbose, "off", notify_)
 
 def strips_intensity_up(signal, verbose=False, notify_=True):
@@ -113,6 +127,7 @@ def strips_white(signal, verbose=False, notify_=True):
 # ---------------------------------------------------------
 
 def audio_power(signal, verbose=False, notify_=True):
+    """Toggle the power of the Logitech Z906 audio system."""
     send_audio(signal, verbose, "on/off", notify_)
 
 def audio_plus(signal, verbose=False, notify_=True):
@@ -122,15 +137,19 @@ def audio_minus(signal, verbose=False, notify_=True):
     send_audio(signal, verbose, "vol-", notify_)
 
 def audio_level(signal, verbose=False, notify_=True):
+    """Press the Z906's level button."""
     send_audio(signal, verbose, "level", notify_)
 
 def audio_effect(signal, verbose=False, notify_=True):
+    """Press the Z906's effect button."""
     send_audio(signal, verbose, "effect", notify_)
 
 # ---------------------------------------------------------
 
 def tv_power(signal, verbose=False, notify_=True):
+    """Toggle the power of the Hisense TV."""
     send_tv(signal, verbose, "power", notify_)
 
 def tv_ok(signal, verbose=False, notify_=True):
+    """Press OK on the Hisense TV."""
     send_tv(signal, verbose, "ok", notify_)

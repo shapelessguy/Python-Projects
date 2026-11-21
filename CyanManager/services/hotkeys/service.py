@@ -18,54 +18,19 @@ KEYBOARD_HOTKEYS_EXE = os.path.join(os.path.dirname(__file__), "tools", "Keyboar
                                     "bin", "Release", "net10.0-windows", "KeyboardHotkeys.exe")
 
 
-# (Windows virtual-key code, modifiers, registered function). Modifiers are
-# RegisterHotKey's bits: 1 Alt, 2 Ctrl, 4 Shift, 8 Win. The page's keyboard
-# view (Functions tab) reads this list too.
-HOTKEYS = [
-    (175, 0, "VOLUME_UP"),          # VOL+
-    (174, 0, "VOLUME_DOWN"),        # VOL-
-    (96, 0, "ORDER"),               # NUMPAD0
-    (112, 0, "ORDER"),              # F1
-    (97, 0, "HEADPHONES"),          # NUMPAD1
-    (99, 0, "SPEAKERS"),            # NUMPAD3
-    (105, 0, "SNAPSHOT"),           # NUMPAD9
-    # (105, 2, "WIN_SNAPSHOT"),     # CTRL + NUMPAD9
-    (104, 0, "TURN_ON_MONITORS"),   # NUMPAD8
-    (98, 0, "SHUTDOWN_MONITORS"),   # NUMPAD2
-    (109, 0, "SHOW_ALARM"),         # NUMPAD -
-    (103, 0, "TYPE_PASSWORD"),      # NUMPAD7
-    (109, 2, "SPECIAL"),            # CTRL + NUMPAD-
-
-    (97, 2, "LIGHTS_ON"),           # CTRL + NUMPAD1
-    (98, 2, "LIGHTS_OFF"),          # CTRL + NUMPAD2
-    (99, 2, "LIGHTS_AUTO"),         # CTRL + NUMPAD3
-
-    (100, 2, "TOP_RGB"),            # CTRL + NUMPAD4
-    (101, 2, "TOP_COL_CHANGE"),     # CTRL + NUMPAD5
-    (102, 2, "TOP_HEART"),          # CTRL + NUMPAD6
-    (103, 2, "TOP_POWER"),          # CTRL + NUMPAD7
-    (104, 2, "TOP_BRIGHT_MINUS"),   # CTRL + NUMPAD8
-    (105, 2, "TOP_BRIGHT_PLUS"),    # CTRL + NUMPAD9
-
-    (102, 0, "AUDIO_POWER"),        # NUMPAD6
-    (102, 3, "TV_POWER"),           # CTRL + ALT + NUMPAD6
-    (102, 1, "TV_OK"),              # ALT + NUMPAD6
-
-    # DEBUG PURPOSE: DISCOVER_WIN, GET_WIN_POSITIONS, FIND_WINDOWS,
-    # SHOW_UWP_APP_NAMES, THREADS_STATUS, STARTUP, GET_APPS_STATUS, GET_SCREENS
-    # (100, 0, "DISCOVER_WIN"),
-]
-
-
 def hotkeys_setup(signal):
-    reg_functions = signal.reg_functions
-    hotkeys = {(key, modifier): getattr(reg_functions, name) for key, modifier, name in HOTKEYS}
-
+    """The profile's hotkeys (Signal.get_hotkeys) into a fresh KeyboardHotkeys.exe: it takes them only
+    as its argument, so any change kills and relaunches it. Returns function name -> handle."""
+    functions = signal.reg_functions.get_functions()
     hotkeys_json, hotkeys_operative = {}, {}
-    for k, v in hotkeys.items():
-        funct_name = v.__name__()
-        hotkeys_json[funct_name] = hotkeys_json.get(funct_name, []) + [{ "key": k[0], "modifier": k[1] }]
-        hotkeys_operative[funct_name] = v
+    for h in signal.get_hotkeys():
+        handle = functions.get(h.get("function"))
+        if handle is None:
+            print(f"Hotkey for an unknown function skipped: {h}")
+            continue
+        funct_name = handle.__name__()
+        hotkeys_json.setdefault(funct_name, []).append({"key": int(h["key"]), "modifier": int(h.get("modifiers", 0))})
+        hotkeys_operative[funct_name] = handle
 
     find_process_by_exe(KEYBOARD_HOTKEYS_EXE, kill=True, relaunch=True, args=(json.dumps(hotkeys_json), ))
     return hotkeys_operative
@@ -73,9 +38,15 @@ def hotkeys_setup(signal):
 
 def entrypoint(thread_manager):
     signal = thread_manager.signal
+    version = signal.hotkeys_version
     hotkeys_operative = hotkeys_setup(signal)
 
     while signal.is_alive() and not thread_manager.to_kill:
+        if signal.hotkeys_version != version:  # edited from the page
+            version = signal.hotkeys_version
+            print("Hotkeys changed: restarting the keyboard hotkeys")
+            hotkeys_operative = hotkeys_setup(signal)
+
         try:
             key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, reg_path, 0, winreg.KEY_READ)
             value, _ = winreg.QueryValueEx(key, "alarm")
@@ -93,7 +64,7 @@ def entrypoint(thread_manager):
             winreg.DeleteKey(winreg.HKEY_CURRENT_USER, reg_path)
             found = False
 
-            function_name, repetition = value.split("x")
+            function_name, repetition = value.rsplit("x", 1)  # a name may have an x in it
             if function_name == "sessionLocked":
                 signal.session_locked = True
                 found = True
@@ -109,7 +80,7 @@ def entrypoint(thread_manager):
 
 
             if not found:
-                print("unrecognized:", v.__name__())
+                print("unrecognized:", function_name)
         except FileNotFoundError:
             pass
         wait(signal, 0.05)

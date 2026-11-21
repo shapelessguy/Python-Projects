@@ -1468,3 +1468,82 @@ kbd {
   border-color: var(--accent);
   color: #062027;
 }
+
+/* ---- Keyboard view: editing ---- */
+
+.muted-note {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.fn-select {
+  font-family: var(--mono);
+  font-size: 12px !important;
+  max-width: 100%;
+}
+
+.binding-fn {
+  gap: 3px;
+}
+
+.binding .icon-btn.remove:hover:not(:disabled) {
+  background: var(--bad-soft);
+  border-color: rgba(255, 107, 107, 0.5);
+  color: var(--bad);
+}
+
+.add-binding {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  border-top: 1px solid var(--line);
+  background: var(--surface-2);
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+
+.add-binding .fn-select {
+  flex: 1;
+  min-width: 220px;
+}
+
+.mod-toggles {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.mod-toggles .chip {
+  padding: 4px 10px;
+}
+
+.mod-toggles kbd {
+  margin-left: 4px;
+  font-size: 12px;
+  padding: 4px 9px;
+}
+
+/* A description, shown on hover */
+.hint {
+  display: inline-grid;
+  place-content: center;
+  width: 18px;
+  height: 18px;
+  flex: none;
+  border-radius: 50%;
+  border: 1px solid var(--line-strong);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: help;
+}
+
+.hint:hover {
+  color: var(--accent-strong);
+  border-color: var(--accent-line);
+}
+
+.hint.none {
+  visibility: hidden;
+}

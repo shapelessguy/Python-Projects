@@ -57,6 +57,7 @@ def get_step(cur_vol, direction):
 
 
 def show_alarm(signal, verbose=False):
+    """Open the alarm timer."""
     subprocess.Popen([TIMER_EXE])
 
 
@@ -160,6 +161,7 @@ def play_voice(voice):
 
 
 def ring_alarm(signal, verbose=False):
+    """Ring the alarm sound."""
     volume = get_relative_volume(0.15)
     duration = 1.5
     fs = 44100
@@ -185,6 +187,7 @@ def get_current_audio_info():
 
 
 def set_volume(signal, verbose=False, volume_level=1):
+    """Set the speakers' volume to volume_level, between 0 and 1."""
     pythoncom.CoInitialize()
     device = AudioUtilities.GetSpeakers()
     volume = device.EndpointVolume
@@ -198,6 +201,7 @@ def set_volume(signal, verbose=False, volume_level=1):
 
 
 def volume_up(signal, verbose=False):
+    """Raise the volume one step."""
     pythoncom.CoInitialize()
     device = AudioUtilities.GetSpeakers()
     volume = device.EndpointVolume
@@ -212,6 +216,7 @@ def volume_up(signal, verbose=False):
 
 
 def volume_down(signal, verbose=False):
+    """Lower the volume one step."""
     pythoncom.CoInitialize()
     device = AudioUtilities.GetSpeakers()
     volume = device.EndpointVolume
@@ -285,10 +290,12 @@ def get_default_output_id():
 
 
 def switch_to_headphones(signal, verbose=False):
+    """Switch the audio output to the headphones (the Devices service's Headphones)."""
     from services.devices.service import switch_to_headphones_
     switch_to_headphones_()
 
 
 def switch_to_speakers(signal, verbose=False):
+    """Switch the audio output to the 5.1 speakers in the bedroom (the Devices service's Speakers)."""
     from services.devices.service import switch_to_speakers_
     switch_to_speakers_()

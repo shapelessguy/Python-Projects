@@ -14,5 +14,127 @@
         "active": true
     },
     "applications": {},
-    "threads": {}
+    "threads": {},
+    "hotkeys": [
+        {
+            "key": 175,
+            "modifiers": 0,
+            "function": "VOLUME_UP"
+        },
+        {
+            "key": 174,
+            "modifiers": 0,
+            "function": "VOLUME_DOWN"
+        },
+        {
+            "key": 96,
+            "modifiers": 0,
+            "function": "ORDER"
+        },
+        {
+            "key": 112,
+            "modifiers": 0,
+            "function": "ORDER"
+        },
+        {
+            "key": 97,
+            "modifiers": 0,
+            "function": "HEADPHONES"
+        },
+        {
+            "key": 99,
+            "modifiers": 0,
+            "function": "SPEAKERS"
+        },
+        {
+            "key": 105,
+            "modifiers": 0,
+            "function": "SNAPSHOT"
+        },
+        {
+            "key": 104,
+            "modifiers": 0,
+            "function": "TURN_ON_MONITORS"
+        },
+        {
+            "key": 98,
+            "modifiers": 0,
+            "function": "SHUTDOWN_MONITORS"
+        },
+        {
+            "key": 109,
+            "modifiers": 0,
+            "function": "SHOW_ALARM"
+        },
+        {
+            "key": 103,
+            "modifiers": 0,
+            "function": "TYPE_PASSWORD"
+        },
+        {
+            "key": 109,
+            "modifiers": 2,
+            "function": "SPECIAL"
+        },
+        {
+            "key": 97,
+            "modifiers": 2,
+            "function": "LIGHTS_ON"
+        },
+        {
+            "key": 98,
+            "modifiers": 2,
+            "function": "LIGHTS_OFF"
+        },
+        {
+            "key": 99,
+            "modifiers": 2,
+            "function": "LIGHTS_AUTO"
+        },
+        {
+            "key": 100,
+            "modifiers": 2,
+            "function": "TOP_RGB"
+        },
+        {
+            "key": 101,
+            "modifiers": 2,
+            "function": "TOP_COL_CHANGE"
+        },
+        {
+            "key": 102,
+            "modifiers": 2,
+            "function": "TOP_HEART"
+        },
+        {
+            "key": 103,
+            "modifiers": 2,
+            "function": "TOP_POWER"
+        },
+        {
+            "key": 104,
+            "modifiers": 2,
+            "function": "TOP_BRIGHT_MINUS"
+        },
+        {
+            "key": 105,
+            "modifiers": 2,
+            "function": "TOP_BRIGHT_PLUS"
+        },
+        {
+            "key": 102,
+            "modifiers": 0,
+            "function": "AUDIO_POWER"
+        },
+        {
+            "key": 102,
+            "modifiers": 3,
+            "function": "TV_POWER"
+        },
+        {
+            "key": 102,
+            "modifiers": 1,
+            "function": "TV_OK"
+        }
+    ]
 }

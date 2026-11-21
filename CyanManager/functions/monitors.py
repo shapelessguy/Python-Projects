@@ -29,6 +29,7 @@ DISCOVER_BY_PROCESS = ""
 
 previous_matches = []
 def get_screens(signal, verbose=False):
+    """The screens connected now, with their position and size."""
     global previous_matches
     try:
         if os.path.exists(TEMP_MONITOR_CONF_PATH):
@@ -121,6 +122,7 @@ def parse_screen_info(info_path):
 
 
 def shutdown_monitors(signal, verbose=False):
+    """Turn off all monitors, with the desk lights."""
     screens = get_screens(signal)
     monitor_names = []
     for s in screens:
@@ -136,6 +138,7 @@ def shutdown_monitors(signal, verbose=False):
 
 
 def turn_on_monitors(signal, verbose=False):
+    """Turn on all monitors, with the desk lights (ceiling light theme, strips, motherboard, mousepad)."""
     screens = get_screens(signal)
     monitor_names = []
     for s in screens:
@@ -285,11 +288,13 @@ def set_primary_screen(signal, screen_spec, icon=None):
 
 
 def switch_to_screen_1(signal, verbose=False):
+    """Make screen 1 the primary display."""
     from services.devices.service import switch_to_screen_1_
     switch_to_screen_1_()
 
 
 def switch_to_screen_2(signal, verbose=False):
+    """Make screen 2 the primary display."""
     from services.devices.service import switch_to_screen_2_
     switch_to_screen_2_()
 
@@ -324,6 +329,7 @@ def get_window_properties(win, screens):
 
 
 def discover_windows(signal, verbose=False, discover_by_win_title=DISCOVER_BY_WIN_TITLE, discover_by_process=DISCOVER_BY_PROCESS):
+    """Print every open window with its process, path and Start menu names, to configure an application."""
     os_windows = find_windows(signal, discover=True)
     screens = get_screens(signal)
     uwp_apps = get_uwp_apps(signal)
@@ -373,6 +379,7 @@ def discover_windows(signal, verbose=False, discover_by_win_title=DISCOVER_BY_WI
 
 
 def get_win_pos(signal, verbose=False):
+    """Where each application's window is now: screen, position, size."""
     screens = get_screens(signal)
     corrispondences = get_corrispondences(signal)
 
@@ -394,6 +401,7 @@ def get_win_pos(signal, verbose=False):
 
 
 def order(signal, verbose=False, only_app_names=()):
+    """Move each placed application's window to its screen, position, size and state."""
     screens = get_screens(signal)
     corrispondences = get_corrispondences(signal, only_app_names)
 
