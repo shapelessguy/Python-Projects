@@ -34,7 +34,8 @@ class ThreadManager():
         self.args = args
         self.to_kill = False
         self.thread = None
-    
+        self.lock = threading.Lock()
+
     def is_alive(self):
         return self.thread and self.thread.is_alive()
     
@@ -208,9 +209,23 @@ class Signal:
                 tm.join()
     
     def restart_thread_managers(self):
+        """Stop every service, and start each one again (if the profile now
+        enables it) as soon as its own thread has ended: one slow to stop
+        (Docling, loading its model) holds back only itself."""
         self.kill_thread_managers()
-        self.join_thread_managers()
-        self.start_thread_managers()
+
+        def restart(tm):
+            tm.join()
+            if not self.is_alive():
+                return
+            saved = {t.name: t for t in self.get_threads()}
+            enabled = saved[tm.name].enabled if tm.name in saved else True
+            with tm.lock:  # two quick profile switches: one restart wins
+                if enabled and not tm.is_alive():
+                    tm.start()
+
+        for tm in list(self.thread_managers.values()):
+            threading.Thread(target=restart, args=(tm,), name=f"restart {tm.name}", daemon=True).start()
     
     def kill(self):
         self.kill_flag = True
