@@ -277,8 +277,10 @@ class Recorder:
                 if self.quotes:
                     append_rows(self.quotes_path(st.isin), QUOTE_FIELDS,
                                 [[now, to_float(row.get("bid")), to_float(row.get("ask")), count]])
-                if count < st.last_id:          # counter reset -> new day started
-                    st.last_id = 0
+                # No reset when the count is below the last id: the feed can
+                # lag the trades endpoint by a few trades, and taking that for
+                # a new day appended the whole day again. The day changes in
+                # start_day.
                 if count > st.last_id and (n := self.pull_trades(st, target=count)):
                     added[st.isin] = n
                 st.last_count = count

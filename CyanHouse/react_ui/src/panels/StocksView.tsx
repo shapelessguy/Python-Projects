@@ -553,6 +553,12 @@ export function StocksView({ pickerSlot }: { pickerSlot: HTMLElement | null }) {
         },
         yaxis: { gridcolor: "#333", domain: [0.27, 1] as [number, number] },
         yaxis2: { gridcolor: "#333", domain: [0, 0.22] as [number, number], showticklabels: false, fixedrange: true },
+        // The close the day's change in the title is reckoned from, dashed
+        // across the whole chart.
+        shapes: s.prev_close ? [{
+          type: "line" as const, xref: "paper" as const, x0: 0, x1: 1, yref: "y" as const,
+          y0: s.prev_close, y1: s.prev_close, line: { color: "#999", width: 1, dash: "dash" as const },
+        }] : [],
       },
     };
   };

@@ -404,6 +404,8 @@ def today_trades(isin, day=None):
         except (KeyError, TypeError, ValueError):
             pass
     out.sort()
+    # A trade written twice (a recorder that fetched the day again) counts once.
+    out = [r for k, r in enumerate(out) if k == 0 or r[0] != out[k - 1][0]]
     for old in [p for p in _csv_cache if p.parent != path.parent]:
         del _csv_cache[old]   # a past day's file
     _csv_cache[path] = (stamp, out)
